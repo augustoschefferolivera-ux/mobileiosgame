@@ -1,0 +1,22 @@
+# Segredos e configurações locais
+.env
+.env.*
+.claude/settings.local.json
+.claude/agent-memory-local/
+production/session-state/*.local.md
+
+# Dependências e builds
+node_modules/
+dist/
+build/
+DerivedData/
+*.xcuserstate
+.godot/
+Library/
+Temp/
+Logs/
+obj/
+
+# Evidências grandes: mantenha PNG/JPG pequenos; vídeos ficam fora do git
+production/evidencias/**/*.mov
+production/evidencias/**/*.mp4
