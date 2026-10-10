@@ -79,7 +79,7 @@ mkdir -p production && printf '%s\n' spritekit > production/engine.txt   # ou re
 bash .claude/skills/montar-loop-de-verificacao/scripts/verify.sh --dry-run
 ```
 
-   Se o `--dry-run` disser que não há verificador para a engine, anote no ADR em "Riscos": a skill `engine-<x>` precisa trazer `scripts/verify.sh` antes da primeira feature.
+   Se o `--dry-run` disser que não há verificador para a engine, anote no ADR em "Riscos": a skill `engine-<x>` precisa trazer seu próprio verify.sh antes da primeira feature.
 
 6. **Peça aceitação explícita.** Mostre o resumo do ADR e pergunte "aceita?". Só então mude `Status` para `Aceito` e registre a data. Atualize a seção "Stack deste projeto" do `CLAUDE.md` do jogo e a linha em `progress.md` ("Decisões recentes").
 
