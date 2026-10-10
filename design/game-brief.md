@@ -1,6 +1,6 @@
 # Brief do Jogo — *Vigília das Cinzas* (*Ashen Vigil*)
 
-> **Status:** rascunho v2 para aprovação (Sessão 1, etapa 1). Revisado por 5 revisores independentes, cada um com um verificador cético; os achados confirmados foram aplicados.
+> **Status:** **aprovado** pelo usuário em 2026-10-10 (Sessão 1, etapa 1), com todas as recomendações da §11 (Q-00 a Q-35). Antes da aprovação, o texto passou por 5 revisores independentes, cada um com um verificador cético.
 > **Fontes:** `design/gdd/00` a `14` e `17` §4; recorte e números de `design/gdd/18-briefing-tecnico.md`, citado como **B**. Os docs 09, 15 e 16 não foram lidos nesta fase.
 > **Precedência:** dentro do recorte do MVP, **B prevalece** sobre o GDD. Onde B é omisso, a regra proposta está na Q-00. Tudo o que não está em B nem no GDD aparece na seção 11 como pergunta ou proposta, nunca como decisão.
 > **Convenção deste documento:** o que vem de B ou do GDD é fato, com a fonte entre parênteses; o que é leitura ou proposta minha está marcado com o número da questão (Q-xx).
@@ -393,7 +393,7 @@ Depois de F-010 (B §5): direção de arte e de áudio (style card e sound bible
 
 ## 11. Questões abertas (preciso da sua decisão)
 
-Cada questão traz minha recomendação e o ponto que ela bloqueia. Nada aqui foi implementado. **Se concordar com todas as recomendações, basta responder "aprovo as recomendações"**, ou citar só as que quer mudar.
+**Decidido (2026-10-10):** o usuário aprovou todas as recomendações das §11.0 a §11.2. Daqui em diante, a coluna "Recomendação" vale como decisão; onde uma recomendação dá duas leituras, vale a marcada como recomendada. Os itens da §11.3 continuam em aberto e serão levados ao usuário, com propostas, antes de cada feature.
 
 ### 11.0 Regra de leitura
 
