@@ -133,4 +133,6 @@ Bibliografia completa: documento 16. Relatórios de pesquisa na íntegra: pasta 
 | 15 | Roadmap de Produção | equipe, fases, marcos, custos |
 | 16 | Referências | bibliografia completa |
 | 17 | Prompt de Roteiro | prompt para o roteirista com toda a estrutura de texto do jogo |
+| 18 | Briefing Técnico | MVP (fatia vertical), números consolidados, features F-001 a F-010 |
+| 19 | Prompt Técnico Inicial | prompt para a primeira sessão de programação |
 | pesquisa/ | Relatórios de pesquisa | 4 relatórios na íntegra |

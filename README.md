@@ -26,6 +26,8 @@
 | 15 | [Roadmap de Produção](docs/15-roadmap-de-producao.md) | Equipe, fases, marcos, orçamento, critérios de pronto |
 | 16 | [Referências](docs/16-referencias.md) | Bibliografia completa |
 | 17 | [Prompt de Roteiro](docs/17-prompt-de-roteiro.md) | Prompt completo para o roteirista: estrutura de todo o texto do jogo, regras e formato de entrega |
+| 18 | [Briefing Técnico](docs/18-briefing-tecnico.md) | Fatia vertical "Primeira Vigília": recorte do MVP, números consolidados, features F-001 a F-010 com critérios de aceite |
+| 19 | [Prompt Técnico Inicial](docs/19-prompt-tecnico-inicial.md) | Prompt pronto para a primeira sessão de programação |
 
 ## Pesquisa
 
