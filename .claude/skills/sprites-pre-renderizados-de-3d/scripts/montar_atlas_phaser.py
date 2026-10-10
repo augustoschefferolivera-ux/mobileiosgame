@@ -11,7 +11,7 @@ Exemplos:
   montar_atlas_phaser.py out/heroi --manifest out/heroi/manifest.json --saida assets/atlas/heroi \
       --max 2048 --padding 2 --extrude 1 --bleed --preview production/evidencias/.../heroi-atlas.png
   montar_atlas_phaser.py out/heroi --pixelizar 4 --paleta 32 --saida assets/atlas/heroi-pixel
-  montar_atlas_phaser.py frames/ --padrao "{nome}_{acao}_d{dir}_f{frame}" --pivot 0.5,0.9 --saida assets/atlas/x
+  montar_atlas_phaser.py frames/ --pivot 0.5,0.9 --saida assets/atlas/x   # PNGs nomeados <nome>_<acao>_d<dir>_f<NN>.png
 
 Saída: <saida>.png + <saida>.json (uma página) ou <saida>-0.png, -1.png... + <saida>.json
 (formato "textures": [...] lido por this.load.multiatlas). Também grava <saida>.anims.json com

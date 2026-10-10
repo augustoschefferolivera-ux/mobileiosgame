@@ -9,20 +9,21 @@ description: >
   cenário pronto (/otimizar-3d-para-mobile) nem para a lógica de geração procedural em
   runtime (/geracao-procedural-com-llm).
 license: MIT
-compatibility: "Claude Code ou Codex; Blender + Blender MCP para montagem; macOS/Xcode para MetalSplatter e RealityKit"
+compatibility: "Claude Code ou Codex; Blender + Blender MCP para montagem; Three.js + Spark para splats na web"
 metadata:
   grupo: 3d
   alvo: [3d, app, web]
   fase: [5, 6]
-argument-hint: "[nome-do-nivel] [mundo|kit-modular|skybox|procedural] [--alvo realitykit|unity|godot|web]"
+argument-hint: "[nome-do-nivel] [mundo|kit-modular|skybox|procedural|pre-render] [--alvo web|sprites]"
 disable-model-invocation: false
 user-invocable: true
 ---
 
 # Ambientes e mundos 3D
 
-Entrega um nível jogável no engine (kit modular ou malha assada + skybox) dentro do orçamento
-de frame, com screenshot no simulador/dispositivo e frame time medido.
+Entrega um nível jogável (kit modular ou malha assada + skybox em Three.js, ou peças
+pré-renderizadas para o tilemap do Phaser) dentro do orçamento de frame, com screenshot no
+navegador e fps medido.
 
 ## Quando usar / quando não usar
 
@@ -39,9 +40,9 @@ de frame, com screenshot no simulador/dispositivo e frame time medido.
 - Para mundos gerados: conta **World Labs Marble** (GA 12/11/2025; tiers do grátis a
   US$ 95/mês "Max" [secundário, confirmar]; **licença dos mundos gerados não lida** — confirme
   antes de usar comercialmente).
-- Splats (opcional, arriscado): **MetalSplatter** (MIT, Swift/Metal, iOS/macOS/visionOS; PLY,
-  SPZ, .splat) ou **Spark** (World Labs, MIT, three.js, mobile web); formato **SPZ** (Niantic,
-  MIT, ~10× menor que PLY).
+- Splats (opcional, arriscado): **Spark** 2.3.1 (World Labs, MIT, three.js ≥ 0.180; PLY/SPZ/
+  SPLAT/KSPLAT/SOG; "renders fast on low-powered mobile devices" — README); formato **SPZ**
+  (Niantic, MIT, ~10× menor que PLY). MetalSplatter (MIT, Swift/Metal) só para app nativo com ADR.
 - Modelo de imagem do projeto (`gpt-image-1.5`, Nano Banana Pro — rotas de `/gerar-sprites-2d`
   e `/cenarios-e-tilesets`) para panoramas/skybox; `verificar_tiling.py` (em
   `.claude/skills/materiais-e-texturas-pbr/scripts/`; `--eixo horizontal` para panoramas).
@@ -54,7 +55,9 @@ de frame, com screenshot no simulador/dispositivo e frame time medido.
   interesse, fluxo do jogador, hora do dia/clima (style card de `/direcao-de-arte-e-style-card`).
 - Orçamento por frame (teto Apple ≤100K polígonos no device mais antigo; 1 conjunto 2048² por
   asset; inferência do relatório: cenário modular 2–10K tris por peça, atlas 2048² por kit).
-- Engine e tipo de iluminação (assada vs dinâmica; mobile prefere assada).
+- Destino: **Three.js** (luz assada; cena leve) ou **cenário 2D pré-renderizado** (peças/tiles
+  isométricos do kit renderizados em sprites por `/sprites-pre-renderizados-de-3d` e montados
+  em `/cenarios-e-tilesets`).
 
 ## Rotas (detalhes e licenças em `references/mundos-e-splats.md`)
 
@@ -62,7 +65,8 @@ de frame, com screenshot no simulador/dispositivo e frame time medido.
 |---|---|---|---|
 | **A. Kit modular + montagem no Blender** (padrão) | quase sempre; nível autoral e leve | peças GLB (`/gerar-ativos-3d` + Poly Haven/Poly Pizza) montadas em `.blend` → GLB/USDZ | baixo; licenças CC0/CC-BY controladas |
 | **B. Mundo gerado → malha → bake** | cenário de fundo, vista panorâmica, protótipo rápido | Marble exporta **malha** (ou splats); Blender decima/assa; engine recebe GLB | médio: malha densa, licença do Marble a confirmar |
-| **C. Splats no iPhone** | demos, fundos estáticos, AR | PLY/SPZ via MetalSplatter (nativo) ou Spark (web) | alto: UnityGaussianSplatting "may or may not work" em mobile; sem colisão; memória |
+| **C. Splats na web** | demos, fundos estáticos | PLY/SPZ via Spark (`SplatMesh`, three.js) | alto: sem colisão; memória no Safari; proveniência do PLY (treino 3DGS da INRIA é não comercial) |
+| **F. Kit pré-renderizado (Phaser)** | jogo 2D isométrico/top-down com cenário "3D" | peças do kit (A) → `/sprites-pre-renderizados-de-3d` (`--acoes static`, mesmo `--ppm` dos personagens, elevação 30°/45°) → tiles/props do tilemap | baixo; zero custo de GPU 3D no jogo |
 | **D. Skybox/HDRI** | sempre, junto de A ou B | HDRI CC0 (Poly Haven) ou panorama 2:1 gerado por IA → cubemap | baixo; checar costura |
 | **E. Nível procedural** | muitos níveis/arenas, roguelike | parâmetros JSON validados → gerador determinístico monta o kit | baixo se o LLM só emite parâmetros |
 
@@ -82,8 +86,10 @@ de frame, com screenshot no simulador/dispositivo e frame time medido.
      separe chão/paredes/props em objetos, remova geometria invisível, decime
      (`/blender-automatizado` → `bpy_cleanup_template.py --decimate 0.25,0.1`) e asse luz/AO
      em textura (`--bake all`).
-   - Rota C: converta PLY→SPZ, teste em MetalSplatter no device real; se o frame time não
-     fechar, volte para B.
+   - Rota C: converta PLY→SPZ (`npm run assets:compress` do Spark), teste `SplatMesh` no Safari
+     do iPhone real; se o fps não fechar, volte para B.
+   - Rota F: renderize cada peça com o mesmo `--ppm`/elevação dos personagens e monte o
+     tilemap em `/cenarios-e-tilesets`.
 4. **Skybox/HDRI**: Poly Haven HDRI (1k–2k; 4k só se visível) via `import_asset`, ou panorama
    equiretangular 2:1 gerado por IA → `verificar_tiling.py --eixo horizontal` → cubemap no
    engine. Sol/sombra do skybox devem bater com a luz assada.
@@ -91,16 +97,18 @@ de frame, com screenshot no simulador/dispositivo e frame time medido.
    nomes previsíveis (`cen-<nivel>-<peca>-01`), **bake de iluminação/AO** em atlas por kit,
    colisores simples (caixas/cápsulas; nenhum gerador cria colisão — modele à mão), exporte
    GLB por kit com `use_selection` e `export_apply`.
-6. **Otimizar e importar**: cada GLB passa por `/otimizar-3d-para-mobile` (LODs, atlas ≤2048²,
-   KTX2 para Unity/web, PNG para USDZ). No engine: instancie (GPU instancing para peças
-   repetidas; gltfpack `-mi`), culling, luz assada, um skybox.
+6. **Otimizar e importar**: cada GLB passa por `/otimizar-3d-para-mobile --target web` (LODs,
+   atlas ≤2048², KTX2 + meshopt). No three.js: `InstancedMesh`/`EXT_mesh_gpu_instancing`
+   (gltfpack `-mi`) para peças repetidas, frustum culling (padrão), luz assada
+   (`MeshBasicMaterial`/`MeshLambertMaterial` com lightmap), um skybox (`scene.background`
+   cubemap ≤1024 por face).
 7. **Procedural (rota E)**: defina um **JSON Schema** de parâmetros do nível (tamanho, salas,
    densidade de props, seed, bioma) que o LLM preenche; o gerador determinístico monta o kit
    e **valida** (conectividade, spawn alcançável, orçamento de tris por frame). A geração em
    runtime no iPhone (Foundation Models `@Generable` → parâmetros) é da skill
    `geracao-procedural-com-llm`; aqui você entrega o kit, o schema e o validador offline.
-8. **Rodar e medir**: build, percorrer o nível no simulador/dispositivo, screenshots dos
-   pontos de interesse, frame time no device, memória de texturas. Evidência em
+8. **Rodar e medir**: `verify.sh` (Playwright WebKit: screenshots dos pontos de interesse,
+   `renderer.info` em `state.json`), depois iPhone real (fps, memória). Evidência em
    `production/evidencias/<data>-<nivel>/`.
 
 ## Critério de pronto e evidência
@@ -108,9 +116,9 @@ de frame, com screenshot no simulador/dispositivo e frame time medido.
 - `assets/3d/levels/<nivel>/` com GLB(s) do kit otimizados, skybox/HDRI, colisores, `.blend`
   fonte e `PROVENANCE.md` (origem e licença de **cada** peça; texto de atribuição CC-BY).
 - `design/levels/<nivel>.md` + (rota E) `schema-nivel.json` e validador com teste rodando.
-- Evidência: screenshots do blocking, do nível montado no Blender e **rodando no
-  simulador/dispositivo**; frame time medido; contagem de tris por frame (`inspecionar_glb.py`
-  nos GLBs instanciados) ≤ orçamento. Sem medição no device = não pronto.
+- Evidência: screenshots do blocking, do nível montado no Blender e **rodando no navegador**
+  (Playwright) + nota do iPhone real; fps medido; tris por frame
+  (`renderer.info.render.triangles`) ≤ orçamento. Sem medição no iPhone por milestone = não pronto.
 
 ## Armadilhas conhecidas
 
@@ -134,16 +142,27 @@ de frame, com screenshot no simulador/dispositivo e frame time medido.
 - **Ambientes pesados** são o caso em que agentes mais falham (relatório: "escopo errado para
   IA: 3D pesado"); prefira kits modulares pequenos e câmera controlada.
 
-## Exportar para mobile
+## Exportar para web
 
-GLB por kit (ou USDZ via Reality Converter para RealityKit), peças instanciadas, LODs
-0,5/0,25 nas peças grandes, **um atlas ≤2048² por kit** (KTX2 UASTC em Unity/web; PNG→ASTC em
-USDZ), luz/AO assadas, skybox como cubemap ≤1024 por face (ou HDRI 2k), colisores separados
-sem textura, splats só em SPZ e só após teste no device. Registre KB por kit e tris por frame.
-**Licença de saída**: peças próprias seguem o gerador (`/gerar-ativos-3d`); Poly Haven CC0 (sem
-atribuição; mantenha o crédito à fonte nas notas); Poly Pizza CC-BY exige crédito no jogo;
-Marble: **confirmar termos**; Hunyuan World: não usar; MetalSplatter/Spark/SPZ são MIT (código),
-não licenciam o conteúdo do splat.
+GLB por kit com KTX2 (UASTC) + meshopt, peças instanciadas (`EXT_mesh_gpu_instancing`), LODs
+0,5/0,25 nas peças grandes, **um atlas ≤2048² por kit**, luz/AO assadas, skybox como cubemap
+≤1024 por face (ou HDRI 2k), colisores separados sem textura (ou caixas no código), splats só
+em SPZ via Spark e só após teste no iPhone. Orçamento por cena: <500K tris visíveis, <100 draw
+calls, <256 MB de texturas descomprimidas (inferência). Registre KB por kit e tris por frame.
+USDZ só com ADR nativo. **Licença de saída**: peças próprias seguem o gerador
+(`/gerar-ativos-3d`); Poly Haven CC0 (sem atribuição; ToS da API lido); Poly Pizza CC-BY exige
+crédito no jogo; Marble: **confirmar termos**; Hunyuan World: não usar; Spark/SPZ são MIT
+(código), não licenciam o conteúdo do splat.
+
+## Pré-render para Phaser
+
+Cenário 2D "com cara de 3D": monte o kit (rota A) no Blender, renderize cada peça com
+`/sprites-pre-renderizados-de-3d` usando **o mesmo `--ppm`, elevação e azimute dos
+personagens** (2 : 1 isométrico = 30°/45°; top-down 3/4 = 45–60°/0°), `--acoes static`,
+`--direcoes 1` (tiles) ou `4` (props com frente), luz fixa no mundo (`--luz-fixa mundo`) para o
+sol bater em todas as peças; depois `/cenarios-e-tilesets` monta o tilemap (Tiled/Sprite
+Fusion → Phaser; suporte a tilemap isométrico no Phaser 4 [confirmar]). Fundo distante: um
+render panorâmico do Blender em camadas para parallax. Não há custo de GPU 3D no jogo.
 
 ## Fontes
 
@@ -153,7 +172,8 @@ não licenciam o conteúdo do splat.
 - Genie 3: https://blog.google/innovation-and-ai/models-and-research/google-deepmind/project-genie/ ; https://www.tweaktown.com/news/110471/genie-3s-ai-generated-worlds-fall-apart-after-a-few-minutes-google-admits/index.html
 - HunyuanWorld-1.0 e licença: https://github.com/Tencent-Hunyuan/HunyuanWorld-1.0 ; https://raw.githubusercontent.com/Tencent-Hunyuan/HunyuanWorld-1.0/main/LICENSE ; HY-World 2.0: https://github.com/Tencent-Hunyuan/HY-World-2.0 ; https://raw.githubusercontent.com/Tencent-Hunyuan/HY-World-2.0/main/License.txt
 - FlashWorld: https://github.com/imlixinyang/FlashWorld
-- Splats: https://github.com/aras-p/UnityGaussianSplatting ; https://github.com/scier/MetalSplatter ; https://github.com/nianticlabs/spz ; Mobile-GS: https://mlanthology.org/iclr/2026/du2026iclr-mobilegs/
+- Splats: https://github.com/aras-p/UnityGaussianSplatting ; https://github.com/scier/MetalSplatter ; https://github.com/nianticlabs/spz ; Mobile-GS: https://mlanthology.org/iclr/2026/du2026iclr-mobilegs/ ; Spark 2.3.1 (npm, lido 10/10/2026): https://registry.npmjs.org/@sparkjsdev/spark/latest
+- Pré-render de cenário: `.claude/skills/sprites-pre-renderizados-de-3d/references/direcoes-e-camera.md`; `playbook/10-praticas-de-3d-para-jogo-web.md`
 - Blender MCP (Poly Haven/Poly Pizza): https://github.com/ahujasid/blender-mcp
 - Orçamento Apple: https://developer.apple.com/forums/thread/693867
 - PCG com LLM (parâmetros estruturados + validadores): https://arxiv.org/html/2604.25482 ; https://arxiv.org/html/2508.18533v1 ; https://arxiv.org/pdf/2503.21474

@@ -4,8 +4,9 @@ description: >
   Obtém, corrige e empacota materiais PBR e texturas para jogo mobile: aproveita o PBR dos
   geradores (Tripo, Meshy 7, TRELLIS.2), texturiza malhas sem textura (MV-Adapter, Material
   Anything), gera texturas sem costura com modelos de imagem e verifica o tiling, monta
-  atlas, comprime (KTX2/ASTC, mipmaps), aplica decals e escolhe shaders leves (URP Simple
-  Lit, Godot Mobile). Use sempre que o usuário pedir textura, material, "pintar o modelo",
+  atlas, comprime (KTX2 → ASTC/PVRTC no iPhone, mipmaps), aplica decals e escolhe materiais
+  leves do three.js (Lambert/Phong/Toon) ou o look toon do pré-render. Use sempre que o
+  usuário pedir textura, material, "pintar o modelo",
   tileable, atlas, normal map, decal ou shader para o jogo. Não use para gerar a malha
   (/gerar-ativos-3d), para LODs (/otimizar-3d-para-mobile) nem para sprites/UI 2D.
 license: MIT
@@ -23,7 +24,7 @@ user-invocable: true
 
 Entrega o conjunto PBR (base color, normal, metallic-roughness, opcional occlusion/emissive)
 de um asset ou uma textura tileable verificada, dentro do orçamento de memória, aplicada e
-vista no engine (screenshot no simulador/dispositivo).
+vista no jogo (screenshot do Playwright/iPhone no Three.js) ou no render de sprites (Phaser).
 
 ## Quando usar / quando não usar
 
@@ -51,7 +52,9 @@ vista no engine (screenshot no simulador/dispositivo).
 ## Entradas
 
 - Asset (GLB) + spec + style card (paleta, nível de desgaste/realismo, escala de detalhe).
-- Orçamento de textura: teto Apple de **um conjunto 2048² por asset** (AR Quick Look); por
+- Orçamento de textura: teto de **um conjunto 2048² por asset** (regra da Apple para AR Quick
+  Look, reutilizada para o Safari por falta de número oficial; no pré-render só o atlas de
+  sprites conta); por
   categoria (inferência do relatório): herói 2048², inimigo 1024–2048², prop 512–1024², kit de
   cenário um atlas 2048². Memória estimada (aritmética dos formatos, não medição):
 
@@ -90,21 +93,26 @@ Multiplique pelo número de mapas (base color, normal, MR, AO…) por asset e so
    com margem 0,02 + bake; `gltf-transform optimize --palette` funde materiais de cor sólida).
    Nenhuma ferramenta de IA faz atlas.
 6. **Compressão e mipmaps**: `gltf-transform resize --width 2048 --height 2048` → `uastc`
-   (normais, hero) ou `etc1s` (albedo de props, menor) → no engine, importar como **ASTC** no
-   iOS (Unity: compressão por plataforma; Godot: opção VRAM compressed/ASTC no import
-   [confirmar na versão]); mipmaps ligados; normal map marcado como "Normal"/Non-Color;
-   USDZ: PNG/JPEG e ASTC na importação da Apple. Meça MB com `inspecionar_glb.py`.
+   (normais, hero) ou `etc1s` (albedo de props, menor) → KTX2 dentro do GLB; no three.js o
+   `KTX2Loader.detectSupport(renderer)` transcodifica para **ASTC/PVRTC/ETC2** conforme a
+   extensão WebGL do iPhone (ou `hasFeature` no WebGPU), sem descomprimir na CPU; mipmaps
+   ligados (`--mipmaps`); normal map em espaço linear (`colorSpace = NoColorSpace`). Sprites: a
+   textura fica no Blender — o que entra no jogo é o atlas PNG. Unity/Godot/USDZ só com ADR
+   (ASTC na importação). Meça MB com `inspecionar_glb.py`.
 7. **Decals** (sujeira, logos do próprio jogo, dano): PNG com alfa (`gpt-image-1.5`
-   `background: "transparent"`) → Unity URP **Decal Projector** / Godot 4 **Decal** node /
-   quad com `alphaMode: BLEND` em RealityKit; limite a quantidade (overdraw).
-8. **Shader mobile** (`references/texturas-e-compressao.md`): Unity URP **Simple Lit** (Blinn-
-   Phong, barato) para props e cenário, **Lit** só em hero/metais, **Baked Lit** para cenário
-   assado; Godot: renderer **Mobile** no device, `StandardMaterial3D` sem features caras
-   (refração, SSS, clearcoat); RealityKit: `PhysicallyBasedMaterial` com mapas ≤2048
-   [confirmar API]. Evite extensões `KHR_materials_*` avançadas (transmission, volume,
-   iridescence): suporte varia e custa.
-9. **Ver no engine**: aplique, rode no simulador/dispositivo, screenshot sob a iluminação do
-   jogo, compare com o style card; meça memória de texturas. Evidência em
+   `background: "transparent"`) → no three.js, quad com `MeshBasicMaterial({ map, transparent:
+   true, depthWrite: false, polygonOffset: true })` apoiado na superfície, ou `DecalGeometry`
+   de `three/addons/geometries/DecalGeometry.js` (existe na r186); no pré-render, pinte no
+   Blender. Limite a quantidade (overdraw).
+8. **Material leve** (three.js r186): `MeshLambertMaterial`/`MeshPhongMaterial` para props e
+   cenário, `MeshStandardMaterial` só em hero/metais, `MeshBasicMaterial` + lightmap para
+   cenário assado, `MeshToonMaterial` (`gradientMap`) para look chapado que esconde malha e
+   textura de gerador; evite `MeshPhysicalMaterial` e extensões `KHR_materials_*` avançadas
+   (transmission, volume, iridescence — o GLTFLoader as lê, mas custam fill-rate no iPhone).
+   Pré-render: toon por Shader to RGB no Blender (`/sprites-pre-renderizados-de-3d --toon`).
+   Unity/Godot (`references/texturas-e-compressao.md`) só com ADR.
+9. **Ver no jogo**: aplique, rode `verify.sh` (Playwright) e o Safari do iPhone, screenshot sob
+   a iluminação do jogo, compare com o style card; some os KTX2 carregados. Evidência em
    `production/evidencias/<data>-<asset>-material/`.
 
 ## Critério de pronto e evidência
@@ -113,7 +121,7 @@ Multiplique pelo número de mapas (base color, normal, MR, AO…) por asset e so
   `<asset>-normal`, `<asset>-mr` (metallic no B, roughness no G — padrão glTF), tamanhos ≤
   orçamento; GLB atualizado passa em `inspecionar_glb.py --max-texture 2048`.
 - Texturas tileable: saída do `verificar_tiling.py` (JSON) + `*-2x2.png` inspecionado.
-- Screenshot do asset no simulador/dispositivo com a iluminação do jogo; total de MB de
+- Screenshot do asset no navegador (Playwright/iPhone) com a iluminação do jogo; total de MB de
   texturas da cena registrado; `PROVENANCE.md` com modelo de imagem/versão/prompt/seed.
 
 ## Armadilhas conhecidas
@@ -134,17 +142,27 @@ Multiplique pelo número de mapas (base color, normal, MR, AO…) por asset e so
 - **Sem fontes 2025–26** sobre texto→PBR tileable (MatFuse/Material Palette) nem sobre decals
   por IA; as rotas acima usam modelos de imagem genéricos + verificação.
 
-## Exportar para mobile
+## Exportar para web
 
 Conjunto por asset: base color (sRGB), normal (linear, +Y), metallic-roughness empacotado
 (B=metallic, G=roughness), opcional occlusion/emissive; ≤2048² hero, ≤1024² prop, um atlas
-por kit; KTX2 UASTC/ETC1S para Unity/web (`gltf-transform uastc|etc1s`, gltfpack nativo `-tc`),
-PNG/JPEG → ASTC na importação para USDZ/RealityKit; mipmaps ligados; MB por asset no
-relatório. Shader: URP Simple Lit/Baked Lit, Godot Mobile, RealityKit PBR básico.
+por kit; KTX2 UASTC (normais/hero) ou ETC1S (albedo) dentro do GLB (`gltf-transform
+uastc|etc1s`, gltfpack nativo `-tc`), lido por `KTX2Loader` → ASTC/PVRTC/ETC2 na GPU do iPhone;
+mipmaps ligados; MB por asset no relatório (2048² ETC1S ≈ 0,5–1 MB em disco; na GPU ASTC 4×4 =
+4 MB). Material: Lambert/Phong/Toon; Standard só em hero. PNG/JPEG → USDZ só com ADR nativo.
 **Licença de saída**: PBR do gerador segue o plano (Tripo/Meshy pagos; TRELLIS.2 MIT);
 texturas geradas por modelo de imagem seguem os termos desse modelo (confira na skill de arte
 2D); Poly Haven CC0; MV-Adapter/Material Anything: código aberto, saída sua — registre tudo
 no `PROVENANCE.md`.
+
+## Pré-render para Phaser
+
+No pré-render a textura só precisa ficar boa **sob a câmera e a luz fixas do render**: albedo
+sem luz assada (sombras pintadas não giram com as 8 direções), contraste moderado, sem
+metallic "sujo" (brilha errado em toon). Com `--toon` o `render_sprites.py` liga `Diffuse →
+Shader to RGB → Color Ramp × Base Color`, então roughness/metallic/normal são ignorados — gaste
+créditos só no albedo. Texturas tileable servem para tiles isométricos renderizados do Blender
+com o mesmo `--ppm` dos personagens; o `verificar_tiling.py` continua valendo antes do render.
 
 ## Fontes
 
@@ -160,3 +178,4 @@ no `PROVENANCE.md`.
 - Apple (1 conjunto 2048²): https://developer.apple.com/forums/thread/693867
 - ASTC no iOS (inferência a partir de Unity/Spine; sem confirmação Apple): `research_notes/.../arte_2d_sprites_ui.md` e https://esotericsoftware.com/forum/d/9684
 - Blender MCP (Poly Haven texturas CC0): https://github.com/ahujasid/blender-mcp
+- three.js r186 (código lido 10/10/2026): `src/materials/MeshToonMaterial.js` (`gradientMap`), `examples/jsm/loaders/KTX2Loader.js` (`detectSupport`), `examples/jsm/geometries/DecalGeometry.js` — https://github.com/mrdoob/three.js

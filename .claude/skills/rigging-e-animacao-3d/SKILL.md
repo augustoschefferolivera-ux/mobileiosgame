@@ -4,7 +4,8 @@ description: >
   Coloca esqueleto, pesos de pele e animações em um personagem ou criatura 3D gerado por IA
   (auto-rig do Tripo/Meshy, UniRig → SkinTokens, Puppeteer, Mixamo), obtém movimento por
   vídeo/texto (Rokoko Create, DeepMotion, Cascadeur) ou áudio (Audio2Face-3D, bake de
-  blendshapes), faz retarget no engine e comprime a animação para iPhone. Use sempre que um
+  blendshapes), faz retarget (Blender ou SkeletonUtils do three.js) e comprime a animação
+  para a web — ou entrega clipes nomeados para /sprites-pre-renderizados-de-3d. Use sempre que um
   modelo precisar andar, atacar, falar ou ser animado, mesmo que o usuário só diga "dá vida
   ao personagem". Não use para gerar a malha (/gerar-ativos-3d), reduzir polígonos
   (/otimizar-3d-para-mobile) nem para animação 2D/Spine (/animar-sprites).
@@ -21,9 +22,9 @@ user-invocable: true
 
 # Rigging e animação 3D
 
-Entrega um personagem rigado (FBX/GLB com esqueleto e pesos) com clipes nomeados
-(`idle`, `walk`, …) tocando **no engine, no simulador/dispositivo**, com screenshot e duração
-de cada clipe medida.
+Entrega um personagem rigado (GLB/FBX com esqueleto e pesos) com clipes nomeados
+(`idle`, `walk`, …) tocando **no jogo (Three.js, via Playwright/iPhone) ou renderizados em
+sprites (Phaser)**, com screenshot e duração de cada clipe medida.
 
 ## Quando usar / quando não usar
 
@@ -56,7 +57,9 @@ Comandos de instalação: siga os READMEs (links em Fontes); fixe commit/versão
 
 - Malha limpa (pós-retopo) em pose T/A, escala em metros, origem nos pés, eixos corretos.
 - Lista de clipes do brief (`idle`, `walk`, `run`, `attack`, `hit`, `death`, …) com duração alvo.
-- Engine (`CLAUDE.md`): Unity (Humanoid/Generic), Godot 4 (`Skeleton3D`), RealityKit (USDZ).
+- Destino (`CLAUDE.md`/ADR): **sprites pré-renderizados** (Phaser: clipes curtos em loop,
+  qualquer esqueleto) ou **Three.js** (`AnimationMixer` com os clipes do GLB; retarget por
+  `SkeletonUtils.retargetClip`). Unity/Godot/USDZ só com ADR.
 - Orçamento de animação: Apple recomenda **≤10 s por clipe** para AR Quick Look; ossos e
   influências por vértice conforme `references/retarget-e-compressao.md`.
 
@@ -79,29 +82,32 @@ Comandos de instalação: siga os READMEs (links em Fontes); fixe commit/versão
    manual SMPL→rig no Blender; (d) auto-animação do Tripo/Meshy. Corte cada clipe ao essencial
    (≤10 s), faça loop limpo em `idle`/`walk`.
 5. **Retarget** (`references/retarget-e-compressao.md`): no Blender (mesmo esqueleto para
-   todos os personagens quando possível — evita retarget em runtime) ou no engine (Unity
-   Humanoid Avatar; Godot `BoneMap`/`SkeletonProfileHumanoid` no import; RealityKit: anime o
-   esqueleto final antes de exportar — retarget automático não documentado nas fontes).
+   todos os personagens quando possível — evita retarget em runtime) ou, no three.js,
+   `SkeletonUtils.retargetClip(alvo, fonte, clip, opcoes)` de
+   `three/addons/utils/SkeletonUtils.js` (existe na r186; mapeamento de ossos a validar no seu
+   rig). Unity/Godot só com ADR (Humanoid Avatar; `BoneMap`/`SkeletonProfileHumanoid`).
 6. **Facial** (se houver fala): Audio2Face-3D offline em GPU NVIDIA (Maya/UE5 plug-in ou
    SDK) → exporte **curvas de blendshape**/joints → bake no GLB/USDZ como morph targets +
    animação. Compatibilidade com os 52 blendshapes do ARKit **não declarada** pela NVIDIA —
    mapeie à mão se o personagem usar esse padrão.
-7. **Exportar e comprimir**: GLB/FBX com esqueleto, pesos e clipes nomeados; `gltfpack -af 30`
-   (reamostra a 30 Hz; `-af 24` para mobile mais leve) ou `gltf-transform resample`; no
-   engine, compressão de animação do importador (Unity: Keyframe Reduction/Optimal; Godot:
-   opção de compressão no import [confirmar nome exato]). Orçamento de ossos/influências na
-   referência.
-8. **Rodar no engine**: tocar cada clipe no simulador/dispositivo, screenshot por clipe,
-   verificar transições e loop; medir frame time com o personagem animado (regra Mobile
-   primeiro). Evidência em `production/evidencias/<data>-<asset>-rig/`.
+7. **Exportar e comprimir**: GLB com esqueleto, pesos e clipes nomeados; para a web
+   `gltfpack -af 30 -c` (reamostra a 30 Hz; `-af 24` mais leve; `-c` meshopt) ou
+   `gltf-transform resample`; o three.js toca os clipes com `AnimationMixer`. Para sprites,
+   nada disso: `render_sprites.py` amostra N frames por clipe. Orçamento de ossos/influências
+   na referência.
+8. **Rodar**: Three.js — tocar cada clipe (`verify.sh` + iPhone real), screenshot por clipe,
+   transições e loop, fps com o personagem animado. Sprites — render de teste 1 direção ×
+   1 frame por clipe em `/sprites-pre-renderizados-de-3d`. Evidência em
+   `production/evidencias/<data>-<asset>-rig/`.
 
 ## Critério de pronto e evidência
 
 - `assets/3d/rig/<asset>/<asset>-rig.glb` (ou `.fbx`) com esqueleto, pesos e clipes
   nomeados; `inspecionar_glb.py` mostra `esqueletos ≥1`, `animacoes = N`, duração ≤10 s cada
   (`--max-anim-seconds 10`).
-- Screenshots de pose de teste (ombro/quadril 60°) e de cada clipe rodando no engine;
-  frame time medido no dispositivo com o personagem animado.
+- Screenshots de pose de teste (ombro/quadril 60°) e de cada clipe rodando no jogo (Three.js)
+  ou do render de teste (sprites); fps medido no iPhone com o personagem animado quando o
+  destino é Three.js.
 - `PROVENANCE.md`: ferramenta de rig (versão/commit), origem e licença de cada clipe
   (CC0/Mixamo/SaaS/gerado), edição humana de pesos.
 
@@ -109,7 +115,9 @@ Comandos de instalação: siga os READMEs (links em Fontes); fixe commit/versão
 
 - **Mixamo em "maintenance mode"**: só bípedes; falhas de autenticação persistentes relatadas
   em mai/2026 [secundário]; sem anúncio de desligamento. Trate como dependência frágil —
-  arquive tudo que baixar.
+  arquive tudo que baixar. FAQ oficial (via busca, página não aberta) [secundário]:
+  royalty-free para uso comercial incluindo jogos; indisponível para Enterprise/Federated ID e
+  para contas com país China; não redistribua os arquivos brutos como asset pack.
 - **UniRig**: checkpoint publicado é o treinado em Articulation-XL2.0; Rig-XL/VRoid "planned";
   predição de rigidez "coming soon"; skinning piora se o esqueleto previsto omitir cauda/asas.
 - **SkinTokens** ≥14 GB VRAM; **Puppeteer** fixa `bpy==4.2.0` para FBX (ambiente separado).
@@ -126,17 +134,29 @@ Comandos de instalação: siga os READMEs (links em Fontes); fixe commit/versão
 - Sem benchmark independente de qualidade de rig (Tripo vs Meshy vs UniRig vs AccuRIG vs
   Mixamo): teste com o seu personagem.
 
-## Exportar para mobile
+## Exportar para web
 
-GLB (Unity/Godot/web) ou USDZ (RealityKit) com **um esqueleto compartilhado por família de
-personagens**, **≤4 influências por vértice** (um conjunto `JOINTS_0/WEIGHTS_0`), clipes
-≤10 s, reamostrados a 24–30 Hz (`gltfpack -af`), compressão do importador ligada, LODs
-animados validados. Tamanho em KB por clipe no relatório. Carregamento via Addressables
-(Unity) / `AnimationPlayer` + `AnimationLibrary` (Godot) / `AnimationResource` no USDZ
-(RealityKit) [confirmar nomes na doc da versão]. **Licença de saída**: o rig gerado por
-UniRig/SkinTokens (MIT) e Puppeteer (Apache-2.0) é seu; auto-rig Tripo/Meshy segue o plano
-pago; clipes Mixamo seguem os termos da Adobe; Quaternius é CC0; Audio2Face-3D: SDK MIT,
-modelos sob NVIDIA Open Model License (leia antes de distribuir curvas geradas).
+GLB com **um esqueleto compartilhado por família de personagens**, **≤4 influências por
+vértice** (um conjunto `JOINTS_0/WEIGHTS_0`), clipes ≤10 s, reamostrados a 24–30 Hz
+(`gltfpack -af`), meshopt (`-c`) e KTX2 pela `/otimizar-3d-para-mobile --target web`, LODs
+animados validados (o `simplify` preserva `JOINTS/WEIGHTS`). Tamanho em KB por clipe no
+relatório. Carregamento no three.js: `GLTFLoader` → `gltf.animations` → `AnimationMixer`
+(`clipAction(clip).play()`); retarget por `SkeletonUtils.retargetClip`. USDZ/FBX só com ADR.
+**Licença de saída**: o rig gerado por UniRig/SkinTokens (MIT) e Puppeteer (Apache-2.0) é
+seu; auto-rig Tripo/Meshy segue o plano pago; clipes Mixamo seguem os termos da Adobe;
+Quaternius é CC0; Audio2Face-3D: SDK MIT, modelos sob NVIDIA Open Model License (leia antes
+de distribuir curvas geradas).
+
+## Pré-render para Phaser
+
+Para sprites, exporte o GLB com os clipes **nomeados exatamente como as ações do jogo**
+(`idle`, `walk`, `attack`, `hit`, `death`); o importador glTF do Blender cria uma NLA track por
+clipe com esse nome e `render_sprites.py --acoes idle,walk` as encontra. Clipes curtos, em loop
+limpo (`walk` 0,6–1 s), pose "in place" (sem deslocamento de raiz, senão o personagem sai do
+enquadramento), mesmo esqueleto por família para o ritmo bater entre personagens. Rig de
+Mixamo (FBX) → monte um `.blend` com as actions renomeadas (seção 4 de
+`.claude/skills/sprites-pre-renderizados-de-3d/references/pipeline-blender.md`). Facial e
+blendshapes só importam se a câmera for próxima (lateral/close-up).
 
 ## Fontes
 
@@ -152,3 +172,6 @@ modelos sob NVIDIA Open Model License (leia antes de distribuir curvas geradas).
 - Tripo vs Meshy rigging (páginas de fornecedor): https://www.tripo3d.ai/vi/compare/tripo-vs-meshy ; https://www.meshy.ai/de/compare
 - Orçamento Apple (≤10 s animação): https://developer.apple.com/forums/thread/693867
 - gltfpack `-af`: https://github.com/zeux/meshoptimizer/blob/master/gltf/README.md ; glTF-Transform `resample`: https://github.com/donmccurdy/glTF-Transform
+- three.js r186 (código lido 10/10/2026): `examples/jsm/utils/SkeletonUtils.js` (`retarget`, `retargetClip`, `clone`), `src/animation/AnimationMixer.js` — https://github.com/mrdoob/three.js
+- Mixamo FAQ (oficial; via busca) [secundário]: https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html
+- Pré-render: `.claude/skills/sprites-pre-renderizados-de-3d/SKILL.md`; importador glTF (NLA por clipe): https://github.com/KhronosGroup/glTF-Blender-IO/blob/main/addons/io_scene_gltf2/blender/imp/animation_utils.py

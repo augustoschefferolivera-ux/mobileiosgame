@@ -4,12 +4,13 @@ description: >
   Opera o Blender por agente: instala e usa o Blender MCP (mcp-for-blender) para limpar,
   retopologizar, fazer UV, bake e exportar GLB/FBX de assets gerados por IA, inspecionar
   cenas (look, get_scene_info) e importar assets CC0 (Poly Haven) ou gerar via Tripo/Rodin;
-  inclui script headless `blender -b --python` para lotes. Use sempre que uma tarefa 3D
+  inclui script headless `blender -b --python` para lotes de limpeza/LOD/bake (o render de
+  sprites em lote é de /sprites-pre-renderizados-de-3d). Use sempre que uma tarefa 3D
   precisar de Blender, mesmo que o usuário só diga "limpa essa malha", "junta num atlas",
   "exporta FBX" ou "monta a cena". Não use para decidir LODs/KTX2 (/otimizar-3d-para-mobile,
   que chama esta skill para retopo e bake) nem para escolher o gerador (/gerar-ativos-3d).
 license: MIT
-compatibility: "Blender ≥3.0 (recomendado 4.x LTS); Python ≥3.10; uv; Claude Code ou Codex. Socket local sem autenticação: só loopback/VM"
+compatibility: "Blender ≥3.0 (recomendado 4.2/4.5 LTS; 5.0 já lançado — IDs do EEVEE mudam); Python ≥3.10; uv; Claude Code ou Codex. Socket local sem autenticação: só loopback/VM"
 metadata:
   grupo: 3d
   alvo: [3d, app, web]
@@ -28,7 +29,8 @@ verificação visual (`look`) e `relatorio.json`/screenshots em `production/evid
 
 - Use para: merge by distance, remesh/QuadriFlow, UV pack, bake PBR high→low, aplicar
   transforms, renomear, exportar GLB/FBX com flags corretas, montar cenas com Poly Haven,
-  inspecionar rig/pesos, retarget offline, lotes headless.
+  inspecionar rig/pesos, retarget offline, lotes headless, preparar um modelo para pré-render
+  (origem nos pés, frente -Y, decimate, apagar luzes importadas).
 - Não use para: gerar malha do zero (o MCP "não gera malhas com IA sozinho": chama
   Tripo/Rodin/Hunyuan3D); otimização final para o engine (`/otimizar-3d-para-mobile`);
   texturização por IA (`/materiais-e-texturas-pbr`).
@@ -147,17 +149,33 @@ uvx mcp-for-blender install-addon                          # ou: uvx mcp-for-ble
   Instant Meshes/Quad Remesher (`/otimizar-3d-para-mobile`).
 - **Docs do Blender** (docs.blender.org) não puderam ser lidas na pesquisa; nomes de operadores
   vieram da API conhecida — se um operador mudar de nome na sua versão, `bpy.ops.<mod>.<op>`
-  avisa; consulte `--help` do Blender e o Python Console.
+  avisa; consulte `--help` do Blender e o Python Console. Os nomes usados por
+  `render_sprites.py` (skill de sprites) foram conferidos no código-fonte `rna_*.cc` em
+  10/10/2026. **IDs de engine**: `BLENDER_EEVEE_NEXT` (4.2–4.5) virou `BLENDER_EEVEE` no 5.0
+  (`DNA_scene_types.h`); `BLENDER_WORKBENCH` e `CYCLES` não mudaram; ações ganharam slots no
+  4.4 (`animation_data.action_slot`).
 
-## Exportar para mobile
+## Exportar para web
 
-GLB (Y para cima, transforms aplicados, materiais `EXPORT`, imagens PNG/JPEG embutidas) ou
-FBX (escala aplicada, só ossos deformadores, texturas embutidas), nomes kebab-case
-`<asset>-lodN`, texturas assadas ≤2048² (prop 1024²), um material por asset. A compressão
-(KTX2/ASTC) e os LODs finais ficam em `/otimizar-3d-para-mobile`; USDZ via Reality Converter
-a partir do GLB. **Licença de saída**: o Blender (GPL) e o MCP (MIT) não impõem termos sobre
-seus arquivos; a licença do asset segue a origem (gerador, Poly Haven CC0, Poly Pizza CC-BY,
+GLB (Y para cima, transforms aplicados, materiais `EXPORT`, imagens PNG/JPEG embutidas —
+esta é a **fonte** guardada no repositório), nomes kebab-case `<asset>-lodN`, texturas assadas
+≤2048² (prop 1024²), um material por asset. A compressão KTX2 + meshopt e os LODs finais para
+Three.js ficam em `/otimizar-3d-para-mobile --target web` (o Blender não lê KTX2: nunca
+reimporte o GLB otimizado). FBX só para Mixamo/ferramentas que o exigem; USDZ só com ADR
+nativo. **Licença de saída**: o Blender (GPL) e o MCP (MIT) não impõem termos sobre seus
+arquivos; a licença do asset segue a origem (gerador, Poly Haven CC0, Poly Pizza CC-BY,
 Sketchfab conforme o modelo) registrada no `PROVENANCE.md`.
+
+## Pré-render para Phaser
+
+Esta skill prepara o modelo; o render em lote é de `/sprites-pre-renderizados-de-3d`
+(`.claude/skills/sprites-pre-renderizados-de-3d/scripts/render_sprites.py`, headless, com
+`manifest.json`). Receita de preparo via MCP ou
+`bpy`: `transform_apply` → mover para `min z = 0` (origem nos pés) → confirmar frente em -Y
+(`look` em `camera` de frente) → apagar luzes/câmeras importadas → `--decimate 0.5` se a malha
+passar de ~100 K tris (só velocidade de render) → salvar `.blend` com as actions renomeadas
+(`idle`, `walk`…) quando os clipes vierem de FBX separados (Mixamo). O `look` em `angles` é o
+teste rápido de simetria e de luz assada no albedo antes de gastar render em 8 direções.
 
 ## Fontes
 
@@ -170,3 +188,4 @@ Sketchfab conforme o modelo) registrada no `PROVENANCE.md`.
 - Pinos de versão: Puppeteer https://github.com/Seed3D/Puppeteer ; Material Anything https://github.com/3DTopia/MaterialAnything ; UniRig https://github.com/VAST-AI-Research/UniRig
 - Hunyuan3D LICENSE: https://raw.githubusercontent.com/Tencent-Hunyuan/Hunyuan3D-2.1/main/LICENSE
 - Instant Meshes: https://github.com/wjakob/instant-meshes
+- Blender (código-fonte, IDs de engine e propriedades lidos 10/10/2026): https://github.com/blender/blender (`source/blender/makesdna/DNA_scene_types.h`, `makesrna/intern/rna_scene.cc`; branches 4.2/4.5/5.0/main)

@@ -4,7 +4,8 @@ description: >
   Gera malhas 3D (personagens, props, cenário) com IA a partir de um brief e de uma imagem
   de referência, escolhendo o gerador pela licença de saída e pelo orçamento mobile, e
   registra proveniência. Use sempre que o usuário pedir um modelo, personagem, objeto,
-  arma, veículo ou qualquer asset 3D para o jogo, mesmo sem dizer "3D" ou "malha".
+  arma, veículo ou qualquer asset 3D para o jogo, mesmo sem dizer "3D" ou "malha" — inclusive
+  quando o destino final é um sprite 2D pré-renderizado para Phaser.
   Não use para otimizar/decimar um GLB já existente (/otimizar-3d-para-mobile), para
   rigar/animar (/rigging-e-animacao-3d) nem para mundos inteiros (/ambientes-e-mundos-3d).
 license: MIT
@@ -48,7 +49,8 @@ Entrega um GLB bruto escolhido entre 3–5 candidatos, com `PROVENANCE.md`, rela
 
 - Brief do jogo e lista de features (quais assets o loop precisa agora).
 - Style card: paleta, linguagem de forma, nível de realismo, referências visuais.
-- Engine/alvo (ADR de `/escolher-engine-e-alvo` ou `CLAUDE.md`): RealityKit (USDZ), Unity, Godot, web.
+- Destino (ADR-0001 / `CLAUDE.md`): **Phaser via sprites pré-renderizados** (padrão 2D) ou
+  **Three.js** (tempo real, ADR-0002). Unity/Godot/USDZ só se outro ADR mandar.
 - Orçamento por asset. Se o projeto não fixou, use a divisão abaixo e marque como inferência.
 
 | Categoria | Triângulos (LOD0) | Texturas | LODs | Observação |
@@ -57,7 +59,11 @@ Entrega um GLB bruto escolhido entre 3–5 candidatos, com `PROVENANCE.md`, rela
 | Inimigo / NPC | 10–30K | 1 conjunto 1024–2048² | 3 | Inferência |
 | Prop | 5–10K | 512–1024² ou atlas compartilhado | 2 | Inferência |
 | Cenário modular (peça) | 2–10K | atlas 2048² por kit | 2 | Inferência |
-| **Teto por frame no device mais antigo** | **≤100K** | **1 conjunto 2048²** | — | Apple (AR Quick Look, 2018, reafirmado 2021); RealityKit tem "a bit more wiggle room" |
+| **Teto por frame no device mais antigo** | **≤100K** | **1 conjunto 2048²** | — | Apple (AR Quick Look, 2018, reafirmado 2021); reutilizado para o Safari do iPhone por falta de número oficial |
+
+A tabela vale para **Three.js**. Para **pré-render** (Phaser) tris e texturas só pesam no
+tempo de render; o que conta é silhueta, textura sem luz assada e simetria — e o orçamento
+passa a ser o do atlas de sprites (`/sprites-pre-renderizados-de-3d`).
 
 ## Matriz de geradores (resumo; detalhes em `references/matriz-geradores.md`)
 
@@ -83,7 +89,7 @@ gerar → retopo/low-poly → decimar/LODs → bake PBR → exportar (relatório
 1. **Brief do asset** (adaptado do `asset-spec` do Claude-Code-Game-Studios, MIT). Escreva
    `design/assets/specs/<asset>-3d.md` com: ID (`ASSET-NNN`, sequencial no manifesto),
    categoria, função no jogo, distância típica da câmera, orçamento (tabela acima), estilo
-   (citar regras do style card), formato final (GLB/FBX/USDZ) e engine. Confirme a lista com
+   (citar regras do style card), formato final (GLB) e destino (sprites Phaser ou Three.js). Confirme a lista com
    o usuário antes de gastar créditos. Resultado observável: arquivo de spec no disco.
 2. **Imagem de referência**. Geradores de 2026 são imagem→3D (Meshy 7 é explicitamente um
    modelo imagem-para-3D). Gere a referência com `/gerar-sprites-2d` (fundo transparente)
@@ -115,7 +121,9 @@ gerar → retopo/low-poly → decimar/LODs → bake PBR → exportar (relatório
    `assets/3d/src/<asset>/PROVENANCE.md` a partir de `assets/PROVENANCE.template.md`
    (gerador, versão, modo, prompt, hash da imagem de referência, seed/job id, plano e licença
    da saída, atribuição exigida, o que o humano escolheu/alterou). Atualize o manifesto.
-7. **Encaminhar** para `/otimizar-3d-para-mobile` (obrigatório: a saída bruta estoura o
+7. **Encaminhar** conforme o destino: **sprites** → `/rigging-e-animacao-3d` (se animado) →
+   `/sprites-pre-renderizados-de-3d` (decimar antes é opcional, só acelera o render);
+   **Three.js** → `/otimizar-3d-para-mobile --target web` (obrigatório: a saída bruta estoura o
    orçamento) e, se for personagem, `/rigging-e-animacao-3d`.
 
 ## Critério de pronto e evidência
@@ -149,14 +157,24 @@ gerar → retopo/low-poly → decimar/LODs → bake PBR → exportar (relatório
 - **Custo**: cada candidato consome créditos (Meshy: 20 créditos por text-to-3D no Meshy 6
   [secundário]). Gere 3–5, não 20.
 
-## Exportar para mobile
+## Exportar para web
 
-Esta skill entrega o **bruto**. A exportação final acontece em `/otimizar-3d-para-mobile`:
-GLB → `gltfpack`/glTF-Transform (LODs 0,5/0,25/0,1, texturas ≤2048², KTX2 para Unity/web) →
-GLB/FBX no engine ou Reality Converter/`usdzconvert` → USDZ (PNG/JPEG; ASTC na importação da
-Apple). **Licença de saída**: Tripo/Meshy pagos = comercial global sem atribuição (confirme no
-plano); Meshy grátis = CC BY 4.0; TRELLIS.2/TripoSG/PartCrafter = MIT (saída sua); SPAR3D =
-grátis abaixo de US$ 1 M; Hunyuan3D/Cube = **não** para jogo global.
+Esta skill entrega o **bruto** (GLB com PNG, guardado como fonte). Para Three.js a exportação
+final é de `/otimizar-3d-para-mobile --target web`: LODs 0,5/0,25/0,1, texturas ≤2048² em
+**KTX2** (UASTC/ETC1S) + **meshopt**, GLB lido por `GLTFLoader` + `KTX2Loader` + `MeshoptDecoder`
+(three.js r186); tamanhos típicos: prop 100–300 KB, herói ≤2 MB com texturas. USDZ/FBX só se
+um ADR pedir app nativo ou Unity/Godot. **Licença de saída**: Tripo/Meshy pagos = comercial
+global sem atribuição (confirme no plano); Meshy grátis = CC BY 4.0; TRELLIS.2/TripoSG/
+PartCrafter = MIT (saída sua); SPAR3D = grátis abaixo de US$ 1 M; Hunyuan3D/Cube = **não** para
+jogo global — e a restrição vale igualmente para sprites renderizados a partir deles.
+
+## Pré-render para Phaser
+
+Quando o jogo é 2D (ADR-0001), o GLB desta skill vira frames: `/rigging-e-animacao-3d` (clipes
+nomeados) → `/sprites-pre-renderizados-de-3d` (`render_sprites.py`: câmera ortográfica, 4/8
+direções, luz fixa, toon opcional → `montar_atlas_phaser.py`: atlas JSON hash ≤2048²). Prefira
+geradores com auto-rig + animação (Tripo Studio, Meshy) ou bases CC0 já animadas (Quaternius)
+para encurtar a cadeia; peça ao gerador textura **sem luz assada** (ela não gira com o sprite).
 
 ## Fontes
 
@@ -172,3 +190,4 @@ grátis abaixo de US$ 1 M; Hunyuan3D/Cube = **não** para jogo global.
 - Orçamento Apple: https://developer.apple.com/forums/thread/693867 ; https://developer.apple.com/forums/thread/751764
 - Hi3DEval: https://github.com/3DTopia/Hi3DEval ; Sloyd arena (fornecedor): https://www.sloyd.ai/blog/ai-3d-model-generator-rankings
 - Template adaptado: `asset-spec`, `asset-audit` e `technical-artist` de Donchitos/Claude-Code-Game-Studios (MIT) — ver `THIRD_PARTY_NOTICES.md` nesta pasta.
+- Destinos web: `playbook/10-praticas-de-3d-para-jogo-web.md`; three.js 0.186.1 e Phaser 4.2.1 conferidos no npm em 10/10/2026.

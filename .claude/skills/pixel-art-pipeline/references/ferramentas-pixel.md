@@ -35,6 +35,14 @@ Tudo abaixo vem de agregadores, READMEs e docs secundárias (as páginas oficiai
 
 - Stable Diffusion + LoRA "pixel-art-xl" (SDXL) é a rota open-source citada; exige requantização igual. SD 3.5: Stability AI Community License (grátis comercial < US$ 1M/ano).
 
+## Pixel perfeito no Phaser 4 (fonte: `Config.js`, `ScaleManager.js`, changelog 4.0)
+
+- `render: { pixelArt: true }` → `antialias = false`, `antialiasGL = false`, `roundPixels = true` (texturas com filtro nearest).
+- `render: { smoothPixelArt: true }` → mantém texels nítidos ao escalar/girar com antialiasing nas bordas entre pixels; use só se os sprites giram ou escalam.
+- Zoom inteiro: `scale: { mode: Phaser.Scale.NONE, zoom: Phaser.Scale.ZOOM.MAX_ZOOM, autoCenter: CENTER_BOTH, width: <largura em pixels de arte>, height: <altura> }` (`getMaxZoom` escolhe o maior inteiro que cabe no pai); ou `zoom: 2` fixo com lógica 195×422 para a tela 390×844.
+- Filtro `Blocky` (novo no 4.0): pixeliza preservando a paleta — pós retrô de cena HD, não conversão de assets.
+- `TilemapGPULayer` em modo NEAREST preserva bordas nítidas e elimina sangramento entre tiles (changelog 4.0).
+
 ## Regras de grade (independentes de ferramenta)
 
 1. Um pixel do asset = um pixel da grade; nada de "pixel gordo" desigual.
