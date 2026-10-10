@@ -22,7 +22,7 @@ user-invocable: true
 
 # Escolher engine e alvo
 
-Entrega `docs/decisoes/ADR-0001-engine-e-alvo.md` (status `Aceito` pelo usuário) e `production/engine.txt` com o nome canônico que `scripts/verify.sh` e `/instalar-ferramentas` leem.
+Entrega `docs/decisoes/ADR-0001-engine-e-alvo.md` (status `Aceito` pelo usuário) e `production/engine.txt` com o nome canônico que o despachante `./scripts/verify.sh` e `/instalar-ferramentas` leem.
 
 ## Quando usar / quando não usar
 
@@ -70,7 +70,7 @@ Entrega `docs/decisoes/ADR-0001-engine-e-alvo.md` (status `Aceito` pelo usuário
 mkdir -p docs/decisoes && cp -n templates/adr.md docs/decisoes/ADR-0001-engine-e-alvo.md
 ```
 
-   Preencha a tabela "Compatibilidade com a engine e com o agente" com fatos da matriz (versão FIXADA, como o ciclo fecha, formato de cena, export iOS, IAP/ads, licença, risco de conhecimento). Em "Alternativas", registre as duas opções mais próximas e quando reconsiderar. Em "Critérios de validação", inclua sempre: `scripts/verify.sh` gera screenshot do simulador/navegador em < 3 min; build vazio instala no dispositivo de teste.
+   Preencha a tabela "Compatibilidade com a engine e com o agente" com fatos da matriz (versão FIXADA, como o ciclo fecha, formato de cena, export iOS, IAP/ads, licença, risco de conhecimento). Em "Alternativas", registre as duas opções mais próximas e quando reconsiderar. Em "Critérios de validação", inclua sempre: `./scripts/verify.sh` gera screenshot do simulador/navegador em < 3 min; build vazio instala no dispositivo de teste.
 
 5. **Grave o nome canônico** e confira que o despachante o reconhece:
 
@@ -88,7 +88,7 @@ bash .claude/skills/montar-loop-de-verificacao/scripts/verify.sh --dry-run
 ## Critério de pronto e evidência
 
 - `docs/decisoes/ADR-0001-engine-e-alvo.md` com `Status: Aceito`, data, versão fixada e tabela de compatibilidade sem campos vazios.
-- `production/engine.txt` com um dos nomes canônicos; `scripts/verify.sh --dry-run` (ou o do banco) identifica a engine e o verificador.
+- `production/engine.txt` com um dos nomes canônicos; `bash scripts/verify.sh --dry-run` (ou o do banco) identifica a engine e o verificador.
 - `CLAUDE.md` (seção Stack) e `progress.md` atualizados.
 - Nenhum código de gameplay escrito ainda.
 

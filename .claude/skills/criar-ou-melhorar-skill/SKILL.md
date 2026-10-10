@@ -52,7 +52,7 @@ Entrega `.claude/skills/<nome>/SKILL.md` (mais `references/`, `scripts/` quando 
 
 4. **Description que dispara.** ≤ 1.000 caracteres (o Claude Code trunca a listagem em 1.536); começa pelo caso de uso principal; inclui frases que o usuário realmente diz ("não consigo ver o jogo rodando", "qual engine"); termina com "Não use para … (/skill-vizinha)". O skill-creator recomenda descrições um pouco "insistentes" porque o modelo tende a *não* usar skills que ajudariam. Opcional: `when_to_use` para gatilhos extras (conta no mesmo limite).
 
-5. **Corpo que explica o porquê.** Imperativo; cada passo com comando em bloco de código e resultado observável; nada de MUST em caixa alta — diga por que importa. Fatos com data e fonte; o que não veio de página oficial recebe "[secundário, confirmar]"; nunca invente ferramenta, flag, versão ou preço. Caminhos entre crases do tipo `references/x.md` ou `scripts/x.sh` precisam existir dentro da pasta da skill (o checker os verifica); para arquivos de outras skills use o caminho completo `.claude/skills/...`.
+5. **Corpo que explica o porquê.** Imperativo; cada passo com comando em bloco de código e resultado observável; nada de MUST em caixa alta — diga por que importa. Fatos com data e fonte; o que não veio de página oficial recebe "[secundário, confirmar]"; nunca invente ferramenta, flag, versão ou preço. Caminhos entre crases que começam com references/, scripts/ ou assets/ precisam existir dentro da pasta da skill (o checker os verifica); para arquivos de outras skills use o caminho completo `.claude/skills/...`.
 
 6. **Valide:**
 
@@ -108,4 +108,4 @@ wc -l .claude/skills/<nome>/SKILL.md                # ≤ ~310 linhas com frontm
 - Agent Skills — padrão aberto (seis campos de frontmatter): https://agentskills.io
 - Claude Code — Subagents (testes em contexto limpo): https://code.claude.com/docs/en/sub-agents · Hooks (para apontar quando o pedido é hook, não skill): https://code.claude.com/docs/en/hooks
 - Donchitos/Claude-Code-Game-Studios — `skill-test`/`skill-improve` (linter estrutural e loop testar-corrigir, MIT): https://github.com/Donchitos/Claude-Code-Game-Studios
-- `scripts/check-skills.py` (deste repositório; regras verificadas no docstring).
+- `./scripts/check-skills.py` (deste repositório; regras verificadas no docstring).
