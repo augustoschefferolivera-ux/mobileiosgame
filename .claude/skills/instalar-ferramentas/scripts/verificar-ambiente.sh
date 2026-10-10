@@ -116,8 +116,27 @@ if [ "$ALVO" = "app" ] || [ "$ALVO" = "ambos" ]; then
     check "idb_companion" idb_companion opcional "exigido pelo ios-simulator-mcp"
     check "maestro" maestro opcional "testes de UI de menus (árvore de acessibilidade)"
   else
-    OBRIG_FALTANDO=$((OBRIG_FALTANDO + 1))
-    echo "  FALTA  macOS                  (obrigatorio) Xcode, simulador iOS e export iOS só existem em macOS"
+    echo "  info   macOS ausente           build, assinatura e simulador iOS serão remotos: Xcode Cloud ou runner macOS (/build-ios-sem-mac)"
+    check "ssh" ssh obrigatorio "openssh: usado pelo build remoto e pela estação GPU"
+    check "fastlane" fastlane opcional "metadados/TestFlight via App Store Connect API; o upload do .ipa roda no runner macOS"
+  fi
+fi
+
+if [ "$SO" = "Linux" ]; then
+  echo "-- linux (estação de desenvolvimento)"
+  check "ssh" ssh obrigatorio "pacman -S openssh"
+  check "scp" scp opcional "cópia de arquivos para/da estação GPU (gpu.sh push/pull)"
+  check "rsync" rsync opcional "só se a estação GPU tiver rsync (WSL2)"
+  check "tailscale" tailscale opcional "rede privada até a estação GPU e o Mac remoto"
+  check "xvfb-run" xvfb-run opcional "screenshot do Godot sem tela: pacman -S xorg-server-xvfb"
+  if [ -n "${GPU_SSH_HOST:-}" ] || [ -f "$HOME/.config/mobileiosgame/gpu.env" ]; then
+    if command -v ssh >/dev/null 2>&1 && bash "$(dirname "$0")/../../estacao-gpu-remota/scripts/gpu.sh" status >/dev/null 2>&1; then
+      TOTAL_OK=$((TOTAL_OK + 1)); [ "$QUIET" -eq 1 ] || echo "  OK     estação GPU remota (gpu.sh status)"
+    else
+      OPC_FALTANDO=$((OPC_FALTANDO + 1)); echo "  falta? estação GPU remota      (opcional) gpu.sh status falhou: ver /estacao-gpu-remota"
+    fi
+  else
+    echo "  info   estação GPU remota      não configurada (opcional): /estacao-gpu-remota"
   fi
 fi
 
@@ -130,7 +149,11 @@ case "$ENGINE" in
     if command -v godot >/dev/null 2>&1; then check "godot" godot obrigatorio; else check_dir "Godot.app" "/Applications/Godot.app" obrigatorio "ou crie um link: ln -s /Applications/Godot.app/Contents/MacOS/Godot /usr/local/bin/godot"; fi
     ;;
   unity)
-    check_dir "Unity Hub" "/Applications/Unity Hub.app" obrigatorio "a Unity CLI vem com o Hub; ver docs.unity.com/en-us/unity-cli"
+    if [ "$SO" = "Darwin" ]; then
+      check_dir "Unity Hub" "/Applications/Unity Hub.app" obrigatorio "a Unity CLI vem com o Hub; ver docs.unity.com/en-us/unity-cli"
+    else
+      if command -v unityhub >/dev/null 2>&1 || [ -d "$HOME/Unity/Hub" ]; then TOTAL_OK=$((TOTAL_OK + 1)); [ "$QUIET" -eq 1 ] || echo "  OK     Unity Hub (Linux)"; else OBRIG_FALTANDO=$((OBRIG_FALTANDO + 1)); echo "  FALTA  Unity Hub (Linux)       (obrigatorio) AUR: unityhub; o build iOS final roda no runner macOS"; fi
+    fi
     check "unity (CLI)" unity opcional "nome do binário: confirme em docs.unity.com/en-us/unity-cli"
     ;;
   phaser|pixijs|threejs|babylonjs|capacitor)

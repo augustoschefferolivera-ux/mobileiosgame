@@ -14,6 +14,7 @@ estruturas já validadas em outubro de 2026 e as adapta ao caso mobile + assets 
 | Hooks (evidência obrigatória, placeholders, commits) | `.claude/settings.json`, `.claude/hooks/` | Stop hook como gate determinístico |
 | MCPs (Xcode, MobileBuildMCP, simulador, Blender, ElevenLabs) | `.mcp.json`, `playbook/04-ferramentas-e-mcps.md` | servidores mantidos pela comunidade/fabricantes |
 | Templates (brief, feature_list.json, art/sound bible, PROVENANCE, LICENCAS) | `templates/` | Anthropic; Game Studios (MIT) |
+| Perfil Arch Linux + GPU remota + Mac na nuvem | `playbook/07-perfil-arch-linux-e-gpu-remota.md`, `/estacao-gpu-remota`, `/build-ios-sem-mac` | OpenSSH/Tailscale, ComfyUI API, Xcode Cloud, GitHub Actions macOS |
 | Pesquisa que fundamenta tudo | `reports/`, `research_notes/` | 7 frentes, 200+ fontes, out/2026 |
 
 ## Começar em 15 minutos

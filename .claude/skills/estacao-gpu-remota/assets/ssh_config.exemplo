@@ -1,0 +1,12 @@
+# ~/.ssh/config — alias "gpu" para a estação Windows via Tailscale (MagicDNS)
+Host gpu
+    HostName gamer-pc              # nome MagicDNS da máquina Windows (ou 100.x.y.z)
+    User augusto                   # usuário Windows
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+    ServerAliveInterval 30
+    ServerAliveCountMax 4
+    # Reutiliza a conexão entre chamadas do gpu.sh (mais rápido):
+    ControlMaster auto
+    ControlPath ~/.ssh/cm-%r@%h:%p
+    ControlPersist 10m

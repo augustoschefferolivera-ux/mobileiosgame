@@ -50,6 +50,16 @@ Agent Skills, o harness de longa duração da Anthropic, o template Claude-Code-
   → `/submissao-app-store` ou `/publicar-jogo-web`.
 - Índice de todas as skills, por fase e por alvo: `playbook/06-indice-de-skills.md`.
 
+## Perfil de máquina (ver `playbook/07-perfil-arch-linux-e-gpu-remota.md`)
+
+- Desenvolvimento em **Arch Linux**: agente, código, Godot/Phaser e `scripts/verify.sh` rodam aqui.
+- **Estação GPU remota** (Windows + RTX via SSH/Tailscale): geração local de áudio, voz, recorte e
+  Blender por `.claude/skills/estacao-gpu-remota/scripts/gpu.sh` (`status|run|push|pull|tunnel`).
+  Com 8 GB de VRAM, imagem HD e 3D ficam nas APIs comerciais.
+- **macOS só remoto** (Xcode Cloud / GitHub Actions / Mac na nuvem) para compilar, assinar e enviar
+  ao TestFlight: `/build-ios-sem-mac`. Nunca macOS em VM em hardware não Apple (EULA).
+- `.mcp.json` traz só servidores que rodam em Linux; os de macOS estão em `.mcp.macos.json`.
+
 ## Stack deste projeto
 
 Preencha ao rodar `/escolher-engine-e-alvo` (gera `docs/decisoes/ADR-0001-engine-e-alvo.md`):
@@ -63,13 +73,13 @@ Preencha ao rodar `/escolher-engine-e-alvo` (gera `docs/decisoes/ADR-0001-engine
 
 ```
 CLAUDE.md / AGENTS.md      instruções (Claude Code / Codex)
-playbook/                  roteiro passo a passo, regras, stack, ferramentas, riscos, índice
+playbook/                  roteiro passo a passo, regras, stack, ferramentas, riscos, índice, perfil Arch+GPU remota
 .claude/skills/            banco de skills (/nome)
 .claude/agents/            subagentes: critico, playtester, revisor-de-codigo, diretor-de-arte,
                            diretor-de-audio, revisor-de-loja-e-legal, engenheiro-de-performance
 .claude/rules/             regras por caminho (Swift, GDScript, C#, TypeScript, assets, testes)
 .claude/hooks/             scripts dos hooks (SessionStart, PreToolUse, PostToolUse, Stop)
-.mcp.json                  servidores MCP do projeto (Xcode, MobileBuildMCP, simulador, Blender, ElevenLabs)
+.mcp.json / .mcp.macos.json  MCPs que rodam em Linux (Blender, ElevenLabs) / só em macOS (Xcode, MobileBuildMCP, simulador)
 templates/                 brief, feature_list.json, progress.md, art/sound bible, PROVENANCE, LICENCAS
 scripts/                   verify.sh (despachante), check-skills.py
 design/ docs/ production/  artefatos do jogo em construção (brief, ADRs, evidências, críticas)

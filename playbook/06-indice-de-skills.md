@@ -3,7 +3,7 @@
 Gerado por `python3 scripts/check-skills.py`. Não edite à mão. Invoque uma skill com `/nome`
 ou deixe o agente carregá-la quando a descrição casar com a tarefa.
 
-Total: 53 skills válidas.
+Total: 55 skills válidas.
 
 ## Por grupo
 
@@ -17,6 +17,7 @@ Total: 53 skills válidas.
 | `/critico-independente` | 2d, 3d, app, web | 5, 8 | Invoca o subagente `critico` (.claude/agents/critico.md) em contexto limpo para avaliar uma feature, build ou asset ANTES de fechá-lo: entrega brief, critério de aceite, screenshots/vídeo, logs e métricas; recebe nota... |
 | `/escolher-engine-e-alvo` | 2d, 3d, app, web | 2 | Decide engine e alvo (2D/3D × web/app) com uma matriz de critérios objetivos — o agente fecha sozinho construir→rodar→ver→ler log? o formato de cena é texto? exporta para iOS? IAP/anúncios? licença? — entre SwiftUI+Sp... |
 | `/escopo-e-anti-padroes` | 2d, 3d, app, web | 1, 5, 8 | Verifica o escopo do jogo contra o brief e contra a lista de coisas que agentes de IA tratam mal (multiplayer em tempo real, 3D pesado/física complexa, Unreal e formatos binários, arte só por prompt, voz central por T... |
+| `/estacao-gpu-remota` | 2d, 3d, app, web | 0, 4, 6 | Configura e usa uma máquina Windows com GPU NVIDIA (ex.: RTX 5060) como estação de geração remota acessada por SSH via Tailscale a partir de um PC Linux (Arch): OpenSSH Server no Windows, chaves, WSL2 com CUDA quando ... |
 | `/iniciar-projeto` | 2d, 3d, app, web | 0, 1, 2, 3 | Inicializa um projeto de jogo do zero no padrão de agente inicializador da Anthropic adaptado a jogos: entrevista curta → brief de uma página → ADR de engine e alvo → gera init.sh, feature_list.json (JSON, com critéri... |
 | `/instalar-ferramentas` | 2d, 3d, app, web | 0 | Detecta SO, engine e alvo do projeto e instala só o que ele precisa: plug-ins oficiais do Claude Code (Unity, Game Porting Toolkit da Apple, Roblox), servidores MCP (Xcode via xcrun mcpbridge, MobileBuildMCP, ios-simu... |
 | `/montar-loop-de-verificacao` | 2d, 3d, app, web | 3 | Monta no dia 1 o loop construir → rodar → screenshot → ler log que o agente fecha sozinho: para a engine escolhida, define os comandos de build, execução, captura e leitura de log, instala o canal interno de depuração... |
@@ -25,6 +26,7 @@ Total: 53 skills válidas.
 
 | Skill | Alvo | Fases | O que faz |
 |---|---|---|---|
+| `/build-ios-sem-mac` | 2d, 3d, app | 0, 3, 10 | Compila, assina e envia ao TestFlight/App Store um jogo iOS a partir de um PC Linux (Arch) sem Mac local, usando macOS remoto: Xcode Cloud (25 h/mês incluídas na membership), runner macOS do GitHub Actions ou Mac alug... |
 | `/ci-xcode-cloud-fastlane` | 2d, 3d, app | 0, 3, 10 | Configura integração e distribuição contínuas do jogo iOS: Xcode Cloud (25 h/mês incluídas na membership, TestFlight integrado, scripts ci_scripts), fastlane com App Store Connect API Key (pilot, deliver, match, scree... |
 | `/empacotar-web-para-app` | 2d, 3d, web, app | 2, 10 | Decide se e como levar um jogo web (Phaser, PixiJS, Three.js, Babylon) à App Store via Capacitor (WKWebView) ou mantê-lo como PWA, cobrindo os riscos de revisão 4.2 (funcionalidade mínima), 4.7 (HTML5 games), 2.5.2 (c... |
 | `/engine-godot-mobile` | 2d, 3d, app | 2, 3, 5, 8 | Configura, codifica e verifica um jogo mobile em Godot 4.7.x (versão fixada) com GDScript, Godot AI MCP (project_run, test_run, logs_read, editor_screenshot), testes GUT ou gdUnit4, CLI headless para CI e export iOS (... |
@@ -102,14 +104,14 @@ Total: 53 skills válidas.
 
 ## Por fase do roteiro
 
-- **Fase 0 — Preparação do ambiente:** `/blender-automatizado`, `/checkpoint-e-retomada`, `/ci-xcode-cloud-fastlane`, `/criar-ou-melhorar-skill`, `/iniciar-projeto`, `/instalar-ferramentas`, `/licencas-e-proveniencia`, `/xcode-agentico`
+- **Fase 0 — Preparação do ambiente:** `/blender-automatizado`, `/build-ios-sem-mac`, `/checkpoint-e-retomada`, `/ci-xcode-cloud-fastlane`, `/criar-ou-melhorar-skill`, `/estacao-gpu-remota`, `/iniciar-projeto`, `/instalar-ferramentas`, `/licencas-e-proveniencia`, `/xcode-agentico`
 - **Fase 1 — Conceito e brief:** `/brief-do-jogo`, `/classificacao-etaria`, `/direcao-de-arte-e-style-card`, `/escopo-e-anti-padroes`, `/iniciar-projeto`
 - **Fase 2 — Engine/alvo e esqueleto:** `/empacotar-web-para-app`, `/engine-godot-mobile`, `/engine-realitykit-metal`, `/engine-spritekit-swiftui`, `/engine-unity-mobile`, `/engine-web-phaser`, `/engine-web-threejs`, `/escolher-engine-e-alvo`, `/iniciar-projeto`
-- **Fase 3 — Loop de verificação:** `/ci-xcode-cloud-fastlane`, `/engine-godot-mobile`, `/engine-realitykit-metal`, `/engine-spritekit-swiftui`, `/engine-unity-mobile`, `/engine-web-phaser`, `/engine-web-threejs`, `/iniciar-projeto`, `/montar-loop-de-verificacao`, `/playtest-automatizado`, `/publicar-jogo-web`, `/xcode-agentico`
-- **Fase 4 — Direção de arte e áudio:** `/consistencia-com-lora`, `/direcao-de-arte-e-style-card`, `/direcao-de-audio-e-sound-bible`, `/gerar-ativos-3d`, `/gerar-sprites-2d`, `/materiais-e-texturas-pbr`, `/pixel-art-pipeline`, `/ui-hud-e-icones`
+- **Fase 3 — Loop de verificação:** `/build-ios-sem-mac`, `/ci-xcode-cloud-fastlane`, `/engine-godot-mobile`, `/engine-realitykit-metal`, `/engine-spritekit-swiftui`, `/engine-unity-mobile`, `/engine-web-phaser`, `/engine-web-threejs`, `/iniciar-projeto`, `/montar-loop-de-verificacao`, `/playtest-automatizado`, `/publicar-jogo-web`, `/xcode-agentico`
+- **Fase 4 — Direção de arte e áudio:** `/consistencia-com-lora`, `/direcao-de-arte-e-style-card`, `/direcao-de-audio-e-sound-bible`, `/estacao-gpu-remota`, `/gerar-ativos-3d`, `/gerar-sprites-2d`, `/materiais-e-texturas-pbr`, `/pixel-art-pipeline`, `/ui-hud-e-icones`
 - **Fase 5 — Produção de features:** `/ambientes-e-mundos-3d`, `/audio-adaptativo-no-engine`, `/cenarios-e-tilesets`, `/checkpoint-e-retomada`, `/ciclo-de-feature`, `/critico-independente`, `/engine-godot-mobile`, `/engine-realitykit-metal`, `/engine-spritekit-swiftui`, `/engine-unity-mobile`, `/engine-web-phaser`, `/engine-web-threejs`, `/escopo-e-anti-padroes`, `/geracao-procedural-com-llm`, `/monetizacao-iap-e-ads`, `/npc-e-dialogo-dinamico`, `/playtest-automatizado`, `/privacidade-lgpd-e-eca-digital`
-- **Fase 6 — Produção de assets:** `/ambientes-e-mundos-3d`, `/animar-sprites`, `/atlas-e-exportacao-2d-mobile`, `/blender-automatizado`, `/cenarios-e-tilesets`, `/consistencia-com-lora`, `/gerar-ativos-3d`, `/gerar-musica`, `/gerar-sfx`, `/gerar-sprites-2d`, `/licencas-e-proveniencia`, `/materiais-e-texturas-pbr`, `/otimizar-3d-para-mobile`, `/pixel-art-pipeline`, `/pos-producao-audio-mobile`, `/rigging-e-animacao-3d`, `/ui-hud-e-icones`, `/voz-e-dialogo`
+- **Fase 6 — Produção de assets:** `/ambientes-e-mundos-3d`, `/animar-sprites`, `/atlas-e-exportacao-2d-mobile`, `/blender-automatizado`, `/cenarios-e-tilesets`, `/consistencia-com-lora`, `/estacao-gpu-remota`, `/gerar-ativos-3d`, `/gerar-musica`, `/gerar-sfx`, `/gerar-sprites-2d`, `/licencas-e-proveniencia`, `/materiais-e-texturas-pbr`, `/otimizar-3d-para-mobile`, `/pixel-art-pipeline`, `/pos-producao-audio-mobile`, `/rigging-e-animacao-3d`, `/ui-hud-e-icones`, `/voz-e-dialogo`
 - **Fase 7 — IA em runtime e procedural:** `/audio-adaptativo-no-engine`, `/geracao-procedural-com-llm`, `/ia-runtime-foundation-models`, `/ia-runtime-nuvem-claude`, `/ia-runtime-on-device-llm`, `/npc-e-dialogo-dinamico`, `/voz-e-dialogo`
 - **Fase 8 — Polimento, game feel, performance:** `/atlas-e-exportacao-2d-mobile`, `/audio-adaptativo-no-engine`, `/critico-independente`, `/engine-godot-mobile`, `/engine-realitykit-metal`, `/engine-spritekit-swiftui`, `/engine-unity-mobile`, `/engine-web-phaser`, `/engine-web-threejs`, `/escopo-e-anti-padroes`, `/ia-runtime-on-device-llm`, `/materiais-e-texturas-pbr`, `/otimizar-3d-para-mobile`, `/playtest-automatizado`, `/pos-producao-audio-mobile`
 - **Fase 9 — Legal, licenças, proveniência:** `/classificacao-etaria`, `/divulgacao-de-uso-de-ia`, `/ia-runtime-foundation-models`, `/ia-runtime-nuvem-claude`, `/licencas-e-proveniencia`, `/npc-e-dialogo-dinamico`, `/privacidade-lgpd-e-eca-digital`
-- **Fase 10 — Monetização, submissão, pós-lançamento:** `/ci-xcode-cloud-fastlane`, `/classificacao-etaria`, `/divulgacao-de-uso-de-ia`, `/empacotar-web-para-app`, `/monetizacao-iap-e-ads`, `/pos-lancamento-e-telemetria`, `/privacidade-lgpd-e-eca-digital`, `/publicar-jogo-web`, `/submissao-app-store`, `/ui-hud-e-icones`
+- **Fase 10 — Monetização, submissão, pós-lançamento:** `/build-ios-sem-mac`, `/ci-xcode-cloud-fastlane`, `/classificacao-etaria`, `/divulgacao-de-uso-de-ia`, `/empacotar-web-para-app`, `/monetizacao-iap-e-ads`, `/pos-lancamento-e-telemetria`, `/privacidade-lgpd-e-eca-digital`, `/publicar-jogo-web`, `/submissao-app-store`, `/ui-hud-e-icones`

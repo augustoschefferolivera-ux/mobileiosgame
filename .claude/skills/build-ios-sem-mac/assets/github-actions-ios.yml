@@ -1,0 +1,104 @@
+# .github/workflows/ios.yml — build iOS em runner macOS a partir de um projeto Godot 4.x.
+# Copie para o repositório e ajuste os blocos marcados "AJUSTE". Flags e URLs marcadas [confirmar]
+# devem ser conferidas na documentação da versão fixada antes do primeiro uso.
+name: iOS (Godot) → TestFlight
+
+on:
+  push:
+    tags: ["v*"]          # um build por tag de versão
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.7.2"                 # AJUSTE: mesma versão de docs/decisoes/ e dos export templates
+  EXPORT_PRESET: "iOS"                   # AJUSTE: nome do preset em export_presets.cfg
+  XCODE_SCHEME: "Jogo"                   # AJUSTE: scheme gerado pelo export
+  BUILD_DIR: "build/ios"
+
+jobs:
+  build-ios:
+    runs-on: macos-15                    # AJUSTE: runner com Xcode compatível com o iOS alvo
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Selecionar Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app || ls /Applications | grep Xcode   # AJUSTE à versão disponível no runner
+
+      - name: Baixar Godot (macOS) e export templates
+        run: |
+          set -euo pipefail
+          # AJUSTE: URLs oficiais dos releases do Godot para a versão fixada; verifique o checksum publicado
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_macos.universal.zip"
+          curl -fsSL -o templates.tpz "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q godot.zip
+          mkdir -p "$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable"
+          unzip -q templates.tpz -d tpl && mv tpl/templates/* "$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable/"
+          echo "$PWD/Godot.app/Contents/MacOS" >> "$GITHUB_PATH"
+
+      - name: Exportar projeto Xcode
+        run: |
+          set -euo pipefail
+          mkdir -p "$BUILD_DIR"
+          Godot --headless --path . --import || true                    # [confirmar] importa recursos antes do export
+          Godot --headless --path . --export-release "$EXPORT_PRESET" "$BUILD_DIR/${XCODE_SCHEME}.xcodeproj"   # [confirmar] sintaxe 4.7; export_project_only=true no preset
+          ls -la "$BUILD_DIR"
+
+      - name: Instalar fastlane
+        run: brew install fastlane || gem install fastlane -N
+
+      - name: Chave da App Store Connect API
+        env:
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}   # base64 do .p8
+        run: |
+          mkdir -p ~/.private_keys
+          echo "$ASC_KEY_CONTENT" | base64 --decode > ~/.private_keys/AuthKey.p8
+
+      - name: Archive + upload para TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}     # se usar match
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}       # se usar match
+        run: |
+          set -euo pipefail
+          cd "$BUILD_DIR"
+          # AJUSTE: escolha UMA estratégia de assinatura:
+          #  (a) match: fastlane match appstore --readonly  (certificados em repositório privado)
+          #  (b) assinatura automática pela API: xcodebuild ... -allowProvisioningUpdates \
+          #        -authenticationKeyPath ~/.private_keys/AuthKey.p8 -authenticationKeyID "$ASC_KEY_ID" \
+          #        -authenticationKeyIssuerID "$ASC_ISSUER_ID"   # [confirmar flags]
+          xcodebuild -project "${XCODE_SCHEME}.xcodeproj" -scheme "$XCODE_SCHEME" -configuration Release \
+            -destination "generic/platform=iOS" -archivePath "$PWD/${XCODE_SCHEME}.xcarchive" archive \
+            -allowProvisioningUpdates -authenticationKeyPath ~/.private_keys/AuthKey.p8 \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" | tail -50
+          cat > ExportOptions.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>export</string>
+            <key>signingStyle</key><string>automatic</string>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath "$PWD/${XCODE_SCHEME}.xcarchive" -exportPath "$PWD/export" \
+            -exportOptionsPlist ExportOptions.plist -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.private_keys/AuthKey.p8 -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" | tail -20
+          fastlane pilot upload --ipa "export/${XCODE_SCHEME}.ipa" --skip_waiting_for_build_processing true \
+            --api_key_path /dev/stdin <<JSON
+          {"key_id":"$ASC_KEY_ID","issuer_id":"$ASC_ISSUER_ID","key_filepath":"$HOME/.private_keys/AuthKey.p8"}
+          JSON
+
+      - name: Guardar evidência do build
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-${{ github.ref_name }}
+          path: |
+            build/ios/export/*.ipa
+            build/ios/*.xcarchive/Info.plist
+          if-no-files-found: ignore

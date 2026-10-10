@@ -4,6 +4,7 @@
 .claude/settings.local.json
 .claude/agent-memory-local/
 production/session-state/*.local.md
+gpu.env
 
 # Dependências e builds
 node_modules/

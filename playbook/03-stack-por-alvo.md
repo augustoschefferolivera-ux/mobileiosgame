@@ -29,6 +29,11 @@ sem autenticação), multiplayer em tempo real no MVP (Photon Fusion "useless re
 (deprecado), plataformas texto→jogo (Rosebud, Upit, Bitmagic) quando o objetivo é um app
 próprio na App Store (só web view).
 
+**Desenvolvendo em Linux (Arch):** Godot e as pilhas web são as únicas com o ciclo completo local;
+Unity Editor existe em Linux mas o build iOS compila só em macOS; SwiftUI/RealityKit só compilam no
+CI. Build e assinatura iOS vão para Xcode Cloud ou runner macOS (`/build-ios-sem-mac`); geração local
+vai para a estação GPU (`/estacao-gpu-remota`). Detalhes em `07-perfil-arch-linux-e-gpu-remota.md`.
+
 ## Camadas de assets (iguais para todos os alvos)
 
 | Camada | Escolha principal | Alternativa | Licença/ressalva |

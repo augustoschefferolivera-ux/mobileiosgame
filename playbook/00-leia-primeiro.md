@@ -22,9 +22,11 @@ código executa e um humano supervisiona. O relatório completo que o fundamenta
 ## Para quem é
 
 Desenvolvedor solo ou equipe pequena, no Brasil, construindo um jogo 2D ou 3D para iOS
-(prioridade) ou web, com Claude Code ou Codex. Requisitos práticos: um Mac com Xcode 26.3+
-(27 para o loop completo de agente no simulador), Node 18+, `uv` (para MCPs Python),
-Python 3.10+, Git; contas conforme as ferramentas escolhidas (`playbook/04-ferramentas-e-mcps.md`).
+(prioridade) ou web, com Claude Code ou Codex. Requisitos práticos: Linux (este repositório assume Arch; ver `07-perfil-arch-linux-e-gpu-remota.md`)
+ou macOS; Node 18+, `uv` (para MCPs Python), Python 3.10+, Git; para iOS, um Mac local com Xcode
+26.3+ **ou** macOS remoto (Xcode Cloud / GitHub Actions) via `/build-ios-sem-mac`; opcionalmente uma
+estação com GPU NVIDIA acessível por SSH (`/estacao-gpu-remota`); contas conforme as ferramentas
+(`playbook/04-ferramentas-e-mcps.md`).
 
 ## Ordem de leitura
 
@@ -32,7 +34,7 @@ Python 3.10+, Git; contas conforme as ferramentas escolhidas (`playbook/04-ferra
 |---|---|
 | Agora (10 min) | este arquivo; `CLAUDE.md` (as 10 regras) |
 | Antes de começar o projeto (30 min) | `01-roteiro-passo-a-passo.md` (fases 0–3 com atenção); `03-stack-por-alvo.md` |
-| Ao configurar a máquina | `04-ferramentas-e-mcps.md` |
+| Ao configurar a máquina | `04-ferramentas-e-mcps.md`; em Linux com GPU remota, `07-perfil-arch-linux-e-gpu-remota.md` |
 | Antes de gerar qualquer asset | `05-riscos-e-licencas.md`; `templates/LICENCAS.md` |
 | Sempre que uma skill for necessária | `06-indice-de-skills.md` (gerado) → `.claude/skills/<nome>/SKILL.md` |
 | Quando algo sair do controle | `02-regras-e-habitos.md`; `/escopo-e-anti-padroes` |

@@ -1,0 +1,20 @@
+{
+  "_leia": "Servidores MCP que só funcionam em macOS. Em um Mac, copie estas entradas para .mcp.json. Em Linux eles falham ao conectar; por isso ficam fora do .mcp.json padrão deste repositório (perfil Arch Linux + GPU remota, playbook/07).",
+  "mcpServers": {
+    "xcode": {
+      "type": "stdio",
+      "command": "xcrun",
+      "args": ["mcpbridge"]
+    },
+    "mobilebuild": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mobilebuildmcp@latest", "mcp"]
+    },
+    "ios-simulator": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "ios-simulator-mcp@latest"]
+    }
+  }
+}

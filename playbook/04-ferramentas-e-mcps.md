@@ -13,7 +13,26 @@ são os mantidos em out/2026 (estrelas e datas lidas no GitHub em 10/10/2026).
 | Apple Game Porting Toolkit 4 (24 skills de Metal 4/MetalFX/controle) | `/plugin marketplace add apple/game-porting-toolkit` | Metal direto; porte; depuração GPU | Apache 2.0 |
 | Roblox Studio (`roblox-studio-agent-plugin`) | `/plugin marketplace add Roblox/roblox-studio-agent-plugin` | Só se o alvo for Roblox | ver repo |
 
+## Instalação em Arch Linux (perfil deste repositório)
+
+```bash
+sudo pacman -S git openssh rsync python uv nodejs npm jq godot blender xorg-server-xvfb tailscale
+sudo systemctl enable --now tailscaled && sudo tailscale up
+npm install -g @anthropic-ai/claude-code gltfpack @gltf-transform/cli
+pip install --user pyloudnorm soundfile pymusiclooper "rembg[cpu]"   # ou uv tool install
+yay -S unityhub            # só para Unity (AUR)
+npx playwright install chromium webkit   # WebKit em Arch pode exigir libs manuais [confirmar]; Chromium como fallback
+```
+
+Estação GPU (Windows + RTX) e Mac remoto: `07-perfil-arch-linux-e-gpu-remota.md`,
+`/estacao-gpu-remota`, `/build-ios-sem-mac`.
+
 ## Servidores MCP configurados em `.mcp.json`
+
+`.mcp.json` traz só o que roda em Linux. Os servidores exclusivos de macOS (`xcode`, `mobilebuild`,
+`ios-simulator`) estão em `.mcp.macos.json`; em um Mac, copie-os para `.mcp.json`. Para o Blender na
+estação GPU em vez do PC: `"command": "ssh", "args": ["gpu", "uvx mcp-for-blender"]` (stdio sobre SSH;
+exige `uv` no PATH do Windows [confirmar]).
 
 | Nome | Comando | Função | Requisitos / cuidados |
 |---|---|---|---|

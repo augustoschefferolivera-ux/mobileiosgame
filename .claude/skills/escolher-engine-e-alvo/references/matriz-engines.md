@@ -16,6 +16,7 @@ Critério de desempate em todas as linhas (o mesmo do relatório): **o agente co
 | Tooling de IA oficial | Xcode 26.3+/27 (Apple) | idem + GPTK 4 (skills oficiais da Apple) | plug-in oficial Unity (Claude Code, Codex, Grok); Unity AI (créditos) | nenhum oficial; comunidade (Godot AI, Aura) | Phaser Editor MCP (36 estrelas) | pequenos MCPs comunitários; PlayCanvas oficial | — |
 | Risco de alucinação de API | baixo-médio (Swift 6 strict concurrency gera erros típicos) | médio (RealityKit evolui a cada WWDC; Metal 4 alto sem skills) | baixo (C# abundante); médio em APIs 6.x novas | médio-alto (Godot 3→4; 1.265 fixes entre 4.6 e 4.7): fixe versão e dê docs | baixo | baixo-médio | baixo |
 | Custo recorrente | US$ 99/ano Developer Program [s] | idem | assento Unity + Unity AI (US$ 10/mês Personal após trial [s]) | zero | zero (hosting) | zero | zero |
+| Desenvolvimento em Linux (Arch) sem Mac local | só escreve código; compila no CI macOS | idem (RealityKit não compila em Linux) | Editor Linux (AUR); build iOS no CI macOS [confirmar módulo iOS em Linux] | **sim**: ciclo completo local (`xvfb-run` para screenshot); export iOS no CI macOS | **sim**: ciclo completo local (Playwright) | **sim** | `npx cap sync ios` no CI macOS |
 | Skill deste banco | `engine-spritekit-swiftui` | `engine-realitykit-metal` | `engine-unity-mobile` | `engine-godot-mobile` | `engine-web-phaser` | `engine-web-threejs` | `empacotar-web-para-app` (se existir) |
 
 ## Evidências por engine

@@ -31,7 +31,9 @@ the app is the actual easy part").
 
 **Objetivo.** Máquina pronta para o agente construir, rodar, observar e gerar assets.
 
-**Entradas.** Um Mac (obrigatório para iOS), contas nas ferramentas escolhidas, este repositório.
+**Entradas.** Um Mac local **ou** macOS remoto para o build iOS (`/build-ios-sem-mac`); em Linux,
+opcionalmente uma estação GPU por SSH (`/estacao-gpu-remota`, perfil em `07-perfil-arch-linux-e-gpu-remota.md`);
+contas nas ferramentas escolhidas; este repositório.
 
 **Passos.**
 1. Instale Claude Code (ou Codex) e abra-o na raiz deste repositório. Os hooks em
@@ -47,6 +49,8 @@ the app is the actual easy part").
    ElevenLabs, fal) e abra `templates/LICENCAS.md` para registrar cada um.
 4. Configure o Git (branch por feature se houver mais de uma pessoa) e confirme que
    `scripts/check-skills.py` roda.
+5. *Perfil Linux:* prepare a estação GPU (`/estacao-gpu-remota`: `gpu.sh status` mostrando a placa)
+   e o CI macOS (`/build-ios-sem-mac`: workflow com segredos da App Store Connect API).
 
 **Saídas.** `production/ambiente.md` (o que está instalado, versões, o que falta).
 
@@ -145,7 +149,8 @@ log; o Stop hook não deixa encerrar sem evidência.
 3. Rode `/playtest-automatizado` numa cena vazia para validar toques por coordenada,
    screenshot e leitura de log de ponta a ponta.
 4. Conecte o CI mínimo (`/ci-xcode-cloud-fastlane`): Xcode Cloud (25 h/mês incluídas) ou
-   GitHub Actions rodando `scripts/verify.sh`.
+   GitHub Actions rodando `scripts/verify.sh`. *Perfil Linux:* o loop local é Godot (`xvfb-run`)
+   ou Playwright; o build iOS é um job macOS por milestone (`/build-ios-sem-mac`), não por feature.
 
 **Saídas.** `scripts/verify.sh` verde numa cena vazia; primeira pasta em
 `production/evidencias/` com screenshot; CI configurado.
@@ -321,7 +326,8 @@ intervenção humana está documentada.
    via skill oficial da Unity, AdMob); sandbox; restauração; expectativa realista (o único
    jogo 100% IA com receita documentada caiu de US$ 1M para US$ 144K ARR; vários faturaram
    centavos).
-2. App: `/submissao-app-store` (skill manual): metadados, screenshots, pré-visualização,
+2. App: em Linux, primeiro `/build-ios-sem-mac` (export, assinatura e upload no runner macOS);
+   depois `/submissao-app-store` (skill manual): metadados, screenshots, pré-visualização,
    TestFlight externo, checklist 4.3(b)/4.2/2.1(a)/4.1(c)/5.2.1/5.1.2(i)/4.7, idade,
    privacidade. Web: `/publicar-jogo-web` (PWA, itch.io com tags de IA, portais, Steam com
    disclosure específica).

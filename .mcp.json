@@ -1,20 +1,5 @@
 {
   "mcpServers": {
-    "xcode": {
-      "type": "stdio",
-      "command": "xcrun",
-      "args": ["mcpbridge"]
-    },
-    "mobilebuild": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "mobilebuildmcp@latest", "mcp"]
-    },
-    "ios-simulator": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "ios-simulator-mcp@latest"]
-    },
     "blender": {
       "type": "stdio",
       "command": "uvx",
