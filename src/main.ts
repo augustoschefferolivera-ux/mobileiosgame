@@ -21,16 +21,14 @@ const config: Phaser.Types.Core.GameConfig = {
     height: LOGICAL_HEIGHT * dpr,
     zoom: 1 / dpr,
   },
+  // RNG determinístico quando o playtest injeta window.__GAME_SEED__ (scripts/playtest.mjs --seed).
+  seed: window.__GAME_SEED__ ? [String(window.__GAME_SEED__)] : undefined,
   input: { activePointers: 3 },
   audio: { disableWebAudio: false },
   render: { roundPixels: true, antialias: true },
   scene: [BootScene, PreloadScene, MenuScene, GameScene],
 };
 
-const game = new Phaser.Game(config);
-
-// Pausa o loop quando a aba sai de foco (Safari suspende o AudioContext; evita contadores correndo no fundo).
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) game.loop.sleep();
-  else game.loop.wake();
-});
+// O Phaser 4 já pausa o loop e suspende/retoma o AudioContext quando a aba sai de foco
+// (Game#onHidden / WebAudioSoundManager); não duplique esse gerenciamento aqui.
+new Phaser.Game(config);

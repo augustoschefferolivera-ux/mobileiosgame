@@ -13,6 +13,8 @@ export interface GameDebug {
 declare global {
   interface Window {
     __GAME_DEBUG__: GameDebug;
+    /** Semente opcional injetada pelo playtest (`--seed`) para RNG determinístico do Phaser. */
+    __GAME_SEED__?: string;
   }
 }
 

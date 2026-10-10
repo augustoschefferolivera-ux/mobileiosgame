@@ -1,0 +1,32 @@
+{
+  "url": "http://127.0.0.1:4173/",
+  "browser": "chromium",
+  "device": "iPhone 15",
+  "seed": null,
+  "ok": true,
+  "reasons": [],
+  "info": {
+    "hasCanvas": true,
+    "canvasSize": {
+      "w": 780,
+      "h": 1688,
+      "cssW": 305,
+      "cssH": 659
+    },
+    "devicePixelRatio": 3,
+    "viewport": {
+      "w": 393,
+      "h": 659
+    },
+    "webgl": true,
+    "debug": {
+      "scene": "menu",
+      "score": 0,
+      "fps": 59,
+      "frame": 249,
+      "lastEvent": "init",
+      "errors": [],
+      "build": "production"
+    }
+  }
+}

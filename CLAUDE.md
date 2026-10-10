@@ -69,7 +69,12 @@ Decidido em `docs/decisoes/ADR-0001-engine-e-alvo.md` (2026-10-10): **web em có
 - Alvo: **2D** (premissa a confirmar no brief; 3D → ADR-0002 com Three.js) × **web/PWA primeiro**; App Store só via Capacitor depois (`/empacotar-web-para-app`, riscos 4.2/4.7)
 - Resolução lógica 390×844 retrato, `Phaser.Scale.FIT`, DPR ≤ 2; canal de depuração `window.__GAME_DEBUG__` (`src/debug.ts`)
 - Verificação: `bash scripts/verify.sh --feature F-xxx` → build + `vite preview` + Playwright (WebKit no Arch; `VERIFY_BROWSER=chromium` onde não houver WebKit)
-- Versões fixadas no `package.json`; docs da versão: https://docs.phaser.io (4.x). Brief pendente: `design/game-brief.md`
+- **Documentação primária do Phaser está no próprio pacote**: `node_modules/phaser/skills/*/SKILL.md`
+  (28 skills oficiais para agentes: scenes, loading-assets, input, physics-arcade, tilemaps, tweens,
+  scale-and-responsive, v3-to-v4-migration…), `changelog/v4/4.0/MIGRATION-GUIDE.md`, `types/phaser.d.ts`.
+  Leia a skill oficial do assunto antes de escrever código Phaser; não reinvente o que ela cobre.
+- Testes: Vitest 5 (lógica pura e Phaser HEADLESS em jsdom) + Playwright; PWA via vite-plugin-pwa 2.
+- Versões fixadas no `package.json`; online: https://docs.phaser.io (4.x). Brief pendente: `design/game-brief.md`
 
 ## Mapa do repositório
 

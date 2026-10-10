@@ -3,7 +3,7 @@
 Gerado por `python3 scripts/check-skills.py`. Não edite à mão. Invoque uma skill com `/nome`
 ou deixe o agente carregá-la quando a descrição casar com a tarefa.
 
-Total: 48 skills válidas.
+Total: 49 skills válidas.
 
 ## Por grupo
 
@@ -29,7 +29,7 @@ Total: 48 skills válidas.
 | `/build-ios-sem-mac` | 2d, 3d, app | 0, 3, 10 | Compila, assina e envia ao TestFlight/App Store um jogo iOS a partir de um PC Linux (Arch) sem Mac local, usando macOS remoto: Xcode Cloud (25 h/mês incluídas na membership), runner macOS do GitHub Actions ou Mac alug... |
 | `/ci-xcode-cloud-fastlane` | 2d, 3d, app | 0, 3, 10 | Configura integração e distribuição contínuas do jogo iOS: Xcode Cloud (25 h/mês incluídas na membership, TestFlight integrado, scripts ci_scripts), fastlane com App Store Connect API Key (pilot, deliver, match, scree... |
 | `/empacotar-web-para-app` | 2d, 3d, web, app | 2, 10 | Decide se e como levar um jogo web (Phaser, PixiJS, Three.js, Babylon) à App Store via Capacitor (WKWebView) ou mantê-lo como PWA, cobrindo os riscos de revisão 4.2 (funcionalidade mínima), 4.7 (HTML5 games), 2.5.2 (c... |
-| `/engine-web-phaser` | 2d, web | 2, 3, 5, 8 | Monta e verifica um jogo web 2D para iPhone com Phaser (ou PixiJS) + TypeScript + Vite: input por toque, devicePixelRatio, desbloqueio de áudio no Safari iOS, PWA offline, atlases e performance em Safari mobile; verif... |
+| `/engine-web-phaser` | 2d, web | 2, 3, 5, 8 | Monta, codifica e verifica um jogo web 2D para iPhone com Phaser 4.2.1 + TypeScript 5.9 + Vite 8 feito por agentes: esqueleto (390×844 retrato, FIT, DPR ≤ 2), arquitetura lógica pura + cena fina (scripts/novo-modulo.s... |
 | `/engine-web-threejs` | 3d, web | 2, 3, 5, 8 | Monta e verifica um jogo web 3D para iPhone com Three.js ou Babylon.js + TypeScript + Vite: WebGL2/WebGPU no iOS, assets glTF com Draco/meshopt e texturas KTX2, limites de memória do Safari, Gaussian splats com Spark ... |
 | `/playtest-automatizado` | 2d, 3d, app, web | 3, 5, 8 | Executa o loop de playtest por agente em um jogo iOS/web: três camadas (agentes nativos do Xcode 27; MobileBuildMCP + ios-simulator-mcp; Maestro YAML para menus), computer use no Simulator, roteiro em production/playt... |
 
@@ -56,6 +56,7 @@ Total: 48 skills válidas.
 | `/materiais-e-texturas-pbr` | 3d, app, web | 4, 6, 8 | Obtém, corrige e empacota materiais PBR e texturas para jogo mobile: aproveita o PBR dos geradores (Tripo, Meshy 7, TRELLIS.2), texturiza malhas sem textura (MV-Adapter, Material Anything), gera texturas sem costura c... |
 | `/otimizar-3d-para-mobile` | 3d, app, web | 6, 8 | Reduz um modelo 3D gerado por IA ao orçamento de iPhone: retopo/low-poly quando preciso, LODs (0,5/0,25/0,1), texturas ≤2048², KTX2/ASTC, exportação GLB/FBX/USDZ e medição no dispositivo, com gltfpack e glTF-Transform... |
 | `/rigging-e-animacao-3d` | 3d, app, web | 6 | Coloca esqueleto, pesos de pele e animações em um personagem ou criatura 3D gerado por IA (auto-rig do Tripo/Meshy, UniRig → SkinTokens, Puppeteer, Mixamo), obtém movimento por vídeo/texto (Rokoko Create, DeepMotion, ... |
+| `/sprites-pre-renderizados-de-3d` | 2d, web, app | 6 | Transforma um modelo 3D (gerado por IA ou CC0) em sprites 2D para Phaser: rig e clipes → render em lote no Blender headless com câmera ortográfica (top-down 3/4, isométrica ou lateral), 4/8 direções, N frames por ação... |
 
 ### audio
 
@@ -103,7 +104,7 @@ Total: 48 skills válidas.
 - **Fase 3 — Loop de verificação:** `/build-ios-sem-mac`, `/ci-xcode-cloud-fastlane`, `/engine-web-phaser`, `/engine-web-threejs`, `/iniciar-projeto`, `/montar-loop-de-verificacao`, `/playtest-automatizado`, `/publicar-jogo-web`
 - **Fase 4 — Direção de arte e áudio:** `/consistencia-com-lora`, `/direcao-de-arte-e-style-card`, `/direcao-de-audio-e-sound-bible`, `/estacao-gpu-remota`, `/gerar-ativos-3d`, `/gerar-sprites-2d`, `/materiais-e-texturas-pbr`, `/pixel-art-pipeline`, `/ui-hud-e-icones`
 - **Fase 5 — Produção de features:** `/ambientes-e-mundos-3d`, `/audio-adaptativo-no-engine`, `/cenarios-e-tilesets`, `/checkpoint-e-retomada`, `/ciclo-de-feature`, `/critico-independente`, `/engine-web-phaser`, `/engine-web-threejs`, `/escopo-e-anti-padroes`, `/geracao-procedural-com-llm`, `/monetizacao-iap-e-ads`, `/npc-e-dialogo-dinamico`, `/playtest-automatizado`, `/privacidade-lgpd-e-eca-digital`
-- **Fase 6 — Produção de assets:** `/ambientes-e-mundos-3d`, `/animar-sprites`, `/atlas-e-exportacao-2d-mobile`, `/blender-automatizado`, `/cenarios-e-tilesets`, `/consistencia-com-lora`, `/estacao-gpu-remota`, `/gerar-ativos-3d`, `/gerar-musica`, `/gerar-sfx`, `/gerar-sprites-2d`, `/licencas-e-proveniencia`, `/materiais-e-texturas-pbr`, `/otimizar-3d-para-mobile`, `/pixel-art-pipeline`, `/pos-producao-audio-mobile`, `/rigging-e-animacao-3d`, `/ui-hud-e-icones`, `/voz-e-dialogo`
+- **Fase 6 — Produção de assets:** `/ambientes-e-mundos-3d`, `/animar-sprites`, `/atlas-e-exportacao-2d-mobile`, `/blender-automatizado`, `/cenarios-e-tilesets`, `/consistencia-com-lora`, `/estacao-gpu-remota`, `/gerar-ativos-3d`, `/gerar-musica`, `/gerar-sfx`, `/gerar-sprites-2d`, `/licencas-e-proveniencia`, `/materiais-e-texturas-pbr`, `/otimizar-3d-para-mobile`, `/pixel-art-pipeline`, `/pos-producao-audio-mobile`, `/rigging-e-animacao-3d`, `/sprites-pre-renderizados-de-3d`, `/ui-hud-e-icones`, `/voz-e-dialogo`
 - **Fase 7 — IA em runtime e procedural:** `/audio-adaptativo-no-engine`, `/geracao-procedural-com-llm`, `/ia-runtime-nuvem-claude`, `/npc-e-dialogo-dinamico`, `/voz-e-dialogo`
 - **Fase 8 — Polimento, game feel, performance:** `/atlas-e-exportacao-2d-mobile`, `/audio-adaptativo-no-engine`, `/critico-independente`, `/engine-web-phaser`, `/engine-web-threejs`, `/escopo-e-anti-padroes`, `/materiais-e-texturas-pbr`, `/otimizar-3d-para-mobile`, `/playtest-automatizado`, `/pos-producao-audio-mobile`
 - **Fase 9 — Legal, licenças, proveniência:** `/classificacao-etaria`, `/divulgacao-de-uso-de-ia`, `/ia-runtime-nuvem-claude`, `/licencas-e-proveniencia`, `/npc-e-dialogo-dinamico`, `/privacidade-lgpd-e-eca-digital`

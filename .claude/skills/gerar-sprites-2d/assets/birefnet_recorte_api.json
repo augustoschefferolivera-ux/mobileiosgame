@@ -1,0 +1,77 @@
+{
+  "17": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "candidato.png"
+    },
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "14": {
+    "class_type": "LoadBackgroundRemovalModel",
+    "inputs": {
+      "bg_removal_name": "birefnet.safetensors"
+    },
+    "_meta": {
+      "title": "Load Background Removal Model"
+    }
+  },
+  "13": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "image": [
+        "17",
+        0
+      ],
+      "bg_removal_model": [
+        "14",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Remove Background (BiRefNet)"
+    }
+  },
+  "15": {
+    "class_type": "InvertMask",
+    "inputs": {
+      "mask": [
+        "13",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Invert Mask"
+    }
+  },
+  "16": {
+    "class_type": "JoinImageWithAlpha",
+    "inputs": {
+      "image": [
+        "17",
+        0
+      ],
+      "alpha": [
+        "15",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Join Image With Alpha"
+    }
+  },
+  "18": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "16",
+        0
+      ],
+      "filename_prefix": "recortes/birefnet"
+    },
+    "_meta": {
+      "title": "Save Image (RGBA)"
+    }
+  }
+}

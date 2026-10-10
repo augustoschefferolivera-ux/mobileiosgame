@@ -1,4 +1,6 @@
-# Safari iOS para jogos canvas: configuração e armadilhas
+# Safari iOS para jogos canvas: configuração base e armadilhas (Phaser 4.2.1)
+
+Receita aplicada em `index.html` e `src/main.ts` deste repositório; cada item diz de onde vem o fato. O que o WebKit do Playwright não reproduz (áudio real, barra inferior, memória) é validado no iPhone a cada milestone.
 
 ## HTML base
 
@@ -10,78 +12,82 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#101418">
+  <meta name="description" content="…">
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
   <style>
-    html, body { margin:0; height:100dvh; background:#000; overflow:hidden; overscroll-behavior:none; }
-    #game { width:100%; height:100%; touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
-    .safe { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    html, body { margin:0; height:100dvh; background:#101418; overflow:hidden; overscroll-behavior:none; }
+    #game { width:100%; height:100dvh; touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+    canvas { display:block; }
   </style>
 </head>
 <body><div id="game"></div><script type="module" src="/src/main.ts"></script></body>
 </html>
 ```
 
-## Phaser: configuração mobile
+- `#game` com altura definida é obrigatório: o `ScaleManager` precisa de pai com dimensões (`expandParent: true` ajuda, mas não substitui); `100dvh` acompanha as barras do Safari; o Phaser ainda corrige o `innerHeight` do iOS medindo um `div` de `100vh` (`src/dom/GetInnerHeight.js`).
+- Não estilize o `<canvas>` diretamente (o ScaleManager controla `style.width/height/margin`).
+
+## Phaser: configuração mobile (`src/main.ts`)
 
 ```ts
 import Phaser from 'phaser';
-const dpr = Math.min(window.devicePixelRatio || 1, 2); // DPR 3 estoura memória de GPU
+const dpr = Math.min(window.devicePixelRatio || 1, 2); // DPR 3 dos iPhones Pro dobra os pixels por frame
 
-export const game = new Phaser.Game({
-  type: Phaser.AUTO,           // WebGL com fallback Canvas
+const config: Phaser.Types.Core.GameConfig = {
+  type: Phaser.AUTO,                           // WebGL; Canvas (deprecado no v4) só como fallback
   parent: 'game',
-  backgroundColor: '#000000',
-  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 390, height: 844 },
-  render: { antialias: false, pixelArt: true, roundPixels: true, powerPreference: 'high-performance' },
-  input: { activePointers: 3, touch: { capture: true } },
+  backgroundColor: '#101418',
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 390 * dpr, height: 844 * dpr, zoom: 1 / dpr },
+  render: { roundPixels: true, antialias: true, powerPreference: 'high-performance' },
+  input: { activePointers: 3 },
   audio: { disableWebAudio: false },
-  fps: { target: 60, forceSetTimeOut: false },
-  scene: [Boot, Preload, Menu, GameScene],
-});
+  fps: { target: 60, smoothStep: true },
+  seed: window.__GAME_SEED__ ? [window.__GAME_SEED__] : undefined, // opcional: playtest determinístico (--seed)
+  banner: false,
+  scene: [BootScene, PreloadScene, MenuScene, GameScene],
+};
+export const game = new Phaser.Game(config);
 ```
 
-- `width/height` são a resolução lógica; para nitidez em DPR 2 use `zoom: 1 / dpr` com `width: 390 * dpr`? Não — prefira manter a lógica em 390×844 e deixar `Scale.FIT`; só suba a resolução lógica se o texto ficar borrado, medindo memória.
-- PixiJS equivalente: `new Application({ resizeTo: window, resolution: dpr, autoDensity: true, antialias: false })`.
+- **Resolução lógica é `390*dpr × 844*dpr`** (780×1688 em DPR ≥ 2, 390×844 em DPR 1). Consequência: toda posição no jogo deriva de `this.scale.width/height`, nunca de número fixo. Alternativa mais simples (menos nítida em texto): `width: 390, height: 844` sem `zoom`.
+- `roundPixels` é `false` por padrão no v4 e só atua em objetos sem escala/rotação; para pixel art use `pixelArt: true` ou `smoothPixelArt: true` (guia de pixel art do Phaser 4).
+- `autoMobileTextures` (padrão `true`) limita a 1 textura por batch em iOS/Android → tudo em atlas.
+- `fps.target` é informativo; `fps.limit` só reduz. Meça com `game.loop.actualFps`.
 
 ## Input
 
-- Eventos `pointerdown/pointermove/pointerup` do Phaser (`this.input.on('pointerdown', …)`); nunca `mousedown`.
-- Multitouch: `activePointers: 3` e `pointer.id`.
-- Bloqueie gestos do navegador: `touch-action: none` no canvas; `event.preventDefault()` em `touchmove` no `document` com `{ passive: false }` se o Phaser não cobrir.
-- Botões virtuais ≥ 44×44 pt (HIG); teste com `page.tap(x, y)` no Playwright.
+- `this.input.on('pointerdown' | 'pointerup' | 'pointermove', …)`; nunca `mousedown`/`touchstart` diretos. `pointer.id`, `pointer.wasTouch`; `activePointers: 3` dá multitoque.
+- Fullscreen e tudo que exige gesto do usuário: em touch, no **`pointerup`** (gotcha oficial do Phaser).
+- Alvos ≥ 44×44 pt; teste com `--taps-game` (coordenadas do jogo) em `scripts/playtest.mjs`.
+- Bloqueio de gestos do navegador: `touch-action: none` no `#game`; se ainda houver scroll/zoom, `document.addEventListener('touchmove', e => e.preventDefault(), { passive: false })`.
 
 ## Áudio
 
-- iOS exige gesto: tela "Toque para começar" → `this.sound.unlock()` ou `(this.sound as Phaser.Sound.WebAudioSoundManager).context.resume()`.
-- Volte do background: em `document.visibilitychange` chame `context.resume()`; pause o jogo quando `hidden`.
-- Formatos: `.m4a` (AAC) e `.mp3` tocam no Safari; `.ogg` não — carregue `[ 'audio.m4a', 'audio.ogg' ]` e deixe o Phaser escolher.
-- Botão de silêncio físico não silencia Web Audio; ofereça botão de mute no jogo.
+- O Phaser desbloqueia o `AudioContext` no primeiro `touchstart/touchend/mousedown/mouseup/keydown` em `document.body` (`WebAudioSoundManager.unlock`); `this.sound.locked` → `false` e evento `'unlocked'`. A tela "toque para começar" garante que o primeiro `play` vem depois do gesto; `this.sound.unlock()` explícito (como em `MenuScene`) é inofensivo.
+- Background: `pauseOnBlur: true` (padrão) suspende o contexto em `blur` e retoma em `focus`; o Phaser também trata interrupção do iOS 17/18+ no evento `VISIBLE`. Não reimplemente.
+- Formatos: `this.load.audio('k', ['k.m4a', 'k.ogg'])`; `Phaser.Device.Audio.m4a/ogg/opus` diz o que toca. Sem `StereoPannerNode` no iOS (pan não soa).
+- Botão de silêncio físico não cala Web Audio → botão de mute no jogo (`this.sound.mute = true`).
 
-## Vida do app
+## Ciclo de vida
 
-- `visibilitychange` → `game.loop.sleep()`/`wake()`; salve estado em `localStorage` ao esconder.
-- Safari pode recarregar a aba por memória: carregue estado salvo no boot.
-- `100vh` erra com a barra inferior; use `100dvh`.
+- Aba/app escondido: `Game#onHidden` → `loop.pause()` + evento `Phaser.Core.Events.PAUSE`; de volta: `loop.resume()` + `RESUME` com a duração da pausa. Ouça esses eventos para pausar cronômetros de gameplay e exibir "pausado". (`src/main.ts` ainda chama `loop.sleep()/wake()` em `visibilitychange`: redundante com o acima; pode ser removido numa feature de limpeza.)
+- Safari pode descartar a página por memória: salve progresso em `localStorage` a cada marco e restaure no `BootScene`; `vite:preloadError` → `location.reload()`.
+- Contexto WebGL perdido: o renderer v4 trata `webglcontextlost/restored`; texturas voltam, estado de jogo é seu.
 
-## Performance
+## Performance (resumo; detalhes em `performance-e-memoria-mobile.md`)
 
-- Meta: 60 fps em iPhone de ~4 anos; mede-se com `game.loop.actualFps` no canal de debug (`window.__GAME_DEBUG__.fps`).
-- Atlas em vez de PNGs soltos; texturas ≤ 2048²; `multiatlas` se precisar.
-- Pool de objetos (`this.add.group({ classType, maxSize })`); nada de `new` por frame; `setDepth` fixo; evite `Graphics` redesenhado por frame.
-- Fontes bitmap (`BitmapText`) em vez de `Text` dinâmico com muitas mudanças.
-- Sem pós-processamento/shader pesado no Safari; filtros do PixiJS também custam.
-- Build: `vite build` com `target: 'es2020'`, assets com hash; sirva `gzip/brotli`.
+- 60 fps em iPhone de ~4 anos; `__GAME_DEBUG__.fps` no emulador ≥ 50.
+- Atlas ≤ 2048², `BitmapText` no HUD, pooling com `Group`, zero `new` em `update`, sem filtros no MVP, `TilemapGPULayer`/`SpriteGPULayer` para camadas estáticas grandes.
+- Build: chunk do Phaser separado (`vite.config.ts`), Brotli no servidor, assets por fase.
 
 ## Canal de depuração (`src/debug.ts`)
 
-```ts
-export const debugState = { scene: 'boot', score: 0, fps: 0, frame: 0, lastEvent: 'launch', errors: [] as string[] };
-(window as any).__GAME_DEBUG__ = debugState;
-window.addEventListener('error', e => debugState.errors.push(String(e.message)));
-window.addEventListener('unhandledrejection', e => debugState.errors.push(String((e as PromiseRejectionEvent).reason)));
-export function tick(game: Phaser.Game) { debugState.frame++; debugState.fps = Math.round(game.loop.actualFps); }
-```
+`window.__GAME_DEBUG__ = { scene, score, fps, frame, lastEvent, errors[], build }` + `tick(game, sceneKey)` no `update()` de cada cena e `event(nome)` nas ações. Toda feature acrescenta ali os campos que o critério de aceite precisa (ex.: `soundUnlocked`, `fase`, `inimigosVivos`). É o que `scripts/playtest.mjs` grava em `state.json`.
 
-Chame `tick(game)` em `update()` da cena ativa e `debugState.scene = 'game'` em `create()`.
+## Fontes
+
+- `node_modules/phaser/src/dom/GetInnerHeight.js`, `src/scale/ScaleManager.js` (`parentIsWindow && device.os.iOS`), `src/core/Game.js` (`onHidden/onVisible/onBlur/onFocus`), `src/sound/webaudio/WebAudioSoundManager.js` (`unlock`, `onBlur/onFocus`), `src/renderer/webgl/renderNodes/RenderNodeManager.js` (`maxParallelTextureUnits`) — phaser@4.2.1, 2026-10-10
+- Skills oficiais `node_modules/phaser/skills/{scale-and-responsive,input-keyboard-mouse-touch,audio-and-sound,game-setup-and-config}/SKILL.md`; `docs/Phaser 4 Pixel Art Guide`
+- Comportamentos do Safari não cobertos pelo código do Phaser (barras, memória, ITP): validar em https://webkit.org/blog/ e https://developer.apple.com/documentation/safari-release-notes [não lidos nesta sessão]

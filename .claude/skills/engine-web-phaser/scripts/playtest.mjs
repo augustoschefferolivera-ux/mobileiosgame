@@ -2,7 +2,12 @@
 // playtest.mjs — abre o jogo web em WebKit/Chromium emulando um iPhone, captura screenshot,
 // console, erros de página e window.__GAME_DEBUG__; opcionalmente executa toques.
 // Uso: node playtest.mjs --url http://127.0.0.1:4173/ --out <dir> [--device "iPhone 15"]
-//      [--browser webkit|chromium] [--wait 4000] [--taps "x,y;x,y"] [--timeout 60]
+//      [--browser webkit|chromium] [--wait 4000] [--taps "x,y;x,y"] [--taps-game "gx,gy;gx,gy"] [--timeout 60] [--seed 42]
+// --taps usa px CSS do viewport; --taps-game usa coordenadas DO JOGO (ex.: 390,844 = centro de um canvas
+// 780×1688) e converte pelo canvas.getBoundingClientRect() — independe do dispositivo emulado.
+// --seed define window.__GAME_SEED__ antes de qualquer script da página (addInitScript); src/main.ts
+// deve ler esse valor e passar `seed: [String(window.__GAME_SEED__)]` ao GameConfig para que
+// Phaser.Math.RND seja determinístico e o screenshot comparável entre execuções.
 // Exige 'playwright' resolvível a partir do cwd (npm i -D playwright; npx playwright install webkit).
 import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -13,7 +18,7 @@ const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, arr) =>
   return acc;
 }, []));
 if (args.help || !args.url) {
-  console.log('Uso: node playtest.mjs --url <url> --out <dir> [--device "iPhone 15"] [--browser webkit|chromium] [--wait ms] [--taps "x,y;x,y"] [--timeout s]');
+  console.log('Uso: node playtest.mjs --url <url> --out <dir> [--device "iPhone 15"] [--browser webkit|chromium] [--wait ms] [--taps "x,y;x,y"] [--taps-game "gx,gy;gx,gy"] [--timeout s] [--seed n]');
   process.exit(args.help ? 0 : 4);
 }
 const out = args.out || '.';
@@ -29,10 +34,12 @@ if (!pw.devices[deviceName]) console.warn(`[playtest] dispositivo "${deviceName}
 
 const consoleLines = [];
 const pageErrors = [];
-const result = { url: args.url, browser: browserName, device: pw.devices[deviceName] ? deviceName : 'iPhone 13', ok: false, reasons: [] };
+const seed = args.seed && args.seed !== 'true' ? String(args.seed) : null;
+const result = { url: args.url, browser: browserName, device: pw.devices[deviceName] ? deviceName : 'iPhone 13', seed, ok: false, reasons: [] };
 
 const browser = await pw[browserName].launch({ headless: true });
 const context = await browser.newContext({ ...device });
+if (seed !== null) await context.addInitScript((s) => { window.__GAME_SEED__ = s; }, seed);
 const page = await context.newPage();
 page.setDefaultTimeout(timeout);
 page.on('console', m => consoleLines.push(`[${m.type()}] ${m.text()}`));
@@ -44,14 +51,32 @@ try {
   await page.waitForLoadState('networkidle').catch(() => {});
   await page.waitForTimeout(wait);
 
+  const tapsExecutados = [];
   if (args.taps && args.taps !== 'true') {
     for (const pair of args.taps.split(';').filter(Boolean)) {
       const [x, y] = pair.split(',').map(Number);
       await page.touchscreen.tap(x, y);
+      tapsExecutados.push({ css: [x, y] });
       await page.waitForTimeout(400);
     }
-    await page.waitForTimeout(800);
   }
+  if (args['taps-game'] && args['taps-game'] !== 'true') {
+    for (const pair of args['taps-game'].split(';').filter(Boolean)) {
+      const [gx, gy] = pair.split(',').map(Number);
+      // Converte coordenada do jogo (baseSize do Phaser = canvas.width/height) para px CSS do viewport.
+      const css = await page.evaluate(([x, y]) => {
+        const c = document.querySelector('canvas');
+        if (!c) return null;
+        const r = c.getBoundingClientRect();
+        return [r.left + (x * r.width) / c.width, r.top + (y * r.height) / c.height];
+      }, [gx, gy]);
+      if (!css) { result.reasons.push('taps-game: nenhum <canvas>'); break; }
+      await page.touchscreen.tap(css[0], css[1]);
+      tapsExecutados.push({ game: [gx, gy], css: [Math.round(css[0]), Math.round(css[1])] });
+      await page.waitForTimeout(400);
+    }
+  }
+  if (tapsExecutados.length) { result.taps = tapsExecutados; await page.waitForTimeout(800); }
 
   const info = await page.evaluate(() => {
     const canvas = document.querySelector('canvas');

@@ -1,0 +1,22 @@
+
+> mobileiosgame@0.0.1 build
+> tsc --noEmit && vite build
+
+vite v8.3.4 building client environment for production...
+transforming...
+✓ 11 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/registerSW.js                  0.13 kB
+dist/index.html                     1.02 kB │ gzip:   0.54 kB
+dist/assets/index-CvuPiBkV.js       2.69 kB │ gzip:   1.29 kB
+dist/assets/phaser-D8EC1TLR.js  1,374.10 kB │ gzip: 357.33 kB
+
+✓ built in 1.44s
+
+PWA v2.0.0
+mode      generateSW
+precache  5 entries (1345.85 KiB)
+files generated
+  dist/sw.js
+  dist/workbox-2fbc6a65.js

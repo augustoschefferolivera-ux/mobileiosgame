@@ -1,0 +1,8 @@
+engine: phaser
+verificador: .claude/skills/engine-web-phaser/scripts/verify.sh
+feature: F-000
+modo: full
+inicio: 2026-10-10 16:01:18
+fim: 2026-10-10 16:01:35
+commit: 86af77c
+exit: 0

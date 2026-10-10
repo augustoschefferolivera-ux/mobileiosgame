@@ -1,76 +1,94 @@
-# Formatos de textura, orçamento e exportação por engine
+# Phaser 4 (web mobile): atlas JSON, @2x, formatos, texturas comprimidas e orçamento de memória
 
-## Bits por pixel e memória (sem mipmaps; sprites 2D normalmente não usam mipmaps)
+Fonte primária: código e changelog do Phaser 4.2.1 (`phaserjs/phaser`, lidos em 2026-10-10): `JSONHash.js`,
+`JSONArray.js`, `MultiAtlasFile.js`, `CompressedTextureFile.js`, `NineSlice.js`, `Config.js`, `ScaleManager.js`,
+`changelog/v3/3.60/CompressedTextures.md`, `changelog/v4/4.0/CHANGELOG-v4.0.0.md`.
+
+## 1. Estratégia de resolução (ADR-0001: 390×844 lógico, `Scale.FIT`, DPR ≤ 2)
+
+- **Assets são desenhados @2x**: 1 pt lógico = 2 px de textura. Herói de 64 pt = 128 px; botão de 44 pt = 88 px;
+  fundo de tela cheia = 780×1688 px (1560 de largura se fizer loop horizontal).
+- **Canvas em DPR 2**: no Phaser a forma mais simples é `scale: { width: 390 * dpr, height: 844 * dpr, zoom: 1 / dpr, mode: Phaser.Scale.FIT }`
+  com `dpr = Math.min(devicePixelRatio, 2)`; o `zoom` "multiplica o tamanho-base do jogo ao calcular o tamanho de
+  exibição" (doc do `ScaleManager#zoom`), ou seja, o canvas tem 780×1688 pixels reais exibidos em 390×844 CSS px.
+  Coordenadas de jogo passam a ser em px @2x; mantenha a lógica em pt multiplicando por `dpr` em um único lugar.
+  **Valide com screenshot** (`scripts/verify.sh`) que texto e sprites saem nítidos; se preferir manter a lógica em
+  390×844, o canvas fica 1× e os sprites @2x são exibidos reduzidos (nítidos em DPR 2 só se o navegador escalar o
+  canvas; na prática ficam borrados) — por isso o canvas @2x.
+- **DPR 3 nunca**: 3× o número de pixels do canvas e das texturas estoura a memória do Safari.
+- Pixel art: lógica em grade inteira (ex.: 195×422 → zoom 2 → 390×844) e `pixelArt: true`; ver `/pixel-art-pipeline`.
+
+## 2. Formatos de atlas que o Phaser lê
+
+| Formato | Loader | Estrutura | Gerado por |
+|---|---|---|---|
+| JSON hash (TexturePacker "JSON (Hash)" / "Phaser 3") | `this.load.atlas(key, 'a.png', 'a.json')` | `frames: { "nome": { frame, rotated, trimmed, spriteSourceSize, sourceSize, pivot?, scale9Borders? } }` | `scripts/empacotar_atlas.py`, free-tex-packer (`JsonHash`/`Phaser3`), TexturePacker |
+| JSON array | `this.load.atlas(...)` | `frames: [ { filename, frame, ... } ]` | `slice_spritesheet.py --formato array`, free-tex-packer `JsonArray` |
+| Multi-atlas | `this.load.multiatlas(key, 'a.json', 'caminho/')` | `textures: [ { image, size, scale, frames: [...] } ]`; o Phaser carrega cada `image` | `empacotar_atlas.py` (quando passa de uma página), TexturePacker "Phaser 3" multipack |
+| Sprite sheet em grade | `this.load.spritesheet(key, 'a.png', { frameWidth, frameHeight, margin, spacing })` | PNG em grade fixa | `slice_spritesheet.py montar`, Aseprite |
+| Textura comprimida (+ atlas) | `this.load.texture(key, { ASTC: { type: 'PVR'|'KTX', textureURL, atlasURL }, IMG: { textureURL, atlasURL } })` | PVR/KTX; formatos ETC/ETC1/ATC/ASTC/BPTC/RGTC/PVRTC/S3TC; ordem = prioridade; `IMG` = fallback | PVRTexTool, `astcenc`, TexturePacker (3.60 doc); **Phaser 4 exige recompressão com eixo Y a partir de baixo** (changelog 4.0) |
+
+Campos lidos pelo parser: `trimmed` → `Frame.setTrim(sourceSize.w, sourceSize.h, spriteSourceSize.x, y, w, h)`;
+`rotated` → UVs invertidas; `anchor` ou `pivot` → `pivotX/pivotY`; `scale9Borders {x,y,w,h}` (retângulo central) →
+`Frame.setScale9` usado pelo `NineSlice` (texturas aparadas não são suportadas pelo NineSlice).
+
+## 3. Memória de GPU por textura (sem mipmaps; sprites 2D não usam)
 
 | Formato | bpp | 1024² | 2048² | Uso |
 |---|---|---|---|---|
-| RGBA32 | 32 | 4 MB | 16 MB | pixel art, UI minúscula, fontes |
-| RGBA16 (4444) | 16 | 2 MB | 8 MB | pixel art com poucas cores (banding em gradientes) |
-| ASTC 4x4 | 8 | 1 MB | 4 MB | UI, ícones, texto-like, sprites pequenos |
-| ASTC 6x6 | ≈3,56 | ≈455 KB | ≈1,8 MB | sprites de jogo HD (padrão iOS no exemplo da skill Unity) |
-| ASTC 8x8 | 2 | 256 KB | 1 MB | fundos, parallax |
-| PVRTC 4 bpp | 4 | 512 KB | 2 MB | só dispositivos antigos; quadrado e potência de 2 obrigatórios; 256² = 32 KB |
-| ETC2 RGBA8 | 8 | 1 MB | 4 MB | Android |
+| RGBA8 (PNG/WebP descomprimido na GPU) | 32 | 4 MB | 16 MB | padrão do Phaser com `this.load.image/atlas` |
+| ASTC 4×4 | 8 | 1 MB | 4 MB | UI, texto-like (via `this.load.texture`) |
+| ASTC 6×6 | ≈ 3,56 | ≈ 455 KB | ≈ 1,8 MB | sprites HD |
+| ASTC 8×8 | 2 | 256 KB | 1 MB | fundos |
+| PVRTC 4 bpp | 4 | 512 KB | 2 MB | só iPhones antigos; quadrado e potência de 2 |
 
-`scripts/estimar_memoria_atlas.py` calcula qualquer combinação; `--pasta` soma os PNGs e estima quantos atlases 2048² ocupam.
+`scripts/estimar_memoria_atlas.py --pasta <dir> --formato rgba32` soma os PNGs e estima quantas páginas 2048² ocupam.
+**Importante:** o peso do arquivo PNG/WebP no disco não é o peso na GPU: um atlas 2048² RGBA8 ocupa 16 MB de VRAM
+mesmo que o PNG tenha 400 KB. WebP/oxipng reduzem download e cache do PWA, não memória de GPU; só texturas
+comprimidas (ASTC) reduzem VRAM.
 
-## Orçamento por tela (modelo de `design/orcamento-texturas.md`)
+## 4. Orçamento por cena (modelo para `design/orcamento-texturas.md`)
 
-| Tela | Atlases | Formato | Estimado | Medido (dispositivo) | Teto | Status |
-|---|---|---|---|---|---|---|
-| Floresta (gameplay) | sprites_floresta (2048²), ui_hud (1024²), bg_floresta 3 camadas (2048×1024) | ASTC 6x6 / 4x4 / 8x8 | 1,8 + 1 + 1,5 MB | ____ | ____ MB | |
+Não há número oficial da Apple para WebGL em Safari; a skill `engine-web-phaser` adota heap < ~300 MB como regra
+prática. Teto inicial deste repositório (inferência; valide no iPhone com Web Inspector → Timelines/Memory):
 
-Regras práticas (valide no seu dispositivo mínimo, com Xcode Memory/Metal debugger ou Unity Memory Profiler): fixe um teto por tela e um teto total; descarregue atlases ao trocar de cena; fundos de tela cheia são o maior item (um fundo @3x de iPhone em RGBA32 passa de 14 MB; em ASTC 8x8 fica abaixo de 1 MB).
+| Item | Teto | Como medir |
+|---|---|---|
+| Atlases carregados por cena | ≤ 4 páginas 2048² RGBA8 (64 MB) ou ≤ 8 com ASTC | soma do `estimar_memoria_atlas.py` |
+| Fundos de parallax | ≤ 3 camadas de 1560×1688 (≈ 10,5 MB cada em RGBA8) → ≈ 32 MB | idem |
+| Total de texturas residentes | ≤ 100 MB RGBA8-equivalente | `game.textures.list` + dimensões em `__GAME_DEBUG__` |
+| Texturas por draw call | `maxTextures` = unidades do GPU (`gl.MAX_TEXTURE_IMAGE_UNITS`) | — |
+| Lado máximo de textura | 2048 (regra do projeto; `gl.MAX_TEXTURE_SIZE` costuma ser 16384 em iOS atual [web3dsurvey, secundário]) | `game.renderer.getMaxTextureSize()` |
 
-## Alfa pré-multiplicado
+Troca de cena: `this.textures.remove(key)` para atlases que não voltam; preload por cena, não global.
 
-- PNG armazena alfa **reto** (cor não multiplicada). GPUs e engines geralmente compõem com alfa **pré-multiplicado**. Se o engine não converter na importação, bordas semitransparentes escurecem (halo).
-- Soluções: opção "premultiply alpha" do empacotador (TexturePacker tem; confira o `free-tex-packer`), ou garantir a conversão na importação (SpriteKit/Xcode fazem; Phaser tem `premultipliedAlpha` na config do renderer [confirmar]).
-- Teste: sprite sobre xadrez e sobre preto puro; halo escuro = alfa reto desenhado como pré-multiplicado; borda clara/"brilho" = o inverso.
-- Nunca "resolver" pintando a borda do PNG: isso quebra em outro engine.
+## 5. Alfa pré-multiplicado e halos
 
-## Nine-slice
+PNG guarda alfa reto; o Phaser cria o contexto WebGL com `premultipliedAlpha: true` (config padrão) e faz a conversão
+ao subir a textura, então PNGs normais não geram halo. Halo escuro = PNG já pré-multiplicado por outra ferramenta
+ou recorte com borda suja; halo claro = borda semitransparente com cor de fundo residual (recorte). Corrija na
+origem (`remove_bg.py`, `chroma_para_alfa.py --despill`), nunca pintando a borda.
 
-- Bordas (l,t,r,b) em px @1x no `design/ui-mapa-de-nomes.md`; o meio deve ser liso (sem detalhe que estique).
-- No atlas: sem rotação, sem trim para peças nine-slice.
-- Engine: SpriteKit `centerRect`; Unity bordas no Sprite Editor + `Image.Type.Sliced`; Godot `NinePatchRect`/`StyleBoxTexture`; Phaser `NineSlice`.
+## 6. Nine-slice e UI
 
-## Exportação por engine
+`this.add.nineslice(x, y, 'ui', 'ui_panel_main', 300, 200, 24, 24, 24, 24)` (leftWidth, rightWidth, topHeight,
+bottomHeight; só os dois primeiros = 3-slice). Com `scale9Borders` no atlas (`empacotar_atlas.py --nineslice`),
+basta `this.add.nineslice(x, y, 'ui', 'ui_panel_main', 300, 200)`. Peças nine-slice: `--sem-trim`, sem rotação,
+centro liso; `tileX/tileY` (novo no 4.0) repetem em vez de esticar (textura central precisa ser seamless).
 
-### SpriteKit (iOS nativo)
-- Asset catalog → pasta `nome.spriteatlas` com imagens `@2x`/`@3x` (sem `@1x` para iOS moderno, se o jogo não roda em iPad antigo — confirme seus alvos); o Xcode empacota no build e faz app thinning por dispositivo.
-- `SKTextureAtlas(named: "nome")`, `.preload(completionHandler:)` antes da cena; `textureNamed("sprite")`.
-- Compressão: atributo "Compression" do asset catalog (há opções com perda otimizadas para GPU) [confirmar os nomes na doc do Xcode]. Pixel art: `filteringMode = .nearest`.
+## 7. Formato de arquivo: PNG vs WebP
 
-### Unity 6.3
-- Skill oficial `manage-sprite-atlas` (prebuild, SpriteAtlas V2, override por plataforma: iOS → ASTC, `maxTextureSize` 2048, `compressionQuality`); `sprite-editor` para bordas/pivôs; `2d-pixel-perfect` para pixel art. Não copie o texto da skill; invoque-a.
-- Addressables/late binding quando o jogo tem muitas cenas (a skill cobre).
+- PNG RGBA 8 bits é o master; `otimizar_imagens.py` roda `oxipng` (sem perda) e opcionalmente `pngquant`
+  (paleta, com perda; GPL/comercial para a ferramenta) e gera `.webp` (q 85, alfa sem perda).
+- WebP com alfa: suportado em Chrome/Edge/Firefox/Safari (MDN); Safari 14–15.6 "parcial", 16+ completo
+  [caniuse via busca, secundário]. Carregue WebP quando `this.sys.game.device`/teste de `<img>` indicar suporte;
+  senão PNG. Pixel art: só sem perda.
+- Download típico de um jogo casual: 3–8 MB de imagens (atlases WebP) cabe no pré-cache do service worker (< 50 MB).
 
-### Godot 4
-- Import: Compress Mode "VRAM Compressed" (HD) ou "Lossless" (pixel art); para mobile habilite ETC2/ASTC em Project Settings → Rendering → Textures → VRAM Compression [confirmar na doc da versão fixada].
-- Sheets: `AtlasTexture` (região por sprite) ou `SpriteFrames` para animação; não há empacotador automático de 2D no editor — use TexturePacker/free-tex-packer e gere regiões, ou mantenha PNGs separados em cenas pequenas.
-- Godot AI (MCP): `filesystem_manage.reimport` reimporta texturas após mudar presets.
+## 8. Checklist de exportação
 
-### Phaser 3
-- `this.load.atlas('key', 'atlas.png', 'atlas.json')` com JSON **hash** ou **array** (saída do `slice_spritesheet.py` ou do TexturePacker).
-- Escala: escolha o atlas @1x/@2x/@3x por `window.devicePixelRatio` no boot (não há sufixos automáticos).
-- Texturas comprimidas (ASTC/PVRTC/ETC em KTX/PVR) via loader de texturas comprimidas (3.60+) [confirmar]; sem isso a GPU guarda RGBA32.
-- `pixelArt: true` para nearest.
-
-## Formato do JSON hash (compatível com Phaser; gerado por `slice_spritesheet.py`)
-
-```json
-{
-  "frames": {
-    "chr_heroi_walk_00.png": {
-      "frame": {"x": 0, "y": 0, "w": 64, "h": 64},
-      "rotated": false, "trimmed": false,
-      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
-      "sourceSize": {"w": 64, "h": 64}
-    }
-  },
-  "meta": {"image": "chr_heroi_walk_sheet.png", "size": {"w": 384, "h": 64}, "scale": "1"}
-}
-```
-
-O formato **array** troca o objeto `frames` por uma lista com `filename` em cada item.
+- [ ] Todo sprite/UI/tile em um atlas por cena e por tipo (UI separado de sprites; pixel art separado de HD).
+- [ ] `empacotar_atlas.py --padding 2 --extrude 1`; UI com `--sem-trim` e `--nineslice`; tiles com `extrudir_tiles.py`.
+- [ ] Páginas ≤ 2048²; multi-atlas quando passar; `--pot` só se for usar texturas comprimidas.
+- [ ] `otimizar_imagens.py --webp` e relatório de pesos na pasta de evidências.
+- [ ] `design/orcamento-texturas.md` com estimativa e medição real; `verify.sh` com screenshot + `fps ≥ 50`.

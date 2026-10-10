@@ -1,0 +1,42 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "chr_sprite_base.png"
+    },
+    "_meta": {
+      "title": "Load Character Image"
+    }
+  },
+  "142": {
+    "class_type": "GeminiImage2Node",
+    "inputs": {
+      "prompt": "Create a 4-frame walk cycle sprite sheet of this character, in the exact art style, proportions and colors of the reference image.\n\nArrange the 4 frames in a 2x2 grid on a uniform chromakey green color background. The character is walking to the right. Every element of the generated frame should fit inside the quadrant, with the central point of the character aligned with the central point of each quadrant. All frames share the same baseline (feet at the same height) and the same lighting.\n\nCRITICAL CHROMAKEY REQUIREMENTS:\n1. BACKGROUND: Solid, flat, uniform chromakey green color. Use EXACTLY hex color #00FF00 (RGB 0, 255, 0). The entire background must be this single pure green color with NO variation, NO gradients, NO shadows, NO lighting effects.\n2. NO GREEN ON SUBJECT: if the subject needs green, use a distinctly different shade like dark forest green or teal.\n3. DO NOT GENERATE WITH BLACK BORDERS BETWEEN FRAMES. No text, no labels, no numbers.\n\nTop row: Frame 1 (top-left): right leg forward, left leg back - stride. Frame 2 (top-right): legs passing - transition.\nBottom row: Frame 3 (bottom-left): left leg forward, right leg back - opposite stride. Frame 4 (bottom-right): legs passing - transition back.\nSame character design in all frames. Character facing right.",
+      "model": "gemini-3-pro-image-preview",
+      "seed": 1,
+      "aspect_ratio": "1:1",
+      "resolution": "2K",
+      "response_modalities": "IMAGE",
+      "images": [
+        "1",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Nano Banana Pro: walk sheet 2x2"
+    }
+  },
+  "37": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "142",
+        0
+      ],
+      "filename_prefix": "sheets/walk_sheet"
+    },
+    "_meta": {
+      "title": "Save sheet"
+    }
+  }
+}
