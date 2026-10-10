@@ -92,6 +92,7 @@ def main():
     ap.add_argument("--indice", type=int, help="força o sufixo NN; sem isso, incrementa se o nome já existir")
     ap.add_argument("--destino", help="pasta de destino (padrão por categoria)")
     ap.add_argument("--copiar", action="store_true", help="copia em vez de mover")
+    ap.add_argument("--sobrescrever", action="store_true", help="permite substituir um arquivo existente ao usar --indice")
     ap.add_argument("--provenance", default="PROVENANCE.md")
     ap.add_argument("--template-provenance", default="templates/PROVENANCE.md")
     ap.add_argument("--tipo", help="padrão deduzido da categoria + dimensões do PNG")
@@ -149,7 +150,12 @@ def main():
     if a.dry_run:
         return
     destino_dir.mkdir(parents=True, exist_ok=True)
-    (shutil.copy2 if a.copiar else shutil.move)(str(origem), str(novo))
+    if novo.exists() and novo.resolve() == origem.resolve():
+        print("arquivo já está no destino; só a seção do PROVENANCE será atualizada")
+    elif novo.exists() and not a.sobrescrever:
+        sys.exit(f"{novo} já existe e é outro arquivo; use --sobrescrever para substituir ou omita --indice")
+    else:
+        (shutil.copy2 if a.copiar else shutil.move)(str(origem), str(novo))
     prov = Path(a.provenance)
     if not prov.exists():
         criar_provenance(prov, Path(a.template_provenance))

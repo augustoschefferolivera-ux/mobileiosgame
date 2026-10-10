@@ -7,7 +7,7 @@ description: >
   que o usuário pedir fase, mapa, arena, cenário, ambiente, céu, terreno ou "mundo", mesmo sem
   dizer "3D". Não use para um prop isolado (/gerar-ativos-3d), para reduzir polígonos de um
   cenário pronto (/otimizar-3d-para-mobile) nem para a lógica de geração procedural em
-  runtime (skill geracao-procedural-com-llm).
+  runtime (/geracao-procedural-com-llm).
 license: MIT
 compatibility: "Claude Code ou Codex; Blender + Blender MCP para montagem; macOS/Xcode para MetalSplatter e RealityKit"
 metadata:
@@ -42,15 +42,16 @@ de frame, com screenshot no simulador/dispositivo e frame time medido.
 - Splats (opcional, arriscado): **MetalSplatter** (MIT, Swift/Metal, iOS/macOS/visionOS; PLY,
   SPZ, .splat) ou **Spark** (World Labs, MIT, three.js, mobile web); formato **SPZ** (Niantic,
   MIT, ~10× menor que PLY).
-- Modelo de imagem do projeto (`gpt-image-1.5`, Nano Banana Pro — ver skills de arte 2D)
-  para panoramas/skybox; `scripts/verificar_tiling.py` de `/materiais-e-texturas-pbr`.
-- Lista verde de `LICENCAS.md`: **HunyuanWorld 1.0 / HY-World 2.0 estão na lista vermelha**
-  (licença exclui UE/UK/Coreia e proíbe saídas fora do Território).
+- Modelo de imagem do projeto (`gpt-image-1.5`, Nano Banana Pro — rotas de `/gerar-sprites-2d`
+  e `/cenarios-e-tilesets`) para panoramas/skybox; `verificar_tiling.py` (em
+  `.claude/skills/materiais-e-texturas-pbr/scripts/`; `--eixo horizontal` para panoramas).
+- Lista verde de `LICENCAS.md` (`/licencas-e-proveniencia`): **HunyuanWorld 1.0 / HY-World 2.0
+  estão na lista vermelha** (licença exclui UE/UK/Coreia e proíbe saídas fora do Território).
 
 ## Entradas
 
 - Brief do nível: gênero, câmera (top-down, 3ª pessoa, lateral), tamanho jogável, pontos de
-  interesse, fluxo do jogador, hora do dia/clima (`/direcao-de-arte` ou style card).
+  interesse, fluxo do jogador, hora do dia/clima (style card de `/direcao-de-arte-e-style-card`).
 - Orçamento por frame (teto Apple ≤100K polígonos no device mais antigo; 1 conjunto 2048² por
   asset; inferência do relatório: cenário modular 2–10K tris por peça, atlas 2048² por kit).
 - Engine e tipo de iluminação (assada vs dinâmica; mobile prefere assada).

@@ -11,6 +11,7 @@ proporção. É um filtro automático: o preview 2×2 ainda precisa de olho huma
 Requer Pillow (`pip install pillow`). Sem dependência de numpy.
 
 Uso:
+  verificar_tiling.py --help
   verificar_tiling.py textura.png [--eixo both|horizontal|vertical] [--limiar 1.5]
                       [--preview preview-2x2.png] [--json]
 Códigos: 0 sem costura; 1 costura detectada ou dimensão inadequada; 2 erro/dependência.

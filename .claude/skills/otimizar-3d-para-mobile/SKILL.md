@@ -41,7 +41,8 @@ npm install -g gltfpack              # gltfpack (MIT, meshoptimizer) — testado
 # KTX2 pelo glTF-Transform exige toktx (KTX-Software, Apache-2.0) no PATH; gltfpack -tc não exige
 ```
 
-- `python3` para `../gerar-ativos-3d/scripts/inspecionar_glb.py` (medições).
+- `python3` para `../gerar-ativos-3d/scripts/inspecionar_glb.py` (medições). Instalação
+  guiada das CLIs: `/instalar-ferramentas`.
 - Retopologia (só quando necessária): Blender via `/blender-automatizado` (QuadriFlow
   embutido), Instant Meshes (BSD-3, binários Win/Mac/Linux), Quad Remesher (~US$ 79 perpétuo
   [secundário, confirmar]), QuadMend (envolve Instant Meshes + QuadriFlow [secundário]).
@@ -53,7 +54,7 @@ npm install -g gltfpack              # gltfpack (MIT, meshoptimizer) — testado
 ## Entradas
 
 - GLB/glTF bruto + `PROVENANCE.md` + spec (`design/assets/specs/<asset>-3d.md`) com orçamento.
-- Alvo (`CLAUDE.md`/`/escolher-engine`): `unity`, `godot`, `realitykit` ou `web`.
+- Alvo (`CLAUDE.md` / ADR de `/escolher-engine-e-alvo`): `unity`, `godot`, `realitykit` ou `web`.
 - Orçamento. Se o spec não fixou, use a tabela de `/gerar-ativos-3d` (herói 30–50K, prop
   5–10K; inferência) e o teto da Apple: **≤100K polígonos, 1 conjunto 2048², ≤10 s de
   animação** (AR Quick Look até iPhone 7; RealityKit tem "a bit more wiggle room").
@@ -70,8 +71,8 @@ npm install -g gltfpack              # gltfpack (MIT, meshoptimizer) — testado
    Faça retopo (QuadriFlow/Instant Meshes/Quad Remesher, ou "smart low-poly" do Tripo /
    "Smart Topology" do Meshy / `remesh quad` do SPAR3D na geração) quando: o asset será
    **rigado e deformado**; tris > ~3× o orçamento; a malha tem cascas/ruído que o simplify
-   só espalha. Retopo + bake ficam em `/blender-automatizado` (`scripts/bpy_cleanup_template.py`
-   com `--remesh quadriflow --target-faces N --bake all`), que devolve um GLB limpo para o passo 3.
+   só espalha. Retopo + bake ficam em `/blender-automatizado` (`bpy_cleanup_template.py` com
+   `--remesh quadriflow --target-faces N --bake all`), que devolve um GLB limpo para o passo 3.
 3. **LODs, texturas, compressão** com o script desta skill:
    ```bash
    .claude/skills/otimizar-3d-para-mobile/scripts/optimize_glb.sh -i in.glb -o assets/3d/opt/<asset> \

@@ -34,21 +34,21 @@ Entrega um GLB bruto escolhido entre 3–5 candidatos, com `PROVENANCE.md`, rela
 ## Pré-requisitos
 
 - `python3` (sem dependências) para `scripts/inspecionar_glb.py`.
-- Gerador na **lista verde de `LICENCAS.md`** do projeto (regra `.claude/rules/assets.md`); se
-  não estiver, pare e peça decisão. Chaves/planos:
+- Gerador na **lista verde de `LICENCAS.md`** do projeto (`/licencas-e-proveniencia`; regra
+  `.claude/rules/assets.md`); se não estiver, pare e peça decisão. Chaves/planos:
   - Tripo: plano pago (uso comercial só pago). Meshy: plano pago (grátis = CC BY 4.0).
   - TRELLIS.2-4B / TripoSG / PartCrafter / SPAR3D: GPU NVIDIA Linux (≥24 GB VRAM para
     TRELLIS.2; ≥8 GB para TripoSG e PartCrafter; ~10,5 GB para SPAR3D) local ou alugada.
 - Opcional: Blender com `/blender-automatizado` (MCP) para inspeção visual (`look` em
   `wireframe`/`angles`) e `generate_3d` via Tripo/Rodin.
-- Style card / art bible do projeto (skill de direção de arte). Sem ele, use a linha de
-  direção de arte do brief e diga isso no spec.
+- Style card / art bible do projeto (`/direcao-de-arte-e-style-card`). Sem ele, use a linha
+  de direção de arte do brief e diga isso no spec. Ferramentas ausentes: `/instalar-ferramentas`.
 
 ## Entradas
 
 - Brief do jogo e lista de features (quais assets o loop precisa agora).
 - Style card: paleta, linguagem de forma, nível de realismo, referências visuais.
-- Engine/alvo (`/escolher-engine` ou `CLAUDE.md`): RealityKit (USDZ), Unity, Godot, web.
+- Engine/alvo (ADR de `/escolher-engine-e-alvo` ou `CLAUDE.md`): RealityKit (USDZ), Unity, Godot, web.
 - Orçamento por asset. Se o projeto não fixou, use a divisão abaixo e marque como inferência.
 
 | Categoria | Triângulos (LOD0) | Texturas | LODs | Observação |
@@ -86,8 +86,8 @@ gerar → retopo/low-poly → decimar/LODs → bake PBR → exportar (relatório
    (citar regras do style card), formato final (GLB/FBX/USDZ) e engine. Confirme a lista com
    o usuário antes de gastar créditos. Resultado observável: arquivo de spec no disco.
 2. **Imagem de referência**. Geradores de 2026 são imagem→3D (Meshy 7 é explicitamente um
-   modelo imagem-para-3D). Gere a referência com a skill de arte 2D do projeto a partir do
-   style card: vista 3/4 (ou frontal + lateral para multi-imagem), fundo neutro, iluminação
+   modelo imagem-para-3D). Gere a referência com `/gerar-sprites-2d` (fundo transparente)
+   a partir do style card: vista 3/4 (ou frontal + lateral para multi-imagem), fundo neutro, iluminação
    plana, objeto único, silhueta fechada; personagens em **pose T/A com membros separados**
    (facilita rig). Prompts proíbem nomes, logos e personagens reais (Guidelines 4.1(c)/5.2.1).
    Salve em `assets/3d/src/<asset>/ref/`.

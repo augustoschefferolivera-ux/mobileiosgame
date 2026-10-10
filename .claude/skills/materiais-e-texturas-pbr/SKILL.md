@@ -39,12 +39,14 @@ vista no engine (screenshot no simulador/dispositivo).
   (precisa de `toktx`, KTX-Software); gltfpack nativo para `-tc`.
 - Blender via `/blender-automatizado` para bake, UV pack e religar mapas.
 - Modelo de imagem do projeto para texturas tileable (`gpt-image-1.5` com `background`
-  transparente para decals; Nano Banana Pro para variações com referência — ver skill de arte
-  2D). **Nenhum** modelo de imagem lista "tileable garantido": sempre verifique.
+  transparente para decals; Nano Banana Pro para variações com referência — rotas de
+  `/gerar-sprites-2d`). **Nenhum** modelo de imagem lista "tileable garantido": sempre verifique.
 - Opcional (GPU NVIDIA): **MV-Adapter** (Apache-2.0; texto/imagem → textura de malha; ~14 GB
   VRAM, variantes SD2.1 <10 GB; **sem PBR**), **Material Anything** (MIT; albedo, roughness,
   metallic, bump a partir de GLB; scripts miram Blender 3.2.2).
-- Lista verde de `LICENCAS.md`: Hunyuan3D 2.1 Paint-PBR está na vermelha (licença territorial).
+- Lista verde de `LICENCAS.md` (`/licencas-e-proveniencia`): Hunyuan3D 2.1 Paint-PBR está na
+  vermelha (licença territorial). Tiles 2D em grade usam o `verificar_seamless.py` de
+  `/cenarios-e-tilesets`; o `verificar_tiling.py` daqui cobre texturas 3D e panoramas.
 
 ## Entradas
 
@@ -107,7 +109,7 @@ Multiplique pelo número de mapas (base color, normal, MR, AO…) por asset e so
 
 ## Critério de pronto e evidência
 
-- Mapas finais em `assets/3d/.../tex/` com nomes `<asset>-basecolor.png|.ktx2`,
+- Mapas finais em `assets/3d/<asset>/tex/` com nomes `<asset>-basecolor.png|.ktx2`,
   `<asset>-normal`, `<asset>-mr` (metallic no B, roughness no G — padrão glTF), tamanhos ≤
   orçamento; GLB atualizado passa em `inspecionar_glb.py --max-texture 2048`.
 - Texturas tileable: saída do `verificar_tiling.py` (JSON) + `*-2x2.png` inspecionado.

@@ -45,6 +45,7 @@ uvx mcp-for-blender install-addon                          # ou: uvx mcp-for-ble
 # Blender: Edit → Preferences → Add-ons → "Interface: MCP for Blender"; viewport N → aba MCP for Blender → Start MCP Server
 ```
 
+- `/instalar-ferramentas` cobre uv, Blender MCP e as CLIs; use-a se algo acima falhar.
 - Pacote PyPI `mcp-for-blender` (ex-`blender-mcp`, que ainda funciona); **MIT**; 30,4k★.
   Porta padrão `9876` (`BLENDER_HOST`/`BLENDER_PORT` ou `uvx mcp-for-blender --port 9877`).
 - **Uma instância** do servidor por vez. GUI não herda PATH: se `spawn uvx ENOENT`, use o

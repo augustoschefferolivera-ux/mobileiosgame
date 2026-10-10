@@ -7,7 +7,7 @@ description: >
   blendshapes), faz retarget no engine e comprime a animação para iPhone. Use sempre que um
   modelo precisar andar, atacar, falar ou ser animado, mesmo que o usuário só diga "dá vida
   ao personagem". Não use para gerar a malha (/gerar-ativos-3d), reduzir polígonos
-  (/otimizar-3d-para-mobile) nem para animação 2D/Spine (skills de arte 2D).
+  (/otimizar-3d-para-mobile) nem para animação 2D/Spine (/animar-sprites).
 license: MIT
 compatibility: "Claude Code ou Codex; GPU NVIDIA (8–14 GB VRAM) para UniRig/SkinTokens/Puppeteer/Audio2Face; Blender para retarget e bake"
 metadata:
