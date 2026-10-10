@@ -1,0 +1,5 @@
+id_linha,personagem,texto,emocao,contexto_antes,contexto_depois,idioma,prioridade,modo,aprovada
+L001,ferreiro,"Bem-vindo à forja, viajante.",acolhedor,,"Preciso de uma espada.",pt-BR,P0,fixo,nao
+L002,heroi,"Preciso de uma espada.",determinado,"Bem-vindo à forja, viajante.","Tenho exatamente o que você procura.",pt-BR,P0,fixo,nao
+L003,ferreiro,"Tenho exatamente o que você procura.",[excited],"Preciso de uma espada.",,pt-BR,P0,fixo,nao
+L100,narrador_dinamico,"{texto gerado em runtime}",neutro,,,pt-BR,P1,dinamico,n/a

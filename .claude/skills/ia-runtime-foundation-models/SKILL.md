@@ -44,6 +44,7 @@ Não use quando:
 - Para PCC: entitlement do `PrivateCloudComputeLanguageModel` (a sessão 241 diz que exige entitlement; o identificador exato não consta nas fontes lidas: confirme no portal do desenvolvedor).
 - Para provedor externo: pacote Swift da Anthropic ou do Google para o protocolo `LanguageModel` (a Apple afirma que ambos publicam pacotes; nome/URL não constam nas fontes lidas: confirme na sessão WWDC26 339 e na documentação do provedor). Chave de API **nunca** no app: ver `/ia-runtime-nuvem-claude`.
 - Falas escritas de fallback para toda situação coberta pelo modelo (obrigatório; sem isso a feature não é "pronta").
+- Skills vizinhas já existentes no banco: `/classificacao-etaria` (chatbot no questionário), `/privacidade-lgpd-e-eca-digital` (rótulos e consentimento), `/divulgacao-de-uso-de-ia` (como identificar IA ao jogador).
 
 ## Entradas
 
@@ -74,7 +75,7 @@ Não use quando:
 
 10. **Ler `response.usage`** (iOS 27: tokens de entrada, em cache, saída e raciocínio) e logar por caso de uso em arquivo local sem dados pessoais; isso alimenta o orçamento e a decisão de degrau.
 
-11. **Testar com conjunto fixo de prompts.** Use a lista de `/npc-e-dialogo-dinamico` (`references/testes-npc.md`) e, no macOS 27, o CLI `fm` e o framework de Evaluations do iOS 27 para rodar o mesmo conjunto fora do app. Critérios: forma válida, idioma, limite de palavras, nada fora da persona, latência dentro do orçamento.
+11. **Testar com conjunto fixo de prompts.** Use a lista de `/npc-e-dialogo-dinamico` (`.claude/skills/npc-e-dialogo-dinamico/references/testes-npc.md`) e, no macOS 27, o CLI `fm` e o framework de Evaluations do iOS 27 para rodar o mesmo conjunto fora do app. Critérios: forma válida, idioma, limite de palavras, nada fora da persona, latência dentro do orçamento.
 
 12. **Rodar no simulador e no aparelho, gravar evidência.** Ver "Verificar no simulador/dispositivo".
 
@@ -103,6 +104,13 @@ Um parse check de `@Generable` não é execução: a feature só está pronta co
 - **Adapters** personalizados exigem retreino a cada atualização do modelo da Apple; evite em jogo solo.
 - **Unity/Godot**: não há plug-in oficial do framework; exige ponte Swift ↔ C#/GDScript (chamada assíncrona, resultado em JSON). Teste a ponte no aparelho, não no editor.
 
+## Verificar no simulador/dispositivo
+
+1. **Simulador**: o simulador do iOS 26/27 usa o modelo do Mac anfitrião; exige Mac Apple silicon com Apple Intelligence ativada [secundário, confirmar]. Rode a cena, force o caminho de fallback (desligue Apple Intelligence no Mac ou injete indisponibilidade) e capture ambas as telas com `xcrun simctl io booted screenshot`.
+2. **Aparelho**: meça latência p50/p95 com o jogo renderizando a cena mais pesada; se p95 passar o orçamento, encurte o prompt, reduza campos do `@Generable` ou mova o caso para tela de loading.
+3. **Thermal/memória**: rode 10 minutos de partida com geração a cada 30 s e observe no Instruments; se o frame time subir, espaçe as gerações ou pré-gere em loading.
+4. Grave tudo em `production/evidencias/<data>-foundation-models/` antes de marcar a feature como pronta.
+
 ## Fontes
 
 - WWDC25 Session 286 "Meet the Foundation Models framework": https://developer.apple.com/videos/play/wwdc2025/286/
@@ -115,10 +123,3 @@ Um parse check de `@Generable` não é execução: a feature só está pronta co
 - Apple Developer News, 24/07/2025 (classificação etária e chatbots): https://developer.apple.com/news/?id=ks775ehf
 - Requisitos de aparelho [secundário]: https://stora.sh/blog/2026-04-21-apple-foundation-models-framework-ios-26-integration-guide ; https://www.infoq.com/news/2025/07/apple-foundation-models-ios26
 - Nota de pesquisa: `research_notes/Criação de jogos totalmente por IA/ia_em_runtime_e_world_models.md` (Key Question 2 e 3)
-
-## Verificar no simulador/dispositivo
-
-1. **Simulador**: o simulador do iOS 26/27 usa o modelo do Mac anfitrião; exige Mac Apple silicon com Apple Intelligence ativada [secundário, confirmar]. Rode a cena, force o caminho de fallback (desligue Apple Intelligence no Mac ou injete indisponibilidade) e capture ambas as telas com `xcrun simctl io booted screenshot`.
-2. **Aparelho**: meça latência p50/p95 com o jogo renderizando a cena mais pesada; se p95 passar o orçamento, encurte o prompt, reduza campos do `@Generable` ou mova o caso para tela de loading.
-3. **Thermal/memória**: rode 10 minutos de partida com geração a cada 30 s e observe no Instruments; se o frame time subir, espaçe as gerações ou pré-gere em loading.
-4. Grave tudo em `production/evidencias/<data>-foundation-models/` antes de marcar a feature como pronta.

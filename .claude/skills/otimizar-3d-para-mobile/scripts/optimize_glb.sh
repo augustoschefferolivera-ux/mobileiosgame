@@ -23,7 +23,8 @@ Opções
                          realitykit → KTX2 e compressão desligados (USDZ espera PNG/JPEG) e
                          quantização desligada no gltfpack (-noq), por precaução
       --ktx2 MODO        none | uastc | etc1s (padrão: uastc, exceto realitykit = none)
-                         exige `toktx` (KTX-Software) no PATH quando engine=gltf-transform
+                         engine=gltf-transform exige `toktx` (KTX-Software) no PATH;
+                         engine=gltfpack usa -tc (ETC1S por padrão; -tu à mão para UASTC)
       --compress MODO    none | meshopt (padrão: meshopt só para --target web; outros = none,
                          porque o engine precisa do decodificador EXT_meshopt_compression)
       --engine E         gltf-transform (padrão) | gltfpack
@@ -38,6 +39,7 @@ Códigos de saída: 0 ok · 1 falha em um passo · 2 ferramenta ausente ou argum
 Instalação (confira as páginas oficiais; versões mudam):
   npm install -g @gltf-transform/cli        # https://github.com/donmccurdy/glTF-Transform
   npm install -g gltfpack                   # https://github.com/zeux/meshoptimizer/blob/master/gltf/README.md
+                                            # (build node.js SEM BasisU: para -tc use o binário nativo das releases)
   toktx: KTX-Software                       # https://github.com/KhronosGroup/KTX-Software
 Flags usadas aqui foram conferidas no README do gltfpack e na documentação do glTF-Transform
 citadas na skill; se a sua versão divergir, rode `gltf-transform <cmd> --help` / `gltfpack -h`.
@@ -101,8 +103,11 @@ if [[ "$ENGINE" == "gltf-transform" ]]; then
   precisa gltf-transform "npm install -g @gltf-transform/cli"
   [[ "$KTX2" != "none" ]] && precisa toktx "KTX-Software (https://github.com/KhronosGroup/KTX-Software)"
 else
-  precisa gltfpack "npm install -g gltfpack (ou compile zeux/meshoptimizer)"
-  [[ "$TEX" != "0" ]] && precisa gltf-transform "npm install -g @gltf-transform/cli (usado só para resize)"
+  precisa gltfpack "npm install -g gltfpack (ou binário nativo de https://github.com/zeux/meshoptimizer/releases)"
+  if [[ "$KTX2" != "none" && $DRY -eq 0 ]] && gltfpack 2>&1 | grep -qi "node"; then
+    echo "aviso: o gltfpack do npm (build node.js) não tem BasisU: -tc falha. Use o binário nativo" \
+         "das releases do meshoptimizer ou --engine gltf-transform (toktx) para KTX2." >&2
+  fi
 fi
 
 WORK="$OUTDIR/.work"
@@ -124,11 +129,8 @@ if [[ "$ENGINE" == "gltf-transform" ]]; then
     run gltf-transform resize "$BASE" "$BASE" --width "$TEX" --height "$TEX"
   fi
 else
-  if [[ "$TEX" != "0" ]]; then
-    run gltf-transform resize "$INPUT" "$BASE" --width "$TEX" --height "$TEX"
-  else
-    [[ $DRY -eq 1 ]] && echo "+ cp $INPUT $BASE" || cp "$INPUT" "$BASE"
-  fi
+  # gltfpack limita texturas com -tl N na própria chamada; a base é a entrada
+  BASE="$INPUT"
 fi
 
 # 3. LODs
@@ -154,6 +156,7 @@ gerar_lod() {  # $1 = índice, $2 = razão (vazio = LOD0)
     fi
   else
     local args=(-i "$BASE" -o "$out" -kn -km)
+    [[ "$TEX" != "0" ]] && args+=(-tl "$TEX")
     [[ -n "$ratio" ]] && args+=(-si "$ratio")
     [[ "$KTX2" != "none" ]] && args+=(-tc)
     [[ "$COMPRESS" == "meshopt" ]] && args+=(-cc)
@@ -183,14 +186,15 @@ REL="$OUTDIR/$NAME-relatorio.md"
   echo "| Arquivo | Bytes | Tris na cena | Maior textura | Extensões |"
   echo "|---|---|---|---|---|"
   for f in "${LOD_FILES[@]}"; do
+    linha=""
     if [[ -f "$INSPECT_PY" ]]; then
-      python3 -I "$INSPECT_PY" "$f" --json 2>/dev/null | python3 -I -c '
-import json,sys,os
-d=json.load(sys.stdin); r=d["resumo"]
-print(f"| `{os.path.basename(d[\"arquivo\"])}` | {d[\"tamanho_arquivo_bytes\"]} | {r[\"triangulos_na_cena\"]} | {r[\"maior_lado_textura\"]} | {\", \".join(d[\"extensionsUsed\"]) or \"-\"} |")' \
-      || echo "| \`$(basename "$f")\` | $(stat -c %s "$f") | NAO AVALIADO | NAO AVALIADO | NAO AVALIADO |"
+      linha="$(python3 -I "$INSPECT_PY" "$f" --tsv 2>/dev/null || true)"
+    fi
+    if [[ -n "$linha" ]]; then
+      IFS=$'\t' read -r c_arq c_bytes c_tris c_tex c_ext <<< "$linha"
+      echo "| \`$c_arq\` | $c_bytes | $c_tris | $c_tex | $c_ext |"
     else
-      echo "| \`$(basename "$f")\` | $(stat -c %s "$f") | NAO AVALIADO (inspecionar_glb.py ausente) | NAO AVALIADO | NAO AVALIADO |"
+      echo "| \`$(basename "$f")\` | $(stat -c %s "$f" 2>/dev/null || stat -f %z "$f") | NAO AVALIADO | NAO AVALIADO | NAO AVALIADO |"
     fi
   done
   echo

@@ -131,7 +131,7 @@ if [ -z "$VERIFICADOR" ]; then
 verify.sh: nenhum verificador para a engine '$ENGINE'.
   Procurei: $(for c in $CANDIDATOS; do printf '.claude/skills/%s/scripts/verify.sh ' "$c"; done)
   O que fazer:
-    1. Confirme que a skill engine-$ENGINE está instalada neste banco de skills (ls .claude/skills/).
+    1. Confirme que uma dessas skills existe neste banco (ls .claude/skills/): $CANDIDATOS
     2. Se a skill existe mas não traz scripts/verify.sh, escreva-o seguindo o contrato em
        .claude/skills/montar-loop-de-verificacao/references/comandos-por-engine.md
        (ler VERIFY_OUT/VERIFY_FEATURE/VERIFY_MODE; construir, rodar, screenshot, log; exit 0/2).

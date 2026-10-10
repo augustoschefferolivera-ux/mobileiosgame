@@ -340,6 +340,8 @@ def main(argv=None):
     ap.add_argument("--max-texture", type=int, help="maior lado de textura permitido em px (ex.: 2048)")
     ap.add_argument("--max-anim-seconds", type=float, help="duração máxima por animação (Apple AR Quick Look: 10)")
     ap.add_argument("--json", action="store_true", help="imprime o relatório completo em JSON")
+    ap.add_argument("--tsv", action="store_true",
+                    help="uma linha: arquivo, bytes, tris na cena, maior lado de textura, extensões (para scripts)")
     args = ap.parse_args(argv)
     try:
         rel = inspecionar(args.arquivo)
@@ -348,7 +350,12 @@ def main(argv=None):
         return 2
     viol = avaliar_orcamento(rel, args.max_tris, args.max_texture, args.max_anim_seconds)
     rel["violacoes"] = viol
-    if args.json:
+    if args.tsv:
+        r = rel["resumo"]
+        print("\t".join([os.path.basename(rel["arquivo"]), str(rel["tamanho_arquivo_bytes"]),
+                         str(r["triangulos_na_cena"]), str(r["maior_lado_textura"]),
+                         ", ".join(rel["extensionsUsed"]) or "-"]))
+    elif args.json:
         print(json.dumps(rel, ensure_ascii=False, indent=2))
     else:
         imprimir_texto(rel, viol)

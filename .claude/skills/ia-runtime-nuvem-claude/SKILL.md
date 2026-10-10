@@ -43,6 +43,7 @@ Não use quando:
 - Skill `claude-api` do Claude Code carregada ao escrever código de API (`/claude-api`); ela é a fonte dos nomes de parâmetros. Preços: https://platform.claude.com/docs/en/about-claude/pricing (lidos em 10/10/2026, ver tabela abaixo).
 - Falas escritas de fallback para toda situação coberta pela nuvem.
 - Texto da folha de consentimento e página de contato/privacidade publicadas (ver `references/guardrails-e-loja.md`).
+- Skills vizinhas: `/privacidade-lgpd-e-eca-digital` (rótulos, LGPD, menores), `/classificacao-etaria` (chatbot no questionário), `/divulgacao-de-uso-de-ia`, `/voz-e-dialogo` (TTS em vez de voz em tempo real).
 
 ## Entradas
 
@@ -69,7 +70,7 @@ Não use quando:
 
 8. **Filtro, denúncia e bloqueio (4.7.1/1.2).** Filtro em três camadas: instruções na bíblia; campo `safe` no schema (o modelo classifica a própria fala) + lista de termos no proxy; e botão "Denunciar esta fala" que envia o `custom_id` da troca (não o texto do jogador) para revisão. Botão "Desligar diálogo por IA" (bloqueio) e contato publicado. Ver `references/guardrails-e-loja.md`.
 
-9. **Pré-gerar o que puder em Batch (−50%).** Falas ambiente, descrições de item e barks não dependem da entrada do jogador: gere em lote com `/geracao-procedural-com-llm` (`scripts/gerar-lote-batch.py`), revise, embale no app. A nuvem em runtime fica só para o que precisa da fala do jogador.
+9. **Pré-gerar o que puder em Batch (−50%).** Falas ambiente, descrições de item e barks não dependem da entrada do jogador: gere em lote com `/geracao-procedural-com-llm` (`.claude/skills/geracao-procedural-com-llm/scripts/gerar-lote-batch.py`), revise, embale no app. A nuvem em runtime fica só para o que precisa da fala do jogador.
 
 10. **Verificar o cache em produção.** Na segunda chamada com o mesmo prefixo, `usage.cache_read_input_tokens` deve ser > 0 e `input_tokens` deve ser só o resto. Zero em chamadas repetidas = algo variável no prefixo. Adicione um teste de integração que falha se isso regredir.
 
@@ -102,6 +103,15 @@ Em `production/evidencias/<data>-nuvem-claude/`:
 - **Voz em tempo real** custa 100–1.000× o texto; só em momentos raros e com consentimento próprio.
 - **Preços mudam**: recalcule a cada trimestre pela página oficial; os valores aqui são de 10/10/2026.
 
+## Verificar no simulador/dispositivo
+
+1. Simulador com Network Link Conditioner em "3G": a fala escrita deve aparecer em ≤ 2,5 s quando a nuvem demora; captura com `xcrun simctl io booted screenshot`.
+2. Aparelho em rede celular: 20 trocas reais; confira no log do proxy `cache_read_input_tokens > 0` da segunda em diante e p95 dentro do orçamento.
+3. Modo avião: nenhuma requisição sai, nenhuma tela de erro, jogo completo com falas escritas.
+4. Recusar o consentimento: nenhuma chamada ao proxy durante toda a sessão (confira no log).
+5. Denunciar uma fala e bloquear a IA: ambos chegam ao backend e o jogo continua.
+6. Grave tudo em `production/evidencias/<data>-nuvem-claude/`.
+
 ## Fontes
 
 - Preços da Anthropic: https://platform.claude.com/docs/en/about-claude/pricing
@@ -118,12 +128,3 @@ Em `production/evidencias/<data>-nuvem-claude/`:
 - gpt-realtime preços [secundário]: https://www.layer3labs.io/guides/openai-realtime-api-pricing
 - ECA Digital [secundário]: https://abes.org.br/o-eca-digital-e-a-nova-fronteira-da-fiscalizacao-das-plataformas-no-brasil/
 - Nota de pesquisa: `research_notes/Criação de jogos totalmente por IA/ia_em_runtime_e_world_models.md` (Key Question 3)
-
-## Verificar no simulador/dispositivo
-
-1. Simulador com Network Link Conditioner em "3G": a fala escrita deve aparecer em ≤ 2,5 s quando a nuvem demora; captura com `xcrun simctl io booted screenshot`.
-2. Aparelho em rede celular: 20 trocas reais; confira no log do proxy `cache_read_input_tokens > 0` da segunda em diante e p95 dentro do orçamento.
-3. Modo avião: nenhuma requisição sai, nenhuma tela de erro, jogo completo com falas escritas.
-4. Recusar o consentimento: nenhuma chamada ao proxy durante toda a sessão (confira no log).
-5. Denunciar uma fala e bloquear a IA: ambos chegam ao backend e o jogo continua.
-6. Grave tudo em `production/evidencias/<data>-nuvem-claude/`.

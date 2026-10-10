@@ -28,7 +28,7 @@ Regra geral: cache write 5 min = 1,25× entrada; 1 h = 2×; hit ≈ 0,1× (0,05�
 - Mesma troca no Sonnet 5.5: 1.000×0,10 + 200×2 + 150×10 = ≈ US$ 0,0020 (≈ 19×).
 - Pré-geração em Batch (Haiku, sem cache, 300 de entrada + 150 de saída): 300×0,05 + 150×0,25 ≈ US$ 0,00005 por fala.
 
-Orçamento mensal rápido: `DAU × trocas/dia × 30 × custo_por_troca`. 10.000 DAU × 20 trocas × 30 × 0,000105 ≈ **US$ 630/mês**. Se isso assusta, pré-gere em Batch e deixe a nuvem só para falas que dependem do que o jogador digitou.
+Orçamento mensal rápido: `DAU × trocas/dia × 30 × custo_por_troca`. 10.000 DAU × 20 trocas × 30 × 0,000105 ≈ **US$ 630/mês** (≈ US$ 705 somando o cache write rateado em sessões de 10 trocas; o script faz essa conta). Se isso assusta, pré-gere em Batch e deixe a nuvem só para falas que dependem do que o jogador digitou.
 
 Script: `python3 scripts/calcular-custo-npc.py --help`.
 

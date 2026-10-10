@@ -68,7 +68,9 @@ while IFS= read -r line || [[ -n "$line" ]]; do
 done < "$PATTERNS_FILE"
 [[ ${#PATTERNS[@]} -gt 0 ]] || { echo "erro: nenhum padrão em $PATTERNS_FILE" >&2; exit 2; }
 
-if command -v rg >/dev/null 2>&1; then BACKEND="rg"; else BACKEND="grep"; fi
+# SCAN_BACKEND=grep força o grep mesmo com ripgrep instalado (útil para testar o fallback do macOS).
+if [[ "${SCAN_BACKEND:-}" == "grep" ]]; then BACKEND="grep"
+elif command -v rg >/dev/null 2>&1; then BACKEND="rg"; else BACKEND="grep"; fi
 
 buscar() { # $1 = padrão
   local pat="$1"

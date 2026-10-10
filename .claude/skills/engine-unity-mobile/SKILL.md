@@ -85,7 +85,7 @@ Entrega um projeto Unity com assets serializados em texto, plug-in oficial insta
 
 - **Safe Mode**: erro de compilação C# faz o Editor abrir em Safe Mode e a Unity CLI não conecta (`unity status` falha). Corrija os erros e reabra; não edite arquivos às cegas.
 - **Cenas/prefabs em YAML**: agentes erram GUIDs e `fileID`; mudanças estruturais pelo Editor (CLI/MCP), mudanças de valor por YAML.
-- **Build iOS exige macOS/Xcode**; Linux/Windows só até o projeto Xcode? Não: o próprio `BuildTarget.iOS` em batchmode roda em qualquer SO, mas o `.app`/.ipa só sai no Mac.
+- **Build iOS exige macOS/Xcode** para o `.app`/.ipa; o projeto Xcode em si pode ser gerado em batchmode em qualquer SO com iOS Build Support, mas o `verify.sh` só completa (xcodebuild + simulador) em um Mac.
 - **Target SDK**: build para dispositivo não instala no simulador e vice-versa; o `verify.sh` força Simulator SDK salvo `--device-sdk`.
 - **Licença de engine**: Unity Personal/Pro conforme receita; Pro/Enterprise subiram 5% em 12/01/2026 [secundário, confirmar]; o Runtime Fee foi cancelado em 2024.
 - **Unity AI**: preço do Personal (US$ 10/mês após trial de 14 dias com 1.000 créditos) é de fontes secundárias — confirme em unity.com; não dependa dele para arte final.
