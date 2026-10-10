@@ -1,0 +1,23 @@
+{
+  "name": "mobileiosgame",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Jogo web 2D (Phaser 4 + TypeScript + Vite) construído com agentes de IA. Engine e alvo: docs/decisoes/ADR-0001-engine-e-alvo.md",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "verify": "bash scripts/verify.sh"
+  },
+  "dependencies": {
+    "phaser": "4.2.1"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1",
+    "typescript": "5.9.3",
+    "vite": "8.3.4"
+  }
+}

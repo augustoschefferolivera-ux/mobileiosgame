@@ -62,12 +62,13 @@ Agent Skills, o harness de longa duração da Anthropic, o template Claude-Code-
 
 ## Stack deste projeto
 
-Preencha ao rodar `/escolher-engine-e-alvo` (gera `docs/decisoes/ADR-0001-engine-e-alvo.md`):
+Decidido em `docs/decisoes/ADR-0001-engine-e-alvo.md` (2026-10-10): **web em código puro**.
 
-- Engine: _a definir_ (SwiftUI+SpriteKit · RealityKit · Unity 6.3 LTS · Godot 4.7 · Phaser/PixiJS · Three.js/Babylon.js)
-- Alvo: _2D ou 3D_ × _app iOS ou web (PWA/Capacitor)_
-- Versões fixadas e documentação da versão: `docs/decisoes/`
-- Idioma do jogo: pt-BR (+ en), orientação, dispositivo mínimo: ver `design/game-brief.md`
+- Engine: **Phaser 4.2.1** + TypeScript 5.9 + Vite 8 (`src/`, `public/`, `index.html` na raiz); `production/engine.txt` = `phaser`
+- Alvo: **2D** (premissa a confirmar no brief; 3D → ADR-0002 com Three.js) × **web/PWA primeiro**; App Store só via Capacitor depois (`/empacotar-web-para-app`, riscos 4.2/4.7)
+- Resolução lógica 390×844 retrato, `Phaser.Scale.FIT`, DPR ≤ 2; canal de depuração `window.__GAME_DEBUG__` (`src/debug.ts`)
+- Verificação: `bash scripts/verify.sh --feature F-xxx` → build + `vite preview` + Playwright (WebKit no Arch; `VERIFY_BROWSER=chromium` onde não houver WebKit)
+- Versões fixadas no `package.json`; docs da versão: https://docs.phaser.io (4.x). Brief pendente: `design/game-brief.md`
 
 ## Mapa do repositório
 

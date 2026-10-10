@@ -1,0 +1,55 @@
+{
+  "_sobre": "Lista de features do projeto. É JSON, não Markdown, porque a Anthropic observou que o modelo altera ou sobrescreve JSON indevidamente com menos frequência (Effective harnesses for long-running agents, 2025-11). Durante a produção só mudam `status`, `evidencia`, `evidencia_commit`, `evidencia_data`, `motivo` e `notas`; título e critérios mudam por decisão explícita anotada em progress.md.",
+  "_gerado_por": "/escolher-engine-e-alvo + esqueleto da fase 2 (2026-10-10); as features do MVP entram por /brief-do-jogo → /iniciar-projeto",
+  "_lido_por": "hooks .claude/hooks/session-start.sh e stop-gate.sh (campos: id, titulo, status, evidencia, motivo); /ciclo-de-feature; /critico-independente",
+  "versao": 1,
+  "projeto": "[a definir em design/game-brief.md]",
+  "status_validos": [
+    "todo",
+    "in_progress",
+    "done",
+    "blocked",
+    "cut"
+  ],
+  "regras": [
+    "Uma feature por sessão. Nunca duas em in_progress ao mesmo tempo.",
+    "status=done só quando `evidencia` aponta para production/evidencias/<AAAA-MM-DD>-<id>/ e a pasta contém tudo listado em evidencia_exigida. O Stop hook bloqueia o fim do turno se não for assim.",
+    "status=blocked exige `motivo` preenchido; é a única forma legítima de pausar uma feature começada.",
+    "Critério de aceite tem de ser verificável por script, screenshot ou log. 'Funciona bem' não é critério.",
+    "Um parse check não é uma execução: a feature que muda algo visível só fecha depois de o jogo ter sido construído, executado e observado."
+  ],
+  "tipos_de_evidencia": {
+    "screenshot": "PNG capturado do jogo rodando (simulador, dispositivo ou navegador), com a feature visível",
+    "log": "saída de execução sem erro/crash, salva em arquivo (app.log / run.log)",
+    "teste": "saída de teste automatizado (unitário ou de integração) com exit 0",
+    "estado": "dump do canal interno de depuração (debug_state.json) comprovando o estado esperado",
+    "saida_do_verify": "verify.log e verify.meta de scripts/verify.sh com exit 0",
+    "metrica": "medição objetiva (FPS, memória, tamanho do build) em arquivo",
+    "critica": "production/criticas/<data>-<id>.md do subagente critico com nota final ≥ 7"
+  },
+  "features": [
+    {
+      "id": "F-000",
+      "titulo": "Loop de verificação funciona com o projeto vazio",
+      "descricao": "scripts/verify.sh constrói o esqueleto do projeto, roda no simulador/navegador, captura um screenshot da tela inicial e lê o log. É sempre a primeira feature: sem ela, nenhuma outra pode ser declarada pronta.",
+      "criterio_de_aceite": [
+        "scripts/verify.sh --feature F-000 termina com exit 0",
+        "Existe screenshot.png da tela inicial em production/evidencias/<data>-F-000/",
+        "O log de execução salvo na pasta de evidência não contém 'error', 'crash' nem 'exception' (case-insensitive)"
+      ],
+      "evidencia_exigida": [
+        "screenshot",
+        "log",
+        "saida_do_verify"
+      ],
+      "prioridade": 1,
+      "depende_de": [],
+      "status": "done",
+      "evidencia": "production/evidencias/2026-10-10-F-000",
+      "evidencia_commit": null,
+      "evidencia_data": "2026-10-10",
+      "motivo": null,
+      "notas": "Engine: Phaser 4.2.1 (ADR-0001). Verificação com Playwright; neste ambiente de CI só Chromium está instalado, no Arch use WebKit. Critérios 1–3 verificados: exit 0; screenshot.png com a cena menu; console/build/preview sem error/crash/exception. state.json: scene=menu, fps=57, errors=[]."
+    }
+  ]
+}

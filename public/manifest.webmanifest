@@ -1,0 +1,10 @@
+{
+  "name": "Jogo",
+  "short_name": "Jogo",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#101418",
+  "theme_color": "#101418",
+  "icons": []
+}
