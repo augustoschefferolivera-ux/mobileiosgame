@@ -1,0 +1,133 @@
+{
+  "versao": 1,
+  "armas": [
+    {
+      "id": "espada_longa_do_juramento",
+      "nome_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NOME",
+      "lore_id": "F1.ESPADA_LONGA_DO_JURAMENTO.LORE",
+      "deus": "orun",
+      "arquetipo": "direcao_movimento",
+      "escala": [{ "atributo": "FOR", "grau": "C" }, { "atributo": "DES", "grau": "C" }],
+      "pesada": false,
+      "uniao": false,
+      "nivel_max": 8,
+      "base": {
+        "dano": 10,
+        "cooldown_s": 1.2,
+        "golpes": 1,
+        "arco_graus": 120,
+        "alcance_corpos": null,
+        "intervalo_golpes_s": null
+      },
+      "niveis": [
+        { "nivel": 1, "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV1", "efeitos": [] },
+        { "nivel": 2, "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV2", "efeitos": [{ "tipo": "dano_pct", "valor": 20 }] },
+        { "nivel": 3, "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV3", "efeitos": [{ "tipo": "golpes_extra", "valor": 1 }] },
+        { "nivel": 4, "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV4", "marco": true, "efeitos": [{ "tipo": "dano_pct_vs_postura_quebrada", "valor": 50 }] },
+        { "nivel": 5, "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV5", "efeitos": [{ "tipo": "area_pct", "valor": 20 }] },
+        { "nivel": 6, "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV6", "efeitos": [{ "tipo": "dano_pct", "valor": 20 }] },
+        { "nivel": 7, "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV7", "marco": true, "efeitos": [{ "tipo": "estocada_perfurante" }] },
+        { "nivel": 8, "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV8", "efeitos": [{ "tipo": "golpes_extra", "valor": 1 }] }
+      ],
+      "pendencias": [
+        "F-004: alcance do arco (brief §11.3)",
+        "F-004: intervalo entre os golpes extras (brief §11.3)",
+        "F-004: o que o +20% de área do nv5 aumenta, alcance ou ângulo (brief §11.3)",
+        "F-004: o nv7 transforma o 3º golpe, que só existe no nv8 (brief §11.3)",
+        "F-004: os dois +20% de dano (nv2 e nv6) se somam (+40%) ou se multiplicam (×1,44)?",
+        "F-004: direção com o jogador parado (ADR-0002 §7)"
+      ]
+    },
+    {
+      "id": "facas_de_sal",
+      "nome_id": "F1.FACAS_DE_SAL.NOME",
+      "lore_id": "F1.FACAS_DE_SAL.LORE",
+      "deus": "selide",
+      "arquetipo": "mais_proximo",
+      "escala": [{ "atributo": "DES", "grau": "B" }],
+      "pesada": false,
+      "uniao": false,
+      "nivel_max": 8,
+      "base": {
+        "dano": 6,
+        "projeteis": 2,
+        "cooldown_s": 0.9,
+        "velocidade_projetil_corpos_s": null,
+        "alcance_corpos": null,
+        "projeteis_extra_esquiva_perfeita": 1
+      },
+      "niveis": [
+        { "nivel": 1, "texto_id": "F1.FACAS_DE_SAL.NV1", "efeitos": [] },
+        { "nivel": 2, "texto_id": "F1.FACAS_DE_SAL.NV2", "efeitos": [{ "tipo": "projeteis_extra", "valor": 1 }] },
+        { "nivel": 3, "texto_id": "F1.FACAS_DE_SAL.NV3", "efeitos": [{ "tipo": "dano_pct", "valor": 20 }] },
+        { "nivel": 4, "texto_id": "F1.FACAS_DE_SAL.NV4", "marco": true, "efeitos": [{ "tipo": "aplica_sal" }] },
+        { "nivel": 5, "texto_id": "F1.FACAS_DE_SAL.NV5", "efeitos": [{ "tipo": "projeteis_extra", "valor": 1 }] },
+        { "nivel": 6, "texto_id": "F1.FACAS_DE_SAL.NV6", "efeitos": [{ "tipo": "velocidade_projetil_pct", "valor": 20 }] },
+        { "nivel": 7, "texto_id": "F1.FACAS_DE_SAL.NV7", "marco": true, "efeitos": [{ "tipo": "perfura", "valor": 1 }] },
+        { "nivel": 8, "texto_id": "F1.FACAS_DE_SAL.NV8", "efeitos": [{ "tipo": "projeteis_extra", "valor": 1 }] }
+      ],
+      "pendencias": [
+        "F-004: velocidade e alcance das facas (brief §11.3)",
+        "F-004: escolha de alvo quando a salva tem várias facas (ADR-0002 §7)",
+        "F-002: se os obstáculos bloqueiam as facas (brief §11.3)"
+      ]
+    },
+    {
+      "id": "circulo_de_sal",
+      "nome_id": "F1.CIRCULO_DE_SAL.NOME",
+      "lore_id": "F1.CIRCULO_DE_SAL.LORE",
+      "deus": "ama_nhu",
+      "arquetipo": "aura",
+      "escala": [{ "atributo": "FE", "grau": "A" }],
+      "pesada": false,
+      "uniao": false,
+      "nivel_max": 8,
+      "base": {
+        "dano_por_s": 4,
+        "cooldown_s": null,
+        "raio_corpos": 2,
+        "intervalo_tick_s": null,
+        "aplica": { "status": "sal", "fator_pct": 50, "duracao_s": 3 }
+      },
+      "niveis": [
+        { "nivel": 1, "texto_id": "F1.CIRCULO_DE_SAL.NV1", "efeitos": [] },
+        { "nivel": 2, "texto_id": "F1.CIRCULO_DE_SAL.NV2", "efeitos": [{ "tipo": "raio_pct", "valor": 15 }] },
+        { "nivel": 3, "texto_id": "F1.CIRCULO_DE_SAL.NV3", "efeitos": [{ "tipo": "dano_pct", "valor": 20 }] },
+        { "nivel": 4, "texto_id": "F1.CIRCULO_DE_SAL.NV4", "marco": true, "efeitos": [{ "tipo": "sal_fator_pct", "valor": 60 }] },
+        { "nivel": 5, "texto_id": "F1.CIRCULO_DE_SAL.NV5", "efeitos": [{ "tipo": "raio_pct", "valor": 15 }] },
+        { "nivel": 6, "texto_id": "F1.CIRCULO_DE_SAL.NV6", "efeitos": [{ "tipo": "dano_pct", "valor": 20 }] },
+        { "nivel": 7, "texto_id": "F1.CIRCULO_DE_SAL.NV7", "marco": true, "efeitos": [{ "tipo": "pulso_knockback", "intervalo_s": 5, "forca_corpos": null }] },
+        { "nivel": 8, "texto_id": "F1.CIRCULO_DE_SAL.NV8", "efeitos": [{ "tipo": "raio_pct", "valor": 20 }] }
+      ],
+      "pendencias": [
+        "F-004: frequência do tick do dano (brief §11.3)",
+        "F-004: força e distância do pulso de knockback do nv7 (brief §11.3)",
+        "F-004: os bônus de raio se somam ou se multiplicam (ADR-0002 §6)",
+        "F-006: como a aura participa do Contra-ataque (brief §11.3)"
+      ]
+    },
+    {
+      "id": "lamina_do_juramento_eterno",
+      "nome_id": "F2.LAMINA_DO_JURAMENTO_ETERNO.NOME",
+      "lore_id": "F2.LAMINA_DO_JURAMENTO_ETERNO.LORE",
+      "deus": "orun",
+      "arquetipo": "direcao_movimento",
+      "escala": [{ "atributo": "FOR", "grau": "B" }, { "atributo": "DES", "grau": "C" }],
+      "pesada": false,
+      "uniao": true,
+      "nivel_max": 1,
+      "base": {
+        "dano_de": { "arma": "espada_longa_do_juramento", "nivel": 8, "mult": 1.5 },
+        "cooldown_s": 1.0,
+        "onda": { "comprimento_corpos": 3, "dano": 8, "largura_corpos": null, "velocidade_corpos_s": null }
+      },
+      "niveis": [
+        { "nivel": 1, "texto_id": "F2.LAMINA_DO_JURAMENTO_ETERNO.EFEITO", "efeitos": [] }
+      ],
+      "pendencias": [
+        "F-004: quantos golpes, que arco e que alcance a União herda da Espada (brief §11.3)",
+        "F-004: largura, velocidade e escala do dano da onda (brief §11.3)"
+      ]
+    }
+  ]
+}

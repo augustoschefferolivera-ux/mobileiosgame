@@ -1,0 +1,425 @@
+{
+  "id": "charneca_das_lanternas",
+  "nome_id": "D1.CHARNECA.NOME",
+  "sem_spawn_antes_do_marco_s": 30,
+  "a_fome_em_s": 1380,
+  "obstaculos": [],
+  "linhas": [
+    {
+      "minuto": 0,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 10
+        }
+      ],
+      "min_na_tela": 15,
+      "intervalo_s": 2.0
+    },
+    {
+      "minuto": 1,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 10
+        },
+        {
+          "inimigo": "oco_grande",
+          "peso": 1
+        }
+      ],
+      "min_na_tela": 25,
+      "intervalo_s": 1.6,
+      "garantidos": [
+        {
+          "inimigo": "oco_grande",
+          "quantidade": 1,
+          "tutorial": "esquiva"
+        }
+      ]
+    },
+    {
+      "minuto": 2,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 10
+        },
+        {
+          "inimigo": "oco_grande",
+          "peso": 1
+        }
+      ],
+      "min_na_tela": 35,
+      "intervalo_s": 1.4
+    },
+    {
+      "minuto": 3,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 10
+        },
+        {
+          "inimigo": "oco_grande",
+          "peso": 1
+        },
+        {
+          "inimigo": "novica_de_sal",
+          "peso": 2
+        }
+      ],
+      "min_na_tela": 45,
+      "intervalo_s": 1.2,
+      "garantidos": [
+        {
+          "inimigo": "novica_de_sal",
+          "quantidade": 1,
+          "tutorial": "aparo"
+        }
+      ]
+    },
+    {
+      "minuto": 4,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 10
+        },
+        {
+          "inimigo": "oco_grande",
+          "peso": 1
+        },
+        {
+          "inimigo": "novica_de_sal",
+          "peso": 2
+        }
+      ],
+      "min_na_tela": 55,
+      "intervalo_s": 1.0
+    },
+    {
+      "minuto": 5,
+      "roster": [],
+      "min_na_tela": 40,
+      "intervalo_s": null,
+      "marco": {
+        "tipo": "guardiao",
+        "indice": 1,
+        "inimigos": [
+          {
+            "inimigo": "oco_grande_coroado",
+            "hp_base": 600,
+            "quantidade": 1
+          }
+        ],
+        "bau": "comum"
+      }
+    },
+    {
+      "minuto": 6,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 8
+        },
+        {
+          "inimigo": "oco_grande",
+          "peso": 3
+        },
+        {
+          "inimigo": "novica_de_sal",
+          "peso": 3
+        }
+      ],
+      "min_na_tela": 70,
+      "intervalo_s": 0.9
+    },
+    {
+      "minuto": 7,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 8
+        },
+        {
+          "inimigo": "oco_grande",
+          "peso": 3
+        },
+        {
+          "inimigo": "novica_de_sal",
+          "peso": 3
+        }
+      ],
+      "min_na_tela": 80,
+      "intervalo_s": 0.8
+    },
+    {
+      "minuto": 8,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 8
+        },
+        {
+          "inimigo": "oco_grande",
+          "peso": 3
+        },
+        {
+          "inimigo": "novica_de_sal",
+          "peso": 3
+        }
+      ],
+      "min_na_tela": 90,
+      "intervalo_s": 0.8
+    },
+    {
+      "minuto": 9,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 8
+        },
+        {
+          "inimigo": "oco_grande",
+          "peso": 3
+        },
+        {
+          "inimigo": "novica_de_sal",
+          "peso": 3
+        }
+      ],
+      "min_na_tela": 100,
+      "intervalo_s": 0.7
+    },
+    {
+      "minuto": 10,
+      "roster": [],
+      "min_na_tela": 60,
+      "intervalo_s": null,
+      "marco": {
+        "tipo": "chefe_menor",
+        "indice": 1,
+        "inimigos": [
+          {
+            "inimigo": "oco_grande_coroado",
+            "hp_base": 1000,
+            "quantidade": 1
+          }
+        ],
+        "bau": "dourado"
+      }
+    },
+    {
+      "minuto": 11,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 6
+        },
+        {
+          "inimigo": "oco_grande",
+          "peso": 4
+        },
+        {
+          "inimigo": "novica_de_sal",
+          "peso": 4
+        }
+      ],
+      "min_na_tela": 120,
+      "intervalo_s": 0.6
+    },
+    {
+      "minuto": 12,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 6
+        },
+        {
+          "inimigo": "oco_grande",
+          "peso": 4
+        },
+        {
+          "inimigo": "novica_de_sal",
+          "peso": 4
+        }
+      ],
+      "min_na_tela": 140,
+      "intervalo_s": 0.6
+    },
+    {
+      "minuto": 13,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 6
+        },
+        {
+          "inimigo": "oco_grande",
+          "peso": 4
+        },
+        {
+          "inimigo": "novica_de_sal",
+          "peso": 4
+        }
+      ],
+      "min_na_tela": 160,
+      "intervalo_s": 0.5
+    },
+    {
+      "minuto": 14,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 6
+        },
+        {
+          "inimigo": "oco_grande",
+          "peso": 4
+        },
+        {
+          "inimigo": "novica_de_sal",
+          "peso": 4
+        }
+      ],
+      "min_na_tela": 180,
+      "intervalo_s": 0.5
+    },
+    {
+      "minuto": 15,
+      "roster": [],
+      "min_na_tela": 80,
+      "intervalo_s": null,
+      "marco": {
+        "tipo": "guardiao",
+        "indice": 2,
+        "inimigos": [
+          {
+            "inimigo": "oco_grande_coroado",
+            "hp_base": 600,
+            "quantidade": 2
+          }
+        ],
+        "bau": "comum"
+      }
+    },
+    {
+      "minuto": 16,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 6
+        },
+        {
+          "inimigo": "oco_grande",
+          "peso": 5
+        },
+        {
+          "inimigo": "novica_de_sal",
+          "peso": 4
+        }
+      ],
+      "min_na_tela": 200,
+      "intervalo_s": 0.45,
+      "escurecer_pct": 10
+    },
+    {
+      "minuto": 17,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 6
+        },
+        {
+          "inimigo": "oco_grande",
+          "peso": 5
+        },
+        {
+          "inimigo": "novica_de_sal",
+          "peso": 4
+        }
+      ],
+      "min_na_tela": 230,
+      "intervalo_s": 0.4,
+      "escurecer_pct": 10
+    },
+    {
+      "minuto": 18,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 6
+        },
+        {
+          "inimigo": "oco_grande",
+          "peso": 5
+        },
+        {
+          "inimigo": "novica_de_sal",
+          "peso": 4
+        }
+      ],
+      "min_na_tela": 260,
+      "intervalo_s": 0.4,
+      "escurecer_pct": 10
+    },
+    {
+      "minuto": 19,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 6
+        },
+        {
+          "inimigo": "oco_grande",
+          "peso": 5
+        },
+        {
+          "inimigo": "novica_de_sal",
+          "peso": 4
+        }
+      ],
+      "min_na_tela": 300,
+      "intervalo_s": 0.35,
+      "escurecer_pct": 10
+    },
+    {
+      "minuto": 20,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 10
+        }
+      ],
+      "min_na_tela": 300,
+      "intervalo_s": 0.3,
+      "chefe": {
+        "inimigo": "o_lanterneiro",
+        "hp_base": 6500
+      }
+    },
+    {
+      "minuto": 21,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 10
+        }
+      ],
+      "min_na_tela": 300,
+      "intervalo_s": 0.3
+    },
+    {
+      "minuto": 22,
+      "roster": [
+        {
+          "inimigo": "oco_das_lanternas",
+          "peso": 10
+        }
+      ],
+      "min_na_tela": 300,
+      "intervalo_s": 0.3
+    }
+  ]
+}

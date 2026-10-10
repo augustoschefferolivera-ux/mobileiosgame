@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "vigilante.schema.json",
+  "title": "Vigilantes (src/dados/vigilantes.json)",
+  "description": "Perfil, passiva e Maldição de cada Vigilante (doc 03; B §3.3). Não estava na lista da etapa 3: foi acrescentado porque todo conteúdo vive em src/dados.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["versao", "vigilantes"],
+  "properties": {
+    "versao": { "type": "integer", "minimum": 1 },
+    "vigilantes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "nome_id", "epiteto_id", "deus", "hp", "stamina", "velocidade", "frascos", "vagas", "atributos", "ponto_por_nivel", "arma_inicial", "passiva", "maldicao"],
+        "properties": {
+          "id": { "$ref": "comum.schema.json#/$defs/idConteudo" },
+          "nome_id": { "$ref": "comum.schema.json#/$defs/idTexto" },
+          "epiteto_id": { "$ref": "comum.schema.json#/$defs/idTexto" },
+          "deus": { "$ref": "comum.schema.json#/$defs/deus" },
+          "hp": { "type": "number", "exclusiveMinimum": 0 },
+          "stamina": { "type": "number", "exclusiveMinimum": 0 },
+          "velocidade": {
+            "description": "1,0 = 4,5 corpos/s (B §3.3).",
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "frascos": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["cargas", "cura_pct", "duracao_s", "interrompe_acima_pct_hp", "sem_regen_stamina_s"],
+            "properties": {
+              "cargas": { "type": "integer", "minimum": 0 },
+              "cura_pct": { "type": "number", "exclusiveMinimum": 0 },
+              "duracao_s": { "type": "number", "exclusiveMinimum": 0 },
+              "interrompe_acima_pct_hp": { "type": "number", "exclusiveMinimum": 0 },
+              "sem_regen_stamina_s": { "type": "number", "minimum": 0 }
+            }
+          },
+          "vagas": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["armas", "reliquias", "passivas"],
+            "properties": {
+              "armas": { "type": "integer", "minimum": 1 },
+              "reliquias": { "type": "integer", "minimum": 0 },
+              "passivas": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "atributos": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["FOR", "DES", "INT", "FE", "VIG"],
+            "properties": {
+              "FOR": { "type": "integer", "minimum": 0 },
+              "DES": { "type": "integer", "minimum": 0 },
+              "INT": { "type": "integer", "minimum": 0 },
+              "FE": { "type": "integer", "minimum": 0 },
+              "VIG": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "ponto_por_nivel": {
+            "description": "No MVP o ponto de cada nível vai sempre para o mesmo atributo (B §3.3).",
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["quantidade", "atributo"],
+            "properties": {
+              "quantidade": { "type": "integer", "minimum": 0 },
+              "atributo": { "$ref": "comum.schema.json#/$defs/atributo" }
+            }
+          },
+          "arma_inicial": { "$ref": "comum.schema.json#/$defs/idConteudo" },
+          "passiva": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["nome_id", "efeito_id", "hp_max_pct", "reducao_dano_pct", "condicao_stamina_acima_pct"],
+            "properties": {
+              "nome_id": { "$ref": "comum.schema.json#/$defs/idTexto" },
+              "efeito_id": { "$ref": "comum.schema.json#/$defs/idTexto" },
+              "hp_max_pct": { "type": "number" },
+              "reducao_dano_pct": { "type": "number" },
+              "condicao_stamina_acima_pct": { "type": "number" }
+            }
+          },
+          "maldicao": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["nome_id", "efeito_id"],
+            "properties": {
+              "nome_id": { "$ref": "comum.schema.json#/$defs/idTexto" },
+              "efeito_id": { "$ref": "comum.schema.json#/$defs/idTexto" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

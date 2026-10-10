@@ -1,0 +1,23 @@
+{
+  "versao": 1,
+  "passivas": [
+    {
+      "id": "elmo_sem_rosto",
+      "nome_id": "F3.ELMO_SEM_ROSTO.NOME",
+      "efeito_id": "F3.ELMO_SEM_ROSTO.EFEITO",
+      "lore_id": "F3.ELMO_SEM_ROSTO.LORE",
+      "deus": "orun",
+      "nivel_max": 5,
+      "efeito_por_nivel": { "tipo": "armadura", "valor": 4 }
+    },
+    {
+      "id": "luvas_de_fole",
+      "nome_id": "F3.LUVAS_DE_FOLE.NOME",
+      "efeito_id": "F3.LUVAS_DE_FOLE.EFEITO",
+      "lore_id": "F3.LUVAS_DE_FOLE.LORE",
+      "deus": "orun",
+      "nivel_max": 5,
+      "efeito_por_nivel": { "tipo": "poder_pct", "valor": 8 }
+    }
+  ]
+}

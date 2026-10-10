@@ -1,0 +1,319 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "comum.schema.json",
+  "title": "Definições comuns dos dados de Vigília das Cinzas",
+  "$defs": {
+    "idConteudo": {
+      "description": "ID de conteúdo: minúsculas, sem acento, palavras separadas por _ (ex.: oco_das_lanternas).",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+    },
+    "idTexto": {
+      "description": "ID de texto em pt-BR.json, formato BLOCO.SUBBLOCO.NÚMERO (doc 17 §4); o 3º segmento aceita número ou palavra em maiúsculas (Q-32).",
+      "type": "string",
+      "pattern": "^[A-K][0-9]+\\.[A-Z0-9_]+\\.[A-Z0-9_]+$"
+    },
+    "pendente": {
+      "description": "Número que nem B nem o GDD dão: fica null até ser aprovado antes da feature indicada (brief §11.3).",
+      "type": "null"
+    },
+    "numeroOuPendente": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "positivoOuPendente": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "exclusiveMinimum": 0
+    },
+    "deus": {
+      "enum": [
+        "orun",
+        "selide",
+        "vharos",
+        "ama_nhu",
+        "fome",
+        "nenhum"
+      ]
+    },
+    "atributo": {
+      "enum": [
+        "FOR",
+        "DES",
+        "INT",
+        "FE",
+        "VIG"
+      ]
+    },
+    "grau": {
+      "description": "Grau de escala (doc 10 §2.2): E 0,25 · D 0,5 · C 0,75 · B 1,0 · A 1,25 · S 1,5.",
+      "enum": [
+        "E",
+        "D",
+        "C",
+        "B",
+        "A",
+        "S"
+      ]
+    },
+    "escala": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "atributo",
+          "grau"
+        ],
+        "properties": {
+          "atributo": {
+            "$ref": "#/$defs/atributo"
+          },
+          "grau": {
+            "$ref": "#/$defs/grau"
+          }
+        }
+      }
+    },
+    "forma": {
+      "description": "Forma geométrica provisória (B §2: círculo massa, quadrado médios, triângulo jogador, retângulo grande chefe).",
+      "enum": [
+        "circulo",
+        "quadrado",
+        "triangulo",
+        "retangulo"
+      ]
+    },
+    "telegrafo": {
+      "description": "Brancos se aparam; vermelhos só se esquivam (B §3.4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cor",
+        "duracao_s"
+      ],
+      "properties": {
+        "cor": {
+          "enum": [
+            "branco",
+            "vermelho"
+          ]
+        },
+        "duracao_s": {
+          "$ref": "#/$defs/positivoOuPendente"
+        }
+      }
+    },
+    "status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "fator_pct",
+        "duracao_s"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "sal",
+            "postura_quebrada"
+          ]
+        },
+        "fator_pct": {
+          "type": "number"
+        },
+        "duracao_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "convocacao": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inimigo",
+        "quantidade",
+        "intervalo_s"
+      ],
+      "properties": {
+        "inimigo": {
+          "$ref": "#/$defs/idConteudo"
+        },
+        "quantidade": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "intervalo_s": {
+          "$ref": "#/$defs/positivoOuPendente"
+        },
+        "ilumina_raio_corpos": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "ataque": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "telegrafo",
+        "forma",
+        "aparavel",
+        "dano"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/idConteudo"
+        },
+        "nome_id": {
+          "$ref": "#/$defs/idTexto"
+        },
+        "telegrafo": {
+          "$ref": "#/$defs/telegrafo"
+        },
+        "forma": {
+          "enum": [
+            "arco",
+            "cone",
+            "linha",
+            "projetil",
+            "area_circular",
+            "anel_expansivo",
+            "agarrar"
+          ]
+        },
+        "aparavel": {
+          "type": "boolean"
+        },
+        "dano": {
+          "description": "Dano por acerto; null = usa o dano_base do inimigo ou está pendente (ver pendencias).",
+          "$ref": "#/$defs/numeroOuPendente"
+        },
+        "dano_por_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "angulo_graus": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 360
+        },
+        "alcance_corpos": {
+          "$ref": "#/$defs/positivoOuPendente"
+        },
+        "largura_corpos": {
+          "$ref": "#/$defs/positivoOuPendente"
+        },
+        "raio_corpos": {
+          "$ref": "#/$defs/positivoOuPendente"
+        },
+        "raio_inicial_corpos": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "raio_final_corpos": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "expansao_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "intervalo_s": {
+          "$ref": "#/$defs/positivoOuPendente"
+        },
+        "recuperacao_s": {
+          "$ref": "#/$defs/positivoOuPendente"
+        },
+        "duracao_efeito_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "efeito_tela": {
+          "enum": [
+            "inverte_cores"
+          ]
+        },
+        "projetil": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "velocidade_corpos_s",
+            "raio_corpos",
+            "vida_s"
+          ],
+          "properties": {
+            "velocidade_corpos_s": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "raio_corpos": {
+              "$ref": "#/$defs/positivoOuPendente"
+            },
+            "vida_s": {
+              "$ref": "#/$defs/positivoOuPendente"
+            }
+          }
+        },
+        "aplica": {
+          "$ref": "#/$defs/status"
+        },
+        "empurrao": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "raio_corpos",
+            "distancia_corpos"
+          ],
+          "properties": {
+            "raio_corpos": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "distancia_corpos": {
+              "$ref": "#/$defs/positivoOuPendente"
+            }
+          }
+        },
+        "agarrar": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "dano_hp_pct",
+            "preso_s",
+            "aparo_quebra_imediata"
+          ],
+          "properties": {
+            "dano_hp_pct": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "preso_s": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "aparo_quebra_imediata": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "pendencias": {
+      "description": "Números ou regras ainda abertos (brief §11.3 ou §15 do ADR-0002), com a feature que os fecha.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 3
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "versao": 1,
+  "vigilantes": [
+    {
+      "id": "aldric",
+      "nome_id": "C1.ALDRIC.NOME",
+      "epiteto_id": "C1.ALDRIC.EPITETO",
+      "deus": "orun",
+      "hp": 130,
+      "stamina": 100,
+      "velocidade": 1.0,
+      "frascos": { "cargas": 3, "cura_pct": 40, "duracao_s": 2, "interrompe_acima_pct_hp": 15, "sem_regen_stamina_s": 2 },
+      "vagas": { "armas": 5, "reliquias": 1, "passivas": 6 },
+      "atributos": { "FOR": 6, "DES": 3, "INT": 1, "FE": 3, "VIG": 7 },
+      "ponto_por_nivel": { "quantidade": 1, "atributo": "FOR" },
+      "arma_inicial": "espada_longa_do_juramento",
+      "passiva": {
+        "nome_id": "C1.ALDRIC.PASSIVA_NOME",
+        "efeito_id": "C1.ALDRIC.PASSIVA_EFEITO",
+        "hp_max_pct": 15,
+        "reducao_dano_pct": 20,
+        "condicao_stamina_acima_pct": 50
+      },
+      "maldicao": {
+        "nome_id": "C1.ALDRIC.MALDICAO_NOME",
+        "efeito_id": "C1.ALDRIC.MALDICAO_EFEITO"
+      }
+    }
+  ]
+}

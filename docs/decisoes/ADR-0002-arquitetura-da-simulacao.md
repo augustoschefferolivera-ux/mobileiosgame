@@ -1,6 +1,6 @@
 # ADR-0002 — Arquitetura da simulação, do render e da persistência
 
-- **Status:** proposto (v2), aguardando aprovação (Sessão 1, etapa 2). Passou por revisão adversarial: 3 lentes (fidelidade, correção técnica, completude), cada uma com um verificador cético, e os achados confirmados foram aplicados.
+- **Status:** **aceito** pelo usuário em 2026-10-10, com todas as recomendações da §15 (Sessão 1, etapa 2). No item 10, que não tinha número, vale a opção A. Antes da aprovação, o texto passou por revisão adversarial: 3 lentes (fidelidade, correção técnica, completude), cada uma com um verificador cético.
 - **Fontes:**
   - `design/gdd/18-briefing-tecnico.md` (**B**), §3;
   - `design/game-brief.md` (aprovado), com as decisões da §11 (Q-xx);
@@ -419,7 +419,7 @@ ACENDER (passo 0; grava o vigilia de retomada da Hora I)
   - ao fim de cada Vigília, o evento `sessao` (doc 10 §6) registra o fps médio por Hora, e o `erro_recuperacao` marca uma Vigília interrompida por recarga da aba.
 - **`verify.sh --taps-game`:** roda o projeto do Playwright com `hasTouch: true` e `isMobile: true` em 390 × 844, dirigindo o jogo por toques reais (CDP `Input.dispatchTouchEvent`) ou por `entrada.injetar`.
 
-## 15. Pontos para você confirmar
+## 15. Pontos confirmados (aprovados em 2026-10-10)
 
 1. **Combinação das Q-01, Q-02 e Q-09:** o mínimo do minuto de marco só vale depois que a arena se desfaz (§8).
 2. **Constantes técnicas [proposta]:**

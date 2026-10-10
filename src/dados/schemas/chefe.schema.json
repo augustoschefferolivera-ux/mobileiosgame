@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chefe.schema.json",
+  "title": "Chefes (src/dados/chefes.json)",
+  "description": "Regras de chefe (doc 06 §1) com os números do MVP (B §3.11).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "versao",
+    "chefes"
+  ],
+  "properties": {
+    "versao": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "chefes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/chefe"
+      }
+    }
+  },
+  "$defs": {
+    "chefe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "nome_id",
+        "titulo_id",
+        "tipo",
+        "regiao",
+        "forma",
+        "tamanho_px",
+        "hp_base",
+        "hp_escala_por_nivel",
+        "velocidade",
+        "almas",
+        "arena",
+        "postura",
+        "postura_firme_reducao_pct",
+        "transicao_fase_s",
+        "fases",
+        "furia",
+        "pendencias"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "comum.schema.json#/$defs/idConteudo"
+        },
+        "nome_id": {
+          "$ref": "comum.schema.json#/$defs/idTexto"
+        },
+        "titulo_id": {
+          "$ref": "comum.schema.json#/$defs/idTexto"
+        },
+        "tipo": {
+          "enum": [
+            "chefe_da_regiao",
+            "chefe_menor",
+            "secreto"
+          ]
+        },
+        "regiao": {
+          "$ref": "comum.schema.json#/$defs/idConteudo"
+        },
+        "forma": {
+          "$ref": "comum.schema.json#/$defs/forma"
+        },
+        "tamanho_px": {
+          "$ref": "comum.schema.json#/$defs/positivoOuPendente"
+        },
+        "hp_base": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "hp_escala_por_nivel": {
+          "description": "HP = hp_base × (1 + hp_escala_por_nivel × nível do jogador) (B §3.11).",
+          "type": "number",
+          "minimum": 0
+        },
+        "velocidade": {
+          "$ref": "comum.schema.json#/$defs/positivoOuPendente"
+        },
+        "almas": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "arena": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "raio_corpos"
+          ],
+          "properties": {
+            "raio_corpos": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "postura": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max",
+            "ganho_aparo",
+            "ganho_esquiva_perfeita",
+            "ganho_acerto_espada",
+            "ganho_acerto_pesada",
+            "quebra_s",
+            "quebra_mult_dano",
+            "regen_por_s",
+            "regen_duracao_s"
+          ],
+          "properties": {
+            "max": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "ganho_aparo": {
+              "type": "number",
+              "minimum": 0
+            },
+            "ganho_esquiva_perfeita": {
+              "type": "number",
+              "minimum": 0
+            },
+            "ganho_acerto_espada": {
+              "type": "number",
+              "minimum": 0
+            },
+            "ganho_acerto_pesada": {
+              "type": "number",
+              "minimum": 0
+            },
+            "quebra_s": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "quebra_mult_dano": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "regen_por_s": {
+              "type": "number",
+              "minimum": 0
+            },
+            "regen_duracao_s": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "postura_firme_reducao_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "transicao_fase_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "fases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "fase",
+              "limiar_hp_pct",
+              "ataques"
+            ],
+            "properties": {
+              "fase": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "limiar_hp_pct": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "transicao_texto_id": {
+                "$ref": "comum.schema.json#/$defs/idTexto"
+              },
+              "escurecer_arena_pct": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "ataques": {
+                "type": "array",
+                "items": {
+                  "$ref": "comum.schema.json#/$defs/ataque"
+                }
+              },
+              "convoca": {
+                "$ref": "comum.schema.json#/$defs/convocacao"
+              }
+            }
+          }
+        },
+        "furia": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "apos_s",
+            "dano_pct",
+            "intervalo_s"
+          ],
+          "properties": {
+            "apos_s": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "dano_pct": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "intervalo_s": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "pendencias": {
+          "$ref": "comum.schema.json#/$defs/pendencias"
+        }
+      }
+    }
+  }
+}

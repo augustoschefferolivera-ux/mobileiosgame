@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "texto.schema.json",
+  "title": "Tabela de textos (src/dados/textos/pt-BR.json)",
+  "description": "B §3.15: cada texto visível tem { id, texto, contexto, limite_palavras }. Nenhuma string visível no código.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["idioma", "versao", "textos"],
+  "properties": {
+    "idioma": { "const": "pt-BR" },
+    "versao": { "type": "integer", "minimum": 1 },
+    "textos": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "texto", "contexto", "limite_palavras"],
+        "properties": {
+          "id": { "$ref": "comum.schema.json#/$defs/idTexto" },
+          "texto": { "type": "string", "minLength": 1 },
+          "contexto": { "type": "string", "minLength": 3 },
+          "limite_palavras": {
+            "description": "Limite do doc 17 (ou do doc 11) quando existe; null quando nenhum documento define.",
+            "type": ["integer", "null"],
+            "minimum": 1
+          }
+        }
+      }
+    }
+  }
+}

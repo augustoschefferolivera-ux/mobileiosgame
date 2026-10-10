@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "uniao.schema.json",
+  "title": "Uniões (src/dados/unioes.json)",
+  "description": "União = arma no nível máximo + passiva correspondente (doc 04 §1). Forja na Fogueira com custo por Hora (B §3.10).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["versao", "forja_custo_almas_por_hora", "unioes"],
+  "properties": {
+    "versao": { "type": "integer", "minimum": 1 },
+    "forja_custo_almas_por_hora": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["1", "2", "3"],
+      "properties": {
+        "1": { "type": "integer", "minimum": 0 },
+        "2": { "type": "integer", "minimum": 0 },
+        "3": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "unioes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "arma", "arma_nivel", "passiva", "resultado"],
+        "properties": {
+          "id": { "$ref": "comum.schema.json#/$defs/idConteudo" },
+          "arma": { "$ref": "comum.schema.json#/$defs/idConteudo" },
+          "arma_nivel": { "type": "integer", "minimum": 1, "maximum": 8 },
+          "passiva": { "$ref": "comum.schema.json#/$defs/idConteudo" },
+          "resultado": {
+            "description": "ID da arma resultante em armas.json (com uniao: true).",
+            "$ref": "comum.schema.json#/$defs/idConteudo"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "inimigo.schema.json",
+  "title": "Inimigos (src/dados/inimigos.json)",
+  "description": "Números de Ciclo I, minuto 0 (B §3.6; doc 05). HP e dano escalam por minuto no spawn (B §3.6; Q-10).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["versao", "inimigos"],
+  "properties": {
+    "versao": { "type": "integer", "minimum": 1 },
+    "inimigos": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/inimigo" }
+    }
+  },
+  "$defs": {
+    "inimigo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "nome_id", "camada", "faccao", "forma", "tamanho_px", "hp_base", "dano_base", "dano_tipo", "velocidade", "xp", "almas", "bau", "comportamento", "ataques", "pendencias"],
+      "properties": {
+        "id": { "$ref": "comum.schema.json#/$defs/idConteudo" },
+        "nome_id": { "$ref": "comum.schema.json#/$defs/idTexto" },
+        "camada": { "enum": ["massa", "massa_rapida", "medio", "elite"] },
+        "faccao": { "enum": ["ocos", "sepultadoras", "ferreiros_cegos", "paginas_vivas", "cacadores", "crias_da_fome"] },
+        "forma": { "$ref": "comum.schema.json#/$defs/forma" },
+        "tamanho_px": { "$ref": "comum.schema.json#/$defs/positivoOuPendente" },
+        "hp_base": { "type": "number", "exclusiveMinimum": 0 },
+        "dano_base": { "type": "number", "exclusiveMinimum": 0 },
+        "dano_tipo": { "enum": ["contato_por_s", "por_ataque", "por_projetil"] },
+        "velocidade": {
+          "description": "Relativa ao jogador (1,0 = 4,5 corpos/s).",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "xp": { "type": "integer", "minimum": 0 },
+        "almas": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["valor", "chance"],
+          "properties": {
+            "valor": { "type": "integer", "minimum": 0 },
+            "chance": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "bau": { "type": "boolean" },
+        "comportamento": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tipo"],
+          "properties": {
+            "tipo": { "enum": ["perseguir_reto", "aproximar_e_atacar", "manter_distancia", "elite_convocador"] },
+            "para_a_corpos": { "type": "number", "exclusiveMinimum": 0 },
+            "distancia_corpos": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        },
+        "ataques": {
+          "type": "array",
+          "items": { "$ref": "comum.schema.json#/$defs/ataque" }
+        },
+        "convoca": { "$ref": "comum.schema.json#/$defs/convocacao" },
+        "pendencias": { "$ref": "comum.schema.json#/$defs/pendencias" }
+      }
+    }
+  }
+}
