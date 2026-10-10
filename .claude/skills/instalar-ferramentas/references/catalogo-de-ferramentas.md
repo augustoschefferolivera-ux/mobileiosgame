@@ -15,33 +15,21 @@ Tabela completa do que `/instalar-ferramentas` pode instalar. Colunas: para quê
 | Python 3 | hooks deste repositório, pyloudnorm, scripts | `brew install python` | `python3 --version` | 3.10+ | PSF | grátis | python.org |
 | jq | leitura de JSON em hooks/scripts | `brew install jq` | `jq --version` | — | MIT | grátis | jqlang.github.io/jq |
 
-## Camada Apple (alvo app)
+## Camada Apple (só no CI remoto; sem Mac local)
+
+| Ferramenta | Para quê | Onde | Fonte |
+|---|---|---|---|
+| Xcode Cloud | compilar/assinar o projeto Capacitor e enviar ao TestFlight; 25 h/mês incluídas | App Store Connect | developer.apple.com/xcode-cloud |
+| GitHub Actions `macos-15` | alternativa com YAML versionado (`/build-ios-sem-mac`) | GitHub | github.com/features/actions |
+| fastlane (`pilot`, `deliver`) | upload e metadados com App Store Connect API Key | runner macOS (upload) e Linux (metadados) | fastlane docs |
+
+## Camada engine (stack web)
 
 | Ferramenta | Para quê | Instalação | Smoke test | Requisito | Licença | Custo | Fonte |
 |---|---|---|---|---|---|---|---|
-| Xcode 26.3+ / 27 | build, simulador, MCP do Xcode; no 27 o agente boota simulador, toca e tira screenshot | App Store / developer.apple.com | `xcodebuild -version` | 27: Apple silicon + macOS Tahoe 26.6+ | Apple | grátis; Apple Developer Program US$ 99/ano para distribuir [s] | Xcode 27 Release Notes |
-| MCP do Xcode | ferramentas do Xcode para o agente externo | `claude mcp add --transport stdio xcode -- xcrun mcpbridge`; ativar "Allow external agents to use Xcode tools" | `claude mcp get xcode` com projeto aberto | Xcode 26.3+ | Apple | grátis | Giving external agents access to Xcode |
-| `xcrun mcp-server enable` | MCP sem workspace aberto (CI); `--unsafe-always-allow-all-agents` só em ambiente não assistido | `sudo xcrun mcp-server enable` | — | Xcode 27 (preview) | Apple | grátis | Xcode 27 Release Notes |
-| MobileBuildMCP (ex-XcodeBuildMCP) | build/test no simulador, UI automation (AXe), LLDB, logs, Device Hub | `npx -y mobilebuildmcp@latest mcp` ou `brew tap getsentry/xcodebuildmcp && brew install mobilebuildmcp` | `mobilebuildmcp --help` | macOS 14.5+, Xcode 16+, Node 18+ | MIT | grátis (telemetria Sentry, opt-out) | github.com/getsentry/MobileBuildMCP |
-| ios-simulator-mcp | `ui_tap`, `ui_swipe`, `ui_type` (ASCII), `screenshot`, `record_video` | `npx -y ios-simulator-mcp@latest` (já em `.mcp.json`) | `claude mcp get ios-simulator` | Facebook IDB (`idb_companion`) [s] | MIT | grátis | github.com/joshuayoes/ios-simulator-mcp |
-| Maestro | testes YAML de menus (árvore de acessibilidade); `maestro mcp` embutido | ver github.com/mobile-dev-inc/maestro | `maestro --version` | simulador; sem iOS físico | Apache 2.0 | grátis (Cloud pago) | repositório Maestro |
-| Claude Code computer use | clicar no Simulator quando não há MCP; "compile a Swift app, launch it, click through every button" | preview, Pro/Max, macOS | — | macOS | — | incluído no plano | code.claude.com/docs/en/computer-use |
-| Xcode Cloud | CI + TestFlight | App Store Connect | — | membership | Apple | 25 h/mês incluídas; US$ 49,99 (100 h) a US$ 3.999,99 | developer.apple.com/xcode-cloud |
-
-## Camada engine
-
-| Ferramenta | Para quê | Instalação | Smoke test | Requisito | Licença | Custo | Fonte |
-|---|---|---|---|---|---|---|---|
-| unity-agent-plugin (oficial) | 32 skills (`implement-in-app-purchases`, `levelplay-unity-integration`, `2d-pixel-perfect`, `manage-sprite-atlas`, `build-live-game`…) + Unity CLI | `/plugin marketplace add Unity-Technologies/unity-agent-plugin` → `/plugin install unity@unity-agent-plugin` | `/unity:` lista skills | Unity 6+; v0.1.8-beta em 10/10/2026 | Unity Companion License | grátis; Unity por assento [s] | github.com/Unity-Technologies/unity-agent-plugin |
-| Unity CLI | instala Editors, cria/abre projetos, builds e testes; o plug-in a usa | vem com o Unity Hub | ver docs.unity.com/en-us/unity-cli | Unity Hub | Unity | grátis | README do plug-in |
-| MCP for Unity (CoplayDev) | 48–50 tools; Unity 2021.3–6.x; validação Roslyn; testes | Package Manager git URL `https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main`; `Configure All Detected Clients` | `claude mcp list` | Python 3.10+ via uv | MIT | grátis (Aura vende camada premium) | github.com/CoplayDev/unity-mcp |
-| apple/unityplugins | StoreKit 2, GameKit, Background Assets, CoreHaptics, GameController, PHASE para Unity | ver repositório | — | iOS 15.6+; novos StoreKit/Background Assets exigem Xcode 27 e Unity 2022 LTS+ | Apache 2.0 | grátis | github.com/apple/unityplugins |
-| Godot AI (hi-godot) | 46 tools: `project_run`, `test_run`, `logs_read`, `editor_screenshot` do jogo rodando | release em `addons/godot_ai/`; habilitar plug-in; dock → Configure | dock conectado | Godot 4.7+; uv; C# só texto | MIT | grátis (telemetria com opt-out) | github.com/hi-godot/godot-ai |
-| Godot 4.7.x | engine; export iOS gera projeto Xcode (`export_project_only` para fastlane) | godotengine.org | `godot --version` | export iOS exige macOS + Xcode; simulador só renderer Compatibility | MIT | grátis | godot-docs Exporting for iOS |
-| game-porting-toolkit (skills Apple) | Metal 4, MetalFX, GCController, gpucapture/gpudebug; sem elas "the agent produced code that compiled but rendered incorrectly" | `/plugin marketplace add apple/game-porting-toolkit` → `/plugin install game-porting-skills@game-porting-toolkit` | skills `translating-to-metal4-api` etc. | Apple silicon, macOS 27, Xcode 27 | Apache 2.0 | grátis | github.com/apple/game-porting-toolkit; WWDC26 357 |
-| roblox-studio-agent-plugin | `start_stop_play`, `user_keyboard_input`, `screen_capture`, `generate_mesh` sobre o MCP embutido no Studio | ver repositório; Studio → Assistant → Settings → MCP Servers → Enable | tools visíveis | Studio local | ver repo | grátis; distribuição só dentro do Roblox | github.com/Roblox/roblox-studio-agent-plugin |
 | Phaser Editor MCP / PlayCanvas MCP | cenas, assets, `scene-get-screenshot` / runtime tools com screenshot e input | npm (ver repositórios) | — | editor respectivo | ver repos | grátis | github.com/phaserjs/editor-mcp-server; github.com/playcanvas/editor-mcp-server |
 | Playwright | screenshot e console de jogos web em viewport de iPhone | `npm i -D playwright && npx playwright install` [s] | `npx playwright --version` | Node | Apache 2.0 | grátis | playwright.dev |
+| Phaser 4.2.1 / Vite 8 / TypeScript 5.9 | engine, build, tipos (fixados no `package.json`) | `npm install` | `npm run build` | Node 20+ | MIT/Apache | grátis | phaser.io, vite.dev |
 
 ## Assets, áudio e pós-processamento
 

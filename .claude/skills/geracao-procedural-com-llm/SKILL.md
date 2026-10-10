@@ -43,7 +43,7 @@ Não use quando:
 - Gerador determinístico no engine para cada tipo de conteúdo (ex.: BSP para salas, WFC para tiles, Perlin para terreno, gramática para nomes). Use implementações existentes: GameplayKit `GKNoise`/`GKPerlinNoiseSource` no iOS [confirmar disponibilidade no iOS 27]; `mxgmn/WaveFunctionCollapse` (MIT [confirmar]) como referência de WFC; nunca descreva o algoritmo na skill, chame a biblioteca.
 - JSON Schema por tipo de conteúdo (`references/schemas-exemplo.md`) versionado em `content/schemas/`.
 - Para lote: Python 3.10+, `pip install anthropic jsonschema`, chave em `ANTHROPIC_API_KEY` **só na máquina de build**. Preços e parâmetros: skill `claude-api` (`/claude-api`).
-- Para runtime: `/ia-runtime-foundation-models` (`@Generable`, on-device) ou `/ia-runtime-nuvem-claude` (proxy).
+- Para runtime: `/ia-runtime-nuvem-claude` (proxy; no stack web não há modelo on-device da Apple).
 - Verificadores: `scripts/validar-conteudo.py` (nível 2D e loja) como base; estenda por tipo.
 - Skill vizinha `/licencas-e-proveniencia` para o `PROVENANCE.md` (modelo, prompt, schema, seed, curadoria humana).
 

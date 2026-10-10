@@ -22,12 +22,14 @@ user-invocable: true
 
 # Escolher engine e alvo
 
+> **Decisão já tomada neste projeto:** `docs/decisoes/ADR-0001-engine-e-alvo.md` (web em código puro, Phaser 4; Three.js se 3D). Use esta skill só para substituir o ADR.
+
 Entrega `docs/decisoes/ADR-0001-engine-e-alvo.md` (status `Aceito` pelo usuário) e `production/engine.txt` com o nome canônico que o despachante `./scripts/verify.sh` e `/instalar-ferramentas` leem.
 
 ## Quando usar / quando não usar
 
 - **Use** depois do brief e antes de qualquer código; de novo só se o brief mudar (2D→3D, app→web, IAP) — aí um novo ADR substitui o anterior.
-- **Não use** para detalhes de implementação da engine (as skills `engine-spritekit-swiftui`, `engine-realitykit-metal`, `engine-unity-mobile`, `engine-godot-mobile`, `engine-web-phaser`, `engine-web-threejs` cuidam disso) nem para comparar geradores de assets.
+- **Não use** para detalhes de implementação da engine (as skills `engine-web-phaser`, `engine-web-threejs` cuidam disso; as demais engines foram removidas deste repositório após o ADR-0001 — histórico no Git) nem para comparar geradores de assets.
 
 ## Pré-requisitos
 

@@ -60,9 +60,9 @@ end
 `snapshot` depende de XCUITest e acessibilidade; cenas de jogo não expõem. Use:
 
 ```bash
-UDID=$(.claude/skills/xcode-agentico/scripts/simulador.sh boot "iPhone 17 Pro Max")
+xcrun simctl boot "iPhone 17 Pro Max"   # [confirmar nome do dispositivo no runner]
 # … lance o app e navegue até a tela (playtest-automatizado)
-.claude/skills/xcode-agentico/scripts/simulador.sh screenshot fastlane/screenshots/pt-BR/01_gameplay.png
+xcrun simctl io booted screenshot fastlane/screenshots/pt-BR/01_gameplay.png
 ```
 
 Repita por tamanho de dispositivo; `frameit` adiciona moldura/texto opcionalmente.

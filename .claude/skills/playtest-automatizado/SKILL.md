@@ -7,7 +7,7 @@ description: >
   canal de debug), comparação de screenshots por visão e por diff de pixels, com crítico separado
   do construtor. Use sempre que uma feature visível ao jogador for declarada pronta, quando o
   usuário pedir "teste o jogo", "jogue", "QA", "regressão" ou "compare com a referência".
-  Não use para configurar o ambiente (xcode-agentico) nem para testes unitários (skills engine-*).
+  Não use para configurar o ambiente (/instalar-ferramentas) nem para testes unitários (engine-web-phaser).
 license: MIT
 compatibility: "macOS com Xcode 26.3+/27 para simulador; Node 18+ para MCPs; Java para Maestro; Python 3 (+Pillow opcional) para comparar screenshots; web: Playwright em qualquer SO"
 metadata:
@@ -30,7 +30,7 @@ Entrega um relatório `production/playtests/<data>-<feature>.md` com passos exec
 
 ## Pré-requisitos
 
-- Ambiente de `/xcode-agentico` (Xcode MCP; opcional MobileBuildMCP, ios-simulator-mcp ≥ 1.3.3) ou, para web, Playwright (`engine-web-*`).
+- Playwright no projeto (`engine-web-phaser`/`engine-web-threejs`); para o Safari real, um iPhone com `npx vite preview --host`.
 - Canal de debug no jogo (`debug_state.json`/`__GAME_DEBUG__`) — sem ele o agente só vê pixels.
 - Maestro (Apache 2.0) só para menus com acessibilidade: `curl -Ls "https://get.maestro.mobile.dev" | bash` [confirme no README], `maestro mcp` para o agente; flows em `.maestro/*.yaml`. Não suporta iPhone físico.
 - Opcional: Pillow (`pip install pillow`) para `scripts/comparar-screenshots.py`.

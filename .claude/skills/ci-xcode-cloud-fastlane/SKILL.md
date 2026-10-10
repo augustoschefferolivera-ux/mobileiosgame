@@ -7,7 +7,7 @@ description: >
   e build numbers, Apple-Hosted Background Assets (200 GB). Use sempre que o usuário pedir
   TestFlight, CI, build automática, assinatura, upload de metadados/screenshots ou pipeline de
   release. Não use para submeter à revisão da App Store (skill de submissão, fase 10) nem para
-  o loop local de verificação (skills engine-* e xcode-agentico).
+  o loop local de verificação (skill engine-web-phaser).
 license: MIT
 compatibility: "Apple Developer Program ativo; repositório Git (GitHub/GitLab/Bitbucket) para Xcode Cloud; macOS para fastlane local; Ruby 3 para fastlane"
 metadata:
@@ -35,7 +35,7 @@ Entrega um pipeline em que cada push em `main` (ou tag) compila, testa, arquiva 
 - App criado em App Store Connect (bundle id, SKU); Team ID.
 - **App Store Connect API Key** (Users and Access → Integrations → Team Keys; baixe o `.p8` uma vez): fastlane recomenda API Key ("No 2FA needed, better performance, documented API"), suportada em `pilot`, `deliver`, `sigh`, `cert`, `match`, `precheck` (exceto IAP), `download_dsyms`, `app_store_build_number`; não em `produce`/`pem`. Use **Team Key** (Individual Key não acessa Provisioning).
 - fastlane (`brew install fastlane` ou `gem install fastlane`); segredos em variáveis de ambiente/CI, nunca no repositório.
-- Projeto Xcode: nativo, `ios/App/App.xcworkspace` (Capacitor), `Unity-iPhone.xcodeproj` (Unity, gerado por `engine-unity-mobile`) ou export do Godot (`export_project_only`, pensado "when combining Godot with Fastlane").
+- Projeto Xcode: `ios/App/App.xcworkspace` gerado pelo Capacitor (`/empacotar-web-para-app`), compilado no runner macOS (`/build-ios-sem-mac`).
 
 ## Entradas
 

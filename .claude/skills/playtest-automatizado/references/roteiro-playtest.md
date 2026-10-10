@@ -32,7 +32,7 @@
 | MobileBuildMCP | build/launch; AXe para UI nativa | logs (daemon), LLDB |
 | Maestro | `.maestro/menu.yaml`: `- launchApp` / `- tapOn: { id: "btn_play" }` / `- assertVisible: "Pontuação"` | `maestro test .maestro/menu.yaml` (CI) |
 | Web | `playtest.mjs --taps "x,y;x,y"` | `screenshot.png`, `state.json`, `console.log` |
-| Linha de comando | `xcode-agentico/scripts/simulador.sh launch|screenshot|pull-debug|log` | arquivos em `production/evidencias/` |
+| Linha de comando | `node .claude/skills/engine-web-phaser/scripts/playtest.mjs --url ... --taps "x,y;x,y"` | arquivos em `production/evidencias/` |
 
 ## FPS e desempenho
 

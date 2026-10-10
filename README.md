@@ -1,8 +1,10 @@
 # mobileiosgame — framework para criar jogos 100% com IA
 
-Um roteiro passo a passo, um banco de skills, hooks e subagentes para construir jogos **2D ou
-3D**, para **mobile (iOS primeiro) ou web**, usando agentes de código (Claude Code, Codex) para
-código, arte, áudio, testes e publicação. Nada aqui foi inventado do zero: o framework compõe
+Um roteiro passo a passo, um banco de skills, hooks e subagentes para construir **um jogo web
+mobile em Phaser 4 + TypeScript (Three.js se 3D), PWA primeiro e App Store via Capacitor depois**,
+usando agentes de código (Claude Code, Codex) para código, arte 2D/3D, áudio, testes e publicação.
+Decisão de engine: `docs/decisoes/ADR-0001-engine-e-alvo.md`; engines nativas, Unity e Godot foram
+removidas do repositório para reduzir ruído (histórico no Git). Nada aqui foi inventado do zero: o framework compõe
 estruturas já validadas em outubro de 2026 e as adapta ao caso mobile + assets gerados por IA.
 
 | Peça | Onde | Baseado em |

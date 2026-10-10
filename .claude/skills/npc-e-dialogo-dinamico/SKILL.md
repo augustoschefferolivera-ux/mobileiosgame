@@ -7,8 +7,7 @@ description: >
   como contexto, estilo e limites, fallback para falas escritas, filtro de conteúdo e botão de denúncia,
   ponte para voz e um conjunto fixo de testes com critérios. Use sempre que o usuário pedir "NPC que
   conversa", "diálogo com IA", "personagem que lembra do jogador" ou "chat com personagem". Não use para
-  escolher o modelo (isso é /ia-runtime-foundation-models, /ia-runtime-nuvem-claude ou
-  /ia-runtime-on-device-llm), para quests/itens (/geracao-procedural-com-llm) nem para voz (/voz-e-dialogo).
+  escolher o modelo (isso é /ia-runtime-nuvem-claude), para quests/itens (/geracao-procedural-com-llm) nem para voz (/voz-e-dialogo).
 license: MIT
 compatibility: "Claude Code ou Codex; qualquer engine; exemplos em Swift (@Generable) e JSON"
 metadata:
@@ -39,7 +38,7 @@ Não use quando:
 
 ## Pré-requisitos
 
-- Modelo escolhido pela escada: `SystemLanguageModel` (padrão) → PCC → Claude via proxy (`/ia-runtime-foundation-models`, `/ia-runtime-nuvem-claude`). Esta skill é agnóstica: a ficha vira `@Generable` em Swift ou JSON Schema na nuvem.
+- Modelo: Claude Haiku 5.5 via proxy (`/ia-runtime-nuvem-claude`); no stack web não há modelo on-device da Apple. Esta skill é agnóstica: a ficha vira `@Generable` em Swift ou JSON Schema na nuvem.
 - Falas escritas por situação (`content/dialogos/<npc>/fallback.json`): obrigatórias antes de qualquer geração.
 - UI: balão com indicador "...", ícone "fala gerada por IA" (HIG), botões "Denunciar" e "Desligar diálogo por IA".
 - Se houver nuvem: folha de consentimento 5.1.2(i) e backend com denúncia (ver `/ia-runtime-nuvem-claude`).

@@ -25,7 +25,7 @@ Entrega as linhas de voz aprovadas em `./assets/audio/voz/<idioma>/` (naming `vo
 
 ## Quando usar / quando não usar
 
-- **Use** quando a bible §6 diz que há voz. Decida primeiro o **modo**: diálogo **fixo** (roteiro conhecido → pré-renderize na nuvem e embarque arquivos) ou **dinâmico** (texto gerado em runtime → TTS on-device em pt-BR; ver `/ia-runtime-foundation-models`-skills da fase 7).
+- **Use** quando a bible §6 diz que há voz. Decida primeiro o **modo**: diálogo **fixo** (roteiro conhecido → pré-renderize na nuvem e embarque arquivos) ou **dinâmico** (texto gerado em runtime → TTS on-device em pt-BR; ver `/ia-runtime-nuvem-claude`-skills da fase 7).
 - **Use** para "blips" de texto? Não: isso é SFX (`/gerar-sfx`).
 - **Não use** TTS para as linhas centrais de um jogo narrativo sem avaliar atores: o ARC Raiders (Embark) foi criticado por vozes TTS "flat" e regravou com atores depois do lançamento ("A real professional actor is better than AI").
 - **Não use** clonagem de voz de pessoa real sem termo de consentimento assinado (padrão SAG-AFTRA 2025, mesmo com não sindicalizados).

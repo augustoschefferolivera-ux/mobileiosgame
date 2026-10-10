@@ -1,7 +1,8 @@
 # Jogo 100% por IA — instruções do projeto
 
-Este repositório é um framework para construir jogos 2D ou 3D, para mobile (iOS primeiro) e
-web, com agentes de código fazendo código, arte, áudio e testes. Ele é composto por um
+Este repositório é um framework para construir **um jogo web mobile (Phaser 4 + TypeScript; Three.js
+se 3D), PWA primeiro e App Store via Capacitor depois**, com agentes de código fazendo código, arte,
+áudio e testes. Ele é composto por um
 roteiro passo a passo (`playbook/`), um banco de skills (`.claude/skills/`), subagentes
 (`.claude/agents/`), regras por caminho (`.claude/rules/`), hooks (`.claude/settings.json`)
 e templates (`templates/`). Tudo foi construído sobre estruturas já validadas: o padrão
@@ -45,7 +46,7 @@ Agent Skills, o harness de longa duração da Anthropic, o template Claude-Code-
 - Assets: só depois de `/direcao-de-arte-e-style-card` e `/direcao-de-audio-e-sound-bible`;
   então `/gerar-sprites-2d`, `/pixel-art-pipeline`, `/gerar-ativos-3d`, `/gerar-musica`,
   `/gerar-sfx`, `/voz-e-dialogo`; sempre com "Exportar para mobile" e linha no `PROVENANCE.md`.
-- IA no jogo: `/ia-runtime-foundation-models` primeiro (on-device grátis), nuvem só com motivo.
+- IA no jogo: `/ia-runtime-nuvem-claude` com backend mínimo e consentimento; conteúdo em lote por `/geracao-procedural-com-llm`.
 - Publicar: `/licencas-e-proveniencia` → `/divulgacao-de-uso-de-ia` → `/classificacao-etaria`
   → `/submissao-app-store` ou `/publicar-jogo-web`.
 - Índice de todas as skills, por fase e por alvo: `playbook/06-indice-de-skills.md`.
@@ -58,7 +59,7 @@ Agent Skills, o harness de longa duração da Anthropic, o template Claude-Code-
   Com 8 GB de VRAM, imagem HD e 3D ficam nas APIs comerciais.
 - **macOS só remoto** (Xcode Cloud / GitHub Actions / Mac na nuvem) para compilar, assinar e enviar
   ao TestFlight: `/build-ios-sem-mac`. Nunca macOS em VM em hardware não Apple (EULA).
-- `.mcp.json` traz só servidores que rodam em Linux; os de macOS estão em `.mcp.macos.json`.
+- `.mcp.json` traz só servidores que rodam em Linux. Engines nativas/Unity/Godot foram removidas do repositório (ADR-0001); histórico no Git.
 
 ## Stack deste projeto
 
@@ -78,9 +79,9 @@ playbook/                  roteiro passo a passo, regras, stack, ferramentas, ri
 .claude/skills/            banco de skills (/nome)
 .claude/agents/            subagentes: critico, playtester, revisor-de-codigo, diretor-de-arte,
                            diretor-de-audio, revisor-de-loja-e-legal, engenheiro-de-performance
-.claude/rules/             regras por caminho (Swift, GDScript, C#, TypeScript, assets, testes)
+.claude/rules/             regras por caminho (TypeScript/Phaser, assets, testes, edição do framework)
 .claude/hooks/             scripts dos hooks (SessionStart, PreToolUse, PostToolUse, Stop)
-.mcp.json / .mcp.macos.json  MCPs que rodam em Linux (Blender, ElevenLabs) / só em macOS (Xcode, MobileBuildMCP, simulador)
+.mcp.json                  MCPs do projeto (Blender, ElevenLabs); servidores de Xcode ficaram fora (sem Mac local)
 templates/                 brief, feature_list.json, progress.md, art/sound bible, PROVENANCE, LICENCAS
 scripts/                   verify.sh (despachante), check-skills.py
 design/ docs/ production/  artefatos do jogo em construção (brief, ADRs, evidências, críticas)

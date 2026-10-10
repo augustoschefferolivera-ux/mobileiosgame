@@ -5,32 +5,15 @@ Tudo aqui é instalado pela skill `/instalar-ferramentas` (que também gera
 exige cuidado. Comandos de MCP seguem a documentação do Claude Code; os projetos citados
 são os mantidos em out/2026 (estrelas e datas lidas no GitHub em 10/10/2026).
 
-## Plug-ins oficiais (Claude Code e Codex)
+## Plug-ins oficiais de engine
 
-| Plug-in | Instalar | Quando | Licença |
-|---|---|---|---|
-| Unity (`unity-agent-plugin`, v0.1.8-beta, 32 skills) | `/plugin marketplace add Unity-Technologies/unity-agent-plugin` | Projetos Unity 6+ | Unity Companion License |
-| Apple Game Porting Toolkit 4 (24 skills de Metal 4/MetalFX/controle) | `/plugin marketplace add apple/game-porting-toolkit` | Metal direto; porte; depuração GPU | Apache 2.0 |
-| Roblox Studio (`roblox-studio-agent-plugin`) | `/plugin marketplace add Roblox/roblox-studio-agent-plugin` | Só se o alvo for Roblox | ver repo |
-
-## Instalação em Arch Linux (perfil deste repositório)
-
-```bash
-sudo pacman -S git openssh rsync python uv nodejs npm jq godot blender xorg-server-xvfb tailscale
-sudo systemctl enable --now tailscaled && sudo tailscale up
-npm install -g @anthropic-ai/claude-code gltfpack @gltf-transform/cli
-pip install --user pyloudnorm soundfile pymusiclooper "rembg[cpu]"   # ou uv tool install
-yay -S unityhub            # só para Unity (AUR)
-npx playwright install chromium webkit   # WebKit em Arch pode exigir libs manuais [confirmar]; Chromium como fallback
-```
-
-Estação GPU (Windows + RTX) e Mac remoto: `07-perfil-arch-linux-e-gpu-remota.md`,
-`/estacao-gpu-remota`, `/build-ios-sem-mac`.
+Os plug-ins oficiais da Unity, do Game Porting Toolkit da Apple e do Roblox não se aplicam ao stack
+web deste projeto (ADR-0001) e foram retirados daqui; o material está no histórico do Git.
 
 ## Servidores MCP configurados em `.mcp.json`
 
-`.mcp.json` traz só o que roda em Linux. Os servidores exclusivos de macOS (`xcode`, `mobilebuild`,
-`ios-simulator`) estão em `.mcp.macos.json`; em um Mac, copie-os para `.mcp.json`. Para o Blender na
+`.mcp.json` traz só o que roda em Linux. Os servidores exclusivos de macOS (Xcode, MobileBuildMCP,
+ios-simulator) foram removidos: sem Mac local não há como usá-los; o build iOS acontece no CI (`/build-ios-sem-mac`). Para o Blender na
 estação GPU em vez do PC: `"command": "ssh", "args": ["gpu", "uvx mcp-for-blender"]` (stdio sobre SSH;
 exige `uv` no PATH do Windows [confirmar]).
 
@@ -49,8 +32,7 @@ Para aprovar os servidores do projeto na primeira execução, o Claude Code perg
 
 | Ferramenta | Como habilitar | Notas |
 |---|---|---|
-| MCP for Unity (CoplayDev, 14,8k★, MIT, v10.3.0) | Package Manager → git URL `https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity` → `Window → MCP for Unity → Configure All Detected Clients` | Unity 2021.3–6.x; 50 ferramentas; validação Roslyn; testes |
-| Godot AI (hi-godot, 2,9k★, MIT) | Add-on em `addons/godot_ai/` a partir de um release; `Project Settings → Plugins`; o dock configura os clientes | Godot 4.7+; GDScript completo, C# text-only; `project_run`, `test_run`, `logs_read`, `editor_screenshot` |
+| Phaser Editor MCP (`phaserjs/editor-mcp-server`) | npm, ver repositório | edição de cenas do Phaser Editor v5 pelo agente; opcional |
 | PixelLab MCP (`pixellab-mcp`) | ver docs do PixelLab | pixel art, rotações, esqueleto; planos [confirmar] |
 | Retro Diffusion MCP | ver docs | pay-per-asset [confirmar] |
 | Mubert (skills + MCP, set/2026) | ver `MubertAI/skills` | música em loop com intensidade; licença por plano |

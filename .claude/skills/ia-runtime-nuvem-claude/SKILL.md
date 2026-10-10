@@ -7,8 +7,7 @@ description: >
   offline, consentimento 5.1.2(i) antes da primeira transmissão e filtro/denúncia/bloqueio (4.7.1/1.2).
   Use quando o on-device não basta (conhecimento de mundo, raciocínio, contexto longo, alvo web ou
   Android, consistência entre aparelhos) ou quando o usuário pedir "NPC com ChatGPT/Claude/IA na nuvem".
-  Não use se o caso cabe no Foundation Models on-device ou PCC (/ia-runtime-foundation-models), que
-  custa zero e não exige consentimento; para gerar conteúdo offline em lote veja /geracao-procedural-com-llm.
+  No stack web (Phaser/Three.js) esta é a rota padrão de IA em runtime, pois não há Foundation Models on-device; para gerar conteúdo offline em lote veja /geracao-procedural-com-llm.
 license: MIT
 compatibility: "Claude Code ou Codex; backend em Cloudflare Workers ou Vercel (TypeScript); cliente iOS/web/Unity por HTTPS"
 metadata:

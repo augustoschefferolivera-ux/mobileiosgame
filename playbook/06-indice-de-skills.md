@@ -3,7 +3,7 @@
 Gerado por `python3 scripts/check-skills.py`. Não edite à mão. Invoque uma skill com `/nome`
 ou deixe o agente carregá-la quando a descrição casar com a tarefa.
 
-Total: 55 skills válidas.
+Total: 48 skills válidas.
 
 ## Por grupo
 
@@ -29,14 +29,9 @@ Total: 55 skills válidas.
 | `/build-ios-sem-mac` | 2d, 3d, app | 0, 3, 10 | Compila, assina e envia ao TestFlight/App Store um jogo iOS a partir de um PC Linux (Arch) sem Mac local, usando macOS remoto: Xcode Cloud (25 h/mês incluídas na membership), runner macOS do GitHub Actions ou Mac alug... |
 | `/ci-xcode-cloud-fastlane` | 2d, 3d, app | 0, 3, 10 | Configura integração e distribuição contínuas do jogo iOS: Xcode Cloud (25 h/mês incluídas na membership, TestFlight integrado, scripts ci_scripts), fastlane com App Store Connect API Key (pilot, deliver, match, scree... |
 | `/empacotar-web-para-app` | 2d, 3d, web, app | 2, 10 | Decide se e como levar um jogo web (Phaser, PixiJS, Three.js, Babylon) à App Store via Capacitor (WKWebView) ou mantê-lo como PWA, cobrindo os riscos de revisão 4.2 (funcionalidade mínima), 4.7 (HTML5 games), 2.5.2 (c... |
-| `/engine-godot-mobile` | 2d, 3d, app | 2, 3, 5, 8 | Configura, codifica e verifica um jogo mobile em Godot 4.7.x (versão fixada) com GDScript, Godot AI MCP (project_run, test_run, logs_read, editor_screenshot), testes GUT ou gdUnit4, CLI headless para CI e export iOS (... |
-| `/engine-realitykit-metal` | 3d, app | 2, 3, 5, 8 | Monta e verifica um jogo 3D nativo para iOS com RealityKit (RealityView em SwiftUI, ECS, Reality Composer Pro, USDZ) e decide quando descer para Metal 4 instalando as skills oficiais do Game Porting Toolkit da Apple; ... |
-| `/engine-spritekit-swiftui` | 2d, app | 2, 3, 5, 8 | Monta e verifica um jogo 2D nativo para iOS com SwiftUI + SpriteKit (SKScene dentro de SpriteView), Swift 6.x, atlases .spriteatlas, SKAction, física, CoreHaptics e Game Center, com build por xcodebuild e execução/scr... |
-| `/engine-unity-mobile` | 2d, 3d, app | 2, 3, 5, 8 | Configura, codifica e verifica um jogo mobile em Unity 6.3 LTS para iOS usando o plug-in oficial Unity-Technologies/unity-agent-plugin (32 skills: IAP, LevelPlay, pixel perfect, sprite atlas, física 2D, tiles, áudio, ... |
 | `/engine-web-phaser` | 2d, web | 2, 3, 5, 8 | Monta e verifica um jogo web 2D para iPhone com Phaser (ou PixiJS) + TypeScript + Vite: input por toque, devicePixelRatio, desbloqueio de áudio no Safari iOS, PWA offline, atlases e performance em Safari mobile; verif... |
 | `/engine-web-threejs` | 3d, web | 2, 3, 5, 8 | Monta e verifica um jogo web 3D para iPhone com Three.js ou Babylon.js + TypeScript + Vite: WebGL2/WebGPU no iOS, assets glTF com Draco/meshopt e texturas KTX2, limites de memória do Safari, Gaussian splats com Spark ... |
 | `/playtest-automatizado` | 2d, 3d, app, web | 3, 5, 8 | Executa o loop de playtest por agente em um jogo iOS/web: três camadas (agentes nativos do Xcode 27; MobileBuildMCP + ios-simulator-mcp; Maestro YAML para menus), computer use no Simulator, roteiro em production/playt... |
-| `/xcode-agentico` | 2d, 3d, app | 0, 3 | Conecta o agente ao Xcode 26.3/27 como servidor MCP (xcrun mcpbridge), configura agentes que bootam simulador, tocam, digitam e tiram screenshot (Xcode 27), lldb-mcp, Device Hub, insights do Organizer, modo sem superv... |
 
 ### arte-2d
 
@@ -78,9 +73,7 @@ Total: 55 skills válidas.
 | Skill | Alvo | Fases | O que faz |
 |---|---|---|---|
 | `/geracao-procedural-com-llm` | 2d, 3d, app, web | 5, 7 | Gera conteúdo de jogo (níveis, quests, itens, loja, regras, seeds) com LLM no padrão de 2026: o modelo produz parâmetros estruturados validados por JSON Schema e por verificadores (nível sempre solucionável, economia ... |
-| `/ia-runtime-foundation-models` | 2d, 3d, app | 7, 9 | Integra o Foundation Models framework da Apple (iOS 26/27) ao jogo: modelo on-device SystemLanguageModel com geração guiada @Generable, tool calling, PrivateCloudComputeLanguageModel (32K de contexto, sem custo de API... |
 | `/ia-runtime-nuvem-claude` | 2d, 3d, app, web | 7, 9 | Liga o jogo ao Claude (Haiku 5.5 para NPCs e conteúdo em massa) com segurança e custo previsível: backend/proxy mínimo sem chave no app, prompt caching com prefixo fixo de 512+ tokens, saída estruturada por JSON Schem... |
-| `/ia-runtime-on-device-llm` | 2d, 3d, app | 7, 8 | Embarca um LLM próprio (0,6B–2B em 4-bit) no iPhone para gerar texto offline sem depender da Apple Intelligence: orçamento realista de RAM/tok/s/termal com números medidos no iPhone 17 Pro, escolha de runtime (llama.c... |
 | `/npc-e-dialogo-dinamico` | 2d, 3d, app, web | 5, 7, 9 | Projeta e implementa NPCs com diálogo dinâmico que vale a pena: decide onde IA agrega (fala ambiente, quest-giver com saídas estruturadas, companheiro com memória) e onde falas escritas são melhores; define a ficha es... |
 
 ### publicacao
@@ -104,14 +97,14 @@ Total: 55 skills válidas.
 
 ## Por fase do roteiro
 
-- **Fase 0 — Preparação do ambiente:** `/blender-automatizado`, `/build-ios-sem-mac`, `/checkpoint-e-retomada`, `/ci-xcode-cloud-fastlane`, `/criar-ou-melhorar-skill`, `/estacao-gpu-remota`, `/iniciar-projeto`, `/instalar-ferramentas`, `/licencas-e-proveniencia`, `/xcode-agentico`
+- **Fase 0 — Preparação do ambiente:** `/blender-automatizado`, `/build-ios-sem-mac`, `/checkpoint-e-retomada`, `/ci-xcode-cloud-fastlane`, `/criar-ou-melhorar-skill`, `/estacao-gpu-remota`, `/iniciar-projeto`, `/instalar-ferramentas`, `/licencas-e-proveniencia`
 - **Fase 1 — Conceito e brief:** `/brief-do-jogo`, `/classificacao-etaria`, `/direcao-de-arte-e-style-card`, `/escopo-e-anti-padroes`, `/iniciar-projeto`
-- **Fase 2 — Engine/alvo e esqueleto:** `/empacotar-web-para-app`, `/engine-godot-mobile`, `/engine-realitykit-metal`, `/engine-spritekit-swiftui`, `/engine-unity-mobile`, `/engine-web-phaser`, `/engine-web-threejs`, `/escolher-engine-e-alvo`, `/iniciar-projeto`
-- **Fase 3 — Loop de verificação:** `/build-ios-sem-mac`, `/ci-xcode-cloud-fastlane`, `/engine-godot-mobile`, `/engine-realitykit-metal`, `/engine-spritekit-swiftui`, `/engine-unity-mobile`, `/engine-web-phaser`, `/engine-web-threejs`, `/iniciar-projeto`, `/montar-loop-de-verificacao`, `/playtest-automatizado`, `/publicar-jogo-web`, `/xcode-agentico`
+- **Fase 2 — Engine/alvo e esqueleto:** `/empacotar-web-para-app`, `/engine-web-phaser`, `/engine-web-threejs`, `/escolher-engine-e-alvo`, `/iniciar-projeto`
+- **Fase 3 — Loop de verificação:** `/build-ios-sem-mac`, `/ci-xcode-cloud-fastlane`, `/engine-web-phaser`, `/engine-web-threejs`, `/iniciar-projeto`, `/montar-loop-de-verificacao`, `/playtest-automatizado`, `/publicar-jogo-web`
 - **Fase 4 — Direção de arte e áudio:** `/consistencia-com-lora`, `/direcao-de-arte-e-style-card`, `/direcao-de-audio-e-sound-bible`, `/estacao-gpu-remota`, `/gerar-ativos-3d`, `/gerar-sprites-2d`, `/materiais-e-texturas-pbr`, `/pixel-art-pipeline`, `/ui-hud-e-icones`
-- **Fase 5 — Produção de features:** `/ambientes-e-mundos-3d`, `/audio-adaptativo-no-engine`, `/cenarios-e-tilesets`, `/checkpoint-e-retomada`, `/ciclo-de-feature`, `/critico-independente`, `/engine-godot-mobile`, `/engine-realitykit-metal`, `/engine-spritekit-swiftui`, `/engine-unity-mobile`, `/engine-web-phaser`, `/engine-web-threejs`, `/escopo-e-anti-padroes`, `/geracao-procedural-com-llm`, `/monetizacao-iap-e-ads`, `/npc-e-dialogo-dinamico`, `/playtest-automatizado`, `/privacidade-lgpd-e-eca-digital`
+- **Fase 5 — Produção de features:** `/ambientes-e-mundos-3d`, `/audio-adaptativo-no-engine`, `/cenarios-e-tilesets`, `/checkpoint-e-retomada`, `/ciclo-de-feature`, `/critico-independente`, `/engine-web-phaser`, `/engine-web-threejs`, `/escopo-e-anti-padroes`, `/geracao-procedural-com-llm`, `/monetizacao-iap-e-ads`, `/npc-e-dialogo-dinamico`, `/playtest-automatizado`, `/privacidade-lgpd-e-eca-digital`
 - **Fase 6 — Produção de assets:** `/ambientes-e-mundos-3d`, `/animar-sprites`, `/atlas-e-exportacao-2d-mobile`, `/blender-automatizado`, `/cenarios-e-tilesets`, `/consistencia-com-lora`, `/estacao-gpu-remota`, `/gerar-ativos-3d`, `/gerar-musica`, `/gerar-sfx`, `/gerar-sprites-2d`, `/licencas-e-proveniencia`, `/materiais-e-texturas-pbr`, `/otimizar-3d-para-mobile`, `/pixel-art-pipeline`, `/pos-producao-audio-mobile`, `/rigging-e-animacao-3d`, `/ui-hud-e-icones`, `/voz-e-dialogo`
-- **Fase 7 — IA em runtime e procedural:** `/audio-adaptativo-no-engine`, `/geracao-procedural-com-llm`, `/ia-runtime-foundation-models`, `/ia-runtime-nuvem-claude`, `/ia-runtime-on-device-llm`, `/npc-e-dialogo-dinamico`, `/voz-e-dialogo`
-- **Fase 8 — Polimento, game feel, performance:** `/atlas-e-exportacao-2d-mobile`, `/audio-adaptativo-no-engine`, `/critico-independente`, `/engine-godot-mobile`, `/engine-realitykit-metal`, `/engine-spritekit-swiftui`, `/engine-unity-mobile`, `/engine-web-phaser`, `/engine-web-threejs`, `/escopo-e-anti-padroes`, `/ia-runtime-on-device-llm`, `/materiais-e-texturas-pbr`, `/otimizar-3d-para-mobile`, `/playtest-automatizado`, `/pos-producao-audio-mobile`
-- **Fase 9 — Legal, licenças, proveniência:** `/classificacao-etaria`, `/divulgacao-de-uso-de-ia`, `/ia-runtime-foundation-models`, `/ia-runtime-nuvem-claude`, `/licencas-e-proveniencia`, `/npc-e-dialogo-dinamico`, `/privacidade-lgpd-e-eca-digital`
+- **Fase 7 — IA em runtime e procedural:** `/audio-adaptativo-no-engine`, `/geracao-procedural-com-llm`, `/ia-runtime-nuvem-claude`, `/npc-e-dialogo-dinamico`, `/voz-e-dialogo`
+- **Fase 8 — Polimento, game feel, performance:** `/atlas-e-exportacao-2d-mobile`, `/audio-adaptativo-no-engine`, `/critico-independente`, `/engine-web-phaser`, `/engine-web-threejs`, `/escopo-e-anti-padroes`, `/materiais-e-texturas-pbr`, `/otimizar-3d-para-mobile`, `/playtest-automatizado`, `/pos-producao-audio-mobile`
+- **Fase 9 — Legal, licenças, proveniência:** `/classificacao-etaria`, `/divulgacao-de-uso-de-ia`, `/ia-runtime-nuvem-claude`, `/licencas-e-proveniencia`, `/npc-e-dialogo-dinamico`, `/privacidade-lgpd-e-eca-digital`
 - **Fase 10 — Monetização, submissão, pós-lançamento:** `/build-ios-sem-mac`, `/ci-xcode-cloud-fastlane`, `/classificacao-etaria`, `/divulgacao-de-uso-de-ia`, `/empacotar-web-para-app`, `/monetizacao-iap-e-ads`, `/pos-lancamento-e-telemetria`, `/privacidade-lgpd-e-eca-digital`, `/publicar-jogo-web`, `/submissao-app-store`, `/ui-hud-e-icones`

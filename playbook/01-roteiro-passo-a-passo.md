@@ -252,18 +252,17 @@ exportados para mobile.
 a loja.
 
 **Passos.**
-1. `/ia-runtime-foundation-models`: no iOS 26/27 comece pelo `SystemLanguageModel` on-device
-   (grátis, offline, `@Generable` para saída estruturada) → `PrivateCloudComputeLanguageModel`
-   (sem custo abaixo de 2 milhões de downloads) → só então provedor externo via protocolo
-   `LanguageModel` (pacotes Swift da Anthropic/Google).
-2. Se precisar de nuvem própria: `/ia-runtime-nuvem-claude` (Haiku 5.5; prompt caching com
-   prefixo ≥ 512 tokens; saída estruturada; backend mínimo; **tela de consentimento antes da
-   primeira transmissão** — 5.1.2(i); filtro, denúncia e bloqueio se houver chat — 4.7.1/1.2).
-3. Conteúdo: `/geracao-procedural-com-llm` — o LLM gera **parâmetros estruturados** validados
-   por schema que alimentam geradores determinísticos; nunca texto livre direto na jogabilidade.
-4. NPCs: `/npc-e-dialogo-dinamico` com ficha estruturada, memória curta, fallback escrito e
+1. `/ia-runtime-nuvem-claude`: no stack web não há modelo on-device da Apple; a rota é um backend
+   mínimo (Cloudflare Worker/Vercel) → Claude Haiku 5.5 com prompt caching (prefixo ≥ 512 tokens),
+   saída estruturada por JSON Schema, rate limit, fallback offline com respostas pré-geradas e
+   **consentimento antes da primeira transmissão**; se houver chat visível, filtro, denúncia e bloqueio.
+2. Conteúdo: `/geracao-procedural-com-llm` — o LLM gera **parâmetros estruturados** validados por
+   schema (Batch API em lote, −50%) que alimentam geradores determinísticos; nunca texto livre
+   direto na jogabilidade.
+3. NPCs: `/npc-e-dialogo-dinamico` com ficha estruturada, memória curta, fallback escrito e
    conjunto fixo de testes.
-5. Modelos próprios no aparelho: `/ia-runtime-on-device-llm` só 0,6–2B em 4-bit; meça termal.
+4. Custo e latência por interação medidos e registrados; a maior parte do conteúdo deve ser gerada
+   offline e embarcada como JSON, não pedida em runtime.
 
 **O que não fazer.** World models (Genie 3, Oasis, WHAMM) e NVIDIA ACE não rodam no iPhone;
 middleware de NPC encolheu (Inworld virou voz; Convai sem SDK iOS). Não dependa.

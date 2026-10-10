@@ -93,7 +93,7 @@ log do runner macOS e o número do build gravados em `production/evidencias/<dat
 - Xcode Cloud: `ci_scripts/ci_post_clone.sh` instala dependências (ver `/ci-xcode-cloud-fastlane`);
   horas acima das 25 incluídas são cobradas.
 - Não é possível rodar o simulador iOS, o MCP do Xcode ou MobileBuildMCP no Linux; os MCPs
-  correspondentes ficam em `.mcp.macos.json` para quando houver um Mac.
+  correspondentes foram removidos deste repositório (sem Mac local).
 - Foundation Models, GameKit, StoreKit só compilam no macOS: escreva o código no Linux, compile no CI,
   e teste no iPhone; mantenha diffs pequenos para não acumular erros de compilação.
 

@@ -10,8 +10,7 @@
 
 ## Fluxo recomendado para Arch + GPU Windows
 
-1. Desenvolva e verifique localmente com Godot ou Phaser (`scripts/verify.sh` em Linux; Godot com
-   `xvfb-run` para screenshot).
+1. Desenvolva e verifique localmente com Phaser (`scripts/verify.sh` em Linux, Playwright).
 2. Assets gerados na estação GPU (`/estacao-gpu-remota`) ou em APIs.
 3. A cada milestone: `git tag` → GitHub Actions macOS exporta, compila, assina e envia ao TestFlight.
 4. Teste no iPhone físico; crashes voltam pelo MetricKit/Sentry (`/pos-lancamento-e-telemetria`).

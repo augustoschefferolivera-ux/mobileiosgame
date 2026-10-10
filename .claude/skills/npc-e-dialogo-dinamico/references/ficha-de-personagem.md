@@ -62,7 +62,7 @@ JSON Schema (proxy/nuvem):
 }
 ```
 
-Swift `@Generable` (on-device), com os nomes confirmados nas sessões WWDC lidas (ver `/ia-runtime-foundation-models`):
+Variante Swift `@Generable` (só para app nativo iOS; não se aplica ao stack web — mantida como referência):
 
 ```swift
 @Generable

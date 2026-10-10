@@ -33,7 +33,7 @@ Entrega `scripts/verify.sh` instalado no projeto, o canal de depuração embutid
 ## Pré-requisitos
 
 - `production/engine.txt` (de `/escolher-engine-e-alvo`) e ferramentas instaladas (`/instalar-ferramentas`).
-- A skill de engine com `scripts/verify.sh`: `engine-spritekit-swiftui`, `engine-realitykit-metal`, `engine-unity-mobile`, `engine-godot-mobile`, `engine-web-phaser`, `engine-web-threejs`.
+- A skill de engine com `scripts/verify.sh`: `engine-web-phaser`, `engine-web-threejs`.
 - Para iOS: Xcode 26.3+ (MCP) ou 27 (agente controla o simulador); um simulador disponível (`xcrun simctl list devices available`).
 - Detalhes por engine e o contrato do verificador: `references/comandos-por-engine.md`.
 
@@ -61,9 +61,6 @@ bash scripts/verify.sh --dry-run   # engine detectada + uso do verificador; não
 
 | Engine | Onde o jogo grava | Como o agente lê | Pronto na skill de engine? |
 |---|---|---|---|
-| SpriteKit / RealityKit | `Documents/debug_state.json` + `os_log` | `xcrun simctl get_app_container <udid> <bundle> data` → copiar; `log show --predicate 'process == "App"'`; dispositivo: `xcrun devicectl device copy from` | sim: `.claude/skills/engine-spritekit-swiftui/assets/DebugChannel.swift` |
-| Godot | `user://debug_state.json` + `print()` | caminho `user://` do SO; stdout do processo; Godot AI `logs_read` | autoload de ~30 linhas (ver referência) |
-| Unity | `Application.persistentDataPath/debug_state.json` + `Debug.Log` | pasta do player; `-logFile`; MCP for Unity console | `MonoBehaviour` de ~40 linhas (ver referência) |
 | Phaser / Pixi / Three / Babylon | `window.__gameState` + `console.log(JSON)` | Playwright `page.evaluate` / `page.on('console')` | script de ~20 linhas (ver referência) |
 
    Campos mínimos: `scene`, `score`, `fps`, `frame`, `lastEvent`, `lastError`, `timestamp`. Acrescente argumentos de lançamento para alcançar estado (`--scene`, `--seed`, `--state`): "um screenshot da tela de título não verifica nada sobre a profundidade 2" (procedimento Run and Observe do Game Studios).

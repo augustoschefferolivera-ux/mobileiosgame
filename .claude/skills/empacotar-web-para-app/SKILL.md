@@ -6,7 +6,7 @@ description: >
   mínima), 4.7 (HTML5 games), 2.5.2 (código remoto) e 4.3(b), IAP via RevenueCat/StoreKit,
   haptics e performance em WKWebView, com verificação no simulador. Use sempre que alguém pedir
   para "publicar o jogo web na App Store", "transformar em app" ou citar Capacitor/Cordova/
-  FlutterFlow/web view. Não use para jogos nativos (engine-spritekit-swiftui) nem para a submissão
+  FlutterFlow/web view. Não use para a submissão
   em si (skill de submissão da fase 10).
 license: MIT
 compatibility: "Claude Code ou Codex; Node.js 20+; macOS com Xcode para o projeto iOS gerado"
@@ -51,7 +51,10 @@ Entrega uma decisão documentada (`production/decisoes/empacotamento.md`) e, se 
 7. **Verificar** no simulador reutilizando a receita nativa (o Capacitor gera `ios/App/App.xcworkspace`, scheme `App`):
 
 ```bash
-.claude/skills/engine-spritekit-swiftui/scripts/verify.sh --project ios/App/App.xcworkspace --scheme App --feature empacotamento --simulator "iPhone 17"
+# no runner macOS (/build-ios-sem-mac); flags a confirmar na doc do Xcode
+npx cap sync ios && xcodebuild -workspace ios/App/App.xcworkspace -scheme App -sdk iphonesimulator -destination "platform=iOS Simulator,name=iPhone 17" build | tail -20 \
+  && xcrun simctl boot "iPhone 17" && xcrun simctl install booted "$(find ~/Library/Developer/Xcode/DerivedData -name App.app -path '*iphonesimulator*' | head -1)" \
+  && xcrun simctl launch booted <bundle-id> && xcrun simctl io booted screenshot production/evidencias/$(date +%F)-empacotamento/screenshot.png
 ```
 
    Compare `screenshot.png` com o do navegador; confira `app.log` por erros de WKWebView (`Failed to load`, `WebContent process crashed`).

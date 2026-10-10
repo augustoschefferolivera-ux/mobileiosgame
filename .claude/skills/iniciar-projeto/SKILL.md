@@ -74,7 +74,7 @@ python3 -I -c "import json; d=json.load(open('feature_list.json')); print(len(d[
 
    Preencha o cabeçalho de `progress.md` (nome, branch) e o `PROJETO` em `init.sh`.
 
-5. **Esqueleto da engine.** Invoque a skill de engine indicada pelo ADR (`engine-spritekit-swiftui`, `engine-realitykit-metal`, `engine-unity-mobile`, `engine-godot-mobile`, `engine-web-phaser`, `engine-web-threejs`) só no passo "esqueleto do projeto": um app vazio que compila e mostra uma tela inicial com o nome do jogo. Nenhuma mecânica ainda.
+5. **Esqueleto da engine.** Invoque a skill de engine indicada pelo ADR (`engine-web-phaser`, `engine-web-threejs`; as demais engines foram removidas deste repositório — ADR-0001) só no passo "esqueleto do projeto": um app vazio que compila e mostra uma tela inicial com o nome do jogo. Nenhuma mecânica ainda.
 
 6. **Ferramentas.** Invoque `/instalar-ferramentas` para a engine/alvo; resultado: `docs/ambiente.md` e o verificador de ambiente saindo 0.
 

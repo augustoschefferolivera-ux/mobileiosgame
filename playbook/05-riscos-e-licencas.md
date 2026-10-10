@@ -37,7 +37,7 @@ assets lançados (litígio UMG/Sony, "model laundering", downloads restritos).
 | 4.3(b)/4.2 jogo genérico ou mínimo | mecânica e arte próprias; brief com diferencial em uma frase | `/brief-do-jogo`, `/submissao-app-store` |
 | 2.1(a) placeholders e prompts no build | hooks `scan-placeholders`/`validate-commit`; `scan_placeholders.sh` | `/submissao-app-store` |
 | 4.1(c)/5.2.1 marcas e personagens de terceiros | varredura em todo asset; prompts proíbem nomes/logos | `diretor-de-arte`, `/licencas-e-proveniencia` |
-| 5.1.2(i) dados a IA de terceiros sem consentimento | Foundation Models primeiro; tela de consentimento antes da 1ª transmissão | `/ia-runtime-foundation-models`, `/ia-runtime-nuvem-claude` |
+| 5.1.2(i) dados a IA de terceiros sem consentimento (se virar app) | backend mínimo; tela de consentimento antes da 1ª transmissão | `/ia-runtime-nuvem-claude` |
 | 1.2/4.7.1 chatbot sem filtro/denúncia/bloqueio | moderação + denúncia + bloqueio + contato | `/npc-e-dialogo-dinamico`, `/submissao-app-store` |
 | Classificação etária errada | questionário honesto; Brasil loot box = A18 | `/classificacao-etaria` |
 | ECA Digital / LGPD | verificação de idade, sem dark patterns, labels coerentes | `/privacidade-lgpd-e-eca-digital` |
