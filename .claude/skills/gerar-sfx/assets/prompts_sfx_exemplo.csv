@@ -1,0 +1,7 @@
+nome_arquivo,prompt,duration_seconds,loop,prompt_influence,variacoes,categoria
+ui_menu_confirmar,"short soft wooden tap, clean UI confirmation click, no reverb, bright transient",0.5,nao,0.6,8,ui
+ui_menu_voltar,"short muted wooden tap, lower pitch than a confirm click, clean UI, no reverb",0.5,nao,0.6,8,ui
+sfx_jogador_pulo,"small cartoon character jump, light whoosh with a puff of air, dry, no reverb",0.5,nao,0.5,12,jogador
+sfx_jogador_passo_grama,"single light footstep on dry grass, small character, close mic, no reverb",0.5,nao,0.5,16,jogador
+sfx_feedback_moeda,"bright metallic coin pickup, short sparkle tail, playful, dry",0.6,nao,0.6,8,feedback
+amb_floresta_dia,"gentle forest ambience, light wind in leaves, distant birds, no footsteps, no music, smooth seamless loop",20,sim,0.3,4,ambiente

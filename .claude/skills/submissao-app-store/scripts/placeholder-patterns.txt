@@ -1,0 +1,67 @@
+# Padrões (regex ERE, case-insensitive) procurados por scan_placeholders.sh.
+# Uma expressão por linha; linhas vazias e iniciadas por "#" são ignoradas.
+# Revise falsos positivos (ex.: "Gemini" como signo, "prompt" como texto de UI) e
+# justifique-os no checklist em vez de remover o padrão.
+
+# --- Texto de preenchimento / rascunho (Guideline 2.1(a)) ---
+lorem ipsum
+\blorem\b
+dummy (text|data|content)
+placeholder
+\bTODO\b
+\bFIXME\b
+\bHACK\b
+\bTBD\b
+\bWIP_
+\btemp_
+insert .{0,30} here
+coming soon
+\[(your|seu|sua|nome|insira|insert|texto|title|titulo) [^]]{0,40}\]
+
+# --- Resíduo de assistente de IA (caso The Alters) ---
+as an ai
+as a language model
+as an? (assistant|llm)
+i'?m sorry,? but
+i cannot (help|assist|generate|create|provide)
+i can'?t (help|assist|generate|create|provide)
+here'?s (a|an|the) (revised|updated|improved|rewritten)
+^certainly[!,.]
+sure[,!] here
+como (uma|um) (ia|inteligência artificial|inteligencia artificial|modelo de linguagem|assistente)
+claro[!,] aqui est
+desculpe,? mas (não|nao) posso
+
+# --- Nomes de modelos e ferramentas (não devem aparecer no build do jogador) ---
+\bclaude\b
+\banthropic\b
+\bchatgpt\b
+\bgpt-?[45]
+\bopenai\b
+\bgemini\b
+\bmidjourney\b
+stable diffusion
+\bflux\.[12]\b
+nano banana
+\bsuno\b
+\budio\b
+\belevenlabs\b
+\bmeshy\b
+\btripo\b
+\bhunyuan\b
+
+# --- Prompts esquecidos em strings, cenas ou metadados ---
+negative prompt
+\bprompt:
+masterpiece, best quality
+highly detailed, 8k
+trending on artstation
+\bseed[:=] ?[0-9]{3,}
+\bcfg[_ ]?scale\b
+
+# --- Segredos e ambiente de desenvolvimento ---
+sk-ant-[A-Za-z0-9_-]{10,}
+sk-[A-Za-z0-9]{20,}
+AIza[0-9A-Za-z_-]{30,}
+localhost:[0-9]+
+127\.0\.0\.1

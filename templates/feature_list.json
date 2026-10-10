@@ -1,0 +1,65 @@
+{
+  "_sobre": "Lista de features do projeto. É JSON, não Markdown, porque a Anthropic observou que o modelo altera ou sobrescreve JSON indevidamente com menos frequência (Effective harnesses for long-running agents, 2025-11). Durante a produção só mudam `status`, `evidencia`, `evidencia_commit`, `evidencia_data`, `motivo` e `notas`; título e critérios mudam por decisão explícita anotada em progress.md.",
+  "_gerado_por": "/iniciar-projeto a partir do MVP de design/game-brief.md",
+  "_lido_por": "hooks .claude/hooks/session-start.sh e stop-gate.sh (campos: id, titulo, status, evidencia, motivo); /ciclo-de-feature; /critico-independente",
+  "versao": 1,
+  "projeto": "[nome do jogo]",
+  "status_validos": ["todo", "in_progress", "done", "blocked", "cut"],
+  "regras": [
+    "Uma feature por sessão. Nunca duas em in_progress ao mesmo tempo.",
+    "status=done só quando `evidencia` aponta para production/evidencias/<AAAA-MM-DD>-<id>/ e a pasta contém tudo listado em evidencia_exigida. O Stop hook bloqueia o fim do turno se não for assim.",
+    "status=blocked exige `motivo` preenchido; é a única forma legítima de pausar uma feature começada.",
+    "Critério de aceite tem de ser verificável por script, screenshot ou log. 'Funciona bem' não é critério.",
+    "Um parse check não é uma execução: a feature que muda algo visível só fecha depois de o jogo ter sido construído, executado e observado."
+  ],
+  "tipos_de_evidencia": {
+    "screenshot": "PNG capturado do jogo rodando (simulador, dispositivo ou navegador), com a feature visível",
+    "log": "saída de execução sem erro/crash, salva em arquivo (app.log / run.log)",
+    "teste": "saída de teste automatizado (unitário ou de integração) com exit 0",
+    "estado": "dump do canal interno de depuração (debug_state.json) comprovando o estado esperado",
+    "saida_do_verify": "verify.log e verify.meta de scripts/verify.sh com exit 0",
+    "metrica": "medição objetiva (FPS, memória, tamanho do build) em arquivo",
+    "critica": "production/criticas/<data>-<id>.md do subagente critico com nota final ≥ 7"
+  },
+  "features": [
+    {
+      "id": "F-000",
+      "titulo": "Loop de verificação funciona com o projeto vazio",
+      "descricao": "scripts/verify.sh constrói o esqueleto do projeto, roda no simulador/navegador, captura um screenshot da tela inicial e lê o log. É sempre a primeira feature: sem ela, nenhuma outra pode ser declarada pronta.",
+      "criterio_de_aceite": [
+        "scripts/verify.sh --feature F-000 termina com exit 0",
+        "Existe screenshot.png da tela inicial em production/evidencias/<data>-F-000/",
+        "O log de execução salvo na pasta de evidência não contém 'error', 'crash' nem 'exception' (case-insensitive)"
+      ],
+      "evidencia_exigida": ["screenshot", "log", "saida_do_verify"],
+      "prioridade": 1,
+      "depende_de": [],
+      "status": "todo",
+      "evidencia": null,
+      "evidencia_commit": null,
+      "evidencia_data": null,
+      "motivo": null,
+      "notas": ""
+    },
+    {
+      "id": "F-001",
+      "titulo": "Jogador toca em uma coluna e a peça cai na célula livre mais baixa",
+      "descricao": "Mecânica central do MVP. Entrada por toque de um dedo em retrato; a peça ocupa a célula mais baixa livre da coluna tocada; toque em coluna cheia é ignorado.",
+      "criterio_de_aceite": [
+        "Teste unitário: colocar(coluna=2) em tabuleiro vazio devolve {coluna: 2, linha: 0}; em coluna cheia devolve erro sem alterar o tabuleiro",
+        "Screenshot após um toque simulado na coluna 2 mostra a peça na base da coluna 2",
+        "debug_state.json após o toque contém \"ultima_jogada\": {\"coluna\": 2, \"linha\": 0}",
+        "Crítica do subagente critico com nota final ≥ 7 em production/criticas/"
+      ],
+      "evidencia_exigida": ["teste", "screenshot", "estado", "saida_do_verify", "critica"],
+      "prioridade": 2,
+      "depende_de": ["F-000"],
+      "status": "todo",
+      "evidencia": null,
+      "evidencia_commit": null,
+      "evidencia_data": null,
+      "motivo": null,
+      "notas": ""
+    }
+  ]
+}
