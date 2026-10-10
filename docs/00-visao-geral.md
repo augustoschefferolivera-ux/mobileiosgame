@@ -132,4 +132,5 @@ Bibliografia completa: documento 16. Relatórios de pesquisa na íntegra: pasta 
 | 14 | Live-Ops, Retenção e Comunidade | diário, semanal, temporadas, Feitos |
 | 15 | Roadmap de Produção | equipe, fases, marcos, custos |
 | 16 | Referências | bibliografia completa |
+| 17 | Prompt de Roteiro | prompt para o roteirista com toda a estrutura de texto do jogo |
 | pesquisa/ | Relatórios de pesquisa | 4 relatórios na íntegra |

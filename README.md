@@ -25,6 +25,7 @@
 | 14 | [Live-Ops, Retenção e Comunidade](docs/14-live-ops-retencao-e-comunidade.md) | Diário, semanal, temporadas, Feitos, calendário do 1º ano |
 | 15 | [Roadmap de Produção](docs/15-roadmap-de-producao.md) | Equipe, fases, marcos, orçamento, critérios de pronto |
 | 16 | [Referências](docs/16-referencias.md) | Bibliografia completa |
+| 17 | [Prompt de Roteiro](docs/17-prompt-de-roteiro.md) | Prompt completo para o roteirista: estrutura de todo o texto do jogo, regras e formato de entrega |
 
 ## Pesquisa
 
