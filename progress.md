@@ -2,7 +2,7 @@
 
 ## Sessão 1 — brief, arquitetura e lista de features
 
-### Estado: etapa 2 aprovada; etapa 3 em andamento
+### Estado: etapa 3 escrita, **aguardando aprovação**
 
 - [x] GDD copiado de `docs/` (branch `claude/ecstatic-sagan-g9k3x6`, commit `62872cc`) para `design/gdd/`, sem alterações.
 - [x] Leitura na ordem pedida: 18, 00, 02, 03, 04, 05, 06, 07, 08, 10, 11, 12, 13 §1.2; 01, 14 e 17 §4 para nomes e IDs. Os docs 09, 15 e 16 não foram lidos.
@@ -10,8 +10,12 @@
 - [x] Brief aprovado pelo usuário em 2026-10-10, com todas as recomendações da §11 (Q-00 a Q-35). Os itens da §11.3 continuam em aberto, por feature.
 - [x] Etapa 2: `docs/decisoes/ADR-0001-stack.md` (registra a decisão já tomada) e `docs/decisoes/ADR-0002-arquitetura-da-simulacao.md` (v2). Antes, pesquisa técnica (4 investigações: render da horda, loop e escala, input e áudio, Worker/TETO/determinismo) e revisão adversarial (3 lentes + verificadores; 48 achados confirmados e aplicados).
 - [x] ADR-0002 aprovado pelo usuário em 2026-10-10, com todas as recomendações da §15 (item 10: opção A).
-- [ ] Etapa 3: `feature_list.json` (critérios literais de B §4), `src/dados/schemas/`, `tests/dados.test.ts`.
+- [x] Etapa 3: `feature_list.json` (escopo, critério e evidência literais de B §4 + 99 critérios verificáveis), `src/dados/schemas/` (10 schemas), dados do MVP em `src/dados/` (com `pendentes`/`pendencias` para cada número em aberto), `src/dados/textos/pt-BR.json` (147 textos) e `tests/dados.test.ts` (40 testes; verificado por mutação). Antes, revisão adversarial (3 lentes + verificadores; 39 achados confirmados e aplicados).
+- [ ] **Aprovação da etapa 3.** Itens marcados como [proposta de teste] ou [proposta a aprovar] no feature_list.
 - [ ] Etapa 4: F-001 (cria também `scripts/verify.sh` e `scripts/novo-modulo.sh`).
+
+### Como rodar
+- `npm install` e depois `npm test` (Vitest) e `npm run typecheck` (tsc).
 
 ### Ambiente
 - Não existem: `CLAUDE.md`, `playbook/`, os comandos `/brief-do-jogo`, `/checkpoint-e-retomada`, `/ciclo-de-feature`, `/critico-independente`, `scripts/` e ADR-0001.

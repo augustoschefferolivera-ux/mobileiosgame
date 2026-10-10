@@ -194,7 +194,7 @@
           "type": "boolean"
         },
         "dano": {
-          "description": "Dano por acerto; null = usa o dano_base do inimigo ou está pendente (ver pendencias).",
+          "description": "Dano por acerto no minuto 0; escala por minuto como o dano_base (B §3.6). null = pendente (listado em pendentes) ou não se aplica (o ataque causa dano por outro campo: dano_por_s ou agarrar).",
           "$ref": "#/$defs/numeroOuPendente"
         },
         "dano_por_s": {
@@ -313,6 +313,17 @@
       "items": {
         "type": "string",
         "minLength": 3
+      }
+    },
+    "pendentes": {
+      "description": "Cada null pendente da entidade, pelo caminho relativo do campo (ex.: base.alcance_corpos, ataques[0].alcance_corpos), com a feature que fecha o número (brief §11.3).",
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9_]+(\\[[0-9]+\\])*(\\.[a-z0-9_]+(\\[[0-9]+\\])*)*$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^F-0(0[1-9]|10)$"
       }
     }
   }

@@ -75,14 +75,19 @@ const regioes = ARQUIVOS.filter((a) => a.arquivo.startsWith('regioes/')).map((a)
 
 const idsDeTexto = new Set(textos.map((t) => String(t['id'])));
 
-// Percorre um valor JSON e chama `visitar` para cada par (chave, valor) de objeto.
-function percorrer(valor: Json, visitar: (chave: string, v: Json, caminho: string) => void, caminho = '$'): void {
+// Percorre um valor JSON e chama `visitar` para cada par (chave, valor) de objeto
+// e para cada item primitivo de lista (com a chave da lista).
+function percorrer(valor: Json, visitar: (chave: string, v: Json, caminho: string) => void, caminho = '$', chaveDoPai = ''): void {
   if (Array.isArray(valor)) {
-    valor.forEach((item, i) => percorrer(item, visitar, `${caminho}[${i}]`));
+    valor.forEach((item, i) => {
+      const c = `${caminho}[${i}]`;
+      if (item === null || typeof item !== 'object') visitar(chaveDoPai, item, c);
+      percorrer(item, visitar, c, chaveDoPai);
+    });
   } else if (valor !== null && typeof valor === 'object') {
     for (const [chave, v] of Object.entries(valor)) {
       visitar(chave, v, `${caminho}.${chave}`);
-      percorrer(v, visitar, `${caminho}.${chave}`);
+      percorrer(v, visitar, `${caminho}.${chave}`, chave);
     }
   }
 }
@@ -94,27 +99,25 @@ function percorrer(valor: Json, visitar: (chave: string, v: Json, caminho: strin
 function normalizar(s: string): string {
   return s
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2') // camelCase (Q-33) antes das minúsculas
     .toLowerCase();
 }
 
 function tokens(s: string): string[] {
-  return normalizar(s)
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .split(/[^a-z0-9+]+/)
-    .filter(Boolean);
+  return normalizar(s).split(/[^a-z0-9+]+/).filter(Boolean);
 }
 
 const PROIBIDAS_PALAVRA = [
   'run', 'runs', 'checkpoint', 'checkpoints', 'zumbi', 'zumbis', 'roguelike', 'roguelikes',
   'upgrade', 'upgrades', 'gema', 'gemas', 'fusao', 'fusoes', 'mutator', 'mutators',
 ];
-const PROIBIDAS_EXPRESSAO = [/\bgame\s*over\b/, /\bmenu\s+principal\b/, /\bng\s*\+/];
+const PROIBIDAS_EXPRESSAO = [/\bgame\s*over\b/, /\bmenus?\s*principa(l|is)\b/, /\bng\s*(\+|plus\b)/, /\bcheck\s+points?\b/];
 const A_EVITAR = ['vitoria', 'vitorias', 'morte', 'mortes', 'menu', 'partida', 'partidas', 'save', 'ouro', 'moeda', 'moedas', 'handicap', 'evolucao', 'diamante'];
 
 function proibidasEm(s: string): string[] {
   const achadas = tokens(s).filter((t) => PROIBIDAS_PALAVRA.includes(t));
-  const n = normalizar(s).replace(/_/g, ' ');
+  const n = normalizar(s).replace(/[^a-z0-9+]+/g, ' ');
   for (const re of PROIBIDAS_EXPRESSAO) if (re.test(n)) achadas.push(re.source);
   return achadas;
 }
@@ -254,16 +257,33 @@ describe('textos', () => {
 });
 
 describe('glossário', () => {
-  it('nenhuma palavra proibida em ids, nomes ou textos (B §3.15)', () => {
+  it('nenhuma palavra proibida em ids, nomes, textos, chaves e schemas (B §3.15; Q-31)', () => {
     const achados: string[] = [];
-    for (const { arquivo } of ARQUIVOS) {
-      percorrer(d(arquivo), (_chave, v, caminho) => {
+    const conferir = (arquivo: string, json: Json) =>
+      percorrer(json, (chave, v, caminho) => {
+        const pc = proibidasEm(chave);
+        if (pc.length) achados.push(`${arquivo} ${caminho} (chave): "${chave}" → ${pc.join(', ')}`);
         if (typeof v !== 'string') return;
         const p = proibidasEm(v);
         if (p.length) achados.push(`${arquivo} ${caminho}: "${v}" → ${p.join(', ')}`);
       });
+    for (const { arquivo } of ARQUIVOS) conferir(arquivo, d(arquivo));
+    for (const f of readdirSync(DIR_SCHEMAS).filter((x) => x.endsWith('.schema.json'))) {
+      conferir(`schemas/${f}`, JSON.parse(readFileSync(join(DIR_SCHEMAS, f), 'utf-8')) as Json);
     }
     expect(achados).toEqual([]);
+  });
+
+  it('o detector acusa as variações (plural, camelCase, hífen, ponto, NG Plus, itens de lista)', () => {
+    for (const s of ['upgrades', 'runSalva', 'upgradeArma', 'checkpointSalvo', 'game-over', 'GAME.OVER', 'menu-principal', 'menus principais', 'ng_plus', 'NG Plus', 'NG+', 'check-point', 'fusão', 'Zumbis']) {
+      expect(proibidasEm(s).length, s).toBeGreaterThan(0);
+    }
+    for (const s of ['Voltar ao Santuário', 'trunc', 'gemido', 'corrida', 'Hora III']) expect(proibidasEm(s), s).toEqual([]);
+    const achados: string[] = [];
+    percorrer({ pendencias: ['o upgrade do nv5'] }, (_c, v) => {
+      if (typeof v === 'string') achados.push(...proibidasEm(v));
+    });
+    expect(achados).toEqual(['upgrade']);
   });
 
   it('palavras a evitar (doc 17 §5; doc 01 §8) só geram aviso em pt-BR.json (Q-31)', () => {
@@ -289,21 +309,36 @@ describe('coerência interna', () => {
     expect(errados).toEqual([]);
   });
 
-  it('todo número pendente (null) vem acompanhado de pendências', () => {
-    const semJustificativa: string[] = [];
+  it('todo null é um campo de `pendentes` (com pendência da mesma feature) ou um "não se aplica" de B', () => {
+    // null que não é número em aberto: o dado de B diz que o campo não vale para aquele item.
+    const NAO_SE_APLICA = new Set([
+      'arma circulo_de_sal base.cooldown_s', // B §3.8: "contínuo"
+      'chefe o_lanterneiro fases[1].ataques[0].dano', // B §3.11: dano só por dano_por_s ("queima 6 s, 6/s")
+      'chefe o_lanterneiro fases[2].ataques[1].dano', // B §3.11: dano só por agarrar ("acertar = 20% HP")
+    ]);
+    const problemas: string[] = [];
     const entidades: { nome: string; o: Objeto }[] = [
       ...armas.map((o) => ({ nome: `arma ${String(o['id'])}`, o })),
       ...inimigos.map((o) => ({ nome: `inimigo ${String(o['id'])}`, o })),
       ...chefes.map((o) => ({ nome: `chefe ${String(o['id'])}`, o })),
+      ...vigilantes.map((o) => ({ nome: `vigilante ${String(o['id'])}`, o })),
+      ...arvores.flatMap((a) => lista(a, 'nos').map((o) => ({ nome: `no ${String(o['id'])}`, o }))),
     ];
     for (const { nome, o } of entidades) {
-      let temNull = false;
-      percorrer(o, (_k, v) => {
-        if (v === null) temNull = true;
+      const nulos: string[] = [];
+      percorrer(o, (_k, v, caminho) => {
+        if (v === null) nulos.push(caminho.replace(/^\$\./, ''));
       });
-      if (temNull && lista(o, 'pendencias').length === 0) semJustificativa.push(nome);
+      const pendentes = (o['pendentes'] ?? {}) as Record<string, string>;
+      const feats = ((o['pendencias'] ?? []) as string[]).flatMap((p) => p.match(/F-0\d\d/g) ?? []);
+      for (const c of nulos) {
+        if (NAO_SE_APLICA.has(`${nome} ${c}`)) continue;
+        if (!(c in pendentes)) problemas.push(`${nome}: ${c} é null sem entrada em pendentes`);
+        else if (!feats.includes(pendentes[c]!)) problemas.push(`${nome}: ${c} → ${pendentes[c]!} sem pendência dessa feature`);
+      }
+      for (const c of Object.keys(pendentes)) if (!nulos.includes(c)) problemas.push(`${nome}: pendentes.${c} não é null`);
     }
-    expect(semJustificativa).toEqual([]);
+    expect(problemas).toEqual([]);
   });
 
   it('níveis das armas são contíguos de 1 até nivel_max', () => {
@@ -339,6 +374,11 @@ describe('números do briefing técnico (design/gdd/18 §3)', () => {
     expect(obj(porId(inimigos, 'novica_de_sal'), 'almas')).toEqual({ valor: 3, chance: 1 });
     expect(obj(porId(inimigos, 'oco_grande_coroado'), 'almas')).toEqual({ valor: 30, chance: 1 });
     expect(porId(inimigos, 'oco_grande_coroado')['convoca']).toEqual({ inimigo: 'oco_das_lanternas', quantidade: 10, intervalo_s: 10 });
+    // dano por ataque = dano_base do inimigo (B §3.6); o Grito do Coroado fica pendente (F-008)
+    for (const i of inimigos) {
+      for (const a of lista(i, 'ataques')) if (typeof a['dano'] === 'number') expect(a['dano'], `${String(i['id'])}.${String(a['id'])}`).toBe(i['dano_base']);
+    }
+    expect(porId(lista(porId(inimigos, 'oco_grande_coroado'), 'ataques'), 'grito')['dano']).toBeNull();
     // Coroado = Oco Grande com HP ×6 (Guardião) e ×10 (Chefe Menor) (B §2)
     expect(Number(porId(inimigos, 'oco_grande_coroado')['hp_base'])).toBe(Number(porId(inimigos, 'oco_grande')['hp_base']) * 6);
   });
@@ -375,6 +415,8 @@ describe('números do briefing técnico (design/gdd/18 §3)', () => {
     expect(obj(a, 'vagas')).toEqual({ armas: 5, reliquias: 1, passivas: 6 });
     expect(obj(a, 'frascos')).toMatchObject({ cargas: 3, cura_pct: 40, duracao_s: 2, interrompe_acima_pct_hp: 15 });
     expect(obj(a, 'passiva')).toMatchObject({ hp_max_pct: 15, reducao_dano_pct: 20, condicao_stamina_acima_pct: 50 });
+    // B §3.3: 130 com Brasa Firme (+15%) → 150 (149,5 arredondado para cima)
+    expect(Math.round(Number(a['hp']) * (1 + Number(obj(a, 'passiva')['hp_max_pct']) / 100))).toBe(150);
   });
 
   it('O Lanterneiro bate com B §3.11', () => {
@@ -390,6 +432,42 @@ describe('números do briefing técnico (design/gdd/18 §3)', () => {
       'lanterna_arremessada:vermelho',
       'explosao_de_luz:vermelho', 'agarrar:branco',
     ]);
+  });
+
+  it('efeitos por nível das armas batem com B §3.8 (marcos nos níveis 4 e 7, doc 04)', () => {
+    const efeitos = (id: string) => lista(porId(armas, id), 'niveis').map((n) => n['efeitos']);
+    expect(efeitos('espada_longa_do_juramento')).toEqual([[], [{ tipo: 'dano_pct', valor: 20 }], [{ tipo: 'golpes_extra', valor: 1 }], [{ tipo: 'dano_pct_vs_postura_quebrada', valor: 50 }], [{ tipo: 'area_pct', valor: 20 }], [{ tipo: 'dano_pct', valor: 20 }], [{ tipo: 'estocada_perfurante' }], [{ tipo: 'golpes_extra', valor: 1 }]]);
+    expect(efeitos('facas_de_sal')).toEqual([[], [{ tipo: 'projeteis_extra', valor: 1 }], [{ tipo: 'dano_pct', valor: 20 }], [{ tipo: 'aplica_sal' }], [{ tipo: 'projeteis_extra', valor: 1 }], [{ tipo: 'velocidade_projetil_pct', valor: 20 }], [{ tipo: 'perfura', valor: 1 }], [{ tipo: 'projeteis_extra', valor: 1 }]]);
+    expect(efeitos('circulo_de_sal')).toEqual([[], [{ tipo: 'raio_pct', valor: 15 }], [{ tipo: 'dano_pct', valor: 20 }], [{ tipo: 'sal_fator_pct', valor: 60 }], [{ tipo: 'raio_pct', valor: 15 }], [{ tipo: 'dano_pct', valor: 20 }], [{ tipo: 'pulso_knockback', intervalo_s: 5, forca_corpos: null }], [{ tipo: 'raio_pct', valor: 20 }]]);
+    for (const id of ['espada_longa_do_juramento', 'facas_de_sal', 'circulo_de_sal']) {
+      expect(lista(porId(armas, id), 'niveis').filter((n) => n['marco'] === true).map((n) => n['nivel']), id).toEqual([4, 7]);
+    }
+  });
+
+  it('comportamento, telegrafo e intervalo dos inimigos batem com B §3.6 e §3.4', () => {
+    expect(obj(porId(inimigos, 'oco_das_lanternas'), 'comportamento')).toEqual({ tipo: 'perseguir_reto' });
+    const grande = porId(inimigos, 'oco_grande');
+    expect(obj(grande, 'comportamento')).toEqual({ tipo: 'aproximar_e_atacar', para_a_corpos: 1.5 });
+    expect(lista(grande, 'ataques')[0]).toMatchObject({ telegrafo: { cor: 'branco', duracao_s: 0.6 }, forma: 'arco', angulo_graus: 120, recuperacao_s: 1.5 });
+    const novica = porId(inimigos, 'novica_de_sal');
+    expect(obj(novica, 'comportamento')).toEqual({ tipo: 'manter_distancia', distancia_corpos: 4 });
+    expect(lista(novica, 'ataques')[0]).toMatchObject({ telegrafo: { cor: 'branco', duracao_s: 0.5 }, intervalo_s: 3, projetil: { velocidade_corpos_s: 3 }, aplica: { status: 'sal', fator_pct: 50, duracao_s: 3 } });
+    const [patada, grito] = lista(porId(inimigos, 'oco_grande_coroado'), 'ataques');
+    expect(patada).toMatchObject({ id: 'patada', telegrafo: { cor: 'branco', duracao_s: 0.6 } });
+    expect(grito).toMatchObject({ id: 'grito', telegrafo: { cor: 'vermelho', duracao_s: 1 }, empurrao: { raio_corpos: 3 } });
+  });
+
+  it('geometria, duração e efeitos dos ataques do Lanterneiro batem com B §3.11', () => {
+    const [f1, f2, f3] = lista(porId(chefes, 'o_lanterneiro'), 'fases');
+    const atq = (f: Objeto, id: string) => porId(lista(f, 'ataques'), id);
+    expect(atq(f1!, 'vara_horizontal')).toMatchObject({ telegrafo: { duracao_s: 0.7 }, angulo_graus: 180 });
+    expect(atq(f1!, 'bater_a_vara')).toMatchObject({ telegrafo: { duracao_s: 0.6 }, forma: 'linha', alcance_corpos: 6 });
+    expect(atq(f1!, 'luz_cega')).toMatchObject({ telegrafo: { duracao_s: 1 }, forma: 'cone', angulo_graus: 60, alcance_corpos: 6, efeito_tela: 'inverte_cores', duracao_efeito_s: 2, dano_por_s: 8 });
+    expect(f2!['escurecer_arena_pct']).toBe(40);
+    expect(atq(f2!, 'lanterna_arremessada')).toMatchObject({ forma: 'area_circular', raio_corpos: 2, duracao_efeito_s: 6, dano_por_s: 6 });
+    expect(obj(f2!, 'convoca')).toMatchObject({ inimigo: 'oco_das_lanternas', quantidade: 10, ilumina_raio_corpos: 3 });
+    expect(atq(f3!, 'explosao_de_luz')).toMatchObject({ forma: 'anel_expansivo', raio_inicial_corpos: 1, raio_final_corpos: 6, expansao_s: 1, intervalo_s: 12 });
+    expect(atq(f3!, 'agarrar')).toMatchObject({ telegrafo: { duracao_s: 0.8 }, raio_corpos: 2, agarrar: { dano_hp_pct: 20, preso_s: 1, aparo_quebra_imediata: true } });
   });
 
   it('a timeline da Charneca bate com B §3.7 e o brief §5.4', () => {
@@ -464,11 +542,29 @@ describe('feature_list.json', () => {
     }
   });
 
+  it('cada feature tem critérios completos (ao menos um de B §4) e uma evidência por item de evidencia_b', () => {
+    for (const f of features) {
+      const id = String(f['id']);
+      const criterios = lista(f, 'criterios');
+      expect(criterios.length, id).toBeGreaterThan(0);
+      expect(criterios.some((c) => String(c['origem']).startsWith('B §4')), `${id} sem critério de B §4`).toBe(true);
+      const ids = criterios.map((c) => String(c['id']));
+      expect(ids.filter((x) => !x.startsWith(`${id}.`)), id).toEqual([]);
+      expect(new Set(ids).size, id).toBe(ids.length);
+      for (const c of criterios) {
+        expect(typeof c['descricao'] === 'string' && c['descricao'].trim() !== '', `${String(c['id'])}.descricao`).toBe(true);
+        expect(typeof c['como'] === 'string' && c['como'].trim() !== '', `${String(c['id'])}.como`).toBe(true);
+      }
+      expect(lista(f, 'evidencias').length, id).toBeGreaterThanOrEqual(String(f['evidencia_b']).split(';').length);
+    }
+  });
+
   it('não usa palavras proibidas fora das citações literais de B', () => {
     // escopo_b, criterio_b e evidencia_b citam B ao pé da letra; o próprio B usa "upgrades" (F-005, §3.9).
     const CITACOES = new Set(['escopo_b', 'criterio_b', 'evidencia_b']);
     const achados: string[] = [];
     percorrer(lista_, (chave, v, caminho) => {
+      if (proibidasEm(chave).length) achados.push(`${caminho} (chave): ${chave}`);
       if (typeof v === 'string' && !CITACOES.has(chave) && proibidasEm(v).length) achados.push(`${caminho}: ${v}`);
     });
     expect(achados).toEqual([]);

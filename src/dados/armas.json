@@ -7,7 +7,16 @@
       "lore_id": "F1.ESPADA_LONGA_DO_JURAMENTO.LORE",
       "deus": "orun",
       "arquetipo": "direcao_movimento",
-      "escala": [{ "atributo": "FOR", "grau": "C" }, { "atributo": "DES", "grau": "C" }],
+      "escala": [
+        {
+          "atributo": "FOR",
+          "grau": "C"
+        },
+        {
+          "atributo": "DES",
+          "grau": "C"
+        }
+      ],
       "pesada": false,
       "uniao": false,
       "nivel_max": 8,
@@ -20,22 +29,95 @@
         "intervalo_golpes_s": null
       },
       "niveis": [
-        { "nivel": 1, "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV1", "efeitos": [] },
-        { "nivel": 2, "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV2", "efeitos": [{ "tipo": "dano_pct", "valor": 20 }] },
-        { "nivel": 3, "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV3", "efeitos": [{ "tipo": "golpes_extra", "valor": 1 }] },
-        { "nivel": 4, "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV4", "marco": true, "efeitos": [{ "tipo": "dano_pct_vs_postura_quebrada", "valor": 50 }] },
-        { "nivel": 5, "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV5", "efeitos": [{ "tipo": "area_pct", "valor": 20 }] },
-        { "nivel": 6, "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV6", "efeitos": [{ "tipo": "dano_pct", "valor": 20 }] },
-        { "nivel": 7, "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV7", "marco": true, "efeitos": [{ "tipo": "estocada_perfurante" }] },
-        { "nivel": 8, "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV8", "efeitos": [{ "tipo": "golpes_extra", "valor": 1 }] }
+        {
+          "nivel": 1,
+          "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV1",
+          "efeitos": []
+        },
+        {
+          "nivel": 2,
+          "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV2",
+          "efeitos": [
+            {
+              "tipo": "dano_pct",
+              "valor": 20
+            }
+          ]
+        },
+        {
+          "nivel": 3,
+          "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV3",
+          "efeitos": [
+            {
+              "tipo": "golpes_extra",
+              "valor": 1
+            }
+          ]
+        },
+        {
+          "nivel": 4,
+          "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV4",
+          "marco": true,
+          "efeitos": [
+            {
+              "tipo": "dano_pct_vs_postura_quebrada",
+              "valor": 50
+            }
+          ]
+        },
+        {
+          "nivel": 5,
+          "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV5",
+          "efeitos": [
+            {
+              "tipo": "area_pct",
+              "valor": 20
+            }
+          ]
+        },
+        {
+          "nivel": 6,
+          "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV6",
+          "efeitos": [
+            {
+              "tipo": "dano_pct",
+              "valor": 20
+            }
+          ]
+        },
+        {
+          "nivel": 7,
+          "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV7",
+          "marco": true,
+          "efeitos": [
+            {
+              "tipo": "estocada_perfurante"
+            }
+          ]
+        },
+        {
+          "nivel": 8,
+          "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV8",
+          "efeitos": [
+            {
+              "tipo": "golpes_extra",
+              "valor": 1
+            }
+          ]
+        }
       ],
+      "pendentes": {
+        "base.alcance_corpos": "F-004",
+        "base.intervalo_golpes_s": "F-004"
+      },
       "pendencias": [
         "F-004: alcance do arco (brief §11.3)",
         "F-004: intervalo entre os golpes extras (brief §11.3)",
         "F-004: o que o +20% de área do nv5 aumenta, alcance ou ângulo (brief §11.3)",
         "F-004: o nv7 transforma o 3º golpe, que só existe no nv8 (brief §11.3)",
         "F-004: os dois +20% de dano (nv2 e nv6) se somam (+40%) ou se multiplicam (×1,44)?",
-        "F-004: direção com o jogador parado (ADR-0002 §7)"
+        "F-004: direção com o jogador parado (ADR-0002 §7)",
+        "F-004: ordem de empilhamento dos multiplicadores (Contra-ataque ×2, Postura Quebrada ×2, nv4 +50%, Quebra ×2, Postura Firme −40%) (brief §11.3; ADR-0002 §7)"
       ]
     },
     {
@@ -44,7 +126,12 @@
       "lore_id": "F1.FACAS_DE_SAL.LORE",
       "deus": "selide",
       "arquetipo": "mais_proximo",
-      "escala": [{ "atributo": "DES", "grau": "B" }],
+      "escala": [
+        {
+          "atributo": "DES",
+          "grau": "B"
+        }
+      ],
       "pesada": false,
       "uniao": false,
       "nivel_max": 8,
@@ -57,15 +144,87 @@
         "projeteis_extra_esquiva_perfeita": 1
       },
       "niveis": [
-        { "nivel": 1, "texto_id": "F1.FACAS_DE_SAL.NV1", "efeitos": [] },
-        { "nivel": 2, "texto_id": "F1.FACAS_DE_SAL.NV2", "efeitos": [{ "tipo": "projeteis_extra", "valor": 1 }] },
-        { "nivel": 3, "texto_id": "F1.FACAS_DE_SAL.NV3", "efeitos": [{ "tipo": "dano_pct", "valor": 20 }] },
-        { "nivel": 4, "texto_id": "F1.FACAS_DE_SAL.NV4", "marco": true, "efeitos": [{ "tipo": "aplica_sal" }] },
-        { "nivel": 5, "texto_id": "F1.FACAS_DE_SAL.NV5", "efeitos": [{ "tipo": "projeteis_extra", "valor": 1 }] },
-        { "nivel": 6, "texto_id": "F1.FACAS_DE_SAL.NV6", "efeitos": [{ "tipo": "velocidade_projetil_pct", "valor": 20 }] },
-        { "nivel": 7, "texto_id": "F1.FACAS_DE_SAL.NV7", "marco": true, "efeitos": [{ "tipo": "perfura", "valor": 1 }] },
-        { "nivel": 8, "texto_id": "F1.FACAS_DE_SAL.NV8", "efeitos": [{ "tipo": "projeteis_extra", "valor": 1 }] }
+        {
+          "nivel": 1,
+          "texto_id": "F1.FACAS_DE_SAL.NV1",
+          "efeitos": []
+        },
+        {
+          "nivel": 2,
+          "texto_id": "F1.FACAS_DE_SAL.NV2",
+          "efeitos": [
+            {
+              "tipo": "projeteis_extra",
+              "valor": 1
+            }
+          ]
+        },
+        {
+          "nivel": 3,
+          "texto_id": "F1.FACAS_DE_SAL.NV3",
+          "efeitos": [
+            {
+              "tipo": "dano_pct",
+              "valor": 20
+            }
+          ]
+        },
+        {
+          "nivel": 4,
+          "texto_id": "F1.FACAS_DE_SAL.NV4",
+          "marco": true,
+          "efeitos": [
+            {
+              "tipo": "aplica_sal"
+            }
+          ]
+        },
+        {
+          "nivel": 5,
+          "texto_id": "F1.FACAS_DE_SAL.NV5",
+          "efeitos": [
+            {
+              "tipo": "projeteis_extra",
+              "valor": 1
+            }
+          ]
+        },
+        {
+          "nivel": 6,
+          "texto_id": "F1.FACAS_DE_SAL.NV6",
+          "efeitos": [
+            {
+              "tipo": "velocidade_projetil_pct",
+              "valor": 20
+            }
+          ]
+        },
+        {
+          "nivel": 7,
+          "texto_id": "F1.FACAS_DE_SAL.NV7",
+          "marco": true,
+          "efeitos": [
+            {
+              "tipo": "perfura",
+              "valor": 1
+            }
+          ]
+        },
+        {
+          "nivel": 8,
+          "texto_id": "F1.FACAS_DE_SAL.NV8",
+          "efeitos": [
+            {
+              "tipo": "projeteis_extra",
+              "valor": 1
+            }
+          ]
+        }
       ],
+      "pendentes": {
+        "base.velocidade_projetil_corpos_s": "F-004",
+        "base.alcance_corpos": "F-004"
+      },
       "pendencias": [
         "F-004: velocidade e alcance das facas (brief §11.3)",
         "F-004: escolha de alvo quando a salva tem várias facas (ADR-0002 §7)",
@@ -78,7 +237,12 @@
       "lore_id": "F1.CIRCULO_DE_SAL.LORE",
       "deus": "ama_nhu",
       "arquetipo": "aura",
-      "escala": [{ "atributo": "FE", "grau": "A" }],
+      "escala": [
+        {
+          "atributo": "FE",
+          "grau": "A"
+        }
+      ],
       "pesada": false,
       "uniao": false,
       "nivel_max": 8,
@@ -87,23 +251,102 @@
         "cooldown_s": null,
         "raio_corpos": 2,
         "intervalo_tick_s": null,
-        "aplica": { "status": "sal", "fator_pct": 50, "duracao_s": 3 }
+        "aplica": {
+          "status": "sal",
+          "fator_pct": 50,
+          "duracao_s": 3
+        }
       },
       "niveis": [
-        { "nivel": 1, "texto_id": "F1.CIRCULO_DE_SAL.NV1", "efeitos": [] },
-        { "nivel": 2, "texto_id": "F1.CIRCULO_DE_SAL.NV2", "efeitos": [{ "tipo": "raio_pct", "valor": 15 }] },
-        { "nivel": 3, "texto_id": "F1.CIRCULO_DE_SAL.NV3", "efeitos": [{ "tipo": "dano_pct", "valor": 20 }] },
-        { "nivel": 4, "texto_id": "F1.CIRCULO_DE_SAL.NV4", "marco": true, "efeitos": [{ "tipo": "sal_fator_pct", "valor": 60 }] },
-        { "nivel": 5, "texto_id": "F1.CIRCULO_DE_SAL.NV5", "efeitos": [{ "tipo": "raio_pct", "valor": 15 }] },
-        { "nivel": 6, "texto_id": "F1.CIRCULO_DE_SAL.NV6", "efeitos": [{ "tipo": "dano_pct", "valor": 20 }] },
-        { "nivel": 7, "texto_id": "F1.CIRCULO_DE_SAL.NV7", "marco": true, "efeitos": [{ "tipo": "pulso_knockback", "intervalo_s": 5, "forca_corpos": null }] },
-        { "nivel": 8, "texto_id": "F1.CIRCULO_DE_SAL.NV8", "efeitos": [{ "tipo": "raio_pct", "valor": 20 }] }
+        {
+          "nivel": 1,
+          "texto_id": "F1.CIRCULO_DE_SAL.NV1",
+          "efeitos": []
+        },
+        {
+          "nivel": 2,
+          "texto_id": "F1.CIRCULO_DE_SAL.NV2",
+          "efeitos": [
+            {
+              "tipo": "raio_pct",
+              "valor": 15
+            }
+          ]
+        },
+        {
+          "nivel": 3,
+          "texto_id": "F1.CIRCULO_DE_SAL.NV3",
+          "efeitos": [
+            {
+              "tipo": "dano_pct",
+              "valor": 20
+            }
+          ]
+        },
+        {
+          "nivel": 4,
+          "texto_id": "F1.CIRCULO_DE_SAL.NV4",
+          "marco": true,
+          "efeitos": [
+            {
+              "tipo": "sal_fator_pct",
+              "valor": 60
+            }
+          ]
+        },
+        {
+          "nivel": 5,
+          "texto_id": "F1.CIRCULO_DE_SAL.NV5",
+          "efeitos": [
+            {
+              "tipo": "raio_pct",
+              "valor": 15
+            }
+          ]
+        },
+        {
+          "nivel": 6,
+          "texto_id": "F1.CIRCULO_DE_SAL.NV6",
+          "efeitos": [
+            {
+              "tipo": "dano_pct",
+              "valor": 20
+            }
+          ]
+        },
+        {
+          "nivel": 7,
+          "texto_id": "F1.CIRCULO_DE_SAL.NV7",
+          "marco": true,
+          "efeitos": [
+            {
+              "tipo": "pulso_knockback",
+              "intervalo_s": 5,
+              "forca_corpos": null
+            }
+          ]
+        },
+        {
+          "nivel": 8,
+          "texto_id": "F1.CIRCULO_DE_SAL.NV8",
+          "efeitos": [
+            {
+              "tipo": "raio_pct",
+              "valor": 20
+            }
+          ]
+        }
       ],
+      "pendentes": {
+        "base.intervalo_tick_s": "F-004",
+        "niveis[6].efeitos[0].forca_corpos": "F-004"
+      },
       "pendencias": [
         "F-004: frequência do tick do dano (brief §11.3)",
         "F-004: força e distância do pulso de knockback do nv7 (brief §11.3)",
         "F-004: os bônus de raio se somam ou se multiplicam (ADR-0002 §6)",
-        "F-006: como a aura participa do Contra-ataque (brief §11.3)"
+        "F-006: como a aura participa do Contra-ataque (brief §11.3)",
+        "F-004: os dois +20% de dano (nv3 e nv6) se somam (+40%) ou se multiplicam (×1,44)?"
       ]
     },
     {
@@ -112,21 +355,48 @@
       "lore_id": "F2.LAMINA_DO_JURAMENTO_ETERNO.LORE",
       "deus": "orun",
       "arquetipo": "direcao_movimento",
-      "escala": [{ "atributo": "FOR", "grau": "B" }, { "atributo": "DES", "grau": "C" }],
+      "escala": [
+        {
+          "atributo": "FOR",
+          "grau": "B"
+        },
+        {
+          "atributo": "DES",
+          "grau": "C"
+        }
+      ],
       "pesada": false,
       "uniao": true,
       "nivel_max": 1,
       "base": {
-        "dano_de": { "arma": "espada_longa_do_juramento", "nivel": 8, "mult": 1.5 },
+        "dano_de": {
+          "arma": "espada_longa_do_juramento",
+          "nivel": 8,
+          "mult": 1.5
+        },
         "cooldown_s": 1.0,
-        "onda": { "comprimento_corpos": 3, "dano": 8, "largura_corpos": null, "velocidade_corpos_s": null }
+        "onda": {
+          "comprimento_corpos": 3,
+          "dano": 8,
+          "largura_corpos": null,
+          "velocidade_corpos_s": null
+        }
       },
       "niveis": [
-        { "nivel": 1, "texto_id": "F2.LAMINA_DO_JURAMENTO_ETERNO.EFEITO", "efeitos": [] }
+        {
+          "nivel": 1,
+          "texto_id": "F2.LAMINA_DO_JURAMENTO_ETERNO.EFEITO",
+          "efeitos": []
+        }
       ],
+      "pendentes": {
+        "base.onda.largura_corpos": "F-004",
+        "base.onda.velocidade_corpos_s": "F-004"
+      },
       "pendencias": [
         "F-004: quantos golpes, que arco e que alcance a União herda da Espada (brief §11.3)",
-        "F-004: largura, velocidade e escala do dano da onda (brief §11.3)"
+        "F-004: largura, velocidade e escala do dano da onda (brief §11.3)",
+        "F-004: direção com o jogador parado (brief §11.3; ADR-0002 §7)"
       ]
     }
   ]

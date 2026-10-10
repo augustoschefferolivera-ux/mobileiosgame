@@ -90,6 +90,9 @@
         },
         "pendencias": {
           "$ref": "comum.schema.json#/$defs/pendencias"
+        },
+        "pendentes": {
+          "$ref": "comum.schema.json#/$defs/pendentes"
         }
       }
     },

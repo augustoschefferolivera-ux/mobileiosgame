@@ -40,7 +40,7 @@
           "id": "F-001.3",
           "descricao": "__GAME_DEBUG__.passo avança.",
           "verificacao": "__GAME_DEBUG__",
-          "como": "Playwright lê window.__GAME_DEBUG__.passo duas vezes, com 500 ms de intervalo depois do toque; o segundo valor é maior.",
+          "como": "Playwright lê window.__GAME_DEBUG__.passo depois do toque e de novo depois de pelo menos um requestAnimationFrame; o segundo valor é maior.",
           "origem": "B §4"
         },
         {
@@ -68,7 +68,7 @@
           "id": "F-001.7",
           "descricao": "Safe-area: viewport-fit=cover e insets lidos pela sonda CSS chegam ao HUD em pt lógicos.",
           "verificacao": "vitest",
-          "como": "função pura de conversão de inset (ADR-0002 §12) testada com letterbox e sem letterbox.",
+          "como": "função pura de conversão de inset (ADR-0002 §12) testada com letterbox e sem letterbox. No Playwright, o meta viewport do DOM contém viewport-fit=cover.",
           "origem": "ADR-0002 §12; B §3.14"
         },
         {
@@ -87,10 +87,45 @@
         },
         {
           "id": "F-001.10",
-          "descricao": "Lint de fronteiras: src/logica não importa phaser nem usa DOM, Date, performance, Math.random ou funções transcendentais.",
+          "descricao": "Lint de fronteiras: src/logica não importa phaser, src/cenas, src/entrada nem src/plataforma; não usa window, document, performance, Date, requestAnimationFrame, setTimeout, Math.random, sin/cos/tan/asin/acos/atan/atan2/exp/expm1/log*/pow/hypot/cbrt nem o operador **; só src/cenas importa phaser.",
           "verificacao": "lint",
           "como": "eslint com no-restricted-imports/globals/properties/syntax (ADR-0002 §2).",
           "origem": "ADR-0002 §2 e §5"
+        },
+        {
+          "id": "F-001.11",
+          "descricao": "Mesmo hash de referência da seed N no passo 1.000 no Vitest (Node) e no Playwright (Chromium).",
+          "verificacao": "playwright",
+          "como": "o Vitest grava o hash de referência; o Playwright roda a mesma seed e os mesmos comandos com a simulação avançada por avancar(n) e compara.",
+          "origem": "ADR-0002 §5"
+        },
+        {
+          "id": "F-001.12",
+          "descricao": "Tabela de conversões de segundos em passos.",
+          "verificacao": "vitest",
+          "como": "uma asserção por conversão usada (ex.: 0,5 s = 30; 0,6 s = 36; 1,5 s = 90; 2 s = 120; 80 ms = 5) (ADR-0002 §3).",
+          "origem": "ADR-0002 §3"
+        },
+        {
+          "id": "F-001.13",
+          "descricao": "Com insets de safe-area não nulos, nenhum alvo de toque cai dentro deles.",
+          "verificacao": "vitest",
+          "como": "tabela de hit-test com insets sintéticos (ADR-0002 §12).",
+          "origem": "ADR-0002 §12"
+        },
+        {
+          "id": "F-001.14",
+          "descricao": "Campo privado unlocked do som coberto por teste.",
+          "verificacao": "vitest",
+          "como": "o desbloqueio marca unlocked quando o Phaser continua locked depois do resume (ADR-0002 §12 e §16).",
+          "origem": "ADR-0002 §12 e §16"
+        },
+        {
+          "id": "F-001.15",
+          "descricao": "Telemetria local.",
+          "verificacao": "playwright",
+          "como": "__GAME_DEBUG__.eventos recebe os eventos do doc 10 §6 que existem no MVP, e nenhuma requisição de rede sai por eles.",
+          "origem": "Q-30"
         }
       ],
       "evidencias": [
@@ -105,7 +140,7 @@
       ],
       "pendencias_antes_de_comecar": [
         "Criar scripts/verify.sh e scripts/novo-modulo.sh (doc 19; ADR-0002 §14)",
-        "Telemetria local em __GAME_DEBUG__.eventos (Q-30)"
+        "Lista exata dos eventos e campos do doc 10 §6 no MVP ('anuncio' e 'compra' ficam fora) (Q-30)"
       ]
     },
     {
@@ -148,7 +183,7 @@
           "id": "F-002.5",
           "descricao": "Jogador a 4,5 corpos/s (144 px/s) com o joystick saturado.",
           "verificacao": "vitest",
-          "como": "deslocamento em 60 passos = 144 px ± 1%.",
+          "como": "deslocamento em 60 passos = 144 px (60 × 2,4), com tolerância [proposta de teste: ±1%].",
           "origem": "B §3.3 (escopo da F-002)"
         },
         {
@@ -164,18 +199,24 @@
           "verificacao": "vitest",
           "como": "tabela de alvos da UI (ADR-0002 §12).",
           "origem": "B §3.5"
+        },
+        {
+          "id": "F-002.8",
+          "descricao": "Prompt de mover aos 0:10.",
+          "verificacao": "playwright",
+          "como": "A2.TUTORIAL.01 aparece no passo de relógio 600 e some ao mover (doc 11 §4); não aparece com ?tutorial=0 nem depois de cumprido (Q-26).",
+          "origem": "brief §5.12; doc 11 §4"
         }
       ],
       "evidencias": [
         {
           "arquivo": "production/evidencias/F-002/movimento.webm",
-          "descricao": "Vídeo curto, ou 3 screenshots sequenciais (B)"
+          "descricao": "Vídeo curto (B); em alternativa, movimento-1.png, movimento-2.png e movimento-3.png (3 screenshots sequenciais, B)"
         }
       ],
       "pendencias_antes_de_comecar": [
         "brief §11.3 F-002: tamanho e forma dos obstáculos, hitboxes, contorno, bloqueio de projéteis",
-        "Cores extras da paleta (Q-27)",
-        "Prompt de mover aos 0:10 (A2.TUTORIAL.01)"
+        "Cores extras da paleta (Q-27)"
       ]
     },
     {
@@ -218,7 +259,7 @@
           "id": "F-003.5",
           "descricao": "Dano de contato com invulnerabilidade de 18 passos.",
           "verificacao": "vitest",
-          "como": "cada acerto de contato vale 5 × 0,3 = 1,5 no minuto 0 (Q-13 (a)) e abre 18 passos sem dano de contato (Q-14).",
+          "como": "dano bruto de cada acerto de contato = 5 × 0,3 = 1,5 no minuto 0 (Q-13 (a)), medido antes da armadura e da Brasa Firme (ou com A = 0 e stamina ≤ 50, em que a Brasa Firme não reduz); cada acerto abre 18 passos sem dano de contato (Q-14).",
           "origem": "B §3.3 e §4 (escopo)"
         },
         {
@@ -232,8 +273,36 @@
           "id": "F-003.7",
           "descricao": "Heap sem crescimento em 60 s.",
           "verificacao": "playwright",
-          "como": "heap snapshots (CDP HeapProfiler) no início e depois de 60 s do cenário horda; sem crescimento além do serrilhado do Phaser (ADR-0002 §11).",
+          "como": "depois que o cenário horda chega a 300 vivos, tirar um HeapProfiler.takeHeapSnapshot (que faz coleta completa, então o serrilhado de alocação do Phaser não entra) e outro 60 s depois; comparar o tamanho retido total e a contagem de objetos por construtor, com variação aceita [proposta de teste a aprovar] (ADR-0002 §11).",
           "origem": "B §4 (evidência)"
+        },
+        {
+          "id": "F-003.8",
+          "descricao": "Nenhum spawn nos 30 s antes de um marco.",
+          "verificacao": "vitest",
+          "como": "seed fixa: zero spawns do diretor, inclusive de reposição, nos passos de relógio 16.200–18.000, 34.200–36.000 e 52.200–54.000 (4:30–5:00, 9:30–10:00, 14:30–15:00); entre 19:30 e 20:00 a reposição continua (Q-11; ADR-0002 §8, passo 3).",
+          "origem": "B §3.7 (escopo)"
+        },
+        {
+          "id": "F-003.9",
+          "descricao": "Anel de spawn com viés oposto ao movimento.",
+          "verificacao": "vitest",
+          "como": "toda posição de spawn do diretor fica a 468–624 px do jogador, em distância no toro (Q-06); com o jogador em movimento, ≈ 60% caem no semicírculo oposto, medidos no vetor de geração antes do wrap; parado, distribuição uniforme (Q-07); tolerância [proposta de teste a aprovar].",
+          "origem": "B §3.7 (escopo)"
+        },
+        {
+          "id": "F-003.10",
+          "descricao": "TETO com fallback 300.",
+          "verificacao": "vitest",
+          "como": "sem ?teto, sem vdc.teto e sem resultado da sonda, o TETO é 300 e __GAME_DEBUG__.teto.origem = 'fallback' (ADR-0002 §13).",
+          "origem": "B §3.7 (escopo)"
+        },
+        {
+          "id": "F-003.11",
+          "descricao": "Offsets do SpriteGPULayer conferidos via getMemberData(), inclusive no caminho DYNAMIC_DRAW.",
+          "verificacao": "vitest",
+          "como": "cria um membro com addMember e confere stride 42 e os offsets usados pelo sincronizador (ADR-0002 §11).",
+          "origem": "ADR-0002 §11"
         }
       ],
       "evidencias": [
@@ -248,7 +317,8 @@
       ],
       "pendencias_antes_de_comecar": [
         "brief §11.3 F-003: força de separação entre Ocos",
-        "Render da horda com SpriteGPULayer + plano B ?render=image (ADR-0002 §11)"
+        "Render da horda com SpriteGPULayer + plano B ?render=image (ADR-0002 §11)",
+        "Tolerância do teste de heap de 60 s e do viés de 60% do anel [proposta de teste a aprovar]"
       ]
     },
     {
@@ -270,7 +340,7 @@
           "id": "F-004.2",
           "descricao": "Sal reduz velocidade em 50% por 3 s.",
           "verificacao": "vitest",
-          "como": "aplicação direta, renova a duração (ADR-0002 §15 item 12); 180 passos.",
+          "como": "aplicação direta (ADR-0002 §15 item 12): uma única aplicação reduz a velocidade em 50% por exatamente 180 passos, e depois a velocidade volta ao normal.",
           "origem": "B §4"
         },
         {
@@ -284,14 +354,14 @@
           "id": "F-004.4",
           "descricao": "Inimigos morrem sem input (Playwright).",
           "verificacao": "playwright",
-          "como": "sem toques por 30 s com seed fixa; __GAME_DEBUG__.ultimosEventos tem mortes.",
+          "como": "sem toques, com seed fixa, até a primeira morte em __GAME_DEBUG__.ultimosEventos, com teto de tempo [proposta de teste: 30 s].",
           "origem": "B §4"
         },
         {
           "id": "F-004.5",
           "descricao": "Números de dano na tela, desligáveis na pausa.",
           "verificacao": "playwright",
-          "como": "toggle A6.PAUSA.NUMEROS; com ele desligado, a camada de dígitos fica vazia.",
+          "como": "com o toggle A6.PAUSA.NUMEROS desligado, __GAME_DEBUG__.numerosDeDano (vivos no pool de render) fica em 0 enquanto ultimosEventos registra acertos.",
           "origem": "B §4 (escopo); Q-25"
         },
         {
@@ -314,7 +384,9 @@
       ],
       "pendencias_antes_de_comecar": [
         "brief §11.3 F-004 e armas.json pendencias: alcance, intervalo de golpes, '+20% área', nv7, facas, tick, knockback, onda, direção parado, ordem dos multiplicadores",
-        "Os dois +20% de dano da Espada (nv2 e nv6) somam ou multiplicam? (muda o resultado em mais que ±1%)"
+        "Os dois +20% de dano da Espada (nv2 e nv6) e do Círculo de Sal (nv3 e nv6) somam (×1,40) ou multiplicam (×1,44)? (muda o resultado em mais que ±1%)",
+        "Sal reaplicado em alvo já salgado: renova a duração, é ignorado ou fica o maior fator (−60% do Círculo nv4 contra −50% das Facas e da Noviça)? Nenhuma fonte dá a regra: proposta a aprovar",
+        "Estender __GAME_DEBUG__ (ADR-0002 §14) com numerosDeDano, build (armas e passivas com nível) e textoAtivo (ids de t() visíveis) [proposta a aprovar]"
       ]
     },
     {
@@ -336,29 +408,36 @@
           "id": "F-005.2",
           "descricao": "Sorteio respeita vagas e 60%.",
           "verificacao": "vitest",
-          "como": "10.000 ofertas com seed fixa: arma nova só com vaga; fração de melhorias de itens possuídos ≈ 60% (chance por carta, Q-22); Elmo com 35% depois do minuto 12 se a União estiver pendente.",
+          "como": "[proposta de teste: 10.000] ofertas com seed fixa, numa build em que sempre há melhoria e item novo disponíveis (para a troca da Q-22 (2) não atuar): arma nova só com vaga; fração de melhorias ≈ 60% e Elmo com 35% depois do minuto 12 com a União pendente, com tolerância [proposta de teste a aprovar]; nenhuma oferta repete item (Q-22 (1)).",
           "origem": "B §4"
         },
         {
           "id": "F-005.3",
           "descricao": "Baú após min 10 com Espada nv8 + Elmo contém a União em 100% dos casos.",
           "verificacao": "vitest",
-          "como": "1.000 baús com seeds diferentes, relógio ≥ 10:00 (Q-23).",
+          "como": "[proposta de teste: 1.000] baús com seeds diferentes, relógio ≥ 10:00 (Q-23).",
           "origem": "B §4"
         },
         {
           "id": "F-005.4",
           "descricao": "Subir a nível 3 e escolher carta via toques (Playwright).",
           "verificacao": "playwright",
-          "como": "toque na carta + segundo toque confirma (B §3.5); __GAME_DEBUG__.jogador.nivel = 3 e o item escolhido aparece na build.",
+          "como": "toque na carta + segundo toque confirma (B §3.5); __GAME_DEBUG__.jogador.nivel = 3 e __GAME_DEBUG__.build contém o item da carta confirmada.",
           "origem": "B §4"
         },
         {
           "id": "F-005.5",
           "descricao": "Cinzas com Ímã de 1,5 corpo; baú com 1 (70%), 3 (25%) ou 5 (5%) itens; carta Bolsa de Almas quando os itens se esgotam.",
           "verificacao": "vitest",
-          "como": "distribuição dos baús em 10.000 sorteios; Ímã a 48 px atrai e a 49 px não (Q-22, Q-23).",
+          "como": "distribuição 70/25/5 dos baús em [proposta de teste: 10.000] sorteios, com tolerância [proposta de teste a aprovar]; Ímã a 48 px atrai e a 49 px não; com todos os itens no nível máximo, as cartas que faltam viram Bolsa de Almas (+50 Almas) (Q-22 (3); Q-23).",
           "origem": "B §3.9 (escopo)"
+        },
+        {
+          "id": "F-005.6",
+          "descricao": "Lâmina do Juramento Eterno bate com a tabela 3.8 e ocupa a vaga da Espada.",
+          "verificacao": "vitest",
+          "como": "base da Lâmina = base da Espada nv8 × 1,5 (±1%), na fórmula de B §3.8 com escala FOR B / DES C; cooldown de 60 passos (1,0 s); cada golpe cria exatamente 1 onda de brasa no chão (3 corpos, 8 de dano; largura, velocidade e escala conforme as pendências da F-004); ao receber a União, ela fica na vaga da Espada Longa e o Elmo Sem Rosto continua equipado.",
+          "origem": "B §3.8 (escopo da F-005); brief §5.9"
         }
       ],
       "evidencias": [
@@ -401,28 +480,28 @@
           "id": "F-006.3",
           "descricao": "Aparo falho bloqueia regen por 24 passos.",
           "verificacao": "vitest",
-          "como": "stamina não sobe nos 24 passos seguintes.",
+          "como": "tutoriais marcados como vistos (ADR-0002 §3). Provocar um aparo falho pela definição que a pendência da F-006 fechar. Registrar G = passo do toque (gasto de 15) e P0 = passo em que o aparo falho começa. Asserção 1: stamina constante de P0 a P0 + 24. Asserção 2: esse intervalo vai além de G + 30, o fim do atraso normal de 0,5 s (B §3.4). Controle: no mesmo estado, 'aparar sem ataque chegando' (doc 02 §5.4: só custa a stamina) volta a regenerar em G + 30, e o caso falho não. Se a definição aprovada der P0 + 24 ≤ G + 30, o critério de B não aparece na stamina: levar ao usuário antes da F-006.",
           "origem": "B §4"
         },
         {
           "id": "F-006.4",
           "descricao": "Contra-ataque dispara todas as armas uma vez.",
           "verificacao": "vitest",
-          "como": "com as 3 armas, cada uma gera exatamente 1 salva extra ×2 dentro de 1,5 s (90 passos), mirada no inimigo aparado.",
+          "como": "com as 3 armas, a Espada e as Facas geram exatamente 1 salva extra ×2 cada, em até 90 passos depois do aparo, redirecionada ao handle do inimigo aparado (doc 04 §10; ADR-0002 §7). O Círculo de Sal participa como a pendência 'como a aura participa do Contra-ataque' decidir, e não tem asserção antes dessa decisão.",
           "origem": "B §4"
         },
         {
           "id": "F-006.5",
           "descricao": "Swipe sintético gera esquiva (Playwright).",
           "verificacao": "playwright",
-          "como": "__GAME_DEBUG__.entrada.injetar com timestamps de velocidade > 400 pt/s.",
+          "como": "__GAME_DEBUG__.entrada.injetar com timestamps de velocidade > 400 pt/s; confirmação: jogador.stamina cai 25 no passo da esquiva (B §3.4).",
           "origem": "B §4"
         },
         {
           "id": "F-006.6",
           "descricao": "Toque no botão durante o telegrafo gera aparo (Playwright).",
           "verificacao": "playwright",
-          "como": "espera 'telegrafo iniciado' em __GAME_DEBUG__.ultimosEventos e toca o botão Aparo (80 pt).",
+          "como": "?seed=N&tutorial=0&inicio=01:00 (Oco Grande garantido; ADR-0002 §8 item 9 e §14). Quando 'telegrafo iniciado' do Oco Grande aparecer em ultimosEventos no passo T, pausar a simulação e usar avancar(n) até o golpe (T + 36, fim do telegrafo de 0,6 s) ficar entre 1 e 11 passos à frente; então tocar o botão Aparo (toque real por CDP ou entrada.injetar) e avançar até o golpe. Confirmação: evento 'aparo' em ultimosEventos e jogador.stamina = valor antes do toque − 15 + 30 (B §3.4).",
           "origem": "B §4"
         },
         {
@@ -436,8 +515,36 @@
           "id": "F-006.8",
           "descricao": "Prompts de tutorial nos minutos 1 e 3.",
           "verificacao": "playwright",
-          "como": "?tutorial=0 desliga; sem o parâmetro, A2.TUTORIAL.02 aparece aos 1:00 e A2.TUTORIAL.03 aos 3:00 (Q-26).",
+          "como": "contexto limpo, sem ?tutorial e com ?inicio= perto de 1:00 e de 3:00: __GAME_DEBUG__.textoAtivo contém A2.TUTORIAL.02 a partir de 1:00 e A2.TUTORIAL.03 a partir de 3:00; com ?tutorial=0, nenhum dos dois (Q-26).",
           "origem": "B §4 (escopo)"
+        },
+        {
+          "id": "F-006.9",
+          "descricao": "Custos e regeneração de stamina.",
+          "verificacao": "vitest",
+          "como": "esquiva custa 25 e desloca 2,5 corpos (80 px) em 21 passos; aparo custa 15; a regeneração (0,5 por passo = 30/s) só volta depois de 30 passos sem gasto (B §3.4; ADR-0002 §3).",
+          "origem": "B §3.4 e §4 (escopo)"
+        },
+        {
+          "id": "F-006.10",
+          "descricao": "Aparo bem-sucedido.",
+          "verificacao": "vitest",
+          "como": "stamina − 15 + 30; Postura Quebrada por 120 passos, com dano recebido × 2, no atacante e em todos a até 64 px do centro que a pendência fechar (B §3.4).",
+          "origem": "B §3.4 e §4 (escopo)"
+        },
+        {
+          "id": "F-006.11",
+          "descricao": "Duração dos telegrafos brancos.",
+          "verificacao": "vitest",
+          "como": "o telegrafo do Oco Grande dura 36 passos (0,6 s) e o da Noviça, 30 (0,5 s) (B §3.6 e F-006).",
+          "origem": "B §3.4 e §4 (escopo)"
+        },
+        {
+          "id": "F-006.12",
+          "descricao": "Contato durante os i-frames conta como esquiva perfeita.",
+          "verificacao": "vitest",
+          "como": "contato de Ocos das Lanternas durante os i-frames: +15% Poder por 120 passos e +1 faca na salva seguinte (Q-15).",
+          "origem": "Q-15"
         }
       ],
       "evidencias": [
@@ -451,8 +558,9 @@
         }
       ],
       "pendencias_antes_de_comecar": [
-        "brief §11.3 F-006: alcance do Oco Grande, projétil da Noviça, recuperação da esquiva, toque duplo, janela do swipe, câmera lenta do tutorial, centro do raio da Postura Quebrada, aparo falho, aparo de vermelho, stamina insuficiente",
-        "Build de teste em iPhone depois da F-006 (Q-29)"
+        "brief §11.3 F-006: alcance do Oco Grande, projétil da Noviça, recuperação da esquiva, toque duplo, janela do swipe, câmera lenta do tutorial, centro do raio da Postura Quebrada, aparo falho, aparo de vermelho, stamina insuficiente; o que 'vulnerável' bloqueia no aparo falho (brief §11.3 F-006)",
+        "Build de teste em iPhone depois da F-006 (Q-29)",
+        "Como a aura do Círculo de Sal participa do Contra-ataque (brief §11.3 F-004; armas.json circulo_de_sal)"
       ]
     },
     {
@@ -488,7 +596,7 @@
           "id": "F-007.4",
           "descricao": "Morrer de propósito e ver a tela de resultado (Playwright).",
           "verificacao": "playwright",
-          "como": "?inicio=19:00&seed=N sem nenhum toque até o HP chegar a 0; A4.APAGAR.01 e a tela de Resultado aparecem.",
+          "como": "?inicio=19:00&seed=N sem nenhum toque até o HP chegar a 0: __GAME_DEBUG__.estado passa por APAGANDO e chega a FIM (apagar); textoAtivo contém A4.APAGAR.01 e a tela de Resultado aparece.",
           "origem": "B §4"
         },
         {
@@ -497,6 +605,27 @@
           "verificacao": "vitest",
           "como": "FIM(abandonar) (ADR-0002 §9; Q-25).",
           "origem": "Q-25; ADR-0002 §9"
+        },
+        {
+          "id": "F-007.6",
+          "descricao": "Brasa Firme.",
+          "verificacao": "vitest",
+          "como": "hpMax inicial de Aldric = 150 (B §3.3); com A = 0, o golpe recebido sai × 0,8 com stamina 51 e × 1,0 com stamina 50 ('enquanto stamina > 50%').",
+          "origem": "B §3.3 (escopo da F-007)"
+        },
+        {
+          "id": "F-007.7",
+          "descricao": "Frasco.",
+          "verificacao": "vitest",
+          "como": "um Frasco não interrompido cura 40% do HP máximo ao longo de 120 passos, sem passar do máximo, e suspende a regeneração de stamina por 120 passos (doc 02 §5.2).",
+          "origem": "B §3.3 e §4 (escopo)"
+        },
+        {
+          "id": "F-007.8",
+          "descricao": "Divisão das Almas no Apagar.",
+          "verificacao": "vitest",
+          "como": "Apagar com N Almas grava na mancha 30% de N, com posição e Hora, e o resto vai ao Santuário (B §3.12).",
+          "origem": "B §3.12 (escopo)"
         }
       ],
       "evidencias": [
@@ -510,7 +639,8 @@
         }
       ],
       "pendencias_antes_de_comecar": [
-        "brief §11.3 F-007: câmera lenta do Apagar, carga do Frasco interrompido, 'segurar' cancela, ações durante o Frasco, ordem armadura × Brasa Firme, 15% antes ou depois da redução"
+        "brief §11.3 F-007: câmera lenta do Apagar, carga do Frasco interrompido, 'segurar' cancela, ações durante o Frasco, ordem armadura × Brasa Firme, 15% antes ou depois da redução",
+        "Arredondamento de 0,3 × N Almas da mancha (nenhuma fonte dá)"
       ]
     },
     {
@@ -532,22 +662,64 @@
           "id": "F-008.2",
           "descricao": "Migração de versão.",
           "verificacao": "vitest",
-          "como": "um save v1 sintético passa pela cadeia de migrações e valida no schema atual.",
+          "como": "o teste exercita pelo menos uma função vN → vN+1 de src/logica/save/migracoes.ts. Se a versão atual ainda for 1, o teste registra, só no seu escopo, uma migração v1 → v2 que acrescenta ou renomeia um campo, migra um save v1 sintético e confere campo a campo e a validação no schema de destino. Com versões reais acima de 1, há um teste por versão (ADR-0002 §10).",
           "origem": "B §4"
         },
         {
           "id": "F-008.3",
           "descricao": "Fechar a página na Hora II e reabrir mostra a oferta de retomada e restaura o estado (Playwright).",
           "verificacao": "playwright",
-          "como": "?cenario=fogueira_hora1; Partir; fechar a página na Hora II; reabrir: A1.ACENDER.RETOMAR aparece e __GAME_DEBUG__.hash() = __GAME_DEBUG__.save.hash.",
+          "como": "?cenario=fogueira_hora1; Partir; fechar a página na Hora II; reabrir: textoAtivo contém A1.ACENDER.RETOMAR; tocar Continuar; __GAME_DEBUG__.hash() = __GAME_DEBUG__.save.hash (ADR-0002 §10).",
           "origem": "B §4"
         },
         {
-          "id": "F-008.4",
-          "descricao": "Marcos 5/10/15 com Oco Grande Coroado, arena, baús (1 por Coroado) e Fogueira (Descansar com I = 1,1, Forjar com custo por Hora, Partir).",
+          "id": "F-008.4a",
+          "descricao": "HP do Coroado escalado.",
           "verificacao": "vitest",
-          "como": "timeline do Apêndice A do ADR-0002; marco vencido pelo relógio (ADR-0002 §15 item 7).",
+          "como": "HP do Coroado com I = 1,0: 960 às 5:00, 2.200 às 10:00 e 1.680 cada às 15:00 (Q-12).",
           "origem": "B §4 (escopo)"
+        },
+        {
+          "id": "F-008.4b",
+          "descricao": "Convocação do Coroado.",
+          "verificacao": "vitest",
+          "como": "cada Coroado convoca 10 Ocos das Lanternas a cada 600 passos, dentro da arena, respeitando o TETO e a regra de excedente (B §3.6; Q-08; ADR-0002 §8 item 7 e §9).",
+          "origem": "B §4 (escopo)"
+        },
+        {
+          "id": "F-008.4c",
+          "descricao": "Arena do marco.",
+          "verificacao": "vitest",
+          "como": "centro no jogador, raio de 224 px; obstáculos dentro com ativo = 0, massa dentro morta e diretor sem spawn (Q-02; Q-09; ADR-0002 §9).",
+          "origem": "B §4 (escopo)"
+        },
+        {
+          "id": "F-008.4d",
+          "descricao": "Fim do marco.",
+          "verificacao": "vitest",
+          "como": "último Coroado morto: 1 baú por Coroado e a Fogueira acende a 96 px do jogador (B §3.10).",
+          "origem": "B §4 (escopo)"
+        },
+        {
+          "id": "F-008.4e",
+          "descricao": "Fogueira: Descansar e Forjar.",
+          "verificacao": "vitest",
+          "como": "dentro do raio de 64 px, relógio e inimigos param; Descansar → HP 100%, 3 Frascos e I = 1,1; Forjar, com Espada nv8 + Elmo, cobra 150, 250 ou 400 Almas na Fogueira da Hora I, II ou III (B §3.10).",
+          "origem": "B §4 (escopo)"
+        },
+        {
+          "id": "F-008.4f",
+          "descricao": "Fogueira: sair e ignorar.",
+          "verificacao": "vitest",
+          "como": "sair do raio = Partir: grava o vigilia e apaga a Fogueira; sem entrar, ela fica acesa até o próximo marco; a da Hora III se apaga às 20:00 (Q-24; ADR-0002 §15 item 8).",
+          "origem": "Q-24; ADR-0002 §9 e §15"
+        },
+        {
+          "id": "F-008.4g",
+          "descricao": "Marco vencido pelo relógio.",
+          "verificacao": "vitest",
+          "como": "Guardião I vivo até 10:00 → MARCO(chefe_menor); Guardião II vivo até 20:00 → CHEFE; 23:00 → A_FOME (ADR-0002 §9 e §15 item 7).",
+          "origem": "Q-24; ADR-0002 §9 e §15"
         },
         {
           "id": "F-008.5",
@@ -555,6 +727,13 @@
           "verificacao": "vitest",
           "como": "armazenamento simulado; a mesma Vigília nunca é creditada e oferecida de novo (ADR-0002 §10).",
           "origem": "B §3.10; ADR-0002 §10"
+        },
+        {
+          "id": "F-008.6",
+          "descricao": "Salvar no meio e continuar dá o mesmo hash.",
+          "verificacao": "vitest",
+          "como": "salvar no passo 500, restaurar e continuar até o 1.000 dá o mesmo hash que sem salvar (ADR-0002 §5).",
+          "origem": "ADR-0002 §5"
         }
       ],
       "evidencias": [
@@ -568,7 +747,8 @@
         }
       ],
       "pendencias_antes_de_comecar": [
-        "brief §11.3 F-008: Patada, Grito, cadência e tamanho do Coroado; escurecimento"
+        "brief §11.3 F-008: Patada, Grito, cadência e tamanho do Coroado; escurecimento",
+        "Raio, em volta do Coroado, em que nascem os convocados dentro da arena (ADR-0002 §9)"
       ]
     },
     {
@@ -627,6 +807,34 @@
           "verificacao": "vitest",
           "como": "Q-35; brief §5.11.",
           "origem": "B §4 (escopo)"
+        },
+        {
+          "id": "F-009.8",
+          "descricao": "HP do Lanterneiro por nível.",
+          "verificacao": "vitest",
+          "como": "no cenário lanterneiro (nível 29), hpMax = 6.500 × (1 + 0,04 × 29) = 14.040, com o nível do momento em que ele surge (B §3.11; Q-10).",
+          "origem": "B §3.11 (escopo)"
+        },
+        {
+          "id": "F-009.9",
+          "descricao": "Arena do Lanterneiro.",
+          "verificacao": "vitest",
+          "como": "ao formar a arena (raio de 224 px), obstáculos dentro dela com ativo = 0, massa dentro morta e diretor sem spawn (B §3.11; Q-09; ADR-0002 §9).",
+          "origem": "B §3.11 (escopo)"
+        },
+        {
+          "id": "F-009.10",
+          "descricao": "A névoa prende o jogador.",
+          "verificacao": "vitest",
+          "como": "o jogador não sai do círculo de 224 px (ADR-0002 §15 item 14).",
+          "origem": "ADR-0002 §15 item 14"
+        },
+        {
+          "id": "F-009.11",
+          "descricao": "Postura por esquiva perfeita só contra o Lanterneiro.",
+          "verificacao": "vitest",
+          "como": "esquiva perfeita contra golpe do Lanterneiro soma +10 de Postura; contra Oco convocado, 0 (Q-15).",
+          "origem": "Q-15"
         }
       ],
       "evidencias": [
@@ -644,7 +852,8 @@
         }
       ],
       "pendencias_antes_de_comecar": [
-        "brief §11.3 F-009 e chefes.json pendencias: danos, alcances, IA, convocação, telegrafos vermelhos, herança de ataques entre fases, Postura das outras armas, tamanho"
+        "brief §11.3 F-009 e chefes.json pendencias: danos, alcances, IA, convocação, telegrafos vermelhos, herança de ataques entre fases, Postura das outras armas, tamanho",
+        "brief §11.3 F-009: luz do jogador (5 corpos) e dos Ocos convocados (3 corpos) no MVP; raio de nascimento dos convocados (ADR-0002 §9); o que o HUD mostra entre 20:00 e 23:00 (não há Hora)"
       ]
     },
     {
@@ -694,14 +903,46 @@
           "id": "F-010.6",
           "descricao": "Manifest + service worker + convite 'Adicionar à Tela de Início', overlay de paisagem e pausa em visibilitychange.",
           "verificacao": "playwright",
-          "como": "manifest válido; SW registrado; convite depois da 1ª Vigília; visibilitychange pausa a simulação (ADR-0002 §12).",
+          "como": "manifest válido; SW registrado; convite depois da 1ª Vigília; visibilitychange pausa a simulação (ADR-0002 §12). Em paisagem (viewport com largura > altura), aparece o overlay DOM 'gire o aparelho' e a simulação pausa (ADR-0002 §12).",
           "origem": "B §4 (escopo)"
+        },
+        {
+          "id": "F-010.7",
+          "descricao": "Nós sem efeito ficam bloqueados.",
+          "verificacao": "vitest",
+          "como": "O peso do martelo do seu pai, Pés plantados e Ferro frio aparecem bloqueados e a compra é recusada (Q-16; Q-17).",
+          "origem": "Q-16; Q-17"
+        },
+        {
+          "id": "F-010.8",
+          "descricao": "Mãos de aprendiz.",
+          "verificacao": "vitest",
+          "como": "com Mãos de aprendiz no rank r, a Espada Longa começa no nível 1 + r (máx. 4); a União não é afetada (Q-18).",
+          "origem": "Q-18"
+        },
+        {
+          "id": "F-010.9",
+          "descricao": "Save meta versionado.",
+          "verificacao": "vitest",
+          "como": "meta com versao, seq e soma; migração com teste por versão (ADR-0002 §10).",
+          "origem": "B §4 (escopo); ADR-0002 §10"
+        },
+        {
+          "id": "F-010.10",
+          "descricao": "Lint de palavras proibidas.",
+          "verificacao": "lint",
+          "como": "as 11 palavras de B §3.15 bloqueiam em código, dados e textos (palavra inteira, fora de node_modules e design/); as extras da Q-31 viram aviso só em pt-BR.json; relatório junto com o do lint de strings em production/evidencias/F-010/lint.txt.",
+          "origem": "Q-31; ADR-0002 §11"
         }
       ],
       "evidencias": [
         {
-          "arquivo": "production/evidencias/F-010/iphone.mp4",
-          "descricao": "Vídeo em iPhone real (B)"
+          "arquivo": "production/evidencias/F-010/iphone-11-ou-12.mp4",
+          "descricao": "Vídeo em iPhone real: iPhone 11 ou 12 (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-010/iphone-14.mp4",
+          "descricao": "Vídeo em iPhone real: iPhone 14 ou mais novo (B)"
         },
         {
           "arquivo": "production/evidencias/F-010/memoria-safari.png",

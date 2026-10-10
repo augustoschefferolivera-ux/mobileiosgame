@@ -13,11 +13,19 @@
       "dano_tipo": "contato_por_s",
       "velocidade": 0.55,
       "xp": 1,
-      "almas": { "valor": 1, "chance": 0.5 },
+      "almas": {
+        "valor": 1,
+        "chance": 0.5
+      },
       "bau": false,
-      "comportamento": { "tipo": "perseguir_reto" },
+      "comportamento": {
+        "tipo": "perseguir_reto"
+      },
       "ataques": [],
-      "pendencias": ["F-003: força de separação entre Ocos (brief §11.3)"]
+      "pendentes": {},
+      "pendencias": [
+        "F-003: força de separação entre Ocos (brief §11.3)"
+      ]
     },
     {
       "id": "oco_grande",
@@ -31,22 +39,36 @@
       "dano_tipo": "por_ataque",
       "velocidade": 0.7,
       "xp": 5,
-      "almas": { "valor": 3, "chance": 1 },
+      "almas": {
+        "valor": 3,
+        "chance": 1
+      },
       "bau": false,
-      "comportamento": { "tipo": "aproximar_e_atacar", "para_a_corpos": 1.5 },
+      "comportamento": {
+        "tipo": "aproximar_e_atacar",
+        "para_a_corpos": 1.5
+      },
       "ataques": [
         {
           "id": "braco_em_arco",
-          "telegrafo": { "cor": "branco", "duracao_s": 0.6 },
+          "telegrafo": {
+            "cor": "branco",
+            "duracao_s": 0.6
+          },
           "forma": "arco",
           "aparavel": true,
-          "dano": null,
+          "dano": 20,
           "angulo_graus": 120,
           "alcance_corpos": null,
           "recuperacao_s": 1.5
         }
       ],
-      "pendencias": ["F-006: alcance do arco (brief §11.3); dano null = usa dano_base"]
+      "pendentes": {
+        "ataques[0].alcance_corpos": "F-006"
+      },
+      "pendencias": [
+        "F-006: alcance do arco (brief §11.3)"
+      ]
     },
     {
       "id": "novica_de_sal",
@@ -60,23 +82,44 @@
       "dano_tipo": "por_projetil",
       "velocidade": 0.8,
       "xp": 5,
-      "almas": { "valor": 3, "chance": 1 },
+      "almas": {
+        "valor": 3,
+        "chance": 1
+      },
       "bau": false,
-      "comportamento": { "tipo": "manter_distancia", "distancia_corpos": 4 },
+      "comportamento": {
+        "tipo": "manter_distancia",
+        "distancia_corpos": 4
+      },
       "ataques": [
         {
           "id": "projetil_de_sal",
-          "telegrafo": { "cor": "branco", "duracao_s": 0.5 },
+          "telegrafo": {
+            "cor": "branco",
+            "duracao_s": 0.5
+          },
           "forma": "projetil",
           "aparavel": true,
-          "dano": null,
+          "dano": 18,
           "intervalo_s": 3,
-          "projetil": { "velocidade_corpos_s": 3, "raio_corpos": null, "vida_s": null },
-          "aplica": { "status": "sal", "fator_pct": 50, "duracao_s": 3 }
+          "projetil": {
+            "velocidade_corpos_s": 3,
+            "raio_corpos": null,
+            "vida_s": null
+          },
+          "aplica": {
+            "status": "sal",
+            "fator_pct": 50,
+            "duracao_s": 3
+          }
         }
       ],
+      "pendentes": {
+        "ataques[0].projetil.raio_corpos": "F-006",
+        "ataques[0].projetil.vida_s": "F-006"
+      },
       "pendencias": [
-        "F-006: tamanho e duração do projétil (brief §11.3); dano null = usa dano_base",
+        "F-006: tamanho e duração do projétil (brief §11.3)",
         "F-002: se os obstáculos bloqueiam o projétil (brief §11.3)"
       ]
     },
@@ -92,34 +135,59 @@
       "dano_tipo": "por_ataque",
       "velocidade": 0.65,
       "xp": 25,
-      "almas": { "valor": 30, "chance": 1 },
+      "almas": {
+        "valor": 30,
+        "chance": 1
+      },
       "bau": true,
-      "comportamento": { "tipo": "elite_convocador" },
+      "comportamento": {
+        "tipo": "elite_convocador"
+      },
       "ataques": [
         {
           "id": "patada",
-          "telegrafo": { "cor": "branco", "duracao_s": 0.6 },
+          "telegrafo": {
+            "cor": "branco",
+            "duracao_s": 0.6
+          },
           "forma": "cone",
           "aparavel": true,
-          "dano": null,
+          "dano": 25,
           "alcance_corpos": null
         },
         {
           "id": "grito",
-          "telegrafo": { "cor": "vermelho", "duracao_s": 1.0 },
+          "telegrafo": {
+            "cor": "vermelho",
+            "duracao_s": 1.0
+          },
           "forma": "area_circular",
           "aparavel": false,
           "dano": null,
           "raio_corpos": 3,
-          "empurrao": { "raio_corpos": 3, "distancia_corpos": null }
+          "empurrao": {
+            "raio_corpos": 3,
+            "distancia_corpos": null
+          }
         }
       ],
-      "convoca": { "inimigo": "oco_das_lanternas", "quantidade": 10, "intervalo_s": 10 },
+      "convoca": {
+        "inimigo": "oco_das_lanternas",
+        "quantidade": 10,
+        "intervalo_s": 10
+      },
+      "pendentes": {
+        "tamanho_px": "F-008",
+        "ataques[0].alcance_corpos": "F-008",
+        "ataques[1].dano": "F-008",
+        "ataques[1].empurrao.distancia_corpos": "F-008"
+      },
       "pendencias": [
         "F-008: tamanho (B: 'Oco Grande', 48 px; doc 13 §1.2: elite 64×64, Chefe Menor 96 a 128 px; brief §11.3)",
-        "F-008: alcance e ângulo da Patada; dano null = usa dano_base (brief §11.3)",
-        "F-008: o Grito causa dano? distância do empurrão (brief §11.3)",
+        "F-008: alcance e ângulo da Patada (brief §11.3)",
+        "F-008: dano do Grito (se houver) e distância do empurrão (brief §11.3)",
         "F-008: cadência de ataque (brief §11.3)",
+        "F-008: raio de nascimento dos convocados dentro da arena (ADR-0002 §9)",
         "hp_base 600 é a versão de Guardião; o Chefe Menor das 10:00 usa hp_base 1.000 pela linha de marco da região (B §2 e §3.7)"
       ]
     }

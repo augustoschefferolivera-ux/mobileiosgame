@@ -9,10 +9,30 @@
       "hp": 130,
       "stamina": 100,
       "velocidade": 1.0,
-      "frascos": { "cargas": 3, "cura_pct": 40, "duracao_s": 2, "interrompe_acima_pct_hp": 15, "sem_regen_stamina_s": 2 },
-      "vagas": { "armas": 5, "reliquias": 1, "passivas": 6 },
-      "atributos": { "FOR": 6, "DES": 3, "INT": 1, "FE": 3, "VIG": 7 },
-      "ponto_por_nivel": { "quantidade": 1, "atributo": "FOR" },
+      "frascos": {
+        "cargas": 3,
+        "cura_pct": 40,
+        "duracao_s": 2,
+        "interrompe_acima_pct_hp": 15,
+        "sem_regen_stamina_s": 2
+      },
+      "vagas": {
+        "armas": 5,
+        "reliquias": 1,
+        "passivas": 6
+      },
+      "atributos": {
+        "FOR": 6,
+        "DES": 3,
+        "INT": 1,
+        "FE": 3,
+        "VIG": 7
+      },
+      "ponto_por_nivel": {
+        "quantidade": 1,
+        "atributo": "FOR",
+        "teto": null
+      },
       "arma_inicial": "espada_longa_do_juramento",
       "passiva": {
         "nome_id": "C1.ALDRIC.PASSIVA_NOME",
@@ -24,7 +44,19 @@
       "maldicao": {
         "nome_id": "C1.ALDRIC.MALDICAO_NOME",
         "efeito_id": "C1.ALDRIC.MALDICAO_EFEITO"
-      }
+      },
+      "hp_por_nivel": null,
+      "pendentes": {
+        "hp_por_nivel": "F-005",
+        "ponto_por_nivel.teto": "F-005"
+      },
+      "pendencias": [
+        "F-005: teto de FOR (sem teto, FOR chega a 34 no nível 29) (brief §11.3)",
+        "F-005: quanto HP Aldric ganha por nível e se FOR dá '+HP máximo leve' (doc 03 §2.1; brief §11.3)",
+        "F-005/F-007: arredondamento do HP máximo com bônus percentual; B §3.3 fixa 130 × 1,15 = 149,5 → 150, o que exclui arredondar para baixo",
+        "F-007: se o Frasco interrompido consome a carga; quanto tempo 'segurar' leva para cancelar; se dá para mover, esquivar ou aparar durante a cura (brief §11.3)",
+        "F-007: ordem entre a armadura e a Brasa Firme; se os 15% que interrompem o Frasco são medidos antes ou depois da redução (brief §11.3)"
+      ]
     }
   ]
 }

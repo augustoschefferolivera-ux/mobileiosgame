@@ -154,6 +154,9 @@
         "motivo_bloqueio": {
           "type": "string",
           "minLength": 3
+        },
+        "pendencias": {
+          "$ref": "comum.schema.json#/$defs/pendencias"
         }
       },
       "if": {

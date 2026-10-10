@@ -23,7 +23,13 @@
     {
       "id": "A1.ACENDER.RETOMAR",
       "texto": "Continuar da Fogueira da Hora {hora}",
-      "contexto": "Tela de Acender: oferta de retomada (B §3.10); {hora} em algarismo romano",
+      "contexto": "Tela de Acender: oferta de retomada (B §3.10); {hora} em algarismo romano; só quando o save é de uma Fogueira (brief §5.4)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A1.ACENDER.RETOMAR_INICIO",
+      "texto": "Continuar do início da Vigília",
+      "contexto": "Tela de Acender: oferta de retomada quando a aba morreu na Hora I, antes da primeira Fogueira; o ponto de retomada é o save do passo 0 (Q-03; ADR-0002 §10); placeholder até o roteiro (doc 17)",
       "limite_palavras": null
     },
     {
@@ -89,7 +95,7 @@
     {
       "id": "A5.HUD.HORA",
       "texto": "Hora {hora}",
-      "contexto": "HUD: Hora atual; {hora} em algarismo romano (doc 11 §3.6)",
+      "contexto": "HUD: Hora atual, de 0:00 a 20:00; {hora} em algarismo romano (doc 11 §3.6). De 20:00 a 23:00 não há Hora (brief §5.4; doc 02 §3): o que o HUD mostra nesse trecho fica pendente para a F-009",
       "limite_palavras": null
     },
     {
@@ -202,8 +208,8 @@
     },
     {
       "id": "A7.RESULTADO.MANCHA_A_FOME",
-      "texto": "{almas} Almas ficaram com A Fome",
-      "contexto": "Resultado: mancha de um Apagar entre 20:00 e 23:00 (Q-04); placeholder até o roteiro (doc 17)",
+      "texto": "{almas} Almas ficaram em A Fome",
+      "contexto": "Resultado: mancha de um Apagar entre 20:00 e 23:00; 'A Fome' é o nome do trecho (doc 02 §3) no lugar da Hora (Q-04); as Almas seguem recuperáveis na mancha (B §2); placeholder até o roteiro (doc 17)",
       "limite_palavras": null
     },
     {
@@ -413,7 +419,7 @@
     {
       "id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV1",
       "texto": "Arco de 120° à frente, 1 golpe.",
-      "contexto": "Arma: linha funcional do nível 1 na carta (B §3.8)",
+      "contexto": "Arma: linha funcional do nível 1 na carta (doc 04 §1.1)",
       "limite_palavras": null
     },
     {
@@ -424,7 +430,7 @@
     },
     {
       "id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV3",
-      "texto": "+1 golpe (ida e volta).",
+      "texto": "+1 golpe (volta).",
       "contexto": "Arma: linha funcional do nível 3 na carta (B §3.8)",
       "limite_palavras": null
     },
@@ -448,14 +454,14 @@
     },
     {
       "id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV7",
-      "texto": "O 3º golpe vira uma estocada perfurante.",
-      "contexto": "Arma: linha funcional do nível 7 na carta (B §3.8)",
+      "texto": "3º golpe: estocada perfurante.",
+      "contexto": "Arma: linha funcional do nível 7 na carta (B §3.8); revisar quando a F-004 decidir se o nv7 acrescenta ou transforma o 3º golpe (brief §11.3)",
       "limite_palavras": null
     },
     {
       "id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV8",
       "texto": "+1 golpe. Pronta para a União.",
-      "contexto": "Arma: linha funcional do nível 8 na carta (B §3.8)",
+      "contexto": "Arma: linha funcional do nível 8 na carta (B §3.8; doc 04 §1.1)",
       "limite_palavras": null
     },
     {
@@ -472,8 +478,8 @@
     },
     {
       "id": "F1.FACAS_DE_SAL.NV1",
-      "texto": "2 facas no inimigo mais próximo.",
-      "contexto": "Arma: linha funcional do nível 1 na carta (B §3.8)",
+      "texto": "2 facas por salva.",
+      "contexto": "Arma: linha funcional do nível 1 na carta (B §3.8; doc 04 §3); alvo de uma salva com várias facas pendente na F-004 (ADR-0002 §7)",
       "limite_palavras": null
     },
     {
