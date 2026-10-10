@@ -9,8 +9,10 @@ Regra herdada do asset-audit (Claude-Code-Game-Studios, MIT): o que não puder s
 sai como "NAO AVALIADO", nunca como estimativa.
 
 Uso:
+  inspecionar_glb.py --help
   inspecionar_glb.py modelo.glb
   inspecionar_glb.py modelo.glb --max-tris 50000 --max-texture 2048 --max-anim-seconds 10 --json
+  inspecionar_glb.py modelo.glb --tsv      # uma linha para scripts (optimize_glb.sh)
 
 Código de saída: 0 ok; 1 algum orçamento estourado; 2 erro de leitura/argumentos.
 """

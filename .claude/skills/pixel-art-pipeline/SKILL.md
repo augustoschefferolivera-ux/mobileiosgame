@@ -66,7 +66,7 @@ Entrega sprites e tiles em grade exata (`./assets/sprites/*.png`, `./assets/tile
 5. **Verificar grade e paleta** (0% fora): `python3 .claude/skills/consistencia-com-lora/scripts/verificar_paleta.py px_00.png --paleta design/paleta.txt --tolerancia 0 --max-fora 0`. Dimensões devem ser exatamente a grade (ou múltiplo inteiro para sprites maiores).
 6. **Rotações e esqueleto** (PixelLab): gere 4 ou 8 direções a partir do sprite frontal aprovado; estime o esqueleto para `/animar-sprites`. Confira que todas as direções têm a mesma altura de caixa de alfa.
 7. **Curadoria** com folha ampliada em escala inteira: `python3 .claude/skills/gerar-sprites-2d/scripts/contact_sheet.py <pasta> --celula 192 --ampliar --saida production/evidencias/<data>-pixel-<nome>/contact-sheet.png`. O humano aprova em 1× e 4×.
-8. **Nomear e registrar** com `../gerar-sprites-2d/scripts/nomear_e_registrar.py` (`--modelo PixelLab|"Retro Diffusion RD Pro"|...`, `--pos "requantizar_pixel grade 32 paleta v1"`). Pixel art editada à mão no Aseprite: descreva em `--edicao-humana` (é o que gera direito autoral).
+8. **Nomear e registrar** com `../gerar-sprites-2d/scripts/nomear_e_registrar.py` (`--ferramenta PixelLab|"Retro Diffusion RD Pro"|...`, `--licenca pixellab|retro-diffusion`, `--pos "requantizar_pixel grade 32 paleta v1"`). Pixel art editada à mão no Aseprite: descreva em `--edicao-humana` (é o que gera direito autoral) e guarde o `.aseprite` em `masters/sprites/` (`--master`).
 9. **Ver no jogo** com filtro nearest e câmera pixel-perfect (abaixo); screenshot para `production/evidencias/<data>-pixel-<nome>/no-jogo.png`. Blur ou "pixel gordo" desigual = falha de configuração do engine, não do asset.
 
 ## Critério de pronto e evidência

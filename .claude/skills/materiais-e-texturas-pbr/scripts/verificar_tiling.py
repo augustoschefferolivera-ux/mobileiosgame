@@ -2,9 +2,11 @@
 """Verifica se uma textura é "sem costura" (tileable) e gera um preview 2×2 para inspeção.
 
 Método: compara a coluna da borda esquerda com a da direita (e a linha de cima com a de
-baixo) e divide essa diferença média pela diferença média entre colunas/linhas vizinhas do
-interior. Razão ≈ 1 significa que a emenda é tão suave quanto o interior; acima do limiar
-(padrão 1.5) há costura visível. Também confere potência de 2 e proporção.
+baixo) e divide essa diferença média pelo percentil 95 das diferenças entre colunas/linhas
+vizinhas do interior. Razão ≤ 1 significa que a emenda não salta mais do que o interior já
+salta; acima do limiar (padrão 1.5) há costura visível. Também confere potência de 2 e
+proporção. É um filtro automático: o preview 2×2 ainda precisa de olho humano (repetição
+óbvia de padrão não é costura, mas também reprova).
 
 Requer Pillow (`pip install pillow`). Sem dependência de numpy.
 
@@ -31,6 +33,32 @@ def media_diff(a, b) -> float:
     return sum(m) / len(m)
 
 
+def percentil(valores, p: float) -> float:
+    v = sorted(valores)
+    if not v:
+        return 0.0
+    k = min(len(v) - 1, max(0, int(round(p * (len(v) - 1)))))
+    return v[k]
+
+
+def avaliar_eixo(img, horizontal: bool, limiar: float):
+    """Compara a emenda (última coluna/linha → primeira) com o percentil 95 das diferenças
+    entre colunas/linhas vizinhas do interior. Assim um padrão suave com borda no trecho mais
+    íngreme não é punido, e uma costura real (salto muito maior que qualquer vizinhança) é."""
+    w, h = img.size
+    if horizontal:
+        borda = media_diff(img.crop((0, 0, 1, h)), img.crop((w - 1, 0, w, h)))
+        vizinhas = [media_diff(img.crop((x, 0, x + 1, h)), img.crop((x + 1, 0, x + 2, h))) for x in range(w - 1)]
+    else:
+        borda = media_diff(img.crop((0, 0, w, 1)), img.crop((0, h - 1, w, h)))
+        vizinhas = [media_diff(img.crop((0, y, w, y + 1)), img.crop((0, y + 1, w, y + 2))) for y in range(h - 1)]
+    ref = percentil(vizinhas, 0.95)
+    media = sum(vizinhas) / len(vizinhas) if vizinhas else 0.0
+    razao = borda / ref if ref > 1e-6 else (0.0 if borda < 1e-6 else float("inf"))
+    return {"diff_borda": round(borda, 3), "diff_interior_media": round(media, 3),
+            "diff_interior_p95": round(ref, 3), "razao": round(razao, 3), "sem_costura": razao <= limiar}
+
+
 def analisar(caminho: str, eixo: str, limiar: float, preview: str | None):
     from PIL import Image
     img = Image.open(caminho).convert("RGB")
@@ -38,17 +66,9 @@ def analisar(caminho: str, eixo: str, limiar: float, preview: str | None):
     res = {"arquivo": caminho, "largura": w, "altura": h, "potencia_de_2": pot(w) and pot(h),
            "quadrada": w == h, "limiar": limiar, "eixos": {}}
     if eixo in ("both", "horizontal"):
-        borda = media_diff(img.crop((0, 0, 1, h)), img.crop((w - 1, 0, w, h)))
-        interior = media_diff(img.crop((0, 0, w - 1, h)), img.crop((1, 0, w, h)))
-        razao = borda / interior if interior > 1e-6 else (0.0 if borda < 1e-6 else float("inf"))
-        res["eixos"]["horizontal"] = {"diff_borda": round(borda, 3), "diff_interior": round(interior, 3),
-                                      "razao": round(razao, 3), "sem_costura": razao <= limiar}
+        res["eixos"]["horizontal"] = avaliar_eixo(img, True, limiar)
     if eixo in ("both", "vertical"):
-        borda = media_diff(img.crop((0, 0, w, 1)), img.crop((0, h - 1, w, h)))
-        interior = media_diff(img.crop((0, 0, w, h - 1)), img.crop((0, 1, w, h)))
-        razao = borda / interior if interior > 1e-6 else (0.0 if borda < 1e-6 else float("inf"))
-        res["eixos"]["vertical"] = {"diff_borda": round(borda, 3), "diff_interior": round(interior, 3),
-                                    "razao": round(razao, 3), "sem_costura": razao <= limiar}
+        res["eixos"]["vertical"] = avaliar_eixo(img, False, limiar)
     if preview:
         tile = Image.new("RGB", (w * 2, h * 2))
         for dx in (0, w):
@@ -84,7 +104,8 @@ def main(argv=None):
     else:
         print(f"{res['arquivo']}: {res['largura']}x{res['altura']} pot2={res['potencia_de_2']} quadrada={res['quadrada']}")
         for nome, e in res["eixos"].items():
-            print(f"  {nome}: borda {e['diff_borda']} / interior {e['diff_interior']} = razão {e['razao']} "
+            print(f"  {nome}: borda {e['diff_borda']} / interior p95 {e['diff_interior_p95']} "
+                  f"(média {e['diff_interior_media']}) = razão {e['razao']} "
                   f"→ {'sem costura' if e['sem_costura'] else 'COSTURA'} (limiar {res['limiar']})")
         if "preview" in res:
             print(f"  preview 2x2: {res['preview']}")

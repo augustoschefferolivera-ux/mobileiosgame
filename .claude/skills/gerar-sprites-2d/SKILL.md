@@ -53,7 +53,7 @@ Entrega PNGs RGBA nomeados (`./assets/sprites/<cat>_<nome>_<variante>.png`), uma
 
 ## Passos
 
-1. **Montar o prompt** = prefixo literal do style card + descrição do asset + enquadramento fixo: "single subject, full body, centered, facing [direção da câmera da bible], neutral ground contact, isolated, no background, no shadow on ground, no text" + negativo do style card. Salve em `prompts/<cat>_<nome>_<variante>.txt` (o `PROVENANCE.md` aponta para ele). Veja exemplos e trechos de código em `references/prompts-e-modelos.md`.
+1. **Montar o prompt** = prefixo literal do style card + descrição do asset + enquadramento fixo: "single subject, full body, centered, facing [direção da câmera da bible], neutral ground contact, isolated, no background, no shadow on ground, no text" + negativo do style card. Salve em `prompts/sprites/<cat>_<nome>_<variante>.txt` (um arquivo por asset; o `PROVENANCE.md` aponta para ele). Veja exemplos e trechos de código em `references/prompts-e-modelos.md`.
 2. **Gerar variações** (4 por padrão) para `./assets/brutos/<data>/<cat>_<nome>_<variante>/`. Com gpt-image-1.5 use `background: "transparent"` e `output_format: "png"`; peça tamanho ≥ 2× o alvo final para reduzir depois (nunca ampliar). Guarde a resposta da API (modelo, snapshot, `n`, `size`, `quality`) em `resposta.json` na mesma pasta; seeds só quando o provedor expõe.
 3. **Recortar** quando a rota não dá alfa (Nano Banana Pro, GPT Image 2 opaco, Midjourney):
    ```bash
@@ -70,16 +70,16 @@ Entrega PNGs RGBA nomeados (`./assets/sprites/<cat>_<nome>_<variante>.png`), uma
 6. **Redimensionar para o alvo** com Lanczos (Pillow) para @3x; derive @2x/@1x só na exportação (`/atlas-e-exportacao-2d-mobile`). Se precisar ampliar (raro), prefira a resolução nativa 2K/4K do modelo (Nano Banana Pro) ou um upscaler aberto como Real-ESRGAN [secundário, confirmar licença], e registre na coluna Pós-processo.
 7. **Nomear e registrar**:
    ```bash
-   python3 .claude/skills/gerar-sprites-2d/scripts/nomear_e_registrar.py <escolhido>.png --categoria enm --nome bomba --variante idle --modelo gpt-image-1.5 --versao "<snapshot ou data>" --seed n/a --prompt-arquivo prompts/enm_bomba_idle.txt --refs n/a --pos "nativo transparente; Lanczos 384px" --edicao-humana "curadoria 1/4 por <nome>; motivo: ..." --aprovado-por "<nome>" --licenca "OpenAI: confirmar termos comerciais"
+   python3 .claude/skills/gerar-sprites-2d/scripts/nomear_e_registrar.py <escolhido>.png --categoria enm --nome bomba --variante idle --ferramenta "gpt-image-1.5 (API OpenAI)" --versao "gpt-image-1.5, chamada em <data>" --seed n/a --prompt-arquivo prompts/sprites/enm_bomba_idle.txt --referencia "style card v1" --selecao "1 de 4 candidatos" --edicao-humana "curadoria e aparo; <retoques> (<nome>, <data>)" --master masters/sprites/enm_bomba_idle.aseprite --licenca gpt-image-1-5 --pos "fundo transparente nativo; Lanczos 384 px" --aprovado-por "<nome>"
    ```
-   O script move para `./assets/sprites/`, evita colisão de nome e anexa a linha ao `PROVENANCE.md`.
+   O script move para `./assets/sprites/`, evita colisão de nome e grava uma seção `### caminho` no `PROVENANCE.md` no formato de `templates/PROVENANCE.md` (campos obrigatórios `tipo, ferramenta, versao, edicao_humana, master, data, licenca`; `--licenca` é o `id` da tabela de `LICENCAS.md`, ex. `gpt-image-1-5`, `nano-banana-pro`, `birefnet`). Retoques à mão ficam em `masters/sprites/<nome>.aseprite` (nunca dependa de regenerar). Audite com `python3 .claude/skills/licencas-e-proveniencia/scripts/check_provenance.py`.
 8. **Ver no jogo.** Entregue à skill do engine (SpriteKit/Unity/Godot/Phaser) para importar e tirar screenshot no simulador/navegador; copie o screenshot para `production/evidencias/<data>-sprites-<nome>/no-jogo.png`. Sem isso, o asset não está pronto.
 
 ## Critério de pronto e evidência
 
 - [ ] PNG RGBA em `./assets/sprites/` com nome `snake_case` ASCII e tamanho @3x da bible; alfa limpo (bordas sem halo no xadrez).
 - [ ] `production/evidencias/<data>-sprites-<nome>/` com `contact-sheet.png`, `contact-sheet-cenario.png`, decisão humana anotada e `no-jogo.png`.
-- [ ] Linha em `PROVENANCE.md` com modelo, versão/snapshot, prompt (arquivo), pós-processo, edição humana, aprovador e termos de licença.
+- [ ] Seção em `PROVENANCE.md` com ferramenta, versão/snapshot, prompt (arquivo), pós-processo, edição humana, master, aprovador e `licenca: LICENCAS.md#<id>`.
 - [ ] `./assets/brutos/` preservado (ou apagado deliberadamente e anotado): é a prova da curadoria.
 
 ## Armadilhas conhecidas

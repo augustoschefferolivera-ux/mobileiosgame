@@ -67,7 +67,7 @@ Entrega frames alinhados (`./assets/sprites/<chr>_<acao>_NN.png`), a sheet monta
    ```
    `fatiar` mede a caixa de alfa de cada frame e falha (código 2) se os pés variarem além da tolerância; `montar --alinhar-baseline` corrige frames soltos. Grade irregular da IA → ajuste `--margem/--espaco` ou refatie com `--frame-w/--frame-h`.
 6. **Curadoria em movimento.** Monte um GIF/MP4 de teste (ffmpeg a partir dos frames) e a folha de contato; o humano aprova ritmo, loop e leitura. Pixel art: requantize cada frame (`/pixel-art-pipeline`) antes.
-7. **Registrar** cada frame/sheet com `../gerar-sprites-2d/scripts/nomear_e_registrar.py` (modelo, rota, prompt, nº de tentativas, edição humana: frames escolhidos, retoques).
+7. **Registrar** a sheet (e frames soltos, se o engine os carrega) com `../gerar-sprites-2d/scripts/nomear_e_registrar.py` (`--ferramenta` = modelo/rota, prompt, `--selecao` com nº de tentativas, `--edicao-humana`: frames escolhidos e retoques, `--licenca` = id em `LICENCAS.md`).
 8. **Ver no jogo**: carregue o atlas no engine (abaixo), rode e grave vídeo/GIF em `production/evidencias/<data>-anim-<chr>-<acao>/no-jogo.gif`.
 
 ## Critério de pronto e evidência

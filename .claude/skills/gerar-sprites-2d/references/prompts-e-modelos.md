@@ -66,7 +66,7 @@ Mesma chamada da OpenAI com `model="gpt-image-2"` (snapshot `gpt-image-2-2026-04
 
 ## Midjourney V8.1 (manual)
 
-`/imagine <prefixo> <asset> --hd` (2K nativo), fundo branco liso, sem `--tile`. Baixe o PNG, rode `remove_bg.py`, registre manualmente em `PROVENANCE.md` (`--modelo "Midjourney V8.1" --versao "web, <data>" --seed <seed do job se visível>`). Sem rota de API confirmada; não use em lotes automatizados.
+`/imagine <prefixo> <asset> --hd` (2K nativo), fundo branco liso, sem `--tile`. Baixe o PNG, rode `remove_bg.py`, registre manualmente em `PROVENANCE.md` (`--ferramenta "Midjourney V8.1 (web)" --versao "V8.1, <data>" --seed <seed do job se visível> --licenca midjourney` — adicione o id à tabela de `LICENCAS.md`). Sem rota de API confirmada; não use em lotes automatizados.
 
 ## Recorte
 

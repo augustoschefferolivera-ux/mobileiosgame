@@ -62,7 +62,7 @@ Entrega atlases por cena/compressão em `./assets/atlas/` (PNG + JSON, ou `.spri
 5. **Alfa pré-multiplicado**: halos escuros = PNG com alfa reto desenhado como pré-multiplicado ou vice-versa. SpriteKit/Metal e a maioria dos engines esperam pré-multiplicado na GPU; deixe o empacotador "premultiply alpha" (TexturePacker tem a opção) ou garanta que o engine converta ao importar; nunca "corrija" pintando a borda. Teste no xadrez e sobre fundo preto.
 6. **Nine-slice**: molduras e botões levam bordas (l,t,r,b) registradas em `design/ui-mapa-de-nomes.md`; não podem ser rotacionadas no atlas (desligue "allow rotation" para UI) nem aparadas.
 7. **Medir no dispositivo/simulador**: rode a cena, leia a memória de textura (Xcode Memory/Metal debugger, Unity Memory Profiler, Godot monitor), compare com `design/orcamento-texturas.md`; screenshot + leitura em `production/evidencias/<data>-atlas-<cena>/`. Se estourar: 6x6→8x8, reduzir fundos para @2x, dividir cena, descarregar atlases entre cenas.
-8. **Registrar**: cada atlas ganha linha em `PROVENANCE.md` (`--modelo humano --pos "atlas <engine> ASTC 6x6; fontes: <lista>"`) — ele é derivado dos assets, mas o build o distribui.
+8. **Registrar**: cada atlas ganha seção em `PROVENANCE.md` (`--ferramenta "humano (<empacotador>)" --versao "<empacotador e versão>" --licenca <id do empacotador em LICENCAS.md> --pos "atlas <engine> ASTC 6x6; fontes: <lista>"`) — ele é derivado dos assets, mas o build o distribui.
 
 ## Critério de pronto e evidência
 
