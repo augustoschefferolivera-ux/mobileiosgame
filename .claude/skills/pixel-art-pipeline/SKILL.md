@@ -20,7 +20,7 @@ user-invocable: true
 
 # Pixel art pipeline
 
-Entrega sprites e tiles em grade exata (`assets/sprites/*.png`, `assets/tiles/*.png`) com paleta fechada, escala inteira e registro em `PROVENANCE.md`; a evidência é a folha de contato ampliada em escala inteira e o screenshot do jogo com filtro "nearest" ativo.
+Entrega sprites e tiles em grade exata (`./assets/sprites/*.png`, `./assets/tiles/*.png`) com paleta fechada, escala inteira e registro em `PROVENANCE.md`; a evidência é a folha de contato ampliada em escala inteira e o screenshot do jogo com filtro "nearest" ativo.
 
 ## Quando usar / quando não usar
 
@@ -57,7 +57,7 @@ Entrega sprites e tiles em grade exata (`assets/sprites/*.png`, `assets/tiles/*.
    | Já existe conceito HD aprovado | `scripts/requantizar_pixel.py` + Aseprite (pior rota) |
 
 2. **Prompt pixel-native.** Prefixo do style card + "pixel art, <N>px canvas, <K>-color palette (#...), 1px dark outline, no anti-aliasing, no dithering [ou dithering ordenado], side view, transparent background". Ferramentas pixel-native respeitam a grade; generalistas não ("sizes you don't control").
-3. **Gerar** (PixelLab/Retro Diffusion via MCP; configure o servidor conforme o README de cada pacote — não há `.mcp.json` nesta skill). Para Retro Diffusion, chame `estimate_inference_cost` antes de lotes. Salve brutos em `assets/brutos/<data>/<asset>/`.
+3. **Gerar** (PixelLab/Retro Diffusion via MCP; configure o servidor conforme o README de cada pacote — não há `.mcp.json` nesta skill). Para Retro Diffusion, chame `estimate_inference_cost` antes de lotes. Salve brutos em `./assets/brutos/<data>/<asset>/`.
 4. **Requantizar quando a origem for generalista**:
    ```bash
    python3 .claude/skills/pixel-art-pipeline/scripts/requantizar_pixel.py assets/brutos/<data>/<asset>/var_00.png --grade 32 --metodo box --paleta design/paleta.txt --saida assets/brutos/<data>/<asset>/px_00.png

@@ -36,12 +36,14 @@ Ambientes musicais contínuos (drones) podem dispensar o PyMusicLooper: gere com
 
 ## 3. Formato do `PROVENANCE.md` (uma linha por asset, tabela Markdown)
 
+Colunas alinhadas ao que `/licencas-e-proveniencia` audita (caminho, tipo, ferramenta e versão, seed, prompt, referências, edição humana, master, data, licença como `LICENCAS.md#id`, C2PA). O mesmo cabeçalho é o que `batch_sfx_elevenlabs.py` cria.
+
 ```
-| asset | data | ferramenta | versao/commit | seed/id | prompt | parametros | loop (samples) | edicao humana | licenca da saida | autor da curadoria |
-| mus_explora_floresta_loop | 2026-10-10 | ACE-Step 1.5 XL 4B | <commit> | 42 | "chiptune moderno..., 110 BPM, Dó maior, 4/4, ..." | bpm=110 key=C_major ts=4/4 dur=150 | 88200–5203800 @44100 | corte de loop, crossfade 10 ms, −18 LUFS | MIT | <nome> |
+| asset | tipo | data | ferramenta | versao | seed/id | prompt | parametros | referencias | master | edicao humana | licenca (LICENCAS.md#id) | c2pa | curadoria |
+| ./assets/audio/musica/mus_explora_floresta_loop.m4a | mus | 2026-10-10 | ACE-Step 1.5 XL 4B | <commit> | 42 | "chiptune moderno..., 110 BPM, Dó maior, 4/4, ..." | bpm=110 key=C_major ts=4/4 dur=150 loop=88200-5203800@44100 | - | ./masters/audio/musica/mus_explora_floresta_master.wav | corte de loop, crossfade 10 ms, −18 LUFS | LICENCAS.md#ace-step-1.5 (classe A, MIT) | nao | <nome> |
 ```
 
-Campos obrigatórios: ferramenta + versão, seed/ID, prompt completo, edição humana (é o que sustenta autoria humana nos EUA e no Brasil, conforme relatório), licença da saída.
+Campos obrigatórios: ferramenta + versão, seed/ID, prompt completo, master, edição humana (é o que sustenta autoria humana nos EUA e no Brasil, conforme relatório), licença da saída apontando para `LICENCAS.md`.
 
 ## 4. Orçamento
 

@@ -27,7 +27,7 @@ Entrega uma âncora de consistência (LoRA treinado com licença registrada, ou 
 
 - **Use** (treinar LoRA) quando: personagem recorrente em > 30 assets/frames, estilo único que o prefixo não segura, ou produção que dura meses com vários modelos.
 - **Use** (só referência + verificação) quando: < 30 assets, ou o modelo aceita referências (Nano Banana Pro ~14; Retro Diffusion Pro 9; FLUX.2 multi-referência).
-- **Não use** antes de `design/art-bible.md`, `design/paleta.txt` e `assets/referencias/chr_<nome>_sheet.png` existirem; sem âncora humana, um LoRA só congela a inconsistência.
+- **Não use** antes de `design/art-bible.md`, `design/paleta.txt` e `./assets/referencias/chr_<nome>_sheet.png` existirem; sem âncora humana, um LoRA só congela a inconsistência.
 
 ## Pré-requisitos
 
@@ -52,8 +52,8 @@ Entrega uma âncora de consistência (LoRA treinado com licença registrada, ou 
    | Referência por imagem em cada chamada (Nano Banana Pro, RD Pro, FLUX.2 edit) | por imagem | personagem recorrente, poses variadas |
    | LoRA de estilo/personagem | treino + inferência | > 30 assets, vários meses, troca de modelo |
 
-2. **Montar o dataset** (leia `references/dataset-e-treino.md`): 20+ imagens para o treinador FLUX.2 da fal (20–1.000; "dataset consistency will determine how well the LoRA performs"); 12–18 imagens em alta resolução para `ostris/flux-dev-lora-trainer` (1.000–3.000 passos, palavra-gatilho). Mesmo estilo, poses e enquadramentos variados, fundo neutro, nada fora da paleta. Legende cada imagem (`.txt` ao lado) com a palavra-gatilho + descrição curta. Salve em `assets/referencias/lora/<alvo>/` e liste origem de cada imagem (todas suas, registradas em `PROVENANCE.md`).
-3. **Treinar.** fal: `fal-ai/flux-2-trainer` (envie o zip; parâmetros na página do modelo). Replicate: `ostris/flux-dev-lora-trainer` com palavra-gatilho única (ex.: `rpsmsg`), 1.000–3.000 passos. Guarde o `.safetensors` **fora** do bundle do app, em `assets/referencias/lora/<alvo>/<alvo>_v01.safetensors` (ou no storage do serviço) e registre em `design/lora-registry.md`: base, licença, dataset (hashes), passos, data, custo.
+2. **Montar o dataset** (leia `references/dataset-e-treino.md`): 20+ imagens para o treinador FLUX.2 da fal (20–1.000; "dataset consistency will determine how well the LoRA performs"); 12–18 imagens em alta resolução para `ostris/flux-dev-lora-trainer` (1.000–3.000 passos, palavra-gatilho). Mesmo estilo, poses e enquadramentos variados, fundo neutro, nada fora da paleta. Legende cada imagem (`.txt` ao lado) com a palavra-gatilho + descrição curta. Salve em `./assets/referencias/lora/<alvo>/` e liste origem de cada imagem (todas suas, registradas em `PROVENANCE.md`).
+3. **Treinar.** fal: `fal-ai/flux-2-trainer` (envie o zip; parâmetros na página do modelo). Replicate: `ostris/flux-dev-lora-trainer` com palavra-gatilho única (ex.: `rpsmsg`), 1.000–3.000 passos. Guarde o `.safetensors` **fora** do bundle do app, em `./assets/referencias/lora/<alvo>/<alvo>_v01.safetensors` (ou no storage do serviço) e registre em `design/lora-registry.md`: base, licença, dataset (hashes), passos, data, custo.
 4. **Calibrar.** Gere 8 imagens de teste com seeds fixos (ex.: 1–8) e força 0,8–0,95 (dica do treinador da Replicate para looks estilizados); mantenha os mesmos seeds em toda comparação futura. Monte folha de contato ao lado da folha de referência.
 5. **Verificar** o lote (sempre, com ou sem LoRA):
    ```bash

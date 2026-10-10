@@ -70,9 +70,16 @@ Executado em 10/10/2026 com @gltf-transform/cli 4.5.1 e gltfpack 1.3 (npm):
 |---|---|---|---|---|---|---|
 | gltf-transform | `--lods 0.5,0.25,0.1 --error 0.001 --tex 512` | 20.000 | 9.999 | 5.000 | 4.509 (limitado por `--error`) | 1024² → 512² |
 
+| gltf-transform | idem com `--error 0.01` | 20.000 | 9.999 | 5.000 | 2.000 | 512² |
+| gltfpack 1.3 (npm) via script | `--engine gltfpack --lods 0.5,0.1 --tex 512 --ktx2 none --target web` (resize pelo glTF-Transform, depois `-si`, `-cc`, `-kn -km`) | 20.000 (280 KB) | 10.000 (248 KB) | 2.000 (209 KB) | — | 1024² → 512² |
+
 Observações: (1) `simplify --ratio` é um alvo; `--error` manda — para LODs distantes use
 `--error 0.01`. (2) O **gltfpack instalado pelo npm é build node.js sem BasisU**: `-tc` falha
 com "gltfpack was built without BasisU support"; use o binário nativo das releases do
 meshoptimizer ou o caminho `uastc`/`etc1s` do glTF-Transform (que exige `toktx`, ausente neste
-ambiente — portanto KTX2 **não foi exercitado** aqui). (3) Os números do seu asset vão para
-`production/evidencias/` do projeto, não para esta referência.
+ambiente — portanto KTX2 **não foi exercitado** aqui). (3) `gltfpack -tl/-ts` **só funcionam
+com `-tc/-tu/-tw`** ("Texture processing is only supported when texture compression is
+enabled"); sem KTX2 o script redimensiona com `gltf-transform resize`. (4) gltfpack adiciona
+`KHR_mesh_quantization` e `KHR_texture_transform` por padrão (`-noq` evita a quantização).
+(5) Os números do seu asset vão para `production/evidencias/` do projeto, não para esta
+referência.

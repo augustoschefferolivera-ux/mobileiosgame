@@ -37,7 +37,7 @@ Entrega `design/sound-bible.md` (1–2 páginas, aprovado por humano) e `design/
 ## Entradas
 
 1. Brief do jogo (gênero, plataforma, público, tom emocional, classificação etária).
-2. `feature_list.json` (ou equivalente): telas, mecânicas, inimigos, itens, áreas, estados de jogo.
+2. `feature_list.json` (formato de `templates/feature_list.json`: `id` `F-001`, `titulo`, `descricao`, `prioridade` numérica com 1 = mais alta): o tipo de cada feature é inferido de título/descrição.
 3. Art bible (`design/art-bible.md`) se existir: a paleta sonora deve casar com a visual.
 4. Engine escolhido na fase 2 (SpriteKit/RealityKit, Unity, Godot, web): define formatos na seção 7.
 5. Restrições: orçamento em MB para áudio, há voz ou não, idiomas.
@@ -51,8 +51,9 @@ Entrega `design/sound-bible.md` (1–2 páginas, aprovado por humano) e `design/
    - alvo de loudness −18 LUFS integrado / −1 dBTP (ASWG-R001 "Game (Mobile)") para o jogo; alvos por bus conforme a tabela da seção 5 do template;
    - BPM, tom e compasso **explícitos** para cada área/estado (sem isso não há loop limpo nem transição em barra);
    - naming `<cat>_<contexto>_<nome>_<variação>.<ext>` com `cat ∈ {mus, sfx, ui, amb, vo}`;
-   - pastas `assets/audio/{musica,sfx,voz}` para entregas e `assets/audio/_masters/` para WAV originais (fora do bundle);
-   - nenhuma referência a artista, música ou marca real dentro de prompts (risco 5.2.1 da App Store e de semelhança); referências ficam na bible como *descrição de qualidade*.
+   - pastas `./assets/audio/{musica,sfx,voz}` para entregas e `./masters/audio/` para WAV originais (fora do bundle);
+   - nenhuma referência a artista, música ou marca real dentro de prompts (risco 5.2.1 da App Store e de semelhança); referências ficam na bible como *descrição de qualidade*;
+   - §9 lista só ferramentas de classe A/B em `LICENCAS.md` (ver `/licencas-e-proveniencia`); masters em `./masters/audio/`.
 5. **Derivar a lista de assets** com `references/derivar-lista-de-assets.md`: para cada feature do `feature_list.json`, aplique a tabela "feature → eventos de áudio" e gere uma linha por asset em `design/audio/lista-de-assets-audio.csv` (cabeçalho em `assets/lista-de-assets-audio.csv`). Cada linha traz família, nome final, variações, loop, duração alvo, bus, alvo LUFS, prompt-base e prioridade (P0 = sem isso o jogo parece quebrado; P1 = polimento; P2 = luxo).
 6. **Estimar orçamento** no fim do CSV: nº de assets × variações; minutos de música; caracteres de voz. Anote custo estimado por ferramenta (ver `/gerar-musica`, `/gerar-sfx`, `/voz-e-dialogo`) e tamanho em MB após exportação (regra prática: música AAC 128 kbps ≈ 1 MB/min; SFX PCM 16-bit mono 44,1 kHz ≈ 88 KB/s).
 7. **Pedir aprovação explícita.** Mostre a bible e o CSV; pergunte "Posso gravar `design/sound-bible.md` e `design/audio/lista-de-assets-audio.csv`?". Só grave após "sim". Preencha a tabela "Aprovação" com data e nome.
@@ -64,6 +65,7 @@ Entrega `design/sound-bible.md` (1–2 páginas, aprovado por humano) e `design/
 - [ ] `design/audio/lista-de-assets-audio.csv` tem uma linha por asset, cada uma com nome final válido pelo naming, família, variações, bus e prioridade.
 - [ ] Toda feature P0 do `feature_list.json` tem pelo menos um asset de áudio associado (ou a palavra `silencio` justificada na coluna `observacao`).
 - [ ] `production/evidencias/<data>-sound-bible/` contém bible, CSV e `decisoes.md`.
+- Opcional, recomendado: o subagente `diretor-de-audio` revisa a bible e o CSV antes da aprovação humana.
 - Uma bible escrita sem aprovação humana registrada **não** está pronta.
 
 ## Armadilhas conhecidas

@@ -40,7 +40,7 @@ Entrega um jogo web 2D instalável como PWA que roda bem no Safari do iPhone, co
 
 ## Passos
 
-1. **Esqueleto** (fase 2): `src/main.ts` cria o `Phaser.Game` com `type: Phaser.AUTO`, `scale: { mode: Phaser.Scale.FIT, autoCenter: CENTER_BOTH, width: 390, height: 844 }`, `resolution`/`zoom` ajustados ao `devicePixelRatio` (limite 2 para memória), `input: { activePointers: 3 }`; cenas `Boot → Preload → Menu → Game`. Detalhes em `references/ios-safari-armadilhas.md`.
+1. **Esqueleto** (fase 2): `src/main.ts` cria o `Phaser.Game` com `type: Phaser.AUTO`, `scale: { mode: Phaser.Scale.FIT, autoCenter: CENTER_BOTH, width: 390, height: 844 }`, DPR limitado a `Math.min(devicePixelRatio, 2)` (memória de GPU), `input: { activePointers: 3 }`; cenas `Boot → Preload → Menu → Game`. Detalhes em `references/ios-safari-armadilhas.md`.
 2. **Canal de depuração**: `src/debug.ts` expõe `window.__GAME_DEBUG__ = { scene, score, fps, frame, lastEvent, errors[] }` atualizado por frame (`game.loop.actualFps`) e registra `window.onerror`/`unhandledrejection`. É o que o Playwright lê.
 3. **Primeira verificação**:
 

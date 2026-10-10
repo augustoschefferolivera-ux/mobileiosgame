@@ -45,7 +45,7 @@ Entrega um `AudioManager` (ou equivalente) com buses por categoria, loop por sam
 ## Entradas
 
 1. `design/sound-bible.md` §3 (BPM/tom/camadas/transições por estado), §5 (buses, prioridades, ducking), §7 (formatos).
-2. Assets finais em `assets/audio/{musica,sfx,voz}/` com `loop_points` em samples (`PROVENANCE.md`).
+2. Assets finais em `./assets/audio/{musica,sfx,voz}/` com `loop_points` em samples (`PROVENANCE.md`).
 3. Estados do jogo que disparam música (máquina de estados do gameplay) e lista de eventos de SFX (da lista de assets).
 4. Engine e versão fixados na fase 2.
 
@@ -73,6 +73,7 @@ Entrega um `AudioManager` (ou equivalente) com buses por categoria, loop por sam
 - [ ] Latência de SFX de UI medida e < 20 ms (log de timestamps) ou justificativa.
 - [ ] Interrupção (chamada), silêncio (botão), segundo plano e fones conectados/desconectados testados.
 - [ ] Testes passando em CI; evidência em `production/evidencias/`. Um parse check não é uma execução.
+- [ ] Mix no dispositivo revisado pelo subagente `diretor-de-audio` (volumes por bus, ducking, formatos) e pelo humano.
 
 ## Armadilhas conhecidas
 
@@ -89,7 +90,7 @@ Entrega um `AudioManager` (ou equivalente) com buses por categoria, loop por sam
 
 ## Exportar para mobile
 
-Carregamento: música/ambiente/voz como streams AAC (.m4a) de `assets/audio/musica` e `voz`; SFX como buffers PCM/IMA4 `.caf` de `assets/audio/sfx` em memória; Godot/web com Ogg Vorbis (web: AAC/MP3 de fallback para Safari). Orçamento de memória de SFX carregados ≤ [bible §7] (PCM mono 44,1 kHz ≈ 88 KB/s). **Verificar no simulador/dispositivo**: rode no iPhone real com alto-falante e fone, interrupções e segundo plano; registre em `production/evidencias/`. **Licença de saída**: o código do `AudioManager` é do projeto; Howler.js é MIT; skills da Unity são Unity Companion License (uso dentro de projetos Unity); nenhum asset muda de licença nesta etapa.
+Carregamento: música/ambiente/voz como streams AAC (.m4a) de `./assets/audio/musica` e `voz`; SFX como buffers PCM/IMA4 `.caf` de `./assets/audio/sfx` em memória; Godot/web com Ogg Vorbis (web: AAC/MP3 de fallback para Safari). Orçamento de memória de SFX carregados ≤ [bible §7] (PCM mono 44,1 kHz ≈ 88 KB/s). **Verificar no simulador/dispositivo**: rode no iPhone real com alto-falante e fone, interrupções e segundo plano; registre em `production/evidencias/`. **Licença de saída**: o código do `AudioManager` é do projeto; Howler.js é MIT; skills da Unity são Unity Companion License (uso dentro de projetos Unity); nenhum asset muda de licença nesta etapa.
 
 ## Fontes
 

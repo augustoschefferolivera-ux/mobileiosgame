@@ -93,7 +93,7 @@ Alvo geral do jogo no dispositivo: **−18 LUFS integrado, −1 dBTP** (ASWG-R00
 | Ambiente | AAC/Ogg, loop | 44,1 kHz | estéreo ou mono | streaming |
 | Voz | AAC/Ogg | 44,1 kHz (fonte 24–48 kHz) | mono | streaming |
 
-**Master arquivado**: todo asset tem um WAV 24-bit/44,1 ou 48 kHz em `assets/audio/_masters/`, fora do bundle do app.
+**Master arquivado**: todo asset tem um WAV 24-bit/44,1 ou 48 kHz em `./masters/audio/`, fora do bundle do app.
 
 **Naming**: `<cat>_<contexto>_<nome>_<variação>.<ext>` com `cat ∈ {mus, sfx, ui, amb, vo}`. Ex.: `sfx_jogador_passo_grama_03.caf`, `mus_explora_floresta_loop.m4a`, `vo_npc_ferreiro_saudacao_ptbr.m4a`.
 

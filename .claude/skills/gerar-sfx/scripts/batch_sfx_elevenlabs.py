@@ -140,8 +140,8 @@ def provenance_header(path: Path) -> None:
         return
     path.write_text(
         "# PROVENANCE — assets gerados por IA\n\n"
-        "| asset | data | ferramenta | versao | seed/id | prompt | parametros | edicao humana | licenca da saida | curadoria |\n"
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n",
+        "| asset | tipo | data | ferramenta | versao | seed/id | prompt | parametros | referencias | master | edicao humana | licenca (LICENCAS.md#id) | c2pa | curadoria |\n"
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n",
         encoding="utf-8",
     )
 
@@ -153,8 +153,10 @@ def provenance_line(dest: Path, row: dict, fmt: str, sdk_version: str) -> str:
     if row["influence"] is not None:
         params += f" prompt_influence={row['influence']}"
     prompt = row["prompt"].replace("|", "/").replace("\n", " ")
-    return (f"| {dest.as_posix()} | {_dt.date.today().isoformat()} | ElevenLabs Sound Effects v2 | SDK elevenlabs {sdk_version} | "
-            f"(request sem seed) | \"{prompt}\" | {params} | pendente (curadoria) | plano ElevenLabs: confirmar direitos comerciais do plano | pendente |\n")
+    tipo = "amb" if row["loop"] else ("ui" if row["categoria"] == "ui" else "sfx")
+    return (f"| {dest.as_posix()} | {tipo} | {_dt.date.today().isoformat()} | ElevenLabs Sound Effects v2 | SDK elevenlabs {sdk_version} | "
+            f"(API sem seed) | \"{prompt}\" | {params} | - | pendente (copiar aprovado para masters/audio/sfx/) | pendente (curadoria) | "
+            f"LICENCAS.md#elevenlabs-sfx-v2 (classe B: confirmar plano) | nao | pendente |\n")
 
 
 def main(argv: list[str]) -> int:

@@ -21,7 +21,7 @@ user-invocable: true
 
 # Gerar sprites 2D
 
-Entrega PNGs RGBA nomeados (`assets/sprites/<cat>_<nome>_<variante>.png`), uma folha de contato aprovada por humano em `production/evidencias/<data>-sprites-<nome>/` e uma linha por arquivo em `PROVENANCE.md`; o asset só é "pronto" quando aparece em screenshot do jogo rodando (skill do engine).
+Entrega PNGs RGBA nomeados (`./assets/sprites/<cat>_<nome>_<variante>.png`), uma folha de contato aprovada por humano em `production/evidencias/<data>-sprites-<nome>/` e uma linha por arquivo em `PROVENANCE.md`; o asset só é "pronto" quando aparece em screenshot do jogo rodando (skill do engine).
 
 ## Quando usar / quando não usar
 
@@ -32,7 +32,7 @@ Entrega PNGs RGBA nomeados (`assets/sprites/<cat>_<nome>_<variante>.png`), uma f
 
 ## Pré-requisitos
 
-- `design/style-card.md`, `design/art-bible.md`, `design/paleta.txt` e, para personagens, `assets/referencias/chr_<nome>_sheet.png`.
+- `design/style-card.md`, `design/art-bible.md`, `design/paleta.txt` e, para personagens, `./assets/referencias/chr_<nome>_sheet.png`.
 - Chaves: `OPENAI_API_KEY` (gpt-image-1.5; GPT Image 2) e/ou chave Gemini (Nano Banana Pro = `gemini-3-pro-image-preview`). Midjourney só via app/web (sem rota de API confirmada nesta pesquisa).
 - Python: `python3 -m pip install Pillow openai google-genai`; para recorte local `python3 -m pip install "rembg[cpu]"` (o modelo é baixado na 1ª execução; `scripts/remove_bg.py` avisa e exige `--permitir-download`). Alternativa paga sem instalação: Replicate `sprited/birefnet` ou `sprited/birefnet-toonout` (`REPLICATE_API_TOKEN`).
 - Orçamento por asset (preços de revendedores, [secundário, confirmar]): GPT Image 2 ≈ US$ 0,21 por 1024² em alta na fal; Nano Banana Pro ≈ US$ 0,13 (1K/2K); gpt-image-1.5 não capturado. Regra: 4 variações × 1 recorte por asset; estime antes de gerar lotes.
@@ -54,7 +54,7 @@ Entrega PNGs RGBA nomeados (`assets/sprites/<cat>_<nome>_<variante>.png`), uma f
 ## Passos
 
 1. **Montar o prompt** = prefixo literal do style card + descrição do asset + enquadramento fixo: "single subject, full body, centered, facing [direção da câmera da bible], neutral ground contact, isolated, no background, no shadow on ground, no text" + negativo do style card. Salve em `prompts/<cat>_<nome>_<variante>.txt` (o `PROVENANCE.md` aponta para ele). Veja exemplos e trechos de código em `references/prompts-e-modelos.md`.
-2. **Gerar variações** (4 por padrão) para `assets/brutos/<data>/<cat>_<nome>_<variante>/`. Com gpt-image-1.5 use `background: "transparent"` e `output_format: "png"`; peça tamanho ≥ 2× o alvo final para reduzir depois (nunca ampliar). Guarde a resposta da API (modelo, snapshot, `n`, `size`, `quality`) em `resposta.json` na mesma pasta; seeds só quando o provedor expõe.
+2. **Gerar variações** (4 por padrão) para `./assets/brutos/<data>/<cat>_<nome>_<variante>/`. Com gpt-image-1.5 use `background: "transparent"` e `output_format: "png"`; peça tamanho ≥ 2× o alvo final para reduzir depois (nunca ampliar). Guarde a resposta da API (modelo, snapshot, `n`, `size`, `quality`) em `resposta.json` na mesma pasta; seeds só quando o provedor expõe.
 3. **Recortar** quando a rota não dá alfa (Nano Banana Pro, GPT Image 2 opaco, Midjourney):
    ```bash
    python3 .claude/skills/gerar-sprites-2d/scripts/remove_bg.py assets/brutos/<data>/<asset> --saida assets/brutos/<data>/<asset>/recortes --aparar --margem 4 --relatorio assets/brutos/<data>/<asset>/recortes/relatorio.json
@@ -72,15 +72,15 @@ Entrega PNGs RGBA nomeados (`assets/sprites/<cat>_<nome>_<variante>.png`), uma f
    ```bash
    python3 .claude/skills/gerar-sprites-2d/scripts/nomear_e_registrar.py <escolhido>.png --categoria enm --nome bomba --variante idle --modelo gpt-image-1.5 --versao "<snapshot ou data>" --seed n/a --prompt-arquivo prompts/enm_bomba_idle.txt --refs n/a --pos "nativo transparente; Lanczos 384px" --edicao-humana "curadoria 1/4 por <nome>; motivo: ..." --aprovado-por "<nome>" --licenca "OpenAI: confirmar termos comerciais"
    ```
-   O script move para `assets/sprites/`, evita colisão de nome e anexa a linha ao `PROVENANCE.md`.
+   O script move para `./assets/sprites/`, evita colisão de nome e anexa a linha ao `PROVENANCE.md`.
 8. **Ver no jogo.** Entregue à skill do engine (SpriteKit/Unity/Godot/Phaser) para importar e tirar screenshot no simulador/navegador; copie o screenshot para `production/evidencias/<data>-sprites-<nome>/no-jogo.png`. Sem isso, o asset não está pronto.
 
 ## Critério de pronto e evidência
 
-- [ ] PNG RGBA em `assets/sprites/` com nome `snake_case` ASCII e tamanho @3x da bible; alfa limpo (bordas sem halo no xadrez).
+- [ ] PNG RGBA em `./assets/sprites/` com nome `snake_case` ASCII e tamanho @3x da bible; alfa limpo (bordas sem halo no xadrez).
 - [ ] `production/evidencias/<data>-sprites-<nome>/` com `contact-sheet.png`, `contact-sheet-cenario.png`, decisão humana anotada e `no-jogo.png`.
 - [ ] Linha em `PROVENANCE.md` com modelo, versão/snapshot, prompt (arquivo), pós-processo, edição humana, aprovador e termos de licença.
-- [ ] `assets/brutos/` preservado (ou apagado deliberadamente e anotado): é a prova da curadoria.
+- [ ] `./assets/brutos/` preservado (ou apagado deliberadamente e anotado): é a prova da curadoria.
 
 ## Armadilhas conhecidas
 

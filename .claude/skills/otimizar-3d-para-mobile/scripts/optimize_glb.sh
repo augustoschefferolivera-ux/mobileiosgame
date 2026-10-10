@@ -129,8 +129,18 @@ if [[ "$ENGINE" == "gltf-transform" ]]; then
     run gltf-transform resize "$BASE" "$BASE" --width "$TEX" --height "$TEX"
   fi
 else
-  # gltfpack limita texturas com -tl N na própria chamada; a base é a entrada
+  # gltfpack só redimensiona texturas (-tl) junto com -tc/-tu/-tw. Sem KTX2, redimensiona
+  # antes com glTF-Transform se existir; senão avisa e segue com as texturas originais.
   BASE="$INPUT"
+  if [[ "$TEX" != "0" && "$KTX2" == "none" ]]; then
+    if command -v gltf-transform >/dev/null 2>&1; then
+      BASE="$WORK/$NAME-base.glb"
+      run gltf-transform resize "$INPUT" "$BASE" --width "$TEX" --height "$TEX"
+    else
+      echo "aviso: texturas não redimensionadas — gltfpack só aplica -tl com -tc/-tu/-tw;" \
+           "instale @gltf-transform/cli ou use --ktx2 (binário nativo do gltfpack)" >&2
+    fi
+  fi
 fi
 
 # 3. LODs
@@ -156,7 +166,7 @@ gerar_lod() {  # $1 = índice, $2 = razão (vazio = LOD0)
     fi
   else
     local args=(-i "$BASE" -o "$out" -kn -km)
-    [[ "$TEX" != "0" ]] && args+=(-tl "$TEX")
+    [[ "$TEX" != "0" && "$KTX2" != "none" ]] && args+=(-tl "$TEX")
     [[ -n "$ratio" ]] && args+=(-si "$ratio")
     [[ "$KTX2" != "none" ]] && args+=(-tc)
     [[ "$COMPRESS" == "meshopt" ]] && args+=(-cc)

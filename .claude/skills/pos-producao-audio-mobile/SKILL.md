@@ -22,18 +22,18 @@ user-invocable: true
 
 # Pós-produção de áudio para mobile
 
-Entrega os arquivos finais em `assets/audio/{musica,sfx,voz}/` nos formatos do engine, normalizados por categoria, com `relatorio_lufs_<data>.csv` (antes/depois) e tabela de tamanhos em `production/evidencias/<data>-pos-audio/`; a evidência é o relatório com todos os arquivos `ok` e o build rodando com o áudio ouvido no simulador/dispositivo.
+Entrega os arquivos finais em `./assets/audio/{musica,sfx,voz}/` nos formatos do engine, normalizados por categoria, com `relatorio_lufs_<data>.csv` (antes/depois) e tabela de tamanhos em `production/evidencias/<data>-pos-audio/`; a evidência é o relatório com todos os arquivos `ok` e o build rodando com o áudio ouvido no simulador/dispositivo.
 
 ## Quando usar / quando não usar
 
 - **Use** depois da curadoria de cada lote (música, SFX, voz) e antes de importar no engine; e de novo na fase 8 quando o orçamento de MB ou o mix mudar.
 - **Use** para conferir um build: rode o script em `--dry-run` sobre a pasta de entrega e verifique se tudo está dentro da tolerância.
-- **Não use** sobre os masters em `assets/audio/_masters/`: eles ficam intocados; trabalhe sempre sobre cópias.
+- **Não use** sobre os masters em `./masters/audio/`: eles ficam intocados; trabalhe sempre sobre cópias.
 - **Não use** o LUFSNormalizer (PolyForm Noncommercial 1.0.0): só pyloudnorm (MIT) ou ffmpeg.
 
 ## Pré-requisitos
 
-- Python 3.10+ com `pip install pyloudnorm soundfile numpy scipy` (pyloudnorm MIT, BS.1770-4; soundfile BSD; libsndfile lê/escreve WAV, FLAC, OGG, CAF PCM).
+- Python 3.10+ com `pip install pyloudnorm soundfile numpy scipy` (pyloudnorm MIT, BS.1770-4; soundfile BSD; libsndfile lê/escreve WAV, FLAC, OGG, CAF PCM). Instalação centralizada: `/instalar-ferramentas`.
 - `ffmpeg` no PATH (AAC nativo, `libvorbis`, `adpcm_ima_wav`, muxer CAF) — ou `afconvert` no macOS para CAF/IMA4 e AAC da Apple.
 - Opcional: PyMusicLooper (MIT) se o loop ainda não tiver pontos (ver `/gerar-musica`).
 - `design/sound-bible.md` §5 (alvos por bus) e §7 (formatos, orçamento de MB).
@@ -47,7 +47,7 @@ Entrega os arquivos finais em `assets/audio/{musica,sfx,voz}/` nos formatos do e
 
 ## Passos
 
-1. **Separar por categoria.** Normalização é por lote, nunca por arquivo isolado misturando tipos (one-shots, loops, ambiente e diálogo em lotes separados). Copie os aprovados para `assets/audio/_trabalho/<categoria>/`.
+1. **Separar por categoria.** Normalização é por lote, nunca por arquivo isolado misturando tipos (one-shots, loops, ambiente e diálogo em lotes separados). Copie os aprovados para `./assets/audio/_trabalho/<categoria>/`.
 2. **Limpar cada arquivo**: cortar silêncio inicial (SFX devem começar no transiente: latência percebida) e final; fade-in 2–5 ms e fade-out 5–20 ms em one-shots para evitar cliques; para loops, crossfade de 5–20 ms na emenda **sem alterar o comprimento em samples** (receita em `references/formatos-ios-e-engines.md` §3, com soundfile/numpy ou `ffmpeg -af afade`). Registre LOOP_START/LOOP_END finais.
 3. **Medir e normalizar** o lote:
    ```bash
@@ -68,10 +68,11 @@ Entrega os arquivos finais em `assets/audio/{musica,sfx,voz}/` nos formatos do e
 ## Critério de pronto e evidência
 
 - [ ] `relatorio_lufs_<data>.csv` com 100% dos arquivos `ok` (ou `pico_normalizado` para SFX curtos), sem `limitado_por_pico` não justificado.
-- [ ] Arquivos finais no formato do engine em `assets/audio/{musica,sfx,voz}/` com naming da bible; masters intactos em `_masters/`.
+- [ ] Arquivos finais no formato do engine em `./assets/audio/{musica,sfx,voz}/` com naming da bible; masters intactos em `./masters/audio/`.
 - [ ] Tabela de tamanhos por pasta dentro do orçamento da bible §7.
 - [ ] Loops com LOOP_START/LOOP_END em samples registrados e ouvidos 3× sem clique.
 - [ ] Nota do humano: "ouvi no iPhone (alto-falante e fone) build <n>" em `production/evidencias/<data>-pos-audio/`.
+- [ ] Veredito do subagente `diretor-de-audio` (ele mede com pyloudnorm/`ffmpeg -af ebur128` e tolera ±1 LU; use `--tolerance 1` para reproduzir o critério dele) anexado à evidência.
 
 ## Armadilhas conhecidas
 
@@ -87,7 +88,7 @@ Entrega os arquivos finais em `assets/audio/{musica,sfx,voz}/` nos formatos do e
 
 ## Exportar para mobile
 
-Formatos finais: iOS → `.m4a` AAC 128–160 kbps estéreo 44,1 kHz (música/ambiente), AAC mono 64–96 kbps (voz), `.caf` PCM 16-bit mono 44,1 kHz ou IMA4 (SFX, UI a 32 kHz se precisar); Godot/web → Ogg Vorbis q4–q5; Unity → WAV + import settings (`optimize-audio`). Tamanhos: ver passo 6. O engine carrega de `assets/audio/{musica,sfx,voz}/` (ver `/audio-adaptativo-no-engine`). **Licença de saída**: esta skill não altera a licença do asset (vem do gerador, registrada em `PROVENANCE.md`); as ferramentas usadas são MIT/BSD/LGPL (pyloudnorm, soundfile, ffmpeg) e não impõem condições à saída.
+Formatos finais: iOS → `.m4a` AAC 128–160 kbps estéreo 44,1 kHz (música/ambiente), AAC mono 64–96 kbps (voz), `.caf` PCM 16-bit mono 44,1 kHz ou IMA4 (SFX, UI a 32 kHz se precisar); Godot/web → Ogg Vorbis q4–q5; Unity → WAV + import settings (`optimize-audio`). Tamanhos: ver passo 6. O engine carrega de `./assets/audio/{musica,sfx,voz}/` (ver `/audio-adaptativo-no-engine`). **Licença de saída**: esta skill não altera a licença do asset (vem do gerador, registrada em `PROVENANCE.md`); as ferramentas usadas são MIT/BSD/LGPL (pyloudnorm, soundfile, ffmpeg) e não impõem condições à saída.
 
 ## Fontes
 

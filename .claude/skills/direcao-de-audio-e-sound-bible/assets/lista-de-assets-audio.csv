@@ -1,4 +1,4 @@
 id_feature,prioridade,familia,nome_arquivo,variacoes,loop,duracao_s,bus,alvo_lufs,bpm,tom,prompt_base,ferramenta_sugerida,provisorio,observacao
-F01,P0,ui,ui_menu_confirmar,2,nao,0.2,ui,-20,,,"toque curto de confirmação, madeira macia, limpo, sem reverb, 0,2 s",elevenlabs-sfx,nao,
-F01,P0,mus,mus_menu_principal_loop,1,sim,75,musica,-18,84,La menor,"lo-fi acolhedor, piano elétrico e percussão de madeira, 84 BPM, Lá menor, 4/4, energia baixa, loop de menu, instrumental, sem vocais",ace-step,nao,
-F02,P0,sfx,sfx_jogador_pulo,3,nao,0.3,sfx,-18,,,"salto curto de personagem pequeno, whoosh leve com sopro de ar, cartoon, sem reverb, 0,3 s",elevenlabs-sfx,nao,
+F-001,P0,ui,ui_menu_confirmar,2,nao,0.2,ui,-20,,,"toque curto de confirmação, madeira macia, limpo, sem reverb, 0,2 s",elevenlabs-sfx,nao,
+F-001,P0,mus,mus_menu_principal_loop,1,sim,75,musica,-18,84,La menor,"lo-fi acolhedor, piano elétrico e percussão de madeira, 84 BPM, Lá menor, 4/4, energia baixa, loop de menu, instrumental, sem vocais",ace-step,nao,
+F-002,P0,sfx,sfx_jogador_pulo,3,nao,0.3,sfx,-18,,,"salto curto de personagem pequeno, whoosh leve com sopro de ar, cartoon, sem reverb, 0,3 s",elevenlabs-sfx,nao,

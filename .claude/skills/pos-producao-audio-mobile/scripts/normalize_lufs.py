@@ -53,7 +53,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     p.add_argument("--mode", choices=["lufs", "peak"], default="lufs",
                    help="lufs: ganho para o alvo LUFS respeitando o teto; peak: só normaliza o pico verdadeiro ao teto (SFX muito curtos)")
     p.add_argument("--out-dir", default=None, help="pasta de saída (padrão: <pasta da entrada>/_norm)")
-    p.add_argument("--in-place", action="store_true", help="sobrescreve os arquivos de entrada (use só sobre cópias; masters ficam em _masters/)")
+    p.add_argument("--in-place", action="store_true", help="sobrescreve os arquivos de entrada (use só sobre cópias; masters ficam em ./masters/audio/)")
     p.add_argument("--suffix", default="", help="sufixo adicionado ao nome de saída (ex.: _norm)")
     p.add_argument("--subtype", default="PCM_16", choices=["PCM_16", "PCM_24", "FLOAT"], help="subtipo WAV de saída (padrão PCM_16)")
     p.add_argument("--recursive", action="store_true", help="desce em subpastas")

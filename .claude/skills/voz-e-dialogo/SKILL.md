@@ -21,7 +21,7 @@ user-invocable: true
 
 # Voz e diálogo
 
-Entrega as linhas de voz aprovadas em `assets/audio/voz/<idioma>/` (naming `vo_<personagem>_<linha>_<idioma>`), o casting em `design/audio/casting-vozes.md`, termos de consentimento em `legal/` quando houver voz real, texto de divulgação, e linhas em `PROVENANCE.md`; evidência: humano ouviu cada linha P0 e marcou aprovada no roteiro.
+Entrega as linhas de voz aprovadas em `./assets/audio/voz/<idioma>/` (naming `vo_<personagem>_<linha>_<idioma>`), o casting em `design/audio/casting-vozes.md`, termos de consentimento em `legal/` quando houver voz real, texto de divulgação, e linhas em `PROVENANCE.md`; evidência: humano ouviu cada linha P0 e marcou aprovada no roteiro.
 
 ## Quando usar / quando não usar
 
@@ -41,7 +41,7 @@ Entrega as linhas de voz aprovadas em `assets/audio/voz/<idioma>/` (naming `vo_<
 | **Chatterbox** (Nano 110M, Multilingual, fine-tune pt-BR) | MIT; toda saída com watermark "Perth" | repositório Resemble; FluidAudio (beta Nano/Multilingual); swift-tts só Mac via MLX | clonagem zero-shot e controle `exaggeration`/`cfg_weight`; CPU |
 | **Qwen3-TTS** 0,6B/1,7B | Apache-2.0 | repositório oficial; português; clonagem em 3 s; swift-tts só Mac (MLX) | servidor próprio ou Mac |
 
-Evitar: F5-TTS (pesos CC-BY-NC), Supertonic 3 (pesos OpenRAIL-M, repo arquivado), VibeVoice (uso só pesquisa), Fish S2 self-host sem licença. Detalhes em `references/provedores-e-precos.md` e `references/on-device-ios.md`.
+Evitar: F5-TTS (pesos CC-BY-NC), Supertonic 3 (pesos OpenRAIL-M, repo arquivado), VibeVoice (uso só pesquisa), Fish S2 self-host sem licença. Detalhes em `references/provedores-e-precos.md` e `references/on-device-ios.md`. SDKs e MCP da ElevenLabs: `/instalar-ferramentas` (`.mcp.json` já declara `elevenlabs`); toda ferramenta usada entra em `LICENCAS.md` (`/licencas-e-proveniencia`).
 
 ## Entradas
 
@@ -56,7 +56,7 @@ Evitar: F5-TTS (pesos CC-BY-NC), Supertonic 3 (pesos OpenRAIL-M, repo arquivado)
 1. **Classificar as linhas**: central (protagonista, momentos-chave) vs periférica (NPCs genéricos, tutoriais, avisos). Recomende ator real para as centrais; registre a decisão. Se o humano optar por TTS em tudo, anote o risco (lição ARC Raiders) na evidência.
 2. **Casting**: para cada personagem, escolha 2–3 vozes candidatas do catálogo do provedor (nunca clone voz real sem termo). Gere a mesma linha de teste com cada voz; o humano escolhe; grave em `design/audio/casting-vozes.md` (personagem → provedor, `voice_id`, idioma, emoção padrão).
 3. **Consentimento e divulgação**: se qualquer voz vier de pessoa real (ator, amigo, o próprio dev), preencha `assets/termo-consentimento-voz.md` → `legal/consentimento-voz-<nome>.md` assinado antes de gerar. Escreva o texto de divulgação (ficha da loja e créditos): "Vozes de X sintetizadas com <ferramenta>; vozes de Y gravadas por atores" (HIG pede identificar uso de IA; Steam/itch exigem).
-4. **Pré-renderizar o diálogo fixo** (modo fixo), em blocos de cena de ≤2.000 chars e ≤10 vozes para o Text to Dialogue, passando `previous_text`/`future_text` com a linha anterior/posterior para continuidade prosódica; use `seed` fixo por cena e registre. Fish S2: insira tags de emoção da coluna `emocao`. OpenAI: coloque direção em `instructions`. Salve WAV/PCM no melhor formato do plano em `assets/audio/_masters/voz/` e MP3/AAC de trabalho em `assets/audio/voz/<idioma>/vo_<personagem>_<id_linha>_<idioma>.<ext>`.
+4. **Pré-renderizar o diálogo fixo** (modo fixo), em blocos de cena de ≤2.000 chars e ≤10 vozes para o Text to Dialogue, passando `previous_text`/`future_text` com a linha anterior/posterior para continuidade prosódica; use `seed` fixo por cena e registre. Fish S2: insira tags de emoção da coluna `emocao`. OpenAI: coloque direção em `instructions`. Salve WAV/PCM no melhor formato do plano em `./masters/audio/voz/` e MP3/AAC de trabalho em `./assets/audio/voz/<idioma>/vo_<personagem>_<id_linha>_<idioma>.<ext>`.
 5. **Texto dinâmico** (modo dinâmico, fase 7): integre Kokoro-82M via FluidAudio ou swift-tts; a voz pt-BR do Kokoro é fixa (sem clonagem); meça RTF no simulador e no dispositivo; mantenha fallback para `AVSpeechSynthesizer` do sistema (observe regressões reportadas no iOS 26: `AVSpeechSynthesisVoice(language:)` devolvendo voz padrão). Qualquer TTS em nuvem em runtime exige consentimento 5.1.2(i) antes da primeira transmissão e entra na classificação etária se for chat.
 6. **Revisar de ouvido** (humano): toda linha P0 ouvida; checar pronúncia de nomes próprios (use dicionário de pronúncia do provedor quando houver), ritmo, emoção. Regenerar o que falhar com `previous_text`/tags ajustadas; no máximo 3 passadas por linha antes de escalar para ator.
 7. **PROVENANCE.md**: por linha de voz: provedor, modelo (`eleven_v3`, `s2.1-pro`, `gpt-4o-mini-tts`, `Kokoro-82M`), `voice_id`, seed, texto, tags/instructions, edição humana, licença/plano, consentimento (link do termo).
@@ -64,11 +64,12 @@ Evitar: F5-TTS (pesos CC-BY-NC), Supertonic 3 (pesos OpenRAIL-M, repo arquivado)
 
 ## Critério de pronto e evidência
 
-- [ ] Toda linha P0 do roteiro tem arquivo em `assets/audio/voz/<idioma>/` com naming correto e coluna `aprovada=sim` assinada pelo humano.
+- [ ] Toda linha P0 do roteiro tem arquivo em `./assets/audio/voz/<idioma>/` com naming correto e coluna `aprovada=sim` assinada pelo humano.
 - [ ] `design/audio/casting-vozes.md` completo; `legal/consentimento-voz-*.md` para cada voz real.
 - [ ] Texto de divulgação pronto para a ficha da loja e créditos.
 - [ ] `PROVENANCE.md` com uma linha por arquivo de voz (provedor, voice_id, seed, texto).
 - [ ] Modo dinâmico: medição de RTF e tamanho do modelo no dispositivo (log em `production/evidencias/`).
+- [ ] Veredito `aprovado` do subagente `diretor-de-audio` (pronúncia pt-BR, ritmo, "flat", consentimento) na pasta de evidência.
 - Voz gerada e não ouvida **não** está pronta; "flat" é o defeito mais citado e só o ouvido detecta.
 
 ## Armadilhas conhecidas
@@ -85,7 +86,7 @@ Evitar: F5-TTS (pesos CC-BY-NC), Supertonic 3 (pesos OpenRAIL-M, repo arquivado)
 
 ## Exportar para mobile
 
-Via `/pos-producao-audio-mobile`: voz em **AAC (.m4a) mono 44,1 kHz** para iOS (fonte 24–48 kHz: Kokoro 24 kHz, Eleven PCM 44,1 kHz), **Ogg Vorbis** para Godot/web; −18 LUFS/−1 dBTP no lote de voz; tamanho ≈ 0,5 MB/min em AAC 64 kbps mono. O engine carrega de `assets/audio/voz/<idioma>/` com legenda associada por `id_linha` (ver `/audio-adaptativo-no-engine`). Modelo on-device: Kokoro CoreML ~80 MB, iOS 17/18+ conforme o pacote; embarque via On-Demand Resources ou Background Assets se passar do orçamento. **Licença de saída**: Eleven/Fish/OpenAI → termos do plano pago (comercial); Kokoro/Qwen3-TTS → Apache-2.0; Chatterbox → MIT com watermark Perth; vozes reais → o termo assinado define o escopo (jogo, trailers, DLC, idiomas).
+Via `/pos-producao-audio-mobile`: voz em **AAC (.m4a) mono 44,1 kHz** para iOS (fonte 24–48 kHz: Kokoro 24 kHz, Eleven PCM 44,1 kHz), **Ogg Vorbis** para Godot/web; −18 LUFS/−1 dBTP no lote de voz; tamanho ≈ 0,5 MB/min em AAC 64 kbps mono. O engine carrega de `./assets/audio/voz/<idioma>/` com legenda associada por `id_linha` (ver `/audio-adaptativo-no-engine`). Modelo on-device: Kokoro CoreML ~80 MB, iOS 17/18+ conforme o pacote; embarque via On-Demand Resources ou Background Assets se passar do orçamento. **Licença de saída**: Eleven/Fish/OpenAI → termos do plano pago (comercial); Kokoro/Qwen3-TTS → Apache-2.0; Chatterbox → MIT com watermark Perth; vozes reais → o termo assinado define o escopo (jogo, trailers, DLC, idiomas).
 
 ## Fontes
 

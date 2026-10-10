@@ -21,7 +21,7 @@ user-invocable: true
 
 # Direção de arte e style card
 
-Entrega `design/art-bible.md`, `design/style-card.md` e `assets/referencias/chr_<nome>_sheet.png` aprovados por um humano; a evidência é a tabela "Histórico de aprovações" preenchida e o teste de consistência (3 assets gerados só com o prefixo) salvo em `production/evidencias/<data>-direcao-de-arte/`.
+Entrega `design/art-bible.md`, `design/style-card.md` e `./assets/referencias/chr_<nome>_sheet.png` aprovados por um humano; a evidência é a tabela "Histórico de aprovações" preenchida e o teste de consistência (3 assets gerados só com o prefixo) salvo em `production/evidencias/<data>-direcao-de-arte/`.
 
 ## Quando usar / quando não usar
 
@@ -47,7 +47,7 @@ Entrega `design/art-bible.md`, `design/style-card.md` e `assets/referencias/chr_
 
 1. **Ler o que já governa.** Brief, `feature_list.json`, `CLAUDE.md`, `design/sound-bible.md` (se houver — a paleta visual deve conversar com a sonora). Se `design/art-bible.md` já existe, liste as seções com `[A definir]` e trabalhe só nelas.
 2. **Perguntar só o que o humano decide** (uma rodada, ≤ 6 perguntas): pixel art ou HD; vista de câmera; emoção central; referências amadas/odiadas; cor "do jogo" (a que aparece no ícone); o que nunca pode parecer (ex.: "nunca parecer clone de X").
-3. **Gerar 3 direções como moodboard.** Para cada direção, um prompt de ≤ 60 palavras descrevendo o mesmo herói e o mesmo cenário (leia `references/prompts-de-moodboard.md`). Gere 2–4 imagens por direção com gpt-image-1.5 (`background: "transparent"` para o herói; fundo opaco para o cenário) ou Nano Banana Pro. Salve em `assets/referencias/moodboard/<direcao>/`. Monte uma folha com `../gerar-sprites-2d/scripts/contact_sheet.py` e apresente ao humano com prós/contras para tela pequena. A pessoa escolhe; você recomenda.
+3. **Gerar 3 direções como moodboard.** Para cada direção, um prompt de ≤ 60 palavras descrevendo o mesmo herói e o mesmo cenário (leia `references/prompts-de-moodboard.md`). Gere 2–4 imagens por direção com gpt-image-1.5 (`background: "transparent"` para o herói; fundo opaco para o cenário) ou Nano Banana Pro. Salve em `./assets/referencias/moodboard/<direcao>/`. Monte uma folha com `../gerar-sprites-2d/scripts/contact_sheet.py` e apresente ao humano com prós/contras para tela pequena. A pessoa escolhe; você recomenda.
 4. **Extrair a paleta do moodboard escolhido** e deixar o humano nomear papéis:
    ```bash
    python3 .claude/skills/direcao-de-arte-e-style-card/scripts/extrair_paleta.py assets/referencias/moodboard/escolhido/*.png --cores 7 --saida design/paleta.txt --amostra design/paleta.png
@@ -55,7 +55,7 @@ Entrega `design/art-bible.md`, `design/style-card.md` e `assets/referencias/chr_
    Ajuste à mão (contraste texto/fundo ≥ 4,5:1; uma cor de perigo e uma de recompensa distinguíveis sem cor, por forma). `design/paleta.txt` é o que `/consistencia-com-lora` usa para medir desvio.
 5. **Preencher a art bible.** Copie `templates/art-bible.md` para `design/art-bible.md` e complete as seções 1–13. Regras que não dependem de gosto: luz-chave com direção única; sombra nunca preta pura; silhueta legível em 64 px; escala só inteira; nomes `snake_case` ASCII; atlas ≤ 2048² em iOS; lista negativa (seção 11) sempre com "sem texto na imagem, sem marca d'água, sem fundo atrás de personagem, sem nomes de artistas/marcas/personagens de terceiros".
 6. **Derivar o style card.** Copie `templates/style-card-ui.md` para `design/style-card.md`. Escreva o "Prefixo de prompt" (≤ 60 palavras, paleta hex literal, contorno, luz, enquadramento, "peça única, isolada, fundo transparente") e o negativo. Esse bloco é copiado literalmente no começo de todo prompt pelas outras skills.
-7. **Folha de referência por personagem recorrente.** Prompt = prefixo + "character reference sheet: front, side and back views, neutral pose, same proportions, plus 3 facial expressions and a color callout strip, white background" (leia `references/character-sheet.md`). Nano Banana Pro aceita a folha depois como referência em cada novo prompt; gpt-image-1.5 funciona com descrição textual detalhada. Salve `assets/referencias/chr_<nome>_sheet.png`, registre em `PROVENANCE.md` (`../gerar-sprites-2d/scripts/nomear_e_registrar.py`).
+7. **Folha de referência por personagem recorrente.** Prompt = prefixo + "character reference sheet: front, side and back views, neutral pose, same proportions, plus 3 facial expressions and a color callout strip, white background" (leia `references/character-sheet.md`). Nano Banana Pro aceita a folha depois como referência em cada novo prompt; gpt-image-1.5 funciona com descrição textual detalhada. Salve `./assets/referencias/chr_<nome>_sheet.png`, registre em `PROVENANCE.md` (`../gerar-sprites-2d/scripts/nomear_e_registrar.py`).
 8. **Teste de consistência (obrigatório).** Gere 3 assets de categorias diferentes (um inimigo, um prop, um botão) usando apenas prefixo + 1 frase. Monte contact sheet. Se o humano não disser "parece o mesmo jogo", volte ao passo 6 e aperte o prefixo (mais hex literais, menos adjetivos). Salve a folha em `production/evidencias/<data>-direcao-de-arte/teste-consistencia.png`.
 9. **Aprovação humana.** Pergunte "Posso gravar `design/art-bible.md` e `design/style-card.md` como aprovados?". Só então preencha o cabeçalho (`APROVADO <data> por <nome>`) e a tabela 14. Guarde moodboards descartados em `production/evidencias/<data>-direcao-de-arte/descartados/` com `decisoes.md` (por que não).
 
@@ -63,16 +63,16 @@ Entrega `design/art-bible.md`, `design/style-card.md` e `assets/referencias/chr_
 
 - [ ] `design/art-bible.md` sem `[A definir]` nas seções 1–7, 11 e 13; cabeçalho `APROVADO` com data e nome.
 - [ ] `design/style-card.md` com prefixo de prompt ≤ 60 palavras e negativo; `design/paleta.txt` com 5–7 hex.
-- [ ] `assets/referencias/chr_<nome>_sheet.png` para cada personagem recorrente, com linha em `PROVENANCE.md`.
+- [ ] `./assets/referencias/chr_<nome>_sheet.png` para cada personagem recorrente, com linha em `PROVENANCE.md`.
 - [ ] `production/evidencias/<data>-direcao-de-arte/` contém moodboards, `teste-consistencia.png` e `decisoes.md`.
-- [ ] `assets/referencias/ORIGEM.md` lista origem e licença de toda imagem de terceiros (referência é para olhos humanos; não vai para o bundle).
+- [ ] `./assets/referencias/ORIGEM.md` lista origem e licença de toda imagem de terceiros (referência é para olhos humanos; não vai para o bundle).
 
 ## Armadilhas conhecidas
 
 - **Prompt longo e adjetivo não é âncora.** O que segura estilo é hex literal, regra de luz e enquadramento repetidos; o resto é consistência por referência de imagem ou LoRA (`/consistencia-com-lora`).
 - **Elo não mede usabilidade de sprite.** Rankings de arena medem gosto em prompts genéricos; um modelo pixel-native pode servir melhor que o líder da arena (nota de pesquisa, KQ1).
 - **Genericidade é risco de loja.** App Store 4.3(b) pune apps "indistinguíveis"; a direção precisa de uma decisão visual que o gênero saturado não tem (relatório, checklist de riscos).
-- **Referência não é asset.** Imagens de terceiros em `assets/referencias/` nunca entram no build nem como imagem de referência em API sem checar licença.
+- **Referência não é asset.** Imagens de terceiros em `./assets/referencias/` nunca entram no build nem como imagem de referência em API sem checar licença.
 - **Mudou a bible, muda tudo.** Qualquer alteração em paleta/traço depois da fase 6 invalida assets prontos; registre a versão da bible em cada linha de `PROVENANCE.md` (coluna Notas).
 - **Texto em imagem:** proíba no prefixo. Texto é renderizado pelo engine (localização, Dynamic Type).
 

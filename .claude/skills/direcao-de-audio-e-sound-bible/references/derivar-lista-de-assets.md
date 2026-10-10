@@ -2,42 +2,42 @@
 
 Leia este arquivo no passo 5 da skill. O objetivo é sair com `design/audio/lista-de-assets-audio.csv` completo, uma linha por asset, sem inventar sons para features que não existem.
 
-## 1. Formato esperado do `feature_list.json`
+## 1. Formato real do `feature_list.json` (ver `templates/feature_list.json`)
 
-A fase 1 produz uma lista de features com, no mínimo, `id`, `nome`, `tipo` e `prioridade`. Exemplo mínimo que esta skill entende (campos extras são ignorados):
+Cada feature tem `id` (`F-001`), `titulo`, `descricao`, `criterio_de_aceite[]`, `evidencia_exigida[]`, `prioridade` (inteiro; **1 = mais alta**), `depende_de[]`, `status`. Não há campo `tipo`: o tipo de áudio é **inferido** de `titulo` + `descricao` pela tabela da seção 2. Exemplo real (abreviado):
 
 ```json
-[
-  {"id": "F01", "nome": "Menu principal", "tipo": "tela", "prioridade": "P0"},
-  {"id": "F02", "nome": "Pulo do jogador", "tipo": "mecanica", "prioridade": "P0"},
-  {"id": "F03", "nome": "Inimigo morcego", "tipo": "inimigo", "prioridade": "P1"},
-  {"id": "F04", "nome": "Fase floresta", "tipo": "area", "prioridade": "P0"},
-  {"id": "F05", "nome": "Loja de itens", "tipo": "tela", "prioridade": "P1"}
-]
+{"id": "F-001", "titulo": "Jogador toca em uma coluna e a peça cai na célula livre mais baixa",
+ "descricao": "Mecânica central do MVP. Entrada por toque ...", "prioridade": 2, "depende_de": ["F-000"], "status": "todo"}
 ```
 
-Se o arquivo não existir, derive a lista do brief e marque `provisorio=sim` em todas as linhas.
+Mapeamento de prioridade usado por esta skill (ajuste se o projeto definir outro): `prioridade` 1–2 → **P0**, 3–4 → **P1**, ≥5 → **P2**. Features com `status=cut` não geram assets; `blocked` geram linhas marcadas `observacao=feature bloqueada`.
 
-## 2. Tabela feature → eventos de áudio
+Se o arquivo não existir, derive a lista do `design/game-brief.md` e marque `provisorio=sim` em todas as linhas.
 
-| `tipo` da feature | Eventos de áudio padrão | Família | Variações | Loop |
-| --- | --- | --- | --- | --- |
-| `tela` (menu, HUD, loja, pausa) | abrir, fechar, confirmar, cancelar, erro, navegação | ui | 1–2 | não |
-| `tela` com música própria (menu principal, créditos) | música da tela | mus | 1 | sim |
-| `mecanica` do jogador (pulo, ataque, dash, coleta) | início da ação, acerto/sucesso, falha | sfx (jogador) | 3–5 | não |
-| `mecanica` de dano/morte do jogador | dano, morte, respawn | sfx (jogador) | 2–3 | não |
-| `inimigo` | aparecer, atacar, ser atingido, morrer | sfx (inimigo) | 2–3 | não |
-| `item`/`recompensa` | coletar, usar, raro | sfx (feedback) | 2–3 | não |
-| `area`/`fase` | música da área (camadas conforme bible §3), ambiente, stinger de entrada | mus + amb | 1 | sim |
-| `estado` (combate, tensão, vitória, game over) | música/stinger do estado | mus | 1 | depende |
-| `dialogo`/`npc` | linhas de voz, "blip" de texto | vo ou ui | por linha | não |
-| `sistema` (save, conquista, notificação) | confirmação, conquista | ui | 1 | não |
+O áudio em si também vira **feature** no `feature_list.json` (ex.: `F-0NN "Áudio do MVP: música de menu/jogo e SFX P0"`), com critérios verificáveis por script ("`relatorio_lufs_<data>.csv` com 100% ok", "loop ouvido 3× sem clique, nota em `production/evidencias/<data>-F-0NN/`", "log do jogo mostra evento de áudio em cada ação P0") e `evidencia_exigida` como `["log", "metrica", "teste"]`. A pasta de evidência segue o padrão `production/evidencias/<AAAA-MM-DD>-<id>/`.
+
+## 2. Tabela "palavras no título/descrição" → eventos de áudio
+
+| Palavras-chave em `titulo`/`descricao` | Tipo inferido | Eventos de áudio padrão | Família | Variações | Loop |
+| --- | --- | --- | --- | --- | --- |
+| menu, tela, HUD, loja, pausa, opções, botão | tela | abrir, fechar, confirmar, cancelar, erro, navegação | ui | 1–2 | não |
+| menu principal, créditos, título | tela com música | música da tela | mus | 1 | sim |
+| toca, arrasta, pula, ataca, dash, coleta, lança, peça cai | mecânica do jogador | início da ação, acerto/sucesso, falha/inválido | sfx (jogador) | 3–5 | não |
+| dano, vida, morte, respawn, perde | dano/morte | dano, morte, respawn | sfx (jogador) | 2–3 | não |
+| inimigo, boss, criatura, obstáculo móvel | inimigo | aparecer, atacar, ser atingido, morrer | sfx (inimigo) | 2–3 | não |
+| item, moeda, power-up, recompensa, combo, pontuação | item/recompensa | coletar, usar, raro, combo crescente | sfx (feedback) | 2–3 | não |
+| fase, área, mundo, bioma, nível | área | música da área (camadas conforme bible §3), ambiente, stinger de entrada | mus + amb | 1 | sim |
+| vitória, derrota, game over, fim de rodada, tempo esgotado | estado | stinger/música do estado | mus | 1 | depende |
+| diálogo, NPC, fala, narração, tutorial falado | diálogo | linhas de voz, "blip" de texto | vo ou ui | por linha | não |
+| salvar, conquista, notificação, ranking | sistema | confirmação, conquista | ui | 1 | não |
 
 Regras:
 - Feature P0 → assets P0. Nunca gere P2 antes de todos os P0 existirem.
-- Sons tocados mais de 3×/min (passos, tiros, moedas) exigem ≥3 variações (regra do template).
+- Sons tocados mais de 3×/min (passos, tiros, moedas, "peça cai") exigem ≥3 variações (regra do template).
 - Uma área sem música própria **pode** reutilizar a música de outra área: registre `reutiliza=<nome>` em vez de criar asset novo.
 - Não crie evento para o que a bible marcou como silêncio (ex.: "sem som de passos neste jogo").
+- Quando a inferência for ambígua, pergunte ao humano em vez de criar sons "por via das dúvidas".
 
 ## 3. Colunas do CSV
 
@@ -49,8 +49,8 @@ id_feature,prioridade,familia,nome_arquivo,variacoes,loop,duracao_s,bus,alvo_luf
 
 | Coluna | Como preencher |
 | --- | --- |
-| `id_feature` | o `id` da feature de origem (`F02`) |
-| `prioridade` | herda da feature (P0/P1/P2) |
+| `id_feature` | o `id` da feature de origem (`F-001`) |
+| `prioridade` | P0/P1/P2 pelo mapeamento da seção 1 |
 | `familia` | `mus`, `sfx`, `ui`, `amb`, `vo` |
 | `nome_arquivo` | naming da bible sem extensão nem número de variação: `sfx_jogador_pulo` |
 | `variacoes` | inteiro (1 para música/ambiente) |
@@ -60,7 +60,7 @@ id_feature,prioridade,familia,nome_arquivo,variacoes,loop,duracao_s,bus,alvo_luf
 | `alvo_lufs` | da tabela da bible §5 (ex.: `-18`, `-20`, `-24`) |
 | `bpm`, `tom` | só para `mus`; vem da bible §3 |
 | `prompt_base` | 1 frase, sem nomes reais: material + ação + espaço + caráter (ver §4) |
-| `ferramenta_sugerida` | `ace-step`, `stable-audio-3`, `elevenlabs-sfx`, `eleven-v3`, `fish-s2`, `kokoro`… |
+| `ferramenta_sugerida` | `ace-step`, `stable-audio-3`, `elevenlabs-sfx`, `eleven-v3`, `fish-s2`, `kokoro`… (todas precisam estar em `LICENCAS.md`, ver `/licencas-e-proveniencia`) |
 | `provisorio` | `sim` se derivado sem `feature_list.json` |
 | `observacao` | `reutiliza=…`, `silencio`, dependências |
 

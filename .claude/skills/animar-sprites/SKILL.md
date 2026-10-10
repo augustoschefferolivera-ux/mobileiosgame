@@ -21,7 +21,7 @@ user-invocable: true
 
 # Animar sprites
 
-Entrega frames alinhados (`assets/sprites/<chr>_<acao>_NN.png`), a sheet montada e o atlas JSON (`assets/atlas/<chr>_<acao>.json`), com relatório de linha de base e preview em `production/evidencias/<data>-anim-<chr>-<acao>/`; pronto só quando a animação roda no jogo em vídeo/GIF de evidência.
+Entrega frames alinhados (`./assets/sprites/<chr>_<acao>_NN.png`), a sheet montada e o atlas JSON (`./assets/atlas/<chr>_<acao>.json`), com relatório de linha de base e preview em `production/evidencias/<data>-anim-<chr>-<acao>/`; pronto só quando a animação roda no jogo em vídeo/GIF de evidência.
 
 ## Quando usar / quando não usar
 
@@ -31,7 +31,7 @@ Entrega frames alinhados (`assets/sprites/<chr>_<acao>_NN.png`), a sheet montada
 
 ## Pré-requisitos
 
-- Sprite-base com alfa limpo e `assets/referencias/chr_<nome>_sheet.png`; `design/style-card.md`.
+- Sprite-base com alfa limpo e `./assets/referencias/chr_<nome>_sheet.png`; `design/style-card.md`.
 - `python3 -m pip install Pillow`; `ffmpeg` no PATH para a rota C; ComfyUI com os custom nodes `comfyui-kjnodes` e `comfyui_layerstyle` + chave Gemini para a rota A.
 - Conta/créditos conforme a rota (tabela abaixo). Leia `references/rotas-de-animacao.md` para prompts, nós e custos reportados [secundário].
 - **Licença de saída**: Nano Banana Pro/Kling/Veo/Wan/Runway — termos comerciais não lidos ("confirmar" no PROVENANCE). `spine-animation-ai` é PolyForm Noncommercial: **não** usar em jogo comercial. Spine Runtimes exigem licença do Spine por quem edita [confirmar em esotericsoftware.com].
@@ -73,7 +73,7 @@ Entrega frames alinhados (`assets/sprites/<chr>_<acao>_NN.png`), a sheet montada
 ## Critério de pronto e evidência
 
 - [ ] Frames com célula uniforme, alfa limpo, baseline dentro da tolerância (saída do `fatiar` salva como `baseline.txt` + `baseline.png`).
-- [ ] `assets/atlas/<chr>_<acao>.json` (hash ou array) que o engine lê; sheet ≤ 2048².
+- [ ] `./assets/atlas/<chr>_<acao>.json` (hash ou array) que o engine lê; sheet ≤ 2048².
 - [ ] GIF/MP4 de prévia aprovado por humano e `no-jogo.gif` do engine rodando.
 - [ ] `PROVENANCE.md` com rota, modelo, prompt, tentativas e edição humana; "licença: confirmar" quando os termos não foram lidos.
 
