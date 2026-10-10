@@ -30,13 +30,20 @@ import datetime as _dt
 import sys
 from pathlib import Path
 
-try:
-    import numpy as np
-    import soundfile as sf
-    import pyloudnorm as pyln
-    from scipy.signal import resample_poly
-except ImportError as exc:  # pragma: no cover
-    sys.exit(f"Dependência ausente ({exc.name}). Instale: pip install pyloudnorm soundfile numpy scipy")
+np = sf = pyln = resample_poly = None  # carregados por _carregar_dependencias() após o parse de argumentos
+
+
+def _carregar_dependencias() -> None:
+    """Importa as dependências só quando há trabalho a fazer, para que --help funcione sem elas."""
+    global np, sf, pyln, resample_poly
+    try:
+        import numpy as _np
+        import soundfile as _sf
+        import pyloudnorm as _pyln
+        from scipy.signal import resample_poly as _resample_poly
+    except ImportError as exc:  # pragma: no cover
+        sys.exit(f"Dependência ausente ({exc.name}). Instale: pip install pyloudnorm soundfile numpy scipy")
+    np, sf, pyln, resample_poly = _np, _sf, _pyln, _resample_poly
 
 AUDIO_EXT = {".wav", ".flac", ".ogg", ".oga", ".caf", ".aif", ".aiff", ".aifc", ".w64", ".rf64"}
 
@@ -152,6 +159,7 @@ def process(path: Path, args: argparse.Namespace) -> dict:
 
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
+    _carregar_dependencias()
     files = collect(args.inputs, args.recursive)
     if not files:
         sys.exit("Nenhum arquivo de áudio encontrado.")

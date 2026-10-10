@@ -37,7 +37,7 @@ Entrega um jogo 3D web que carrega rápido e roda estável no Safari do iPhone, 
 
 ## Entradas
 
-- Brief (câmera, número de objetos, alvo de fps), `production/feature_list.json`, modelos GLB das skills de 3D (já com orçamento ≤100K tris/2048² por asset — regra da Apple que também cabe no Safari).
+- Brief (câmera, número de objetos, alvo de fps), `feature_list.json`, modelos GLB das skills de 3D (já com orçamento ≤100K tris/2048² por asset — regra da Apple que também cabe no Safari).
 
 ## Passos
 

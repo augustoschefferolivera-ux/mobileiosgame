@@ -47,7 +47,7 @@ Entrega um projeto Xcode 3D jogável (SwiftUI + `RealityView`, entidades/compone
 
 - Brief com câmera (fixa, orbital, terceira pessoa), número de objetos simultâneos, se usa AR, dispositivos mínimos.
 - Assets 3D já otimizados: **≤100 mil triângulos e um conjunto de texturas 2048×2048 por modelo** (orientação da Apple para AR Quick Look, reafirmada em 2021; RealityKit tem "um pouco mais de folga"), em USDZ.
-- `production/feature_list.json` com a feature atual.
+- `feature_list.json` com a feature atual.
 
 ## Passos
 

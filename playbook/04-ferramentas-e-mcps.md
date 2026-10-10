@@ -21,7 +21,7 @@ são os mantidos em out/2026 (estrelas e datas lidas no GitHub em 10/10/2026).
 | `mobilebuild` | `npx -y mobilebuildmcp@latest mcp` | MobileBuildMCP (ex-XcodeBuildMCP, getsentry): build, simuladores, dispositivos, automação de UI (AXe), LLDB, logs | macOS 14.5+, Xcode 16+; renomeado na 2.7.1 (pacote e variáveis mudaram); telemetria Sentry opt-out |
 | `ios-simulator` | `npx -y ios-simulator-mcp@latest` | `ui_tap`, `ui_swipe`, `screenshot`, `record_video` por coordenada | ≥ 1.3.3 (versões anteriores tinham injeção de comando) |
 | `blender` | `uvx mcp-for-blender` | Blender MCP (30k★, MIT): `execute_blender_code`, importar/limpar/exportar, integrações Poly Haven/Sketchfab/Tripo/Rodin | Socket local **sem autenticação**: só loopback/VM; instale o add-on com `uvx mcp-for-blender install-addon` |
-| `elevenlabs` | HTTP `https://api.elevenlabs.io/v1/mcp` | SFX v2 (`loop`), TTS, Text to Dialogue, Eleven Music (ver licença) | `ELEVENLABS_API_KEY` no ambiente; MCP local está deprecado |
+| `elevenlabs` | HTTP `https://api.elevenlabs.io/v1/mcp` | SFX v2 (`loop`), TTS, Text to Dialogue, Eleven Music (ver licença) | `ELEVENLABS_API_KEY` no ambiente; MCP local está deprecado. Método de autenticação do MCP hospedado (cabeçalho `xi-api-key` vs OAuth via `/mcp`) [confirmar na doc da ElevenLabs] |
 
 Para aprovar os servidores do projeto na primeira execução, o Claude Code pergunta; depois
 `claude mcp list` deve mostrar todos conectados.

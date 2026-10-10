@@ -11,7 +11,7 @@
 # CONTRATO DE SAÍDA (usado pelo Stop hook em .claude/settings.json e por /ciclo-de-feature):
 #   exit 0  -> verificado: o jogo construiu, rodou, screenshot e log foram gravados em $VERIFY_OUT
 #   exit 2  -> verificação FALHOU: motivo em stderr (uma linha primeiro); o hook faz o agente continuar
-#   exit 1  -> erro de CONFIGURAÇÃO (engine não detectada, verificador ausente, --help): não é falha do jogo;
+#   exit 1  -> erro de CONFIGURAÇÃO (engine não detectada, verificador ausente): não é falha do jogo;
 #              o hook deve avisar e permitir parar, para não travar o agente em um loop sem saída
 #
 # Variáveis repassadas ao verificador da engine (contrato que engine-<x>/scripts/verify.sh deve honrar):
@@ -52,7 +52,7 @@ while [ $# -gt 0 ]; do
     --engine) ENGINE_OVERRIDE="${2:-}"; shift 2 ;;
     --dry-run) VERIFY_DRYRUN=1; shift ;;
     --list) LIST=1; shift ;;
-    --help|-h) usage; exit 1 ;;
+    --help|-h) usage; exit 0 ;;
     *) echo "verify.sh: argumento desconhecido: $1" >&2; usage; exit 1 ;;
   esac
 done

@@ -104,7 +104,7 @@ def check_skill(path):
         if not os.path.exists(os.path.join(skill_dir, ref)):
             errors.append(f"arquivo citado não existe: {ref}")
     for s in glob.glob(os.path.join(skill_dir, "scripts", "*")):
-        if os.path.isfile(s) and not os.access(s, os.X_OK) and not s.endswith((".md", ".txt", ".csv", ".json")):
+        if os.path.isfile(s) and not os.access(s, os.X_OK) and not s.endswith((".md", ".txt", ".csv", ".json", ".gd", ".cs", ".swift", ".ts", ".yaml", ".yml", ".gdshader")):
             warnings.append(f"script sem permissão de execução: scripts/{os.path.basename(s)} (chmod +x)")
     return {"dir": d, "errors": errors, "warnings": warnings, "fm": fm, "meta": meta}
 

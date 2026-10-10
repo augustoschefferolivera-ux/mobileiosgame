@@ -31,7 +31,7 @@ Entrega uma decisão documentada (`production/decisoes/empacotamento.md`) e, se 
 
 ## Pré-requisitos
 
-- Jogo web passando em `engine-web-phaser`/`engine-web-threejs` `scripts/verify.sh` (build limpo, sem erros, fps ok).
+- Jogo web passando em `.claude/skills/engine-web-phaser/scripts/verify.sh` (ou o de `engine-web-threejs`) (build limpo, sem erros, fps ok).
 - Node 20+; macOS com Xcode; Apple Developer Program (bundle id, Team).
 - Capacitor: `npm i @capacitor/core @capacitor/cli @capacitor/ios` **[comandos não lidos nesta pesquisa; confirme em capacitorjs.com/docs]**.
 - IAP: RevenueCat (`@revenuecat/purchases-capacitor`) **[confirme]** ou plug-in StoreKit da comunidade; produtos criados em App Store Connect.

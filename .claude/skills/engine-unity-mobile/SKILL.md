@@ -48,7 +48,7 @@ Entrega um projeto Unity com assets serializados em texto, plug-in oficial insta
 
 ## Entradas
 
-- Brief (2D/3D, retrato/paisagem, monetização), `production/feature_list.json`, art bible.
+- Brief (2D/3D, retrato/paisagem, monetização), `feature_list.json`, art bible.
 - Pipeline de render decidido (URP para mobile; `migrate-birp-to-urp` se herdou Built-in).
 
 ## Passos

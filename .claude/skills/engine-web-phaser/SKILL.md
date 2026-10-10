@@ -36,7 +36,7 @@ Entrega um jogo web 2D instalável como PWA que roda bem no Safari do iPhone, co
 
 ## Entradas
 
-- Brief (orientação, resolução lógica, alvo de fps), `production/feature_list.json`, atlases exportados (TexturePacker/free-tex-packer JSON Hash) em `public/assets/`.
+- Brief (orientação, resolução lógica, alvo de fps), `feature_list.json`, atlases exportados (TexturePacker/free-tex-packer JSON Hash) em `public/assets/`.
 
 ## Passos
 

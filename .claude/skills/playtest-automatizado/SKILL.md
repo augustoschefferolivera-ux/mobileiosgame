@@ -37,7 +37,7 @@ Entrega um relatório `production/playtests/<data>-<feature>.md` com passos exec
 
 ## Entradas
 
-- Feature e critério de aceite (de `production/feature_list.json`), build (scheme/simulador ou URL), screenshots de referência (mockups da direção de arte) em `production/referencias/`, roteiro anterior se for regressão.
+- Feature e critério de aceite (de `feature_list.json`), build (scheme/simulador ou URL), screenshots de referência (mockups da direção de arte) em `production/referencias/`, roteiro anterior se for regressão.
 
 ## Passos
 
@@ -59,7 +59,7 @@ Entrega um relatório `production/playtests/<data>-<feature>.md` com passos exec
 
 - `production/playtests/<data>-<feature>.md` completo, com veredito do crítico e pelo menos um par antes/depois por passo.
 - `production/evidencias/<data>-<feature>/` com screenshots, `debug_state.json`, log, `fps.txt` (ou saída MetricKit) e `diff-*.png` quando houve referência.
-- Reprovado ou bloqueado → feature continua `failing`. "Rodou sem crash" não é aprovação sem conferir o critério de aceite.
+- Reprovado ou bloqueado → feature continua `in_progress`. "Rodou sem crash" não é aprovação sem conferir o critério de aceite.
 
 ## Verificar no simulador/dispositivo
 

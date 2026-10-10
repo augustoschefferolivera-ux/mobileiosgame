@@ -48,8 +48,8 @@ claude mcp add --transport stdio xcode -- xcrun mcpbridge
 
 ## Entradas
 
-- `production/brief.md` (ou equivalente): gênero, orientação (retrato/paisagem), dispositivos mínimos, se usa Game Center/IAP.
-- `production/feature_list.json`: feature atual marcada como `failing`; uma feature por sessão.
+- `design/game-brief.md`: gênero, orientação (retrato/paisagem), dispositivos mínimos, se usa Game Center/IAP.
+- `feature_list.json`: feature atual marcada como `in_progress`; uma feature por sessão.
 - Art bible/atlases já exportados em `@2x/@3x` (skills de arte) — ou placeholders coloridos gerados por código (`SKShapeNode`) até os assets chegarem.
 
 ## Passos
@@ -79,7 +79,7 @@ claude mcp add --transport stdio xcode -- xcrun mcpbridge
 - `scripts/verify.sh --feature <slug> --test` saiu 0 **nesta sessão**.
 - Em `production/evidencias/<data>-<feature>/` existem: `xcodebuild.log`, `screenshot.png` (a tela esperada, não a de launch), `app.log`, `debug_state.json` com `scene` igual ao esperado, `resumo.md`.
 - Testes de lógica passaram (`test.xcresult` presente quando `--test`).
-- Um parse check (só compilar) não é uma execução: sem screenshot do simulador, a feature continua `failing`.
+- Um parse check (só compilar) não é uma execução: sem screenshot do simulador, a feature continua `in_progress`.
 
 ## Verificar no simulador/dispositivo
 

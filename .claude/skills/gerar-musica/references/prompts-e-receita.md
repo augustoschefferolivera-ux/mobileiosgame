@@ -34,16 +34,32 @@ Por ferramenta:
 
 Ambientes musicais contínuos (drones) podem dispensar o PyMusicLooper: gere com ElevenLabs SFX v2 `loop=true` (ver `/gerar-sfx`).
 
-## 3. Formato do `PROVENANCE.md` (uma linha por asset, tabela Markdown)
+## 3. Formato do `PROVENANCE.md` (uma seção por asset)
 
-Colunas alinhadas ao que `/licencas-e-proveniencia` audita (caminho, tipo, ferramenta e versão, seed, prompt, referências, edição humana, master, data, licença como `LICENCAS.md#id`, C2PA). O mesmo cabeçalho é o que `batch_sfx_elevenlabs.py` cria.
+Siga `templates/PROVENANCE.md`: uma seção `### <caminho/do/asset>` com os campos obrigatórios
+`tipo`, `ferramenta`, `versao`, `edicao_humana`, `master`, `data`, `licenca` (apontando para o `id`
+em `LICENCAS.md`) e os opcionais `seed`, `prompt`, `parametros`, `referencia`, `c2pa`, `selecao`.
+É o formato que `python3 .claude/skills/licencas-e-proveniencia/scripts/check_provenance.py` audita.
 
+```markdown
+### assets/audio/musica/mus_explora_floresta_loop.m4a
+- tipo: música em loop (exploração, floresta)
+- ferramenta: ACE-Step 1.5 XL 4B (local)
+- versao: <commit ou tag do repositório ace-step/ACE-Step-1.5>
+- data: 2026-10-10
+- seed: 42
+- prompt: "chiptune moderno, 110 BPM, Dó maior, 4/4, pads suaves, sem vocal"
+- parametros: bpm=110 key=C_major ts=4/4 dur=150 stems=true
+- referencia: design/sound-bible.md §2 (área floresta)
+- master: masters/audio/musica/mus_explora_floresta.wav
+- edicao_humana: escolhido 1 de 8 candidatos; loop cortado com PyMusicLooper (intro 0–12 s); −18 LUFS (Augusto, 2026-10-10)
+- licenca: LICENCAS.md#ace-step-1-5
+- c2pa: nao
+- selecao: aprovado pelo subagente diretor-de-audio em production/criticas/2026-10-10-mus_explora.md
 ```
-| asset | tipo | data | ferramenta | versao | seed/id | prompt | parametros | referencias | master | edicao humana | licenca (LICENCAS.md#id) | c2pa | curadoria |
-| ./assets/audio/musica/mus_explora_floresta_loop.m4a | mus | 2026-10-10 | ACE-Step 1.5 XL 4B | <commit> | 42 | "chiptune moderno..., 110 BPM, Dó maior, 4/4, ..." | bpm=110 key=C_major ts=4/4 dur=150 loop=88200-5203800@44100 | - | ./masters/audio/musica/mus_explora_floresta_master.wav | corte de loop, crossfade 10 ms, −18 LUFS | LICENCAS.md#ace-step-1.5 (classe A, MIT) | nao | <nome> |
-```
 
-Campos obrigatórios: ferramenta + versão, seed/ID, prompt completo, master, edição humana (é o que sustenta autoria humana nos EUA e no Brasil, conforme relatório), licença da saída apontando para `LICENCAS.md`.
+Campos que sustentam a autoria humana nos EUA e no Brasil (conforme o relatório): `edicao_humana`
+e `selecao`. Masters em `masters/audio/`; nunca dependa de regenerar.
 
 ## 4. Orçamento
 

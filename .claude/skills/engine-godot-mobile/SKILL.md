@@ -43,7 +43,7 @@ godot --version            # esperado: 4.7.x.stable
 
 ## Entradas
 
-- Brief; `production/feature_list.json`; art bible; decisão 2D/3D e renderer (Mobile ou Compatibility — ver armadilhas).
+- Brief; `feature_list.json`; art bible; decisão 2D/3D e renderer (Mobile ou Compatibility — ver armadilhas).
 
 ## Passos
 

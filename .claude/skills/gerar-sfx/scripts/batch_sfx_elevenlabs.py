@@ -136,27 +136,44 @@ def write_audio(dest: Path, data: bytes, fmt: str, pcm_channels: int) -> None:
 
 
 def provenance_header(path: Path) -> None:
+    """Cria um PROVENANCE.md mínimo no formato por seção de templates/PROVENANCE.md (auditado por
+    .claude/skills/licencas-e-proveniencia/scripts/check_provenance.py). Não toca em arquivo existente."""
     if path.exists() and path.stat().st_size > 0:
         return
     path.write_text(
-        "# PROVENANCE — assets gerados por IA\n\n"
-        "| asset | tipo | data | ferramenta | versao | seed/id | prompt | parametros | referencias | master | edicao humana | licenca (LICENCAS.md#id) | c2pa | curadoria |\n"
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n",
+        "# PROVENANCE — [Nome do jogo]\n\n"
+        "Registro de proveniência por asset (ver templates/PROVENANCE.md para as convenções).\n\n"
+        "## Assets\n",
         encoding="utf-8",
     )
 
 
 def provenance_line(dest: Path, row: dict, fmt: str, sdk_version: str) -> str:
+    """Uma seção `### <caminho>` por candidato gerado, com os campos obrigatórios do template
+    (tipo, ferramenta, versao, edicao_humana, master, data, licenca) e os opcionais úteis."""
     params = f"model={MODEL_ID} output_format={fmt} loop={str(row['loop']).lower()}"
     if row["duration"] is not None:
         params += f" duration_seconds={row['duration']}"
     if row["influence"] is not None:
         params += f" prompt_influence={row['influence']}"
-    prompt = row["prompt"].replace("|", "/").replace("\n", " ")
-    tipo = "amb" if row["loop"] else ("ui" if row["categoria"] == "ui" else "sfx")
-    return (f"| {dest.as_posix()} | {tipo} | {_dt.date.today().isoformat()} | ElevenLabs Sound Effects v2 | SDK elevenlabs {sdk_version} | "
-            f"(API sem seed) | \"{prompt}\" | {params} | - | pendente (copiar aprovado para masters/audio/sfx/) | pendente (curadoria) | "
-            f"LICENCAS.md#elevenlabs-sfx-v2 (classe B: confirmar plano) | nao | pendente |\n")
+    prompt = row["prompt"].replace("\n", " ").strip()
+    tipo = "ambiente em loop" if row["loop"] else ("SFX de UI" if row["categoria"] == "ui" else "SFX")
+    return (
+        f"\n### {dest.as_posix()}\n"
+        f"- tipo: {tipo} (candidato gerado; {fmt})\n"
+        f"- ferramenta: ElevenLabs Sound Effects v2 (API; modelo {MODEL_ID})\n"
+        f"- versao: SDK elevenlabs {sdk_version}\n"
+        f"- data: {_dt.date.today().isoformat()}\n"
+        f"- seed: n/a (a API não expõe seed)\n"
+        f"- prompt: \"{prompt}\"\n"
+        f"- parametros: {params}\n"
+        f"- referencia: nenhuma\n"
+        f"- master: pendente — copie o candidato aprovado para masters/audio/sfx/ e atualize este campo\n"
+        f"- edicao_humana: pendente — registre a curadoria (quem escolheu entre os candidatos, quando) e edições (aparar, normalizar)\n"
+        f"- licenca: LICENCAS.md#elevenlabs-sfx-v2\n"
+        f"- c2pa: nao\n"
+        f"- selecao: pendente\n"
+    )
 
 
 def main(argv: list[str]) -> int:
