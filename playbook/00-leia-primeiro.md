@@ -35,7 +35,8 @@ estação com GPU NVIDIA acessível por SSH (`/estacao-gpu-remota`); contas conf
 | Agora (10 min) | este arquivo; `CLAUDE.md` (as 10 regras) |
 | Antes de começar o projeto (30 min) | `01-roteiro-passo-a-passo.md` (fases 0–3 com atenção); `03-stack-por-alvo.md` |
 | Ao configurar a máquina | `04-ferramentas-e-mcps.md`; em Linux com GPU remota, `07-perfil-arch-linux-e-gpu-remota.md` |
-| Antes de gerar qualquer asset | `05-riscos-e-licencas.md`; `templates/LICENCAS.md` |
+| Antes de codar no Phaser | `08-praticas-de-producao-web-phaser.md`; skills oficiais em `node_modules/phaser/skills/` |
+| Antes de gerar qualquer asset | `09-praticas-de-arte-2d-com-ia.md`; `10-praticas-de-3d-para-jogo-web.md`; `05-riscos-e-licencas.md`; `templates/LICENCAS.md` |
 | Sempre que uma skill for necessária | `06-indice-de-skills.md` (gerado) → `.claude/skills/<nome>/SKILL.md` |
 | Quando algo sair do controle | `02-regras-e-habitos.md`; `/escopo-e-anti-padroes` |
 

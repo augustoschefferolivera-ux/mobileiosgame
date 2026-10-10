@@ -16,9 +16,9 @@ Adaptado da ideia do `consistency-check` do Claude-Code-Game-Studios (MIT): exis
 
 ## Comparação por asset
 
-| Asset | Paleta (% fora, `verificar_paleta.py`) | Proporção | Traço | Luz | Acessórios | Silhueta 64 px | Veredito |
+| Asset | Paleta (% fora, `verificar_paleta.py`) | Proporção | Traço | Luz | Acessórios | Silhueta a 1/4 (IoU, `verificar_legibilidade.py`) | Veredito |
 |---|---|---|---|---|---|---|---|
-| chr_raposa_walk_00 | 3,1% (ok ≤ 10%) | ok | ok | ok | bolsa do lado errado | ok | REGENERAR |
+| chr_raposa_walk_00 | 3,1% (ok ≤ 10%) | ok | ok | ok | bolsa do lado errado | 0,91 (ok ≥ 0,80) | REGENERAR |
 
 Classificação: **OK** · **RETOCAR** (humano corrige no Aseprite/Krita e registra em `PROVENANCE.md`) · **REGENERAR** (mudar prompt/seed/referência) · **BLOQUEADO** (a bible é ambígua: corrigir a bible antes).
 

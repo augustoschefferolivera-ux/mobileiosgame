@@ -24,13 +24,15 @@ Negativo: `no text, no watermark, no characters, no strong directional light, no
 
 Pixel art: adicione `pixel art, <N>px tile, <K>-color palette, no anti-aliasing` e gere com ferramenta pixel-native; requantize se vier de generalista (`/pixel-art-pipeline`).
 
+Tamanhos para Phaser @2x: tile de 32 pt = 64 px (gere 512–1024 px e reduza com Lanczos); tileset ≤ 2048² e extrudado com `scripts/extrudir_tiles.py` antes de ir para o Tiled. Rota local sem custo: FLUX.2 [klein] 4B na estação GPU (`../gerar-sprites-2d/references/comfyui-receitas.md`).
+
 ## Camadas de fundo (parallax)
 
 | Camada | Prompt | Saída |
 |---|---|---|
-| `ceu` | `wide panoramic sky background for a 2D game, 2:1 aspect, horizontally seamless (left and right edges match exactly), soft gradient, distant clouds, flat lighting, no ground, no text` | opaco, 2× largura da tela |
-| `meio` | `distant forest treeline silhouettes layer for parallax, 2:1 aspect, horizontally seamless, isolated on transparent background, bottom-anchored, muted desaturated colors (atmospheric depth), no sky, no ground` | alfa nativo (gpt-image-1.5) |
-| `frente` | `foreground forest elements for parallax: sparse tree trunks, hanging vines, a lantern, isolated on transparent background, 2:1 aspect, bottom-anchored, horizontally seamless, full saturation, no sky, no ground` | alfa nativo |
+| `ceu` | `wide panoramic sky background for a 2D portrait game, horizontally seamless (left and right edges match exactly), soft gradient, distant clouds, flat lighting, no ground, no text` | opaco, 1560×1688 px @2x (2× a largura de 780) ou 780×1688 sem loop |
+| `meio` | `distant forest treeline silhouettes layer for parallax, horizontally seamless, isolated on transparent background, bottom-anchored, muted desaturated colors (atmospheric depth), no sky, no ground` | alfa nativo (gpt-image-1.5); 1560×~800 px @2x |
+| `frente` | `foreground forest elements for parallax: sparse tree trunks, hanging vines, a lantern, isolated on transparent background, bottom-anchored, horizontally seamless, full saturation, no sky, no ground` | alfa nativo; 1560×~600 px @2x |
 
 Regras:
 - Mesma paleta e mesma hora do dia nas três camadas; o `meio` mais dessaturado/claro que o `frente` (profundidade atmosférica).

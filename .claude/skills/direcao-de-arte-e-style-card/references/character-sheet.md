@@ -19,18 +19,19 @@ same scale and proportions ([N] heads tall), neutral standing pose, feet on the 
 no labels, no watermark, evenly spaced layout.
 ```
 
-Para pixel art, gere a folha com ferramenta pixel-native (PixelLab aceita canvas 16/32/64/128 px) ou requantize (`/pixel-art-pipeline`); um modelo generalista produz "pixel-styled" em grade errada.
+Para pixel art, gere a folha com ferramenta pixel-native (PixelLab aceita canvas 16/32/64/128 px) ou requantize (`/pixel-art-pipeline`); um modelo generalista produz "pixel-styled" em grade errada. Tamanho da folha para Phaser: cada vista na altura @2x do herói (ex.: 128 px para 64 pt); gere em 2K e reduza.
 
 ## Checklist de aprovação humana
 
 - [ ] As três vistas têm a mesma altura (meça com a caixa de alfa; `slice_spritesheet.py fatiar --preview` ajuda).
 - [ ] Nenhuma cor fora da paleta da bible além de 10% (pintado) ou 0% (pixel) — `verificar_paleta.py`.
-- [ ] Um traço distintivo visível na silhueta (orelha, chapéu, cauda) — teste em 64 px.
+- [ ] Um traço distintivo visível na silhueta (orelha, chapéu, cauda) — `scripts/verificar_legibilidade.py --fundo <cor do cenário> --alvo-px <altura do herói em pt>` com IoU ≥ 0,80 e contraste ≥ 3:1.
 - [ ] Não lembra personagem de franquia conhecida (busca reversa de imagem antes de aprovar).
 - [ ] Registrada em `PROVENANCE.md` com modelo, versão, prompt e o que o humano alterou.
 
 ## Uso posterior
 
-- Nano Banana Pro: anexe a folha (e até ~13 outras referências [secundário, confirmar]) em cada prompt de pose nova.
+- Nano Banana Pro: anexe a folha (e até 13 outras referências — o nó `GeminiImage2Node` do ComfyUI aceita 14 imagens) em cada prompt de pose nova.
+- FLUX.2 [klein] 4B local (ComfyUI na estação GPU): a folha entra como `ReferenceLatent` — workflow em `.claude/skills/consistencia-com-lora/assets/flux2_klein_4b_edit_referencia_api.json`.
 - gpt-image-1.5: converta a folha em 3–4 frases descritivas fixas (cores em hex, proporção em cabeças, acessórios) e cole após o prefixo.
 - LoRA: a folha + 20 imagens derivadas formam o dataset (`/consistencia-com-lora`).

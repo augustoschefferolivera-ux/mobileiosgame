@@ -23,7 +23,7 @@ user-invocable: true
 
 # Animar sprites
 
-Entrega frames alinhados (`./assets/sprites/<chr>_<acao>_NN.png` ou sheet), o atlas JSON (`./assets/atlas/<chr>_<acao>.json`) e, para rigs, as peças + código de tween; relatório de baseline e GIF de prévia em `production/evidencias/<data>-anim-<chr>-<acao>/`; pronto só quando a animação roda no jogo em GIF/vídeo de evidência (`scripts/verify.sh`).
+Entrega frames alinhados (`./assets/sprites/<chr>_<acao>_NN.png` ou sheet), o atlas JSON (`./assets/atlas/<chr>_<acao>.json`) e, para rigs, as peças + código de tween; relatório de baseline e GIF de prévia em `production/evidencias/<data>-anim-<chr>-<acao>/`; pronto só quando a animação roda no jogo em GIF/vídeo de evidência (`bash scripts/verify.sh` (raiz do projeto)).
 
 ## Quando usar / quando não usar
 

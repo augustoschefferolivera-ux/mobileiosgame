@@ -32,7 +32,7 @@ Entrega uma âncora de consistência (LoRA treinado com licença registrada, ou 
 
 ## Pré-requisitos
 
-- Conta na fal (`fal-ai/flux-2-trainer`) ou Replicate (`ostris/flux-dev-lora-trainer`); ou treino local (ai-toolkit/kohya em WSL2) só com ≥ 16 GB de VRAM — a RTX 5060 de 8 GB não treina FLUX.2 com folga (`/estacao-gpu-remota`, `references/modelos-por-vram.md`).
+- Conta na fal (`fal-ai/flux-2-trainer`) ou Replicate (`ostris/flux-dev-lora-trainer`); ou treino local (ai-toolkit/kohya em WSL2) só com ≥ 16 GB de VRAM — a RTX 5060 de 8 GB não treina FLUX.2 com folga (`/estacao-gpu-remota`, `.claude/skills/estacao-gpu-remota/references/modelos-por-vram.md`).
 - Para a camada de referência local: ComfyUI na estação com FLUX.2 [klein] 4B fp8 e `assets/flux2_klein_4b_edit_referencia_api.json` (reconstruído do template oficial `image_flux2_klein_image_edit_4b_base`).
 - `python3 -m pip install Pillow` para `scripts/verificar_paleta.py`; `../gerar-sprites-2d/scripts/contact_sheet.py`; `../direcao-de-arte-e-style-card/scripts/verificar_legibilidade.py`.
 - Orçamento: treino na nuvem por GPU-minuto (não capturado; veja a página do treinador); inferência FLUX via API por imagem; local ≈ zero. **Licença**: FLUX.2 [klein] 4B Apache 2.0 (pode servir); FLUX.2 [dev] e [klein] 9B = FLUX Non-Commercial License (servir exige licença da BFL; saídas usáveis comercialmente segundo leitura secundária — [confirmar no texto]); hospedado (fal/Replicate) segue os termos do serviço.

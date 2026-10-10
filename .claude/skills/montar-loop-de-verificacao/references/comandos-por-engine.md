@@ -14,7 +14,7 @@ O despachante do projeto chama `bash <verificador> --feature <id> --out <pasta>`
 | Nunca | apagar fora da pasta `--out`; usar flags headless para capturar; declarar sucesso sem verificar que o processo continua vivo |
 | Idempotência | pode rodar várias vezes; cria a pasta `--out`; boot de simulador já ligado não é erro |
 
-O despachante converte 1 e 2 em "falhou" (exit 2, o agente continua corrigindo) e 3 e 4 em "configuração" (exit 1, avisar e permitir parar). Referência de implementação: `.claude/skills/engine-spritekit-swiftui/scripts/verify.sh` (xcodebuild + simctl, só comandos documentados pela Apple).
+O despachante converte 1 e 2 em "falhou" (exit 2, o agente continua corrigindo) e 3 e 4 em "configuração" (exit 1, avisar e permitir parar). Referência de implementação: `.claude/skills/engine-web-phaser/scripts/verify.sh` (build, `vite preview`, Playwright).
 
 ## 2. Engines removidas deste repositório
 

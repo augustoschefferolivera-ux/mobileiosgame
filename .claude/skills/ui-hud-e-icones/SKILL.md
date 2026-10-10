@@ -1,88 +1,101 @@
 ---
 name: ui-hud-e-icones
 description: >
-  Gera a UI do jogo com IA de forma governada: ícones em SVG com Recraft V4 Vector, arte com texto
-  via Ideogram 3 (só quando o texto é arte, ex. logotipo), peças de HUD separadas em PNG transparente
-  (moldura, slot, barra, botão em 3 estados) a partir do style card, mapa de nomes para o engine,
-  SF Symbols/SwiftUI quando a UI é nativa, tamanhos @1x/@2x/@3x, ícone do app (1024², sem alfa) e
-  screenshots de loja, com acessibilidade (contraste 4,5:1, alvo de toque 44 pt). Use sempre que o
-  usuário pedir botão, menu, HUD, barra de vida, ícone, inventário, ícone do app ou "telas da loja".
-  Não use para sprites de jogo (/gerar-sprites-2d) nem para empacotar atlases (/atlas-e-exportacao-2d-mobile).
+  Gera a UI do jogo Phaser 4 web mobile com IA de forma governada: ícones em SVG com Recraft V4 Vector
+  (rasterizados @2x para o atlas), peças de HUD separadas em PNG transparente (moldura, slot, barra, botão
+  em 3 estados) com cantos fixos para NineSlice, texto sempre renderizado pelo Phaser (BitmapText @2x ou
+  fontes do sistema), mapa de nomes com nine-slice/contraste/alvo de toque, safe areas do iPhone em retrato,
+  ícones do PWA (192/512/maskable/apple-touch-icon 180), ícone de app 1024 em camadas se houver Capacitor e
+  screenshots de loja nos tamanhos vigentes. Use sempre que o usuário pedir botão, menu, HUD, barra de vida,
+  ícone, inventário, ícone do app/PWA, "safe area" ou "telas da loja". Não use para sprites de jogo
+  (/gerar-sprites-2d) nem para empacotar atlases (/atlas-e-exportacao-2d-mobile).
 license: MIT
-compatibility: "Claude Code ou Codex; Xcode (macOS) para asset catalog, Icon Composer e screenshots"
+compatibility: "Claude Code ou Codex; Python 3.10+ com Pillow; Node para svgo e msdf-bmfont-xml opcionais"
 metadata:
   grupo: arte-2d
-  alvo: [2d, 3d, app, web]
+  alvo: [2d, web]
   fase: [4, 6, 10]
-argument-hint: "[peça|icone|hud|icone-do-app|screenshots] [nome]"
+argument-hint: "[peça|icone|hud|icone-pwa|screenshots] [nome]"
 disable-model-invocation: false
 user-invocable: true
 ---
 
 # UI, HUD e ícones
 
-Entrega peças de UI em `./assets/ui/` (PNG RGBA @1x/@2x/@3x e/ou SVG), o mapa de nomes `design/ui-mapa-de-nomes.md`, o ícone do app e as screenshots da loja, todos registrados em `PROVENANCE.md`; a evidência é a tela montada no simulador com contraste e alvos de toque verificados.
+Entrega peças de UI @2x em `./assets/ui/` (PNG RGBA e SVG masters), o mapa de nomes `design/ui-mapa-de-nomes.md` com contraste e alvos medidos, os ícones do PWA em `public/icons/` e as screenshots da loja, todos registrados em `PROVENANCE.md`; a evidência é a tela montada no `bash scripts/verify.sh` (raiz do projeto) (viewport de iPhone) com `acessibilidade.md` (saída de `verificar_contraste.py`).
 
 ## Quando usar / quando não usar
 
-- **Use** para HUD (vida, mana, moedas, timer), menus, botões, slots, molduras, toasts, ícones de item/habilidade, ícone do app e screenshots/preview da App Store.
-- **Use** para decidir UI nativa (SwiftUI + SF Symbols) × UI desenhada (peças PNG/SVG no engine).
-- **Não use** para texto dentro de imagem em UI de jogo (o engine renderiza texto; localização e Dynamic Type), para sprites (`/gerar-sprites-2d`) ou atlases (`/atlas-e-exportacao-2d-mobile`).
+- **Use** para HUD (vida, mana, moedas, timer), menus, botões, slots, molduras, toasts, ícones de item/habilidade, ícones do PWA, ícone de app e screenshots/preview de loja.
+- **Use** para decidir UI em Phaser (objetos de jogo, `BitmapText`, `NineSlice`) × DOM sobreposto (menus longos, formulários, consentimentos — HTML/CSS com `env(safe-area-inset-*)`).
+- **Não use** para texto dentro de imagem (o Phaser renderiza texto: localização e tamanho mínimo), para sprites (`/gerar-sprites-2d`) ou atlases (`/atlas-e-exportacao-2d-mobile`).
 
 ## Pré-requisitos
 
-- `design/style-card.md` aprovado (template `templates/style-card-ui.md`), com paleta de UI, raio, traço, estados de botão e clutter proibido.
-- Chaves: Recraft (API própria ou OpenRouter `recraft/recraft-v4-vector`) para SVG; `OPENAI_API_KEY` (gpt-image-1.5, alfa nativa) para peças raster; Ideogram só para arte tipográfica (logotipo do jogo).
-- Ferramentas: `python3 -m pip install Pillow`; `svgo` (npm, otimizador de SVG) [secundário, confirmar licença]; Xcode para asset catalog/Icon Composer. Scripts reaproveitados: `../gerar-sprites-2d/scripts/contact_sheet.py`, `../gerar-sprites-2d/scripts/nomear_e_registrar.py`, `../gerar-sprites-2d/scripts/remove_bg.py`.
-- Orçamento: 10–30 peças × 2–4 variações; SVG via Recraft custa por imagem (preço não capturado — confirme). **Licença de saída**: termos da Recraft/OpenAI/Ideogram não lidos → "confirmar" em `PROVENANCE.md`. SF Symbols só podem ser usados em apps para plataformas Apple [confirmar no acordo da Apple].
+- `design/style-card.md` aprovado (template `templates/style-card-ui.md`): paleta de UI com contrastes, raio, traço, estados de botão, fonte do HUD, clutter proibido.
+- Chaves: Recraft (API própria ou OpenRouter `recraft/recraft-v4-vector`, ≈ US$ 0,08/imagem [secundário]) para SVG; `OPENAI_API_KEY` (gpt-image-1.5, alfa nativa, ≈ US$ 0,034 em `medium`) para peças raster; Ideogram 3 (US$ 0,06–0,09 [confirmar]) só para arte tipográfica (logotipo).
+- Ferramentas: `python3 -m pip install Pillow`; `npx svgo` (MIT) para limpar SVG; fontes bitmap com BMFont (Windows), Snow BMF (web) ou `npx msdf-bmfont-xml -f xml` (gera `.fnt` XML AngelCode; **o Phaser 4 não tem renderizador MSDF embutido** — use o campo de distância só com shader próprio; para HUD, exporte bitmap comum @2x). Scripts: `scripts/verificar_contraste.py`, `scripts/gerar_icones_pwa.py`, `../gerar-sprites-2d/scripts/{contact_sheet,nomear_e_registrar,remove_bg}.py`.
+- Orçamento: 10–30 peças × 2–4 candidatos ≈ US$ 2–8; ícones 15–30 × US$ 0,08. **Licença de saída**: Recraft/OpenAI/Ideogram classe B, termos não lidos → "[confirmar]"; fontes do HUD precisam de licença que permita embutir (OFL/Apache: ok).
 
 ## Entradas
 
-1. Lista de telas e elementos (`feature_list.json` + um "HUD design" curto: o que aparece, quando, prioridade — pode usar a seção 7 do `templates/art-bible.md`; o modelo completo de HUD do Claude-Code-Game-Studios é referência de rigor, não requisito).
-2. Decisão nativa × desenhada por tela (menus/configurações tendem a nativo; HUD in-game tende a desenhado).
-3. Resolução lógica de referência e tamanhos em pt (botão ≥ 44×44 pt; ícone 24/32 pt; texto ≥ 11 pt, ideal 17 pt corpo [HIG; confirmar]).
+1. Lista de telas e elementos (`feature_list.json` + "HUD design" curto: o que aparece, quando, prioridade; HUD ≤ ~12 % da tela em exploração — orientação do template de HUD do Game Studios).
+2. Decisão Phaser × DOM por tela.
+3. Resolução lógica 390×844 pt, assets @2x; safe areas (topo Dynamic Island/notch, base ~34 pt) lidas de `env(safe-area-inset-*)` no boot [valores por aparelho: confirmar com screenshot no iPhone]; botão ≥ 44×44 pt (padrão HIG; mínimo 28), texto padrão 17 pt, mínimo 11 pt (HIG "Designing for games").
 
 ## Passos
 
-1. **Mapa de nomes primeiro.** Copie a tabela da seção 11 do style card para `design/ui-mapa-de-nomes.md` e liste cada peça: elemento → arquivo (`ui_<peça>_<variante>_<estado>.png`, `icn_<conceito>.svg`) → chave no engine → nine-slice (l,t,r,b) → tamanhos. Esse arquivo é o contrato com a skill de UI do engine (leia `references/mapa-de-nomes.md`).
-2. **Ícones em SVG** (Recraft V4 Vector, único mainstream com SVG editável): prompt = prefixo do style card + "single flat icon of <conceito>, centered, <traço>, no text, no background, consistent stroke weight with the set". Gere o conjunto na mesma sessão/estilo; abra os SVGs, remova fundos e grupos vazios (`svgo`), confira que cada ícone tem **uma** cor de acento e lê em 24 pt. Rasterize @1x/@2x/@3x para engines que não leem SVG; no Xcode, importe o SVG no asset catalog com "Preserve Vector Data" [confirmar].
-3. **Peças raster** com gpt-image-1.5 (`background: "transparent"`): uma peça por imagem ("single UI element, isolated, centered"), nunca "um kit completo" — kits saem desalinhados. Botões em **3 estados** (normal, pressionado, desabilitado) com a regra do style card; molduras e barras com cantos de tamanho fixo e meio liso para nine-slice; barra = moldura + preenchimento em arquivos separados. Gere @3x (ex.: 132×132 px para 44 pt) e reduza para @2x/@1x com Lanczos.
-4. **Texto como arte** (só logotipo/título): Ideogram 3 (raster, ~82% de legibilidade em um benchmark [secundário]); nunca para rótulos de botão, números ou menus — esses são fontes no engine.
-5. **UI nativa** (SwiftUI): use `Image(systemName:)` com SF Symbols e `Text` com Dynamic Type; a arte do jogo entra só como fundo/moldura. Leia `references/ios-nativo-e-loja.md` para o que é nativo, ícone do app e screenshots.
-6. **Curadoria** com folha de contato sobre a cor de fundo da tela (`contact_sheet.py --fundo "#<fundo do painel>"`) e sobre xadrez; o humano aprova o conjunto inteiro de uma vez (coerência), não peça a peça.
-7. **Acessibilidade mensurável**: contraste texto/fundo ≥ 4,5:1 e gráficos ≥ 3:1 (calcule com as cores hex do style card), alvo ≥ 44×44 pt, nenhum estado comunicado só por cor (ícone/forma junto), HUD ≤ ~12% da tela em exploração (orientação do template de HUD do Game Studios). Anote os números em `design/ui-mapa-de-nomes.md`.
-8. **Ícone do app**: arte gerada @1024 (gpt-image-1.5 ou GPT Image 2 opaco), sem texto pequeno, sem cantos arredondados (a Apple aplica a máscara), **PNG sem alfa** [confirmar em App Store Connect Help]; no Xcode 26+, monte camadas no Icon Composer para o ícone em vidro [confirmar]. Busca reversa de imagem antes de usar (5.2.1).
-9. **Screenshots da loja**: capturas reais do jogo no simulador nos tamanhos exigidos pela App Store Connect (confira as dimensões vigentes lá; 2.3.3 exige que reflitam o app em uso); molduras e textos de marketing opcionais, sem prometer o que o jogo não faz. Salve originais em `production/loja/screenshots/`.
-10. **Nomear e registrar** cada arquivo com `nomear_e_registrar.py --categoria ui|icn`; **ver no simulador** e salvar `production/evidencias/<data>-ui-<tela>/no-jogo.png` (tela montada) — a peça só está pronta quando aparece no jogo.
+1. **Mapa de nomes primeiro.** Copie a tabela da seção 11 do style card para `design/ui-mapa-de-nomes.md` (modelo em `references/mapa-de-nomes.md`): elemento → frame no atlas (`ui_<peça>_<variante>_<estado>`) → tamanho pt/px @2x → nine-slice (l,t,r,b em px @2x) → contraste → alvo. É o contrato com o código.
+2. **Ícones em SVG** (Recraft V4 Vector): prompt = prefixo do style card + "single flat icon of <conceito>, centered, <traço>, one accent color <#hex>, no text, no background, consistent stroke weight with the set"; gere o conjunto na mesma sessão. `npx svgo` (remove fundos, grupos vazios); masters em `masters/ui/icn_<conceito>.svg`; rasterize @2x (48/64 px) com `python3 -c` + `cairosvg` ou `rsvg-convert` se instalados [opcional], ou deixe o Phaser rasterizar (`this.load.svg(key, url, { scale: 2 })`) só em protótipo — no build final, PNG no atlas (1 draw call).
+3. **Peças raster** com gpt-image-1.5 (`background: "transparent"`): uma peça por imagem ("single UI element, isolated, centered"), nunca kit completo. Botões em **3 estados** (normal, pressionado, desabilitado) pela regra do style card; molduras/barras com cantos de tamanho fixo e meio liso (nine-slice); barra = moldura + preenchimento separados. Gere 1024² e reduza para o tamanho @2x (botão 44 pt = 88 px de altura).
+4. **Texto como arte** (só logotipo/título): Ideogram 3 ou gpt-image-1.5; nunca para rótulos, números, menus — esses são `BitmapText` (fonte @2x gerada do `.ttf` com licença embutível) ou `Text` com `fontFamily: 'system-ui, -apple-system'`.
+5. **DOM sobreposto** para menus/consentimentos: HTML com `padding: env(safe-area-inset-*)`, `font-size ≥ 17px`, botões ≥ 44 px; a arte do jogo entra como fundo/moldura PNG.
+6. **Curadoria** com folha de contato sobre a cor do painel (`contact_sheet.py --fundo "#<fundo do painel>"`) e sobre xadrez; `verificar_legibilidade.py --fundo <painel> --alvo-px 24` nos ícones; o humano aprova o conjunto inteiro de uma vez (coerência).
+7. **Acessibilidade mensurável**:
+   ```bash
+   python3 .claude/skills/ui-hud-e-icones/scripts/verificar_contraste.py --style-card design/style-card.md --texto "#<texto>,#<painel>" --grafico "#<perigo>,#<painel>" --toque 160x48 --toque 48x48 > production/evidencias/<data>-ui-<tela>/acessibilidade.md
+   ```
+   Texto ≥ 4,5:1, gráficos ≥ 3:1, toque ≥ 44 pt, nenhum estado só por cor, versão estática para `prefers-reduced-motion`. Anote no mapa de nomes.
+8. **Ícones do PWA / Safari**: master 1024² (`/gerar-sprites-2d`, prompt de ícone) com paintover humano →
+   ```bash
+   python3 .claude/skills/ui-hud-e-icones/scripts/gerar_icones_pwa.py design/icone_master_1024.png --fundo "#<cor do jogo>" --saida public/icons
+   ```
+   gera 192/512 (`any` + `maskable`), `apple-touch-icon-180.png`, `favicon-32.png` e imprime manifest + `<link>`. Busca reversa de imagem antes de usar. Ícone de app em camadas (Icon Composer) só se houver Capacitor (`references/icones-pwa-e-loja.md`).
+9. **Screenshots de loja**: capturas reais (Playwright/iPhone), sem alfa; App Store Connect exige pelo menos 1 para iPhone com Dynamic Island (display médio): 1179×2556 ou 1206×2622; itch.io/PWA sem tamanho fixo [confirmar]. Detalhes em `references/icones-pwa-e-loja.md`.
+10. **Nomear, empacotar e ver no jogo**: `nomear_e_registrar.py --categoria ui|icn`; atlas de UI separado (`empacotar_atlas.py assets/ui --nome ui --sem-trim --nineslice ui_panel_main=48,48,48,48 ...`); `this.add.nineslice(...)`, `this.add.bitmapText(...)`; `bash scripts/verify.sh --feature <id>` → `production/evidencias/<data>-ui-<tela>/no-jogo.png`.
 
 ## Critério de pronto e evidência
 
-- [ ] `design/ui-mapa-de-nomes.md` completo (arquivo, chave, nine-slice, tamanhos, contraste, alvo de toque).
-- [ ] Todas as peças em `./assets/ui/` com @1x/@2x/@3x (ou SVG + rasterizações), botões com 3 estados, alfa limpo.
-- [ ] `production/evidencias/<data>-ui-<tela>/` com contact sheets, `no-jogo.png` e `acessibilidade.md` (contrastes calculados, alvos medidos).
-- [ ] Ícone do app 1024×1024 sem alfa e screenshots nos tamanhos exigidos, com busca reversa feita.
-- [ ] `PROVENANCE.md` com modelo, prompt e edição humana por peça; licença "confirmar" quando não lida.
+- [ ] `design/ui-mapa-de-nomes.md` completo (frame, tamanho pt/px, nine-slice, contraste, alvo de toque) e coerente com o atlas `ui`.
+- [ ] Peças @2x em `./assets/ui/` (SVG masters em `masters/ui/`), botões com 3 estados, alfa limpo; fonte bitmap do HUD com licença registrada.
+- [ ] `production/evidencias/<data>-ui-<tela>/` com contact sheets, `legibilidade.png` dos ícones, `acessibilidade.md` (sem FALHA) e `no-jogo.png` em viewport de iPhone com safe areas respeitadas.
+- [ ] `public/icons/` completo e manifest atualizado; screenshots reais nos tamanhos exigidos, sem alfa.
+- [ ] `PROVENANCE.md` com modelo, prompt e edição humana por peça; licença "[confirmar]" quando não lida.
 
 ## Armadilhas conhecidas
 
-- **Texto gerado na imagem** quebra localização, Dynamic Type e vira "placeholder esquecido" (App Store 2.1(a)); proíba no prefixo.
-- **Kits completos em uma imagem** saem desalinhados; peça peças isoladas (padrão "separate transparent PNGs + style card + naming map").
-- **Ícones genéricos** (loja, engrenagem, coração iguais a todo jogo) alimentam a leitura 4.3(b); dê um traço do style card a cada um.
-- **Marcas/ícones de terceiros** (5.2.1): nunca "estilo iOS/Apple/Nintendo" no prompt; nada de logos reais em screenshots.
-- **SF Symbols fora de apps Apple** (versão web) viola o acordo [confirmar]; use os SVGs do Recraft na web.
-- **Midjourney para UI**: sem vetor e tipografia "unreliable" — não use para ícones [secundário].
-- **Peças @1x ampliadas** ficam borradas: gere sempre @3x e reduza.
+- **Texto gerado na imagem** quebra localização e vira placeholder esquecido; proíba no prefixo.
+- **Kits completos em uma imagem** saem desalinhados; peça peças isoladas.
+- **NineSlice com frame aparado**: o Phaser não suporta trim em NineSlice; empacote UI com `--sem-trim` e sem rotação.
+- **`Text` redesenhado por frame** derruba o FPS no iPhone; HUD em `BitmapText` (fonte @2x; mipmaps desligados por padrão → gere no tamanho exato de uso).
+- **Safe area ignorada**: HUD sob a Dynamic Island ou a barra do Safari; teste em `verify.sh` e no iPhone real (`viewport-fit=cover`).
+- **Ícones genéricos** (loja, engrenagem, coração iguais a todo jogo) alimentam a leitura "genérico"; dê um traço do style card a cada um.
+- **Marcas/ícones de terceiros**: nunca "estilo iOS/Apple/Nintendo" no prompt; nada de logos reais em screenshots; SF Symbols não se usam na web (acordo da Apple restringe a plataformas Apple [confirmar]).
+- **Midjourney para UI**: sem vetor e tipografia "unreliable" [secundário].
+- **Ícone maskable sem zona segura**: cortado no Android; `gerar_icones_pwa.py` já reduz para 80 % com fundo opaco.
 
-## Exportar para mobile
+## Exportar para Phaser (web mobile)
 
-iOS nativo/SpriteKit: asset catalog com `nome.png`, `nome@2x.png`, `nome@3x.png` (ou SVG/PDF com vector data), "Slicing" do catalog para nine-slice, ícone do app via Icon Composer/AppIcon set; Unity: sprites de UI em atlas próprio (skill oficial `manage-sprite-atlas`, UI separada dos sprites de jogo), bordas via `sprite-editor`; Godot: `NinePatchRect`/`StyleBoxTexture` (a tool `theme_manage` do Godot AI aplica `set_stylebox_texture`); Phaser: `NineSlice` (3.60+ [confirmar]) e atlas de UI. Compressão: UI quer nitidez — RGBA32 ou ASTC 4x4 (não 6x6/8x8) para molduras pequenas; ícones vetoriais pesam KB. Orçamento típico de UI: ≤ 1 atlas 2048² por tela. **Licença de saída**: registrar por peça; SF Symbols só em plataformas Apple.
+Atlas `ui` próprio (`empacotar_atlas.py assets/ui --nome ui --saida public/assets/atlas --sem-trim --nineslice ...`, ≤ 2048², `otimizar_imagens.py --webp`); `this.load.atlas('ui', ...)`; `this.add.nineslice(x, y, 'ui', 'ui_panel_main', w, h)` (bordas vêm de `scale9Borders`); estados de botão por `setFrame`; `this.load.bitmapFont('hud', 'hud.png', 'hud.xml')` + `bitmapText(..., 34)` para 17 pt; HUD posicionado a partir de `this.scale` e das safe areas; ícones PNG @2x no atlas (SVG só como master). PWA: `public/icons/*` + manifest (`any` e `maskable`) + `apple-touch-icon`. Orçamento típico: 1 atlas de UI ≤ 1024² por tela (4 MB RGBA8). **Licença de saída**: por peça em `PROVENANCE.md`; fontes com licença embutível.
 
 ## Fontes
 
-- Recraft V4 Vector = SVG editável — https://openrouter.ai/models/recraft/recraft-v4-vector ; https://www.recraft.ai/blog/recraft-vs-ideogram [secundário]
-- Ideogram raster, texto ~82% legível; Midjourney sem vetor — https://rangy.ai/blog/ideogram-vs-recraft-for-logos ; https://framia.converge.ai/blog/midjourney-v8-review/ [secundário]
-- Peças separadas + style card + mapa de nomes — https://sorceress.games/blog/nest-an-ai-ui-generator-hud-panel-pack-2026 ; estilo transferido em conjuntos de ícones — https://morphic.com/resources/images/game-ui-icon-images [secundário]
-- gpt-image-1.5 alfa nativa para ícones/botões — https://docs.apiyi.com/en/api-capabilities/gpt-image-1-5 [secundário]
-- Template de HUD (orçamento visual, contraste 4,5:1, 40 px ícones mínimos) — Claude-Code-Game-Studios `hud-design.md` (MIT) — https://github.com/Donchitos/Claude-Code-Game-Studios
-- App Store Review Guidelines (2.1(a), 2.3.3, 4.3(b), 5.2.1) — https://developer.apple.com/app-store/review/guidelines/ ; HIG e App Store Connect Help — https://developer.apple.com/design/human-interface-guidelines/ ; https://developer.apple.com/help/app-store-connect/ [texto vigente a confirmar]
-- Nota de pesquisa: `research_notes/Criação de jogos totalmente por IA/arte_2d_sprites_ui.md` (KQ5).
+- Phaser 4: `NineSlice.js` (layout 9/3-slice, `scale9Borders` do atlas, sem trim, `tileX/tileY`), `BitmapText.js`/`BitmapFontFile.js` (BMFont/Snow BMF/Glyph Designer/Littera, XML), `SVGFile.js` (`scale`), `Config.js` — https://github.com/phaserjs/phaser (fonte, 2026-10-10)
+- HIG "Designing for games" (botão 44×44 pt padrão/28 mínimo; texto 17/11 pt), "App icons" (1024², camadas, Icon Composer), "Images" (@2x/@3x, PNG, PDF/SVG) — https://developer.apple.com/design/human-interface-guidelines/ (JSON lido em 2026-10-10)
+- App Store Connect "Screenshot specifications" (1179×2556/1206×2622 obrigatório; sem alfa) — https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications (lida em 2026-10-10)
+- Ícones de PWA (192/512, `maskable`, zona segura) — https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/How_to/Define_app_icons (fonte MDN lida em 2026-10-10)
+- Recraft V4 Vector (SVG) e preço — https://openrouter.ai/recraft/recraft-v4-vector [secundário]; Ideogram API pricing — https://ideogram.ai/features/api-pricing [via busca, confirmar]
+- msdf-bmfont-xml (gera BMFont XML/JSON de `.ttf`) — https://github.com/soimy/msdf-bmfont-xml
+- Peças separadas + style card + mapa de nomes — https://sorceress.games/blog/nest-an-ai-ui-generator-hud-panel-pack-2026 [secundário]; template de HUD (orçamento visual, contraste) — Claude-Code-Game-Studios (MIT) — https://github.com/Donchitos/Claude-Code-Game-Studios
+- App Store Review Guidelines (2.1(a), 2.3.3, 5.2.1) — https://developer.apple.com/app-store/review/guidelines/
+- Nota de pesquisa: `research_notes/Criação de jogos totalmente por IA/arte_2d_sprites_ui.md` (KQ5); manual: `playbook/09-praticas-de-arte-2d-com-ia.md`

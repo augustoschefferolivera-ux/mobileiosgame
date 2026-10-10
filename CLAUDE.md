@@ -44,8 +44,10 @@ Agent Skills, o harness de longa duração da Anthropic, o template Claude-Code-
 - Projeto novo: `/iniciar-projeto`. Sessão seguinte: `/checkpoint-e-retomada`.
 - Ciclo: `/ciclo-de-feature` → `scripts/verify.sh` → evidência → `/critico-independente` → commit.
 - Assets: só depois de `/direcao-de-arte-e-style-card` e `/direcao-de-audio-e-sound-bible`;
-  então `/gerar-sprites-2d`, `/pixel-art-pipeline`, `/gerar-ativos-3d`, `/gerar-musica`,
-  `/gerar-sfx`, `/voz-e-dialogo`; sempre com "Exportar para mobile" e linha no `PROVENANCE.md`.
+  então `/gerar-sprites-2d`, `/pixel-art-pipeline`, `/animar-sprites`, `/sprites-pre-renderizados-de-3d`
+  (personagens com 4/8 direções a partir de 3D), `/gerar-ativos-3d`, `/gerar-musica`, `/gerar-sfx`,
+  `/voz-e-dialogo`; sempre com "Exportar para Phaser" e linha no `PROVENANCE.md`. Manuais:
+  `playbook/08` (produção Phaser), `09` (arte 2D com IA), `10` (3D para jogo web).
 - IA no jogo: `/ia-runtime-nuvem-claude` com backend mínimo e consentimento; conteúdo em lote por `/geracao-procedural-com-llm`.
 - Publicar: `/licencas-e-proveniencia` → `/divulgacao-de-uso-de-ia` → `/classificacao-etaria`
   → `/submissao-app-store` ou `/publicar-jogo-web`.

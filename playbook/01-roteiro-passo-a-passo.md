@@ -190,6 +190,9 @@ passam no `diretor-de-audio`.
 
 ## Fase 5 — Produção iterativa de features (uma por sessão)
 
+Manual específico de Phaser: `08-praticas-de-producao-web-phaser.md`; antes de escrever código de um
+subsistema, leia a skill oficial correspondente em `node_modules/phaser/skills/` (28 skills do Phaser 4).
+
 **Objetivo.** Transformar `feature_list.json` em jogo, uma feature por vez, com evidência e
 crítico independente.
 
@@ -222,14 +225,16 @@ exportados para mobile.
 **Passos.**
 1. Derive a lista de assets das features (`asset-spec` em cada skill de domínio) e priorize o
    que aparece na primeira tela.
-2. 2D: `/gerar-sprites-2d` (gpt-image-1.5 com `background: "transparent"`; Nano Banana Pro
-   para folhas com referência; recorte BiRefNet/ToonOut), `/animar-sprites` (template oficial
-   do ComfyUI "Sprite Sheet Generator", PixelLab, ou vídeo→frames), `/ui-hud-e-icones`
-   (Recraft V4 Vector para SVG), `/cenarios-e-tilesets`, `/atlas-e-exportacao-2d-mobile`.
-3. 3D: `/gerar-ativos-3d` (Tripo/Meshy pagos ou TRELLIS.2 MIT; **nunca Hunyuan3D** em jogo
-   global), `/otimizar-3d-para-mobile` (Blender MCP → gltfpack/glTF-Transform → LODs →
-   GLB/USDZ, ≤100K tris e 2048² por frame), `/rigging-e-animacao-3d` (UniRig/SkinTokens,
-   Puppeteer, Rokoko Create), `/materiais-e-texturas-pbr`, `/ambientes-e-mundos-3d`.
+2. 2D (manual: `09-praticas-de-arte-2d-com-ia.md`): `/gerar-sprites-2d` (gpt-image-1.5 com
+   `background: "transparent"`; Nano Banana Pro para folhas com referência; recorte BiRefNet, nunca
+   o modelo padrão do rembg), `/animar-sprites` (template oficial do ComfyUI "Sprite Sheet Generator",
+   PixelLab, vídeo→frames ou **pré-render de 3D** com `/sprites-pre-renderizados-de-3d` para 4/8
+   direções consistentes), `/ui-hud-e-icones` (Recraft V4 Vector; nine-slice sem trim no Phaser 4),
+   `/cenarios-e-tilesets`, `/atlas-e-exportacao-2d-mobile` (atlas JSON hash @2x, ≤ 64 MB por cena).
+3. 3D (manual: `10-praticas-de-3d-para-jogo-web.md`): no jogo 2D, 3D serve ao **pré-render**
+   (`/gerar-ativos-3d` → `/rigging-e-animacao-3d` → `/sprites-pre-renderizados-de-3d` → atlas);
+   se o brief for 3D (Three.js), `/otimizar-3d-para-mobile` (glTF + KTX2 + meshopt),
+   `/materiais-e-texturas-pbr`, `/ambientes-e-mundos-3d`. **Nunca Hunyuan3D** em jogo global.
 4. Áudio: `/gerar-musica` (ACE-Step 1.5 com BPM/tom explícitos; Stable Audio 3; loops com
    PyMusicLooper), `/gerar-sfx` (ElevenLabs SFX v2 com `loop`; Stable Audio Small-SFX; 8–16
    candidatos por prompt), `/voz-e-dialogo` (Eleven v3/Fish S2 para falas fixas; Kokoro-82M

@@ -40,11 +40,18 @@ Países de lançamento: [lista]. Se incluir UE, UK ou Coreia do Sul, nenhuma fer
 | game-studios-templates | Claude-Code-Game-Studios (templates adaptados) | [commit] | A | MIT © 2026 Donchitos | checklists, post-mortem | [data] | crédito em THIRD_PARTY_NOTICES.md |
 | levelplay | LevelPlay (Ads Mediation) | [versão] | B | termos Unity/ironSource [não lidos] | anúncios | [data] | ATT; declarar nos rótulos de privacidade |
 | revenuecat | RevenueCat SDK | [versão] | B | [termos; não lidos] | IAP | [data] | preço por receita rastreada |
+| spine-runtimes | Spine Runtimes (`@esotericsoftware/spine-phaser-v4` 4.3.x) | [versão] | B | Spine Runtimes License (05/04/2025): distribuir o jogo com o runtime exige licença do Spine Editor [confirmar preço] | animação esquelética | [data] | alternativa sem licença: rig de recorte com Container + tweens |
+| free-tex-packer-core | free-tex-packer-core (atlas JSON hash) | [versão] | A | MIT [secundário] | empacotamento de atlas | [data] | usado por empacotar_atlas.py |
+| oxipng | oxipng | [versão] | A | MIT | otimização de PNG | [data] | só comprime; não altera pixels |
+| pngquant | pngquant | [versão] | E | GPLv3 (ferramenta) + licença comercial opcional; as imagens produzidas não são afetadas [confirmar] | quantização de PNG | [data] | não embute a ferramenta no jogo |
+| libwebp | cwebp / libwebp | [versão] | A | BSD-3 | conversão WebP | [data] | |
+| tiled | Tiled (editor de tilemaps) | [versão] | A | editor GPLv2; mapas exportados (JSON) são seus | tilemaps | [data] | Sprite Fusion como alternativa [confirmar export] |
 
 ## Lista vermelha (não usar; manter aqui para o script bloquear)
 
 | id | ferramenta / modelo | classe | motivo | fonte |
 |---|---|---|---|---|
+| rembg-bria | rembg com modelo padrão `bria-rmbg` (BRIA RMBG) | C | o peso do modelo exige acordo pago para uso comercial (README do rembg); use `--modelo birefnet-general` (MIT) | https://github.com/danielgatis/rembg |
 | hunyuan3d | Hunyuan3D 2.x / Omni / Part | D | Tencent Community License: saída proibida fora do Territory (UE/UK/Coreia excluídos) | https://raw.githubusercontent.com/Tencent-Hunyuan/Hunyuan3D-2/main/LICENSE |
 | hy-world | HunyuanWorld 1.0 / HY-World 1.5 / 2.0 | D | idem | https://raw.githubusercontent.com/Tencent-Hunyuan/HY-World-2.0/main/License.txt |
 | flux1-dev-servido | FLUX.1 [dev] servido/produção; FLUX.2 [dev]; [klein] 9B | C | Non-Commercial License (saídas livres, modelo não) | https://github.com/black-forest-labs/flux/blob/main/model_licenses/LICENSE-FLUX1-dev |

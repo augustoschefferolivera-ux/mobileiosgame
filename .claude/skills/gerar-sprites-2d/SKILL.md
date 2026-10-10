@@ -23,7 +23,7 @@ user-invocable: true
 
 # Gerar sprites 2D
 
-Entrega PNGs RGBA @2x nomeados (`./assets/sprites/<cat>_<nome>_<variante>.png`), uma folha de contato e a folha de legibilidade aprovadas por humano em `production/evidencias/<data>-sprites-<nome>/`, e uma seção por arquivo em `PROVENANCE.md`; o asset só é "pronto" quando aparece no screenshot do `scripts/verify.sh` dentro de um atlas (`/atlas-e-exportacao-2d-mobile`).
+Entrega PNGs RGBA @2x nomeados (`./assets/sprites/<cat>_<nome>_<variante>.png`), uma folha de contato e a folha de legibilidade aprovadas por humano em `production/evidencias/<data>-sprites-<nome>/`, e uma seção por arquivo em `PROVENANCE.md`; o asset só é "pronto" quando aparece no screenshot do `bash scripts/verify.sh` (raiz do projeto) dentro de um atlas (`/atlas-e-exportacao-2d-mobile`).
 
 ## Quando usar / quando não usar
 
