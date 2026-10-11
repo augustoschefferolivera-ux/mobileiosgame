@@ -1,5 +1,41 @@
 # progress.md
 
+## Sessão 3 — F-003 "Hordas"
+
+### Estado: F-003 implementada, verify verde; crítico independente em andamento; F-004 não começada
+
+- [x] Leitura: este arquivo, ADR-0004, `design/decisoes-F-002.md` (sobretudo a §9) e a entrada da F-003 no `feature_list.json`. Antes de começar, `scripts/verify.sh --feature F-002 --taps-game --seed 1` verde. Branch `claude/f003-hordas`, a partir de `claude/clever-galileo-26bjed`.
+- [x] **Etapa 1, decisões:** `design/decisoes-F-003.md` (aqui, D3).
+  - Levantamento: 4 pesquisadores (física da horda; diretor e spawn; contato, jogador e estado; render, debug e desempenho), cada um com um verificador cético, e um crítico de completude: 127 perguntas, 20 já respondidas pelos documentos.
+  - Revisão adversarial: 3 lentes, cada uma com um verificador (notas 7, 7 e 6,5 antes das correções); 61 achados, 57 confirmados e aplicados (D3 §11), entre eles um que mudou o código: os laços por inimigo alocavam ≈ 48 KB por passo no V8.
+  - A §0 lista para veto rápido as decisões delegadas (S1 a S8, K1 a K3, R1 a R9, M1, T1 a T3, V1 a V4, E1 a E4). O que é de outras features ficou como recomendação (§9), registrada nas pendências das F-004 a F-010 no `feature_list.json`.
+- [x] **Etapa 2, implementação** (`96ab615..HEAD`, ≈ 30 commits de até ~300 linhas; os maiores: 341 linhas, que são um arquivo de teste só, o do diretor, e 318, o spec da F-003):
+  - **simulação:** estado v3 (TETO, cenário, linha fixa, rotação, HP e timer de contato, pool de 500 SoA), grade de 64 px, pool com pilha de livres e lista densa, tipos de inimigo, timeline compilada, diretor (reposição até o mínimo, conversão de excedente, janela antes dos marcos, garantidos, anel com viés de 60% e busca de ponto livre), separação Jacobi limitada pela velocidade, inimigos sólidos para o jogador (regra simétrica), obstáculos por célula, contato com 18 passos de invulnerabilidade, rotação do cenário, verificação de NaN no `?debug=1`;
+  - **plataforma:** `decidirTeto` com as 5 camadas, receitas de cenário (`horda`, `horda_rotativa`, `sem_horda`), parâmetros `?teto`, `?render`, `?buffer`, `?cenario`, `?debug`, painel do debug;
+  - **render:** `SpriteGPULayer` com escrita direta no buffer de instâncias (stride 42), plano B `?render=image`, `?buffer=dinamico`, aquecimento na Acender, limpeza do que o `preDestroy` não libera, cores dos inimigos (Noviça em #8994b4);
+  - **`__GAME_DEBUG__`:** vivos pelo pool, convertidos, diretor, teto, cenário, render, webgl, `quadrosContados`, HP; só no debug, `quadros()`, `inimigos()`, `hashPorSecao()` e `removerInimigo()`;
+  - **testes:** 560 no Vitest (contorno S8, contato, diretor, anel, horda, F-003.11 com o `SpriteGPULayer` real, cores, alocação E4, determinismo com a horda) e 29 na Playwright (7 da F-003; as F-001 e F-002 passam a usar `?cenario=sem_horda`);
+  - **decisões técnicas** em `docs/decisoes/ADR-0005-implementacao-da-f003.md`, com as 11 divergências do ADR-0002 (§8).
+- [x] `scripts/verify.sh --feature F-003 --taps-game --seed 1` verde:
+  - typecheck, lint, Vitest (560 testes), builds de produção e de debug;
+  - Playwright `taps-game` (29 testes: 10 da F-001, 12 da F-002 e 7 da F-003);
+  - evidências conferidas, com o aviso "fps não conferido: WebGL por software".
+- [x] `scripts/verify.sh --feature F-002 --taps-game --seed 1` continua verde.
+- [x] Evidências em `production/evidencias/F-003/`: `debug-300-vivos-390x844.png` (passo 1.800 do cenário horda, pausado), `heap-60s.json` (Δ de 2,8 KB e no máximo 13 nós por grupo em 60 s, com 570 liberações; limites de 32 KiB e 100) e `desempenho-30s.json` (300 vivos nas 30 leituras; p95 de um passo + p95 do resto até `PRE_RENDER` = 4,3 ms com CPU 4×; 4 draw calls; fps não conferido).
+- [x] Determinismo: a seed 1 dá `e91ed119` no passo 1.000 com a horda e o diretor, no Node e no Chromium (`&teto=300`); a 424242 dá `6173ca75`.
+- [ ] Crítico independente (Q-33): em andamento.
+
+### Decidido nesta sessão (técnico; detalhes no ADR-0005)
+- **Laço quente:** nenhum double atravessa uma chamada fora de linha nos laços por inimigo; a colisão lê e escreve num `Float64Array` (`COLISAO`). De ≈ 48 KB para ≈ 9 B por passo no V8, com o mesmo hash.
+- **Aquecimento do teste de heap: 90 s** (os 30 s de D3 não bastavam no contêiner: os metadados do JIT do V8 ainda cresciam ≈ 270 nós no minuto seguinte). Limites mantidos depois de 3 rodadas.
+- **F-003.4 neste contêiner:** o WebGL é o SwiftShader; o teste confere sempre a CPU (p95 de um passo + p95 do resto até `PRE_RENDER` < 10 ms, com 300 vivos e CPU 4×) e registra "fps não conferido". O F-003.4 literal (fps ≥ 55) fica pendente de um desktop com GPU ou do build de teste do iPhone (F-006, Q-29).
+- **Teste de contorno:** os 52 casos chegam; o campo de fluxo não foi implementado.
+
+### Para o usuário revisar
+- As decisões delegadas da §0 de D3 (veto rápido).
+- O F-003.4 literal (fps ≥ 55) não foi medido: o contêiner só tem WebGL por software.
+- As 11 divergências do ADR-0002 (ADR-0005 §8).
+
 ## Sessão 2 — F-002 "Movimento e mapa"
 
 ### Estado: F-002 pronta (aguarda a revisão do usuário); F-003 não começada
@@ -116,10 +152,11 @@
 
 ### Como rodar
 - `npm install`.
-- `scripts/verify.sh --feature F-00N [--seed N] [--taps-game]` (o Pronto; F-001 e F-002 verdes).
+- `scripts/verify.sh --feature F-00N [--seed N] [--taps-game]` (o Pronto; F-001, F-002 e F-003 verdes; ≈ 12 min, dos quais ≈ 4 nos specs de desempenho e de heap da F-003).
 - Avulsos: `npm test` (Vitest), `npm run typecheck`, `npm run lint`, `npm run build:debug` e depois `npm run e2e`, `npm run dev`.
 - Módulo novo: `scripts/novo-modulo.sh <area>/<nome> [--cena NomeDaCena]`.
-- Disposição dos obstáculos: `scripts/gerar-disposicao.py --conferir` (Python 3).
+- Disposição dos obstáculos: `scripts/gerar-disposicao.py --conferir`; direções do anel: `scripts/gerar-direcoes.py --conferir` (Python 3).
+- Cenários do build de debug: `?cenario=horda|horda_rotativa|sem_horda`, `?teto=300|500`, `?render=gpu|image`, `?buffer=dinamico`, `?debug=1` (painel e verificação de NaN).
 
 ### Ambiente
 - Não existem: `CLAUDE.md`, `playbook/` e os comandos `/brief-do-jogo`, `/checkpoint-e-retomada`, `/ciclo-de-feature` e `/critico-independente`. O crítico é um subagente (Q-33). `scripts/` e o ADR-0001 foram criados nesta sessão.
@@ -130,8 +167,9 @@
 
 ### Retomada
 - **Sessão 1:** fechou na F-001.
-- **Sessão 2:** fecha na F-002, que aguarda a revisão do usuário. A F-003 não foi começada.
-- **Próxima sessão (F-003 "Horda"):**
-  - ler este arquivo, o ADR-0004 e a entrada da F-003 no `feature_list.json`;
-  - antes de implementar, fechar as pendências da F-003, inclusive as recomendações de `design/decisoes-F-002.md` §9 (inimigos sólidos, spawn sobre obstáculo, contorno com N corpos, cores);
-  - rodar `scripts/verify.sh --feature F-002 --taps-game` para conferir que o movimento continua verde.
+- **Sessão 2:** fechou na F-002.
+- **Sessão 3:** fecha na F-003, que aguarda a revisão do usuário. A F-004 não foi começada.
+- **Próxima sessão (F-004 "Armas"):**
+  - ler este arquivo, o ADR-0005, `design/decisoes-F-003.md` (sobretudo a §9) e a entrada da F-004 no `feature_list.json`;
+  - antes de implementar, fechar as pendências da F-004, inclusive as recomendações da F-003 (campo `armas` vazio nas receitas `horda` e `horda_rotativa`, Sal só no deslocamento de comportamento, sonda do TETO);
+  - rodar `scripts/verify.sh --feature F-003 --taps-game --seed 1` para conferir que a horda continua verde.
