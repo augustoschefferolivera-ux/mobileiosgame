@@ -1,5 +1,5 @@
 # F-001 — log do teste de determinismo (Vitest, Node); desde a F-002, com o roteiro de ComandosDoPasso
-# gerado em 2026-10-11T23:11:17.950Z com Node v22.22.0
+# gerado em 2026-10-11T23:51:57.076Z com Node v22.22.0
 # referencia: seed=1 passos=1000 hash=f39dd6b4 (comparado pela Playwright, F-001.11)
 seed=1 passos=1000 execucao1=f39dd6b4 execucao2=f39dd6b4 iguais=true
 horda no passo 1000: vivos=15 spawns=15 mortes=0 1a_morte=passo -1 1o_acerto=passo 146 hp=138
@@ -16,7 +16,7 @@ trilha passo=900 hash=deef09c5 cabecalho=2d591b86 rng=6a3ca424 jogador=b1c29e7a 
 trilha passo=1000 hash=f39dd6b4 cabecalho=f134bf46 rng=6a3ca424 jogador=2cae1828 mundo=a10d7721 inimigos=95fd98b8 projeteis=df8aa6aa progressao=925b24df pickups=4fcc326f efeitos=a6f9fa25
 roteiro: costura x no passo 258, costura y no passo 962, 91 passos de deslize
 1 passo/frame: 1000 frames hash=f39dd6b4; 5 passos/frame: 200 frames hash=f39dd6b4; iguais=true
-chromium (Playwright): seed=1 passos=1000 (17 pelo driver real + 983 por avancar) hash=f39dd6b4 iguais=true
+chromium (Playwright): seed=1 passos=1000 (15 pelo driver real + 985 por avancar) hash=f39dd6b4 iguais=true
 chromium (Playwright), cenário horda: seed=1 passos=1800 hash=9ceef9c5 iguais=true
 chromium (Playwright), 1ª morte da Vigília normal: seed=1 passo=433 hash=51d4c5cd iguais=true
 chromium (Playwright), tres_armas: seed=1 passo=601 hash=6acdb6e2 iguais=true

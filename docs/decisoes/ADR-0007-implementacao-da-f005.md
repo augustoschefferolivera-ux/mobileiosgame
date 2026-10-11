@@ -40,7 +40,7 @@
 - **Ondas:** no fim da camada das armas (485 membros, de 421), quadrado de 32 pt em brasa, alpha 0,4 até a idade 8 e 0 na 15; a posição interpolada não recua atrás da origem na idade 0.
 - **HUD:** barra de XP de 8 pt e "Nv N" (`layoutDoHud.ts`, sem Phaser), 12 vagas de 28 pt com ícones geométricos (`render/icones.ts`). O `update` não aloca: a barra só muda com a XP, o texto só com o nível e as vagas só com os códigos.
 - **Pausa:** 11 pares de `Text` (armas e depois passivas); a União sem nível; o espaçamento cai para 18 pt para caber no terço de cima com os insets do iPhone.
-- **Modal** (`src/cenas/Modal.ts`, conteúdo em `conteudoDoModal.ts`): os `Text` são criados uma vez e trocados com `setText`; a seleção é estado da cena. O tradutor ganha o modo `modal`, com até 8 toques em carta por quadro, e sem joystick, botão de pausa ou gesto.
+- **Modal** (`src/cenas/Modal.ts`, conteúdo em `conteudoDoModal.ts`): os `Text` são criados uma vez e trocados com `setText`; a seleção é estado da cena. O tradutor ganha o modo `modal`, com até 8 toques em carta por quadro, e sem joystick, botão de pausa ou gesto. A seleção, a confirmação, a abertura (dedos soltos, modo `modal`) e o fechamento da fila (volta ao modo `vigilia`) ficam em `src/cenas/escolhaDoModal.ts`, sem Phaser, chamado pela Vigília (achado A2 do crítico).
 - **Painel do `?debug=1`:** desce para safe-area + 144 pt e mostra `nivel`, `xp`, `pendentes` e `cinzas`.
 
 ## 5. Cenários e debug
@@ -114,4 +114,22 @@ Do processo:
 
 ## 10. Crítico independente
 
-⟨critico⟩
+- **Nota 7**, condicionada à cobertura de 3 achados bloqueantes (A1 a A3), todos aplicados; sem eles, 6,5. Não houve bug de código confirmado. O crítico, numa worktree isolada:
+  - rodou o typecheck (os dois projetos), o lint e o Vitest (859 testes), e o `f005.spec.ts` num build de debug próprio;
+  - conferiu os 7 critérios contra os testes, os textos contra `pt-BR.json`, os commits grandes deste ADR (§9, item 16) e as duas evidências;
+  - fez 87 mutações: 59 reprovaram, 24 sobreviveram e 4 eram equivalentes.
+- **As 24 sobreviventes viraram testes** que agora as reprovam (cada mutação foi aplicada de novo e reprovou; sem ela, o teste passa):
+  - A1 (bloqueante): a fila de baús sem o `copyWithin` → 3 baús de conteúdos diferentes e a fila cheia, entrada por entrada;
+  - A2 (bloqueante): o modal na cena só era coberto pela Playwright → a seleção, a confirmação, a abertura e o fechamento saem para `src/cenas/escolhaDoModal.ts`, sem Phaser, com 17 testes (toques por quadro, limite de 8, dedos soltos ao abrir, volta ao modo `vigilia` ao fechar a fila, sem joystick, botão nem gesto no modal); o F-005.4 confere que, depois da fila, um toque novo cria o joystick e o jogador anda;
+  - A3 (bloqueante): o evento `golpe` da Lâmina corrompível pela onda → os floats do golpe são os da Espada nv8 e ele vem antes do `onda`;
+  - A4: o recálculo do dano depois da carta e do baú (Luvas nova, Luvas nv2, baú que sobe as Luvas);
+  - A5: a semente da oferta pelo nível ofertado, e as cartas e os hashes do `nivel_tres` na seed 1 em valores literais (as referências da Playwright saem do mesmo código);
+  - A6: a ordem das fases (a Cinza nasce e é coletada no passo da morte; o nível cruzado sobe o HP antes do contato do mesmo passo);
+  - A7: a ajuda dos 35% a 43.199 (nunca) e 43.200 (sim);
+  - A8 e A9: o raio de consulta da onda com √2 (Oco Grande no canto) e o dano fixado na criação;
+  - A10: `conteudoDaCarta`, `linhasDoBau`, `completaUniao` e a geometria das cartas (16 testes);
+  - A11 e A12: o voo e a coleta pelas 4 costuras, `xAnt`/`yAnt`, e o desempate da junção (o menor slot);
+  - A13 e A17: a escolha padrão do roteiro (0), o driver com o modal aberto (acumulador zerado, nada perdido) e o bitset cobrindo os 500 inimigos.
+- **Equivalentes, sem mudança:** o portão `modalAberto` do driver (redundante com zerar o acumulador), o `recalcularDano` na União (não muda atributo nem Poder), zerar a entrada da fila no `abrirBau` (o `confirmarModal` já a zera) e o movimento do tradutor no modo modal (nenhum passo roda). Também a remoção isolada de `descartarToquesDoModal` no confirmar (o `mudarModo` seguinte já zera a lista).
+- **Documentação:** A14, o ADR dizia que o roteiro de referência sobe de nível, e não sobe (corrigido no §1). A15, o `sim20` sem a causa da diferença (§8): uma hipótese, não medida, é que parado a Espada golpeia na direção do movimento e quase não acerta (DPS ≈ 0). A16, `soltarBau` devolve −1 e perde o baú só se os 512 slots forem todos baús, o que não acontece (os baús só caem nos marcos de tempo); fica registrado, sem código. A17 virou teste.
+- **Vitest:** 917 testes, eram 859.

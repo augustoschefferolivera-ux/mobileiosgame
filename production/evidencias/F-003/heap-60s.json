@@ -10,24 +10,24 @@
   },
   "snapshots": {
     "a": {
-      "passo": 4469,
+      "passo": 5424,
       "vivos": 300,
-      "liberacoes": 740,
-      "spawns": 1040,
-      "bytes": 15101604,
-      "nos": 94608
+      "liberacoes": 900,
+      "spawns": 1200,
+      "bytes": 15104165,
+      "nos": 94617
     },
     "b": {
-      "passo": 7528,
+      "passo": 9111,
       "vivos": 300,
-      "liberacoes": 1250,
-      "spawns": 1550,
-      "bytes": 15113501,
-      "nos": 94659
+      "liberacoes": 1510,
+      "spawns": 1810,
+      "bytes": 15115562,
+      "nos": 94671
     },
-    "intervalo_s": 63
+    "intervalo_s": 62.3
   },
-  "liberacoes_no_intervalo": 510,
+  "liberacoes_no_intervalo": 610,
   "excluidos": {
     "(code)": "código do JIT, que cresce com a otimização",
     "PerformanceLongTaskTiming": "entradas de desempenho do navegador, que crescem com tarefas longas",
@@ -39,23 +39,18 @@
     "delta_por_grupo": 100,
     "calibracao": "ADR-0005"
   },
-  "delta_bytes": 11897,
-  "delta_nos": 51,
+  "delta_bytes": 11397,
+  "delta_nos": 54,
   "maior_delta_de_grupo": {
-    "grupo": "(string)",
-    "delta_n": 13,
-    "delta_bytes": 396
+    "grupo": "(hidden)",
+    "delta_n": 21,
+    "delta_bytes": 10080
   },
   "grupos_que_mudaram": [
     {
       "grupo": "(hidden)",
-      "delta_n": 10,
-      "delta_bytes": 9848
-    },
-    {
-      "grupo": "Event",
-      "delta_n": 5,
-      "delta_bytes": 600
+      "delta_n": 21,
+      "delta_bytes": 10080
     },
     {
       "grupo": "(string)",
@@ -68,13 +63,13 @@
       "delta_bytes": 340
     },
     {
-      "grupo": "PerformanceLongAnimationFrameTiming",
-      "delta_n": 2,
-      "delta_bytes": 288
-    },
-    {
       "grupo": "(array)",
       "delta_n": 2,
+      "delta_bytes": 144
+    },
+    {
+      "grupo": "PerformanceLongAnimationFrameTiming",
+      "delta_n": 1,
       "delta_bytes": 144
     },
     {
@@ -93,35 +88,35 @@
       "delta_bytes": 16
     },
     {
-      "grupo": "InternalNode",
-      "delta_n": 3,
-      "delta_bytes": 0
+      "grupo": "(number)",
+      "delta_n": 1,
+      "delta_bytes": 12
     }
   ],
   "heap_usado_a_cada_10s": [
     {
       "s": 10,
-      "usadoKB": 7811
+      "usadoKB": 7827
     },
     {
       "s": 20,
-      "usadoKB": 7813
+      "usadoKB": 7828
     },
     {
       "s": 30,
-      "usadoKB": 7820
-    },
-    {
-      "s": 40,
       "usadoKB": 7831
     },
     {
-      "s": 50,
+      "s": 40,
       "usadoKB": 7835
     },
     {
+      "s": 50,
+      "usadoKB": 7840
+    },
+    {
       "s": 60,
-      "usadoKB": 7835
+      "usadoKB": 7851
     }
   ],
   "aprovado": true
