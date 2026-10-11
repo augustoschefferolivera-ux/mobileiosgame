@@ -9,23 +9,34 @@ import { hex8 } from '../../src/logica/nucleo/hash';
 import { PASSO_MS } from '../../src/logica/nucleo/passos';
 import { criarAcumulador } from '../../src/logica/nucleo/acumulador';
 import { rodarFrame } from '../../src/logica/nucleo/driver';
-import { BYTES_ESTADO, CAB, VERSAO_LAYOUT, criarEstado, hashEstado, reiniciarEstado } from '../../src/logica/nucleo/estado';
+import {
+  BYTES_ESTADO,
+  CAB,
+  TUTORIAL,
+  VERSAO_LAYOUT,
+  criarEstado,
+  hashEstado,
+  reiniciarEstado,
+} from '../../src/logica/nucleo/estado';
 import { avancar } from '../../src/logica/nucleo/passo';
 import { PASSOS_REFERENCIA, SEED_PADRAO } from '../../src/logica/nucleo/referencia';
+import { criarDadosDaVigilia } from '../../src/logica/mundo/dados';
+import charneca from '../../src/dados/regioes/charneca_das_lanternas.json';
+import { DADOS_DA_CHARNECA as D } from './apoio';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SEED = Number(process.env['VDC_SEED'] ?? SEED_PADRAO);
 const log: string[] = [];
 
 function executar(seed: number, n: number): number {
-  const e = criarEstado(seed);
+  const e = criarEstado(seed, D);
   avancar(e, n);
   return hashEstado(e);
 }
 
 /** Frames com o delta dado, pelo driver de produção (rodarFrame), até chegar a `n` passos. */
 function executarPorFrames(seed: number, n: number, deltaMs: number): { hash: number; frames: number; max: number } {
-  const e = criarEstado(seed);
+  const e = criarEstado(seed, D);
   const acc = criarAcumulador();
   let frames = 0;
   let max = 0;
@@ -52,13 +63,13 @@ describe('determinismo (F-001.1)', () => {
   });
 
   it('valores de referência fixos (mudar layout, semeadura ou hash exige atualizar aqui)', () => {
-    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('faad4a1f');
-    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('9d08b542');
+    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('9ddb3519');
+    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('095d1240');
   });
 
   it('o hash muda a cada passo e com qualquer byte do estado', () => {
     expect(executar(SEED, PASSOS_REFERENCIA - 1)).not.toBe(executar(SEED, PASSOS_REFERENCIA));
-    const e = criarEstado(SEED);
+    const e = criarEstado(SEED, D);
     expect(e.bytes.length).toBe(BYTES_ESTADO);
     const base = hashEstado(e);
     for (let i = 0; i < BYTES_ESTADO; i++) {
@@ -68,17 +79,23 @@ describe('determinismo (F-001.1)', () => {
     }
   });
 
-  it('o cabeçalho guarda versão, seed, passo e relógio; reiniciar limpa um estado sujo', () => {
-    const e = criarEstado(SEED);
+  it('o cabeçalho guarda versão, seed, passo, relógio, tutoriais e disposição; reiniciar limpa um estado sujo', () => {
+    const e = criarEstado(SEED, D, { tutoriaisVistos: TUTORIAL.mover });
     avancar(e, 37);
     expect([e.cab[CAB.versao], e.cab[CAB.seed], e.cab[CAB.passo], e.cab[CAB.relogio]]).toEqual([VERSAO_LAYOUT, SEED, 37, 37]);
+    expect([e.cab[CAB.tutoriaisVistos], e.cab[CAB.disposicao]]).toEqual([TUTORIAL.mover, D.impressao]);
     e.bytes.fill(0xab);
-    reiniciarEstado(e, SEED);
-    expect(hashEstado(e)).toBe(hashEstado(criarEstado(SEED)));
+    reiniciarEstado(e, SEED, D);
+    expect(hashEstado(e)).toBe(hashEstado(criarEstado(SEED, D)));
+  });
+
+  it('outra disposição de obstáculos dá outro hash', () => {
+    const semUm = criarDadosDaVigilia({ ...charneca, obstaculos: charneca.obstaculos.slice(1) }, { velocidade: 1 });
+    expect(hashEstado(criarEstado(SEED, semUm))).not.toBe(hashEstado(criarEstado(SEED, D)));
   });
 
   it.each([-1, 1.5, 2 ** 32, Number.NaN])('seed %s fora de u32 é erro', (s) => {
-    expect(() => criarEstado(s)).toThrow();
+    expect(() => criarEstado(s, D)).toThrow();
   });
 
   it('o passo não lê relógio nem Math.random', () => {

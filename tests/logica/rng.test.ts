@@ -10,6 +10,7 @@ import {
   splitmix32,
 } from '../../src/logica/nucleo/rng';
 import { baseDoFluxo, criarEstado } from '../../src/logica/nucleo/estado';
+import { DADOS_DA_CHARNECA as D } from './apoio';
 
 describe('xoshiro128**', () => {
   it('reproduz os vetores do xoshiro128starstar.c 1.1 com estado {1, 2, 3, 4}', () => {
@@ -61,16 +62,16 @@ describe('fluxos', () => {
   });
 
   it('a mesma seed gera os mesmos estados; outra seed gera outros', () => {
-    const a = criarEstado(42);
-    const b = criarEstado(42);
-    const c = criarEstado(43);
+    const a = criarEstado(42, D);
+    const b = criarEstado(42, D);
+    const c = criarEstado(43, D);
     expect(Array.from(a.rng)).toEqual(Array.from(b.rng));
     expect(Array.from(a.rng)).not.toEqual(Array.from(c.rng));
   });
 
   it('consumir um fluxo não desloca a sequência de outro', () => {
-    const a = criarEstado(7);
-    const b = criarEstado(7);
+    const a = criarEstado(7, D);
+    const b = criarEstado(7, D);
     for (let i = 0; i < 1000; i++) proximoU32(a.rng, baseDoFluxo('drops'));
     const seqA = [0, 0, 0, 0, 0].map(() => proximoU32(a.rng, baseDoFluxo('diretor')));
     const seqB = [0, 0, 0, 0, 0].map(() => proximoU32(b.rng, baseDoFluxo('diretor')));
@@ -81,14 +82,14 @@ describe('fluxos', () => {
   });
 
   it('cada fluxo tem as suas 4 palavras, disjuntas e cobrindo o bloco', () => {
-    const e = criarEstado(1);
+    const e = criarEstado(1, D);
     const usadas = FLUXOS.flatMap((f) => [0, 1, 2, 3].map((i) => baseDoFluxo(f) + i)).sort((a, b) => a - b);
     expect(usadas).toEqual(Array.from({ length: e.rng.length }, (_, i) => i));
   });
 
   it.each(FLUXOS)('consumir %s não mexe em nenhum outro fluxo', (fluxo) => {
-    const e = criarEstado(77);
-    const controle = criarEstado(77);
+    const e = criarEstado(77, D);
+    const controle = criarEstado(77, D);
     for (let i = 0; i < 1000; i++) proximoU32(e.rng, baseDoFluxo(fluxo));
     for (const outro of FLUXOS) {
       if (outro === fluxo) continue;
@@ -98,7 +99,7 @@ describe('fluxos', () => {
   });
 
   it('fluxos diferentes não andam juntos', () => {
-    const e = criarEstado(1);
+    const e = criarEstado(1, D);
     const primeiras = FLUXOS.map((f) => proximoU32(e.rng, baseDoFluxo(f)));
     expect(new Set(primeiras).size).toBe(FLUXOS.length);
   });
@@ -114,7 +115,7 @@ describe('fluxos', () => {
   });
 
   it('a distribuição é plausível (média e baldes)', () => {
-    const e = criarEstado(2026);
+    const e = criarEstado(2026, D);
     const base = baseDoFluxo('diretor');
     const baldes = new Array<number>(10).fill(0);
     let soma = 0;

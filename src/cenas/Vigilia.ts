@@ -6,6 +6,7 @@ import Phaser from 'phaser';
 import { criarAcumulador } from '../logica/nucleo/acumulador';
 import { rodarFrame } from '../logica/nucleo/driver';
 import { criarEstado } from '../logica/nucleo/estado';
+import { criarDadosDaVigilia } from '../logica/mundo/dados';
 import vigilantes from '../dados/vigilantes.json';
 import charneca from '../dados/regioes/charneca_das_lanternas.json';
 import type { ContextoDoJogo, Simulacao } from './contexto';
@@ -21,7 +22,11 @@ export class Vigilia extends Phaser.Scene {
   create(): void {
     cameraLogica(this);
     this.cameras.main.setBackgroundColor(COR.fundo);
-    this.sim = { estado: criarEstado(this.ctx.seed), acumulador: criarAcumulador(), pausada: false };
+    this.sim = {
+      estado: criarEstado(this.ctx.seed, criarDadosDaVigilia(charneca, vigilantes.vigilantes[0]!)),
+      acumulador: criarAcumulador(),
+      pausada: false,
+    };
     this.ctx.simulacao = this.sim;
     this.ctx.tela = 'VIGILIA';
     this.game.events.on(Phaser.Core.Events.STEP, this.aoStep, this);

@@ -10,6 +10,7 @@ import {
 import { alfa, avancarAcumulador, criarAcumulador } from '../../src/logica/nucleo/acumulador';
 import { rodarFrame } from '../../src/logica/nucleo/driver';
 import { CAB, criarEstado } from '../../src/logica/nucleo/estado';
+import { DADOS_DA_CHARNECA as D } from './apoio';
 
 const bytes = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -114,7 +115,7 @@ describe('acumulador', () => {
 
 describe('driver de produção (rodarFrame)', () => {
   it('roda exatamente os passos do acumulador, no máximo 5, e conta os perdidos', () => {
-    const e = criarEstado(1);
+    const e = criarEstado(1, D);
     const acc = criarAcumulador();
     expect(rodarFrame(e, acc, PASSO_MS)).toBe(1);
     expect(e.cab[CAB.passo]).toBe(1);
@@ -127,7 +128,7 @@ describe('driver de produção (rodarFrame)', () => {
 
   it('1 s de frames a 60 Hz e a 30 Hz dá 60 passos', () => {
     for (const fps of [60, 30]) {
-      const e = criarEstado(1);
+      const e = criarEstado(1, D);
       const acc = criarAcumulador();
       for (let i = 0; i < fps; i++) rodarFrame(e, acc, 1000 / fps);
       expect(e.cab[CAB.passo], `${fps} fps`).toBe(60);
