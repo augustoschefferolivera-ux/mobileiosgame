@@ -84,6 +84,23 @@ describe('a lista densa do pool só no pool (design/decisoes-F-004.md §4, Remo�
   });
 });
 
+describe('a simulação não lê o anel de eventos (design/decisoes-F-004.md §4)', () => {
+  const decl = 'declare const e: { eventos: { u32: Uint32Array; f32: Float32Array } };\ndeclare function gravarEvento(a: unknown): void;\n';
+  it.each([
+    ['const { eventos } = e;\nexport const n = eventos.u32[0];'],
+    ['const anel = e.eventos;\nexport const n = anel.u32[0];'],
+    ['let anel: unknown;\nanel = e.eventos;\nexport { anel };'],
+    ['export const n = e.eventos.u32[0];'],
+    ['export const v = e.eventos.f32[4];'],
+  ])('%s → no-restricted-syntax', async (codigo) => {
+    expect(await regras(decl + codigo, 'src/logica/armas/__trecho__.ts')).toContain('no-restricted-syntax');
+  });
+
+  it('passar o anel ao gravador é permitido', async () => {
+    expect(await regras(decl + 'gravarEvento(e.eventos);', 'src/logica/armas/__trecho__.ts')).toEqual([]);
+  });
+});
+
 /** Arquivos .ts de uma pasta, recursivo. */
 function arquivosTs(pasta: string): string[] {
   return readdirSync(pasta, { withFileTypes: true }).flatMap((d) =>

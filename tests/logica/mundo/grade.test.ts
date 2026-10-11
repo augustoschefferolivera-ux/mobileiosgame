@@ -1,8 +1,10 @@
 // F-003.1: a grade devolve os mesmos vizinhos que a força bruta em 1.000 casos
 // aleatórios, inclusive os casos fixos junto da costura do ADR-0002 §6:
 // (x = 10, r = 30) precisa da coluna 17 e (y = 10, r = 50) precisa da linha 38.
+// Desde a F-004, cada consulta roda também a cópia das armas, que lê x, y e r
+// de CONSULTA e faz o intervalo de células em linha (design/decisoes-F-004.md §4).
 import { describe, expect, it } from 'vitest';
-import { COLUNAS, LADO_DA_CELULA, LINHAS, consultarGrade, criarGrade, reconstruirGrade } from '../../../src/logica/mundo/grade';
+import { COLUNAS, CONSULTA, LADO_DA_CELULA, LINHAS, consultarGrade, consultarGradeDoRascunho, criarGrade, reconstruirGrade } from '../../../src/logica/mundo/grade';
 import { ALTURA_DO_MAPA as H, LARGURA_DO_MAPA as W, deltaNoToro } from '../../../src/logica/mundo/toro';
 import { proximoUnitario, semear } from '../../../src/logica/nucleo/rng';
 
@@ -19,12 +21,19 @@ function forcaBruta(xs: Float32Array, ys: Float32Array, ids: Int32Array, n: numb
   return achados.sort((a, b) => a - b);
 }
 
+/** Consulta pela grade; a cópia das armas (consultarGradeDoRascunho) tem de achar os mesmos ids. */
 function consultar(xs: Float32Array, ys: Float32Array, ids: Int32Array, n: number, x: number, y: number, r: number): number[] {
   const g = criarGrade(CAP);
   reconstruirGrade(g, xs, ys, ids, n);
   const out = new Int32Array(CAP);
   const k = consultarGrade(g, xs, ys, x, y, r, out);
-  return Array.from(out.subarray(0, k)).sort((a, b) => a - b);
+  const pelaGrade = Array.from(out.subarray(0, k)).sort((a, b) => a - b);
+  CONSULTA[0] = x;
+  CONSULTA[1] = y;
+  CONSULTA[2] = r;
+  const m = consultarGradeDoRascunho(g, xs, ys, out);
+  expect(Array.from(out.subarray(0, m)).sort((a, b) => a - b), `rascunho em (${x}, ${y}) r = ${r}`).toEqual(pelaGrade);
+  return pelaGrade;
 }
 
 describe('grade espacial (ADR-0002 §6)', () => {
@@ -48,6 +57,13 @@ describe('grade espacial (ADR-0002 §6)', () => {
     const ids = Int32Array.of(0, 1);
     expect(Math.floor(2495 / 64)).toBe(38);
     expect(consultar(xs, ys, ids, 2, 300, 10, 50)).toEqual([0]);
+  });
+
+  it('caso fixo: (y = 2.520, r = 30) acha um vizinho em y = 5, na linha 0, pelo outro lado da costura', () => {
+    const xs = Float32Array.of(300, 300);
+    const ys = Float32Array.of(5, 60);
+    const ids = Int32Array.of(0, 1);
+    expect(consultar(xs, ys, ids, 2, 300, 2520, 30)).toEqual([0]);
   });
 
   it('a distância vale com igualdade (d ≤ r) e nunca devolve um id duas vezes, mesmo com r maior que o mapa', () => {

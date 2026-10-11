@@ -49,6 +49,15 @@ const LER_ATIVOS = [
   { selector: "ObjectPattern > Property[key.name='ativos']", message: MENSAGEM_DE_ATIVOS },
 ];
 
+/** A simulação só escreve no anel de eventos, por gravarEvento (design/decisoes-F-004.md §4): nada de apelido nem de views. */
+const MENSAGEM_DO_ANEL = 'src/logica só passa o anel a gravarEvento ou esvaziarAnel; ler o anel quebra a cópia do buffer e o save (design/decisoes-F-004.md §4).';
+const LER_ANEL = [
+  { selector: "ObjectPattern > Property[key.name='eventos']", message: MENSAGEM_DO_ANEL },
+  { selector: "VariableDeclarator > MemberExpression.init[property.name='eventos']", message: MENSAGEM_DO_ANEL },
+  { selector: "AssignmentExpression > MemberExpression.right[property.name='eventos']", message: MENSAGEM_DO_ANEL },
+  { selector: "MemberExpression[object.type='MemberExpression'][object.property.name='eventos']", message: MENSAGEM_DO_ANEL },
+];
+
 export default defineConfig(
   { ignores: ['dist/', 'dist-debug/', 'node_modules/', 'coverage/', 'test-results/', 'playwright-report/', '.verify/', 'design/', 'docs/', 'production/'] },
   js.configs.recommended,
@@ -91,13 +100,13 @@ export default defineConfig(
         { object: 'Math', property: 'random', message: 'Use o RNG com seed de src/logica/nucleo/rng (ADR-0002 §5).' },
         ...MATEMATICA_APROXIMADA,
       ],
-      'no-restricted-syntax': ['error', ...SINTAXE_DA_LOGICA, ...LER_ATIVOS],
+      'no-restricted-syntax': ['error', ...SINTAXE_DA_LOGICA, ...LER_ATIVOS, ...LER_ANEL],
     },
   },
   {
     // O pool é o dono da lista densa (design/decisoes-F-004.md §4, Remoções).
     files: ['src/logica/nucleo/pool.ts'],
-    rules: { 'no-restricted-syntax': ['error', ...SINTAXE_DA_LOGICA] },
+    rules: { 'no-restricted-syntax': ['error', ...SINTAXE_DA_LOGICA, ...LER_ANEL] },
   },
   {
     // Q-31: o glossário vale para todo o código (os testes do detector desligam a regra no arquivo).
