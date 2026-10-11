@@ -159,6 +159,29 @@ describe('morte (M1 a M3) e remoções', () => {
     expect(quantosAtivos(e.poolDeProjeteis)).toBe(0);
   });
 
+  it('M1 na aura: um Oco de 1 HP morto pela Espada (vaga 0) dentro da aura (vaga 1) leva 1 acerto e nenhum tick', () => {
+    const e = estadoCom([[E, 1], [C, 1]]);
+    const s = por(e, TIPO.oco_das_lanternas, 0, -40);
+    e.inimigos.hp[s] = 1;
+    rodarArmas(e, D);
+    const acertos = eventos(e).filter((v) => v.tipo === EVENTO.acerto && v.slot === s);
+    expect(acertos.map((v) => [v.forma, v.flags])).toEqual([[FORMA.ida, FLAG.matou]]);
+    expect(eventos(e).filter((v) => v.tipo === EVENTO.morte).map((v) => v.slot)).toEqual([s]);
+  });
+
+  it('M1 na salva: com o mais próximo morto pela Espada no mesmo passo, as facas vão ao 2º candidato', () => {
+    const e = estadoCom([[E, 1], [F, 1]]);
+    const morto = por(e, TIPO.oco_das_lanternas, 0, -40);
+    por(e, TIPO.oco_das_lanternas, 0, 100);
+    e.inimigos.hp[morto] = 1;
+    rodarArmas(e, D);
+    const vivas: number[] = [];
+    for (let p = 0; p < CAPACIDADE_DE_PROJETEIS; p++) if (e.poolDeProjeteis.posicao[p]! >= 0) vivas.push(p);
+    expect(vivas).toHaveLength(2);
+    // As duas para baixo, para o Oco vivo; nenhuma para o morto, que ficou acima.
+    expect(vivas.every((p) => e.projeteis.vy[p]! > 0)).toBe(true);
+  });
+
   it('um alvo de HP alto atingido pela Espada e pela aura no mesmo passo perde a soma', () => {
     const e = estadoCom([[E, 1], [C, 1]]);
     const s = por(e, TIPO.oco_grande, 0, -48);

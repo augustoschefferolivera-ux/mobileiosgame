@@ -6,7 +6,7 @@ import { ARMA } from '../../../src/logica/armas/tabela';
 import { CAPACIDADE_DE_PROJETEIS, MUNDO, type Estado } from '../../../src/logica/nucleo/estado';
 import { EVENTO, FORMA, SEM_ALVO } from '../../../src/logica/nucleo/eventos';
 import { quantosAtivos } from '../../../src/logica/nucleo/pool';
-import { removerInimigo } from '../../../src/logica/mundo/inimigos';
+import { nascerInimigo, removerInimigo } from '../../../src/logica/mundo/inimigos';
 import { TIPO } from '../../../src/logica/mundo/tipos';
 import { DADOS_SEM_OBSTACULOS as D, dadosDe } from '../apoio';
 import { J, estadoCom, eventos, por } from './apoio';
@@ -85,6 +85,11 @@ describe('salva (W9, W10, W11)', () => {
     const dirs = vivos(e).map((p) => (e.projeteis.vx[p]! > 0 ? 'direita' : 'cima'));
     expect(dirs.filter((d) => d === 'direita')).toHaveLength(3);
     expect(dirs.filter((d) => d === 'cima')).toHaveLength(2);
+    // W11 com divisão desigual: as 3 da direita saem a −8, 0 e +8 px na perpendicular (y); as 2 de cima, a −4 e +4 (x).
+    const direita = vivos(e).filter((p) => e.projeteis.vx[p]! > 0);
+    const cima = vivos(e).filter((p) => e.projeteis.vx[p]! <= 0);
+    expect(direita.map((p) => e.projeteis.y[p]! - J.y).sort((a, b) => a - b)).toEqual([-8, 0, 8]);
+    expect(cima.map((p) => e.projeteis.x[p]! - J.x).sort((a, b) => a - b)).toEqual([-4, 4]);
   });
 
   it('1 Oco e 3 facas (nv2): nascem deslocadas −8, 0 e +8 px na perpendicular e as 3 acertam', () => {
@@ -121,6 +126,29 @@ describe('voo e acerto (W9)', () => {
       }
       expect(vivos(e)).toHaveLength(0);
       expect(v * vida).toBeCloseTo(192, 9);
+    }
+  });
+
+  it('hitbox da faca (W3): parada, acerta um Oco com o centro a exatamente 8 + 16 = 24 px e não a 24 + 1/16', () => {
+    for (const [d, esperado] of [
+      [24, true],
+      [24 + 1 / 16, false],
+    ] as const) {
+      const e = estadoCom([[F, 1]]);
+      const alvo = por(e, TIPO.oco_das_lanternas, 0, -150);
+      rodarArmas(e, D);
+      removerInimigo(e, alvo);
+      const [p, ...resto] = vivos(e);
+      for (const q of resto) liberarProjetil(e, q);
+      // A faca fica parada onde nasceu, numa coordenada exata.
+      e.projeteis.vx[p!] = 0;
+      e.projeteis.vy[p!] = 0;
+      const x = e.projeteis.x[p!]!;
+      const y = e.projeteis.y[p!]!;
+      const s = nascerInimigo(e, D, TIPO.oco_das_lanternas, x, y - d, false);
+      expect(e.inimigos.y[s]! - y).toBe(-d);
+      rodarArmas(e, D);
+      expect(e.inimigos.hp[s]! < HP_OCO, `a ${d} px`).toBe(esperado);
     }
   });
 

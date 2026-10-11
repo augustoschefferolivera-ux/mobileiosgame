@@ -43,7 +43,7 @@ interface Linha {
 const linhas = new Map<number, Linha[]>();
 
 /** Uma ativação da arma (o 1º ciclo, a 1ª salva ou o 1º tick) contra o Oco Grande parado a 48 px. */
-function medir(codigo: number, nivel: number): { valores: number[]; quedaDoHp: number } {
+function medir(codigo: number, nivel: number): { valores: number[]; quedaDoHp: number; hp: number } {
   const e = estadoCom([[codigo, nivel]]);
   const s = por(e, TIPO.oco_grande, 0, -48);
   // Espada: os golpes do 1º ciclo saem até o passo 37; Facas: a salva do passo 1 acerta em ≤ 3 passos; Círculo: o tick do passo 1.
@@ -52,7 +52,7 @@ function medir(codigo: number, nivel: number): { valores: number[]; quedaDoHp: n
   const valores = eventos(e)
     .filter((v) => v.tipo === EVENTO.acerto && v.slot === s)
     .map((v) => v.f[2]);
-  return { valores, quedaDoHp: 100 - e.inimigos.hp[s]! };
+  return { valores, quedaDoHp: 100 - e.inimigos.hp[s]!, hp: e.inimigos.hp[s]! };
 }
 
 describe('F-004.1: dano em cada nível bate com a tabela 3.8 (±1%)', () => {
@@ -61,7 +61,7 @@ describe('F-004.1: dano em cada nível bate com a tabela 3.8 (±1%)', () => {
     it(`${esp.nome}, níveis 1 a 8`, () => {
       const tabela: Linha[] = [];
       for (let nivel = 1; nivel <= 8; nivel++) {
-        const { valores, quedaDoHp } = medir(codigo, nivel);
+        const { valores, quedaDoHp, hp } = medir(codigo, nivel);
         const porAcerto = codigo === ARMA.circulo_de_sal ? esp.valor[nivel - 1]! / 2 : esp.valor[nivel - 1]!;
         // Acertos por ativação: golpes do ciclo, facas da salva ou 1 tick.
         expect(valores, `nv${nivel}: acertos`).toHaveLength(esp.porAtivacao[nivel - 1]!);
@@ -73,7 +73,11 @@ describe('F-004.1: dano em cada nível bate com a tabela 3.8 (±1%)', () => {
         const obtido = codigo === ARMA.circulo_de_sal ? valores[0]! * 2 : valores[0]!;
         const desvio = (obtido - esp.valor[nivel - 1]!) / esp.valor[nivel - 1]!;
         expect(Math.abs(desvio), `nv${nivel}: desvio`).toBeLessThanOrEqual(0.01);
-        // A queda do HP é a soma dos acertos, arredondada no ulp do HP (≈ 7,6e-6 perto de 100).
+        // A queda do HP, acerto a acerto: hpDepois = fround(hpAntes − valor), recalculado aqui na ordem dos eventos.
+        let hpEsperado = 100;
+        for (const v of valores) hpEsperado = Math.fround(hpEsperado - v);
+        expect(hp, `nv${nivel}: HP depois dos acertos`).toBe(hpEsperado);
+        // E a soma, ±1% contra a tabela (o arredondamento no ulp do HP, ≈ 7,6e-6 perto de 100, fica bem abaixo).
         const soma = porAcerto * valores.length;
         expect(Math.abs(quedaDoHp - soma) / soma, `nv${nivel}: queda do HP`).toBeLessThanOrEqual(0.01);
         tabela.push({ nivel, esperado: esp.valor[nivel - 1]!, obtido, desvio, acertos: valores.length, quedaDoHp, ok: true });

@@ -2,6 +2,7 @@
 // de afastamento (K1) (design/decisoes-F-004.md §2, §3 e §8).
 import { describe, expect, it } from 'vitest';
 import { rodarArmas } from '../../../src/logica/armas/armas';
+import { ACERTO, acertar } from '../../../src/logica/armas/acerto';
 import { ARMA, indiceDoNivel } from '../../../src/logica/armas/tabela';
 import { CAPACIDADE_DE_INIMIGOS, JOGADOR, equiparArma, esvaziarBuild, hashEstado, type Estado } from '../../../src/logica/nucleo/estado';
 import { EVENTO, FORMA } from '../../../src/logica/nucleo/eventos';
@@ -64,6 +65,11 @@ describe('aura acerta a 2 corpos e não a 2,1 (F-004.3, W3)', () => {
     g.jogador[JOGADOR.x] = g.jogador[JOGADOR.xAnt] = 5;
     const u = nascerInimigo(g, D, TIPO.oco_das_lanternas, 1095, 1266, false);
     expect(tickDireto(g)).toEqual([u]);
+    // Costura em y: jogador em (585, 10) e Oco em (585, 2.462), a 80 px pelo toro (achado A4 do crítico).
+    const h = estadoCom([[C, 1]]);
+    h.jogador[JOGADOR.y] = h.jogador[JOGADOR.yAnt] = 10;
+    const v = nascerInimigo(h, D, TIPO.oco_das_lanternas, 585, 2462, false);
+    expect(tickDireto(h)).toEqual([v]);
   });
 
   it('por nível: leva a R(nv) + r − 1/16 e não a R(nv) + r + 1/16; na fronteira exata quando a coordenada é exata em Float32', () => {
@@ -124,6 +130,22 @@ describe('Sal (F-004.2; S1)', () => {
     return l;
   }
 
+  it('a Noviça salgada a 50% (mantém distância) se aproxima e recua com metade da velocidade base', () => {
+    const v = D.tipos.velocidade[TIPO.novica_de_sal]!;
+    // A 400 px ela se aproxima (o delta é +v/2); a 60 px, dentro dos 128, recua (−v/2).
+    for (const [d, sinal] of [
+      [400, 1],
+      [60, -1],
+    ] as const) {
+      const e = estadoCom([]);
+      const s = por(e, TIPO.novica_de_sal, 0, -d);
+      e.inimigos.salPct[s] = 50;
+      e.inimigos.salPassos[s] = 180;
+      const [delta] = passos(e, s, 1);
+      expect(Math.abs(delta! - (sinal * v) / 2), `a ${d} px`).toBeLessThanOrEqual(1e-3);
+    }
+  });
+
   it('(a) 50% por exatamente 180 passos: 0,66 px de t + 1 a t + 180 e 1,32 no t + 181; com 60%, 0,528', () => {
     for (const [pct, devagar] of [
       [50, 0.66],
@@ -174,29 +196,34 @@ describe('Sal (F-004.2; S1)', () => {
     expect(empurroesDoPasso[EMPURRAO.separacao2]).toBeCloseTo(1.32 * 1.32, 9);
   });
 
-  it('reaplicação (S1): 60% no passo t e 50% no t + 100 dão 40% da velocidade até o t + 280 e cheia no t + 281; a ordem não muda o hash', () => {
+  it('reaplicação (S1) pelo acerto: 60% no passo t e 50% no t + 100 dão 40% da velocidade até o t + 280 e cheia no t + 281', () => {
     const e = estadoCom([]);
     const s = por(e, TIPO.oco_das_lanternas, 0, -600);
-    e.inimigos.salPct[s] = 60;
-    e.inimigos.salPassos[s] = 180;
+    ACERTO[0] = 0;
+    acertar(e, s, C, FORMA.tick, 60, 180);
     const d1 = passos(e, s, 100);
-    // A aplicação de 50% no passo t + 100 (fim da fase de armas): máximo campo a campo.
-    e.inimigos.salPct[s] = Math.max(e.inimigos.salPct[s]!, 50);
-    e.inimigos.salPassos[s] = Math.max(e.inimigos.salPassos[s]!, 180);
+    // A aplicação de 50% no passo t + 100, pelo mesmo caminho da fase de armas: máximo campo a campo.
+    acertar(e, s, F, FORMA.faca, 50, 180);
+    expect([e.inimigos.salPct[s], e.inimigos.salPassos[s]]).toEqual([60, 180]);
     const d2 = passos(e, s, 181);
     expect([...d1, ...d2].slice(0, 280).every((v) => Math.abs(v - 0.528) <= 1e-3)).toBe(true);
     expect(Math.abs(d2[180]! - 1.32)).toBeLessThanOrEqual(1e-3);
-    // As duas aplicações no mesmo passo, em ordens trocadas (Facas antes ou depois do Círculo), dão o mesmo hash.
-    const hashes = [
-      [F, C],
-      [C, F],
-    ].map((ordem) => {
-      const f = estadoCom(ordem.map((c) => [c, 4] as const));
-      por(f, TIPO.oco_das_lanternas, 0, -40);
-      avancar(f, D, PARADO, 30);
-      return [f.inimigos.salPct[0], f.inimigos.salPassos[0]];
-    });
-    expect(hashes[0]).toEqual(hashes[1]);
+  });
+
+  it('reaplicação (S1) no mesmo passo: as duas ordens dão o maior fator e a maior duração, campo a campo', () => {
+    for (const [a, b, esperado] of [
+      [[60, 180], [50, 180], [60, 180]],
+      [[50, 180], [60, 180], [60, 180]],
+      [[60, 100], [50, 180], [60, 180]],
+      [[50, 180], [60, 100], [60, 180]],
+    ] as const) {
+      const e = estadoCom([]);
+      const s = por(e, TIPO.oco_grande, 0, -600);
+      ACERTO[0] = 0;
+      acertar(e, s, F, FORMA.faca, a[0], a[1]);
+      acertar(e, s, C, FORMA.tick, b[0], b[1]);
+      expect([e.inimigos.salPct[s], e.inimigos.salPassos[s]], `${a} e depois ${b}`).toEqual(esperado);
+    }
   });
 
   it('o tick da aura aplica o Sal do nível (50% do nv1 ao nv3, 60% do nv4 em diante), renovado a cada tick', () => {

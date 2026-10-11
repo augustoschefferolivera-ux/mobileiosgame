@@ -214,7 +214,7 @@ describe('área do nv5 (W7) e estocada (W8)', () => {
     return atingidos;
   }
 
-  it('nv7: Oco em (0, −131,2) leva e em (0, −131,3) não; a 35,2 − 1/16 px do eixo leva e a 35,3 não; 5 em fila levam todos', () => {
+  it('nv7: Oco em (0, −131,2) leva e em (0, −131,3) não; a 35,2 − 1/16 px do eixo leva e a 35,3 não; atrás, a 16 px exatos leva; 5 em fila levam todos', () => {
     const casos: [number, number, boolean][] = [
       [0, -131.2, true],
       [0, -131.3, false],
@@ -222,6 +222,9 @@ describe('área do nv5 (W7) e estocada (W8)', () => {
       [35.3, -60, false],
       [-(35.2 - 1 / 16), -60, true],
       [-35.3, -60, false],
+      // A borda de trás, que começa no centro do jogador: com coordenada exata, a = −r leva (≤, sem ε) e −r − 1/16 não.
+      [0, 16, true],
+      [0, 16 + 1 / 16, false],
     ];
     for (const [dx, dy, esperado] of casos) {
       const e = estadoCom([[E, 7]]);
