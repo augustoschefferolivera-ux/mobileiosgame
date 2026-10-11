@@ -1,5 +1,5 @@
 # F-001 — log do teste de determinismo (Vitest, Node); desde a F-002, com o roteiro de ComandosDoPasso
-# gerado em 2026-10-11T04:22:39.282Z com Node v22.22.0
+# gerado em 2026-10-11T04:53:25.272Z com Node v22.22.0
 # referencia: seed=1 passos=1000 hash=3510977e (comparado pela Playwright, F-001.11)
 seed=1 passos=1000 execucao1=3510977e execucao2=3510977e iguais=true
 roteiro: costura x no passo 258, costura y no passo 962, 91 passos de deslize
