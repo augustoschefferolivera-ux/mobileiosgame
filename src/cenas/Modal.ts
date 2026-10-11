@@ -155,7 +155,7 @@ export class Modal extends Phaser.Scene {
     const sim = this.ctx.simulacao!;
     const ins = this.ctx.insets;
     alvosDasCartas(ins, this.alvosDasCartas);
-    const g = this.desenho!.clear();
+    const g = this.desenho!.clear().setVisible(true);
     this.veu!.clear().fillStyle(COR.pedra, ALFA_DO_VEU).fillRect(0, 0, LARGURA_LOGICA, ALTURA_LOGICA).setVisible(true);
     this.esconderBau();
     for (let k = 0; k < 3; k++) {
@@ -197,7 +197,7 @@ export class Modal extends Phaser.Scene {
     this.veu!.clear().fillStyle(COR.pedra, ALFA_DO_VEU).fillRect(0, 0, LARGURA_LOGICA, ALTURA_LOGICA).setVisible(true);
     for (const c of this.cartas) for (const x of [c.nome, c.etiqueta, c.funcional, c.rodape]) x.setVisible(false);
     this.confirmar!.setVisible(false);
-    const g = this.desenho!.clear();
+    const g = this.desenho!.clear().setVisible(true);
     const cx = ins.esquerda + (LARGURA_LOGICA - ins.esquerda - ins.direita) / 2;
     const util = ALTURA_LOGICA - ins.topo - ins.baixo;
     const yTitulo = ins.topo + util / 6;
