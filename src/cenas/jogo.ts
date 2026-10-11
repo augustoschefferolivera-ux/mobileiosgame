@@ -60,6 +60,13 @@ export function iniciarJogo(): Phaser.Game {
     fps: { target: 60, limit: 0, forceSetTimeOut: false, smoothStep: false },
     input: { touch: false, mouse: false, keyboard: false, gamepad: false, windowEvents: false },
     callbacks: {
+      // O nosso desbloqueio, no touchend do botão de Acender, é o único caminho (ADR-0002 §12):
+      // tira o unlock automático que o WebAudioSoundManager agenda para o BOOT (listeners no body).
+      preBoot: (game) => {
+        if (game.sound instanceof Phaser.Sound.WebAudioSoundManager) {
+          game.events.off(Phaser.Core.Events.BOOT, game.sound.unlock, game.sound);
+        }
+      },
       postBoot: (game) => {
         const camada = new CamadaDeToque(game.canvas, ehBuildDeDebug);
         camada.ligar();

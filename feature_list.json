@@ -47,7 +47,7 @@
           "id": "F-001.4",
           "descricao": "Áudio em estado running após o toque simulado.",
           "verificacao": "playwright",
-          "como": "Chromium com --autoplay-policy=document-user-activation-required (corrigido na F-001: com user-gesture-required o AudioContext do Chromium 141 já nasce 'running'); __GAME_DEBUG__.audio() é 'suspended' antes e 'running' depois do toque na Tela de Acender, e __GAME_DEBUG__.desbloqueioDoAudio = 'running' prova que foi o nosso desbloqueio (ADR-0002 §12).",
+          "como": "Chromium com --autoplay-policy=document-user-activation-required (corrigido na F-001: com user-gesture-required o AudioContext do Chromium 141 já nasce 'running'); __GAME_DEBUG__.audio() é 'suspended' antes e 'running' depois do toque na Tela de Acender, com o unlock automático do Phaser desligado no preBoot, um toque fora do botão mantém 'suspended', e depois do toque no botão __GAME_DEBUG__.desbloqueioDoAudio = 'running' e somTravado = false (ADR-0002 §12; ADR-0003 §1).",
           "origem": "B §4"
         },
         {

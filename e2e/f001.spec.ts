@@ -19,6 +19,7 @@ interface Debug {
   textoAtivo: string[];
   eventos: { evento: string; passo: number; campos: Record<string, unknown> }[];
   desbloqueioDoAudio: string | null;
+  somTravado: boolean;
   hash(): string | null;
   audio(): string;
   pausar(): void;
@@ -87,15 +88,19 @@ test('F-001.4 e F-001.3: áudio suspended antes e running depois do toque; o pas
     'suspended',
     'ACENDER',
   ]);
-  // Um toque fora do botão não acende.
+  // Um toque fora do botão não acende nem desbloqueia: o unlock automático do Phaser está desligado.
   const fora = await paraPagina(page, 195, 120);
   await page.touchscreen.tap(fora.x, fora.y);
   await page.waitForTimeout(200);
-  expect(await page.evaluate(() => window.__GAME_DEBUG__.estado)).toBe('ACENDER');
+  expect(
+    await page.evaluate(() => [window.__GAME_DEBUG__.estado, window.__GAME_DEBUG__.audio(), window.__GAME_DEBUG__.somTravado]),
+  ).toEqual(['ACENDER', 'suspended', true]);
 
   await tocarAcender(page);
   await page.waitForFunction(() => window.__GAME_DEBUG__.audio() === 'running');
   await page.waitForFunction(() => window.__GAME_DEBUG__.desbloqueioDoAudio === 'running');
+  // O campo privado unlocked que marcamos chega ao BaseSoundManager real, que zera locked (F-001.14).
+  await page.waitForFunction(() => window.__GAME_DEBUG__.somTravado === false);
   const p1 = await page.evaluate(() => window.__GAME_DEBUG__.passo);
   await proximoFrame(page);
   await page.waitForTimeout(100);

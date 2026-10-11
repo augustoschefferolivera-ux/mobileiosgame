@@ -8,9 +8,13 @@
 - **Medido no Chromium 141 da Playwright 1.56.1:** um `AudioContext` criado na carga da página nasce `'running'` com `--autoplay-policy=user-gesture-required`, e `'suspended'` com `--autoplay-policy=document-user-activation-required` ou sem flag. Com a flag antiga, o teste da F-001.4 passaria sem toque.
 - **Decisão:** o projeto `taps-game` usa `document-user-activation-required`.
 - **Mais dois fatos:**
-  - o `page.evaluate` da Playwright roda com `userGesture: true`;
-  - o Phaser registra listeners próprios de desbloqueio no `body`.
-- **Consequência:** `'running'` depois do toque não basta para provar que o nosso desbloqueio rodou. Por isso o teste também exige `__GAME_DEBUG__.desbloqueioDoAudio === 'running'`, o valor que o nosso desbloqueio devolve.
+  - o `page.evaluate` da Playwright roda com `userGesture: true`, e a ativação de usuário fica para a página;
+  - o `WebAudioSoundManager` agenda no BOOT um unlock próprio, com listeners de `touchstart`, `touchend`, `mousedown`, `mouseup` e `keydown` no `body`, que chamam `context.resume()` em qualquer toque.
+- **Decisão:** o `callbacks.preBoot` tira esse unlock automático (`game.events.off(BOOT, sound.unlock, sound)`), e o nosso desbloqueio no `touchend` do botão de Acender passa a ser o único caminho, como diz o ADR-0002 §12.
+- **Teste:**
+  - depois de um toque fora do botão, `audio()` continua `'suspended'` e `somTravado` continua `true`;
+  - depois do toque em Acender, `desbloqueioDoAudio === 'running'` e `somTravado === false`. Isso prova também que o campo privado `unlocked` funciona com o `BaseSoundManager` real (F-001.14).
+- **Mutação conferida:** sem a chamada ao nosso desbloqueio, o teste falha.
 
 ## 2. RNG
 

@@ -33,6 +33,8 @@ export interface GameDebug {
   readonly eventos: ReturnType<ContextoDoJogo['telemetria']['eventos']>;
   /** Estado devolvido pelo nosso desbloqueio no toque de Acender (null antes). */
   readonly desbloqueioDoAudio: string | null;
+  /** `locked` do SoundManager do Phaser: só o nosso desbloqueio o leva a false (F-001.14). */
+  readonly somTravado: boolean;
   hash(): string | null;
   audio(): string;
   pausar?: () => void;
@@ -89,6 +91,9 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     },
     get desbloqueioDoAudio() {
       return ctx.desbloqueioDoAudio;
+    },
+    get somTravado() {
+      return jogo.sound.locked;
     },
     hash() {
       return ctx.simulacao ? hex8(hashEstado(ctx.simulacao.estado)) : null;

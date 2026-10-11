@@ -100,13 +100,35 @@ describe('desbloqueio do áudio (F-001.14)', () => {
     expect(silencio).toBe(1);
   });
 
+  it('se o setter de audioSession lança, cai no <audio> silencioso', async () => {
+    let silencio = 0;
+    const sessao = {
+      set type(_v: string) {
+        throw new Error('sem permissão');
+      },
+      get type(): string {
+        return 'auto';
+      },
+    };
+    await desbloquearAudio(somFalso('running'), { audioSession: sessao, tocarSilencio: () => silencio++ });
+    expect(silencio).toBe(1);
+  });
+
   it('o WAV silencioso tem cabeçalho PCM válido e só amostras 128', () => {
     const w = wavSilencioso(100, 8000);
     const v = new DataView(w.buffer);
     expect(String.fromCharCode(...w.slice(0, 4))).toBe('RIFF');
     expect(String.fromCharCode(...w.slice(8, 12))).toBe('WAVE');
+    expect(String.fromCharCode(...w.slice(12, 16))).toBe('fmt ');
+    expect(String.fromCharCode(...w.slice(36, 40))).toBe('data');
     expect(v.getUint32(4, true)).toBe(w.length - 8);
+    expect(v.getUint32(16, true)).toBe(16);
+    expect(v.getUint16(20, true)).toBe(1); // PCM
+    expect(v.getUint16(22, true)).toBe(1); // mono
     expect(v.getUint32(24, true)).toBe(8000);
+    expect(v.getUint32(28, true)).toBe(8000); // bytes por segundo
+    expect(v.getUint16(32, true)).toBe(1); // bytes por quadro
+    expect(v.getUint16(34, true)).toBe(8); // bits por amostra
     expect(v.getUint32(40, true)).toBe(100);
     expect(w.slice(44).every((b) => b === 128)).toBe(true);
   });
