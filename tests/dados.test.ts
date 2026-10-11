@@ -56,6 +56,9 @@ const ARQUIVOS: { arquivo: string; schema: string }[] = [
   ...readdirSync(join(RAIZ, 'regioes'))
     .filter((f) => f.endsWith('.json'))
     .map((f) => ({ arquivo: `regioes/${f}`, schema: 'regiao.schema.json' })),
+  ...readdirSync(join(RAIZ, 'cenarios'))
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => ({ arquivo: `cenarios/${f}`, schema: 'cenario.schema.json' })),
 ];
 
 const dados = new Map<string, Objeto>(ARQUIVOS.map(({ arquivo }) => [arquivo, ler(arquivo)]));

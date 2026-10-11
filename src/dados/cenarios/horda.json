@@ -1,0 +1,9 @@
+{
+  "id": "horda",
+  "versao": 1,
+  "linha_fixa": 19,
+  "jogador": { "invulneravel": true },
+  "diretor_desligado": false,
+  "tutoriais_vistos": true,
+  "rotacao": 0
+}
