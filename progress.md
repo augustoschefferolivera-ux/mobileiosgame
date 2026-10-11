@@ -1,5 +1,30 @@
 # progress.md
 
+## Sessão 5 — F-005 "XP, level up, passivas e União"
+
+### Estado: F-005 pronta (aguarda a revisão do usuário); F-006 não começada
+
+- [x] Leitura: este arquivo (Sessão 4 e Retomada), ADR-0006, `design/decisoes-F-004.md` (§9) e a entrada da F-005. Branch `claude/f005-xp-h2tbzf`, a partir do fim da F-004 (`9271b10`); `verify.sh --feature F-004` verde no início.
+- [x] **Etapa 1, decisões:** `design/decisoes-F-005.md` (aqui, D5), com levantamento (4 pesquisadores, cada um com verificador cético, e um crítico de completude), revisão adversarial (fidelidade, técnica e completude, cada uma com verificador; achados aplicados na §11) e a §0 para veto. O usuário aprovou tudo sem veto ("Aprovo todas as sugestões").
+- [x] **Etapa 2, implementação** (`9271b10..HEAD`):
+  - **simulação:** estado v5 (67.488 B, o v4 intacto nos primeiros 42.988): progressão, hpMax, atributos, 6 passivas, oferta, fila de 4 baús, pool de 512 pickups e de 64 ondas; Cinzas com Ímã, voo, coleta e junção; curva ⌈XP(n)⌉, +1 FOR (teto 20) e +2 HP por nível; dano vivo recalculado (FOR e Poder); oferta de 3 cartas (60%, Elmo com 35% de piso depois das 12:00, Bolsa); baú 1/3/5 e a União depois das 10:00; Lâmina com onda de chão; fila de modais com `confirmarModal` fora do passo e `avancar` parando no modal;
+  - **cenas:** cena Modal (3 cartas, seleção e confirmação por dois toques, baú com Continuar), tradutor no modo `modal`, HUD com barra de XP, nível e 12 vagas com ícones, pausa com as passivas, camada GPU "mundo" (obstáculos, Cinzas e baús), ondas na camada das armas, `__GAME_DEBUG__` da D5 §8, telemetria `level_up` e `arma_uniao`;
+  - **dados:** `progressao.json` e schema, Aldric com HP por nível e teto de FOR, receitas `nivel_tres`, `bau_uniao` e `vigilia_sem_cinzas`;
+  - **testes:** 859 no Vitest (XP, oferta, baú, União e onda, regressão v4, referências, E6 com Cinzas e União, HUD, camada do mundo, cores R3, `sim20`) e 40 na Playwright (2 da F-005);
+  - **`scripts/sim20.ts`:** a simulação de 20 min como medida, sem gate;
+  - **decisões técnicas** em `docs/decisoes/ADR-0007-implementacao-da-f005.md`, com as divergências (§9).
+- [x] `scripts/verify.sh --feature F-005 --taps-game --seed 1` verde: typecheck, lint, Vitest (859), builds, Playwright (40) e as evidências.
+- [x] Evidências em `production/evidencias/F-005/`: `modal-390x844.png` (a 1ª oferta do `nivel_tres` com a carta do meio selecionada) e `uniao-390x844.png` (o `bau_uniao` no passo 285, com a Lâmina, a onda e os números). As das F-001 a F-004 foram regeradas (HUD novo, painel descido e camada do mundo).
+- [x] Determinismo: a seed 1 dá `f39dd6b4` no passo 1.000 e a 424242 `7c1b6c0c` (eram `901adb6d` e `9cdc2c63`; o layout mudou). No Node e no Chromium também batem o `nivel_tres` depois das duas cartas (`e776db53`), o 1º golpe da Lâmina (passo 28, `9e6a33ae`) e a captura da União (passo 285, `472f3e31`). A regressão v4 confere os campos antigos bit a bit.
+⟨critico⟩
+
+### Decidido nesta sessão (técnico; detalhes no ADR-0007)
+- **E6 com Cinzas e União parado, com XP trazida pelo teste:** andando, a subida de nível desotimiza funções antigas em ciclos (é o JIT); parado, com 27.000 passos de aquecimento, 10,7 a 11,5 B por passo. A `criarOnda` lê cada Float32 uma vez (de ≈ 10 para ≈ 5 B por passo).
+- **Specs antigos:** a Vigília normal parada abre o modal no passo 723; os que passam de 600 passos usam `vigilia_sem_cinzas`. O gpu × image da horda aceita ±1 na borda dos obstáculos, que agora vão pela camada do mundo.
+- **Commits:** sete commits passaram de ~300 linhas (309 a 470) e já estavam enviados; ficam registrados no ADR-0007 §9. Os seguintes ficaram em até ~300.
+- **Lint ignora `.claude/`:** as worktrees dos agentes quebravam o parser do TypeScript.
+- **Desempenho:** nenhum gate de tempo novo.
+
 ## Sessão 4 — F-004 "Armas automáticas"
 
 ### Estado: F-004 pronta (aguarda a revisão do usuário); F-005 não começada
@@ -197,11 +222,12 @@
 
 ### Como rodar
 - `npm install`.
-- `scripts/verify.sh --feature F-00N [--seed N] [--taps-game]` (o Pronto; F-001 a F-004 verdes; ≈ 15 min, dos quais ≈ 4 nos specs de desempenho e de heap da F-003).
+- `scripts/verify.sh --feature F-00N [--seed N] [--taps-game]` (o Pronto; F-001 a F-005 verdes; ≈ 15 min, dos quais ≈ 4 nos specs de desempenho e de heap da F-003).
 - Avulsos: `npm test` (Vitest), `npm run typecheck`, `npm run lint`, `npm run build:debug` e depois `npm run e2e`, `npm run dev`.
 - Módulo novo: `scripts/novo-modulo.sh <area>/<nome> [--cena NomeDaCena]`.
 - Disposição dos obstáculos: `scripts/gerar-disposicao.py --conferir`; direções do anel: `scripts/gerar-direcoes.py --conferir` (Python 3).
-- Cenários do build de debug: `?cenario=horda|horda_rotativa|sem_horda|tres_armas`, `?teto=300|500`, `?sonda=0` (desliga a sonda do TETO), `?render=gpu|image`, `?buffer=dinamico`, `?debug=1` (painel e verificação de NaN).
+- Simulação de 20 min (medida): `npx --no-install tsx scripts/sim20.ts` (saída em `.verify/sim20.json`).
+- Cenários do build de debug: `?cenario=horda|horda_rotativa|sem_horda|tres_armas|nivel_tres|bau_uniao|vigilia_sem_cinzas`, `?teto=300|500`, `?sonda=0` (desliga a sonda do TETO), `?render=gpu|image`, `?buffer=dinamico`, `?debug=1` (painel e verificação de NaN).
 
 ### Ambiente
 - Não existem: `CLAUDE.md`, `playbook/` e os comandos `/brief-do-jogo`, `/checkpoint-e-retomada`, `/ciclo-de-feature` e `/critico-independente`. O crítico é um subagente (Q-33). `scripts/` e o ADR-0001 foram criados nesta sessão.
@@ -215,8 +241,9 @@
 - **Sessão 1:** fechou na F-001.
 - **Sessão 2:** fechou na F-002.
 - **Sessão 3:** fechou na F-003.
-- **Sessão 4:** fecha na F-004, que aguarda a revisão do usuário. A F-005 não foi começada.
-- **Próxima sessão (F-005 "XP, level up, passivas e União"):**
-  - ler este arquivo, o ADR-0006, `design/decisoes-F-004.md` (sobretudo a §9) e a entrada da F-005 no `feature_list.json`;
-  - antes de implementar, fechar as pendências da F-005, inclusive as recomendações das F-002 a F-004 que já estão nela (level up solta os dedos; camada GPU "mundo"; forma das Cinzas; hpMax; União com os números da W18 e a geometria da onda);
-  - rodar `scripts/verify.sh --feature F-004 --taps-game --seed 1` para conferir que as armas continuam verdes.
+- **Sessão 4:** fechou na F-004.
+- **Sessão 5:** fecha na F-005, que aguarda a revisão do usuário. A F-006 não foi começada.
+- **Próxima sessão (F-006 "Stamina, esquiva e aparo"):**
+  - ler este arquivo, o ADR-0007, `design/decisoes-F-005.md` (sobretudo a §9, as recomendações para as F-006 a F-010) e a entrada da F-006 no `feature_list.json`;
+  - antes de implementar, fechar as pendências da F-006 pelo mesmo método (levantamento, revisão adversarial e §0 para veto);
+  - rodar `scripts/verify.sh --feature F-005 --taps-game --seed 1` para conferir que a progressão continua verde.

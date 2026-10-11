@@ -1,6 +1,6 @@
 # Decisões da F-005 "XP, level up, passivas e União"
 
-- **Status:** rascunho em 2026-10-11, pelo mesmo método das F-003 e F-004. Já passou pela revisão adversarial, e os achados confirmados estão aplicados (§11). Aguarda o seu veto antes da implementação (Etapa 2).
+- **Status:** aprovado pelo usuário sem veto em 2026-10-11 ("Aprovo todas as sugestões"), depois da revisão adversarial (§11); implementado na Sessão 5. As decisões técnicas da implementação e as divergências estão no ADR-0007.
 - **Como foi feito:**
   - levantamento: um workflow com 4 pesquisadores, cada um seguido de um verificador cético, e um crítico de completude. As áreas foram: XP, Cinzas e atributos; level up e modal; baú e União; estado, render e testes. Os verificadores conferiram as citações, procuraram a resposta em todas as fontes e refizeram as contas e as medições;
   - saíram 174 perguntas dos pesquisadores, 12 dos verificadores e 20 do crítico. 42 delas os documentos já respondem, no todo ou em parte (§1). Os verificadores revisaram 147 propostas e corrigiram 19. A verificação da área de estado e render foi parcial: 27 das 41 perguntas não foram revistas a fundo, e a revisão adversarial (§11) cobriu esse buraco;

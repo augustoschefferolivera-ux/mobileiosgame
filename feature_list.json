@@ -406,7 +406,7 @@
     {
       "id": "F-005",
       "nome": "XP, level up, passivas e União",
-      "status": "pendente",
+      "status": "pronta",
       "escopo_b": "Cinzas com Ímã, curva de XP, modal de 3 cartas com confirmação por segundo toque, regra de 60% de upgrades, Elmo Sem Rosto e Luvas de Fole, baú com 1/3/5 itens, União Lâmina do Juramento Eterno em baú após o min 10",
       "criterio_b": "Teste: `XP(10) = 130 ±1`, `XP(20) = 380 ±2`; sorteio respeita vagas e 60%; baú após min 10 com Espada nv8 + Elmo contém a União em 100% dos casos. Playwright: subir a nível 3 e escolher carta via toques",
       "evidencia_b": "Screenshot do modal; screenshot da União",
@@ -457,7 +457,7 @@
           "id": "F-005.7",
           "descricao": "Baú e União no navegador: encostar no baú depois das 10:00 com a Espada nv8 e o Elmo forma a União na vaga da Espada.",
           "verificacao": "playwright",
-          "como": "Cenário bau_uniao: andar até o baú pelo roteiro; ultimosEventos com bau e uniao; o modal com A10.BAU.TITULO; depois do Continuar, build.armas[0] é a Lâmina e build.passivas tem o Elmo; o passo e o hash do 1º golpe da Lâmina, lidos com a pausa do debug, são os da referência Node × Chromium (design/decisoes-F-005.md §8). [proposta de design/decisoes-F-005.md]",
+          "como": "Cenário bau_uniao: andar até o baú pelo roteiro; ultimosEventos com bau e uniao; o modal com A10.BAU.TITULO; depois do Continuar, build.armas[0] é a Lâmina e build.passivas tem o Elmo; o passo e o hash do 1º golpe da Lâmina, lidos com a pausa do debug, são os da referência Node × Chromium (design/decisoes-F-005.md §8).",
           "origem": "B §4 (evidência \"screenshot da União\"); design/decisoes-F-005.md"
         }
       ],
@@ -472,7 +472,7 @@
         }
       ],
       "pendencias_antes_de_comecar": [
-        "Resolvidas em design/decisoes-F-005.md (aguardando o veto do usuário): teto de FOR e HP por nível (§2, P1 e P2); level up solta os dedos (§3, M5); camada GPU mundo e forma das Cinzas (§6, R1 e R2); hpMax (§2, P3); União com os números da W18 e a geometria da onda (§4, U1 a U7); Cinzas em matarInimigo (§2, X3); atributos, Poder e recálculo do dano (§2, P4 e P5); simulação de 20 min como medida (§2, P6); ícones das vagas, passivas na pausa e pausa sem efeito no modal (§6, R5; §3, M5); HUD numérico (§6, R4)"
+        "Resolvidas em design/decisoes-F-005.md (aprovadas pelo usuário sem veto, 2026-10-11): teto de FOR e HP por nível (§2, P1 e P2); level up solta os dedos (§3, M5); camada GPU mundo e forma das Cinzas (§6, R1 e R2); hpMax (§2, P3); União com os números da W18 e a geometria da onda (§4, U1 a U7); Cinzas em matarInimigo (§2, X3); atributos, Poder e recálculo do dano (§2, P4 e P5); simulação de 20 min como medida (§2, P6); ícones das vagas, passivas na pausa e pausa sem efeito no modal (§6, R5; §3, M5); HUD numérico (§6, R4)"
       ]
     },
     {
