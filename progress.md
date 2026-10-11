@@ -2,7 +2,7 @@
 
 ## Sessão 3 — F-003 "Hordas"
 
-### Estado: F-003 implementada, verify verde; crítico independente em andamento; F-004 não começada
+### Estado: F-003 pronta (aguarda a revisão do usuário); F-004 não começada
 
 - [x] Leitura: este arquivo, ADR-0004, `design/decisoes-F-002.md` (sobretudo a §9) e a entrada da F-003 no `feature_list.json`. Antes de começar, `scripts/verify.sh --feature F-002 --taps-game --seed 1` verde. Branch `claude/f003-hordas`, a partir de `claude/clever-galileo-26bjed`.
 - [x] **Etapa 1, decisões:** `design/decisoes-F-003.md` (aqui, D3).
@@ -14,16 +14,21 @@
   - **plataforma:** `decidirTeto` com as 5 camadas, receitas de cenário (`horda`, `horda_rotativa`, `sem_horda`), parâmetros `?teto`, `?render`, `?buffer`, `?cenario`, `?debug`, painel do debug;
   - **render:** `SpriteGPULayer` com escrita direta no buffer de instâncias (stride 42), plano B `?render=image`, `?buffer=dinamico`, aquecimento na Acender, limpeza do que o `preDestroy` não libera, cores dos inimigos (Noviça em #8994b4);
   - **`__GAME_DEBUG__`:** vivos pelo pool, convertidos, diretor, teto, cenário, render, webgl, `quadrosContados`, HP; só no debug, `quadros()`, `inimigos()`, `hashPorSecao()` e `removerInimigo()`;
-  - **testes:** 560 no Vitest (contorno S8, contato, diretor, anel, horda, F-003.11 com o `SpriteGPULayer` real, cores, alocação E4, determinismo com a horda) e 29 na Playwright (7 da F-003; as F-001 e F-002 passam a usar `?cenario=sem_horda`);
+  - **testes:** 563 no Vitest (contorno S8, contato, diretor, anel, horda, F-003.11 com o `SpriteGPULayer` real, cores, alocação E4, determinismo com a horda) e 30 na Playwright (8 da F-003; as F-001 e F-002 passam a usar `?cenario=sem_horda`);
   - **decisões técnicas** em `docs/decisoes/ADR-0005-implementacao-da-f003.md`, com as 11 divergências do ADR-0002 (§8).
 - [x] `scripts/verify.sh --feature F-003 --taps-game --seed 1` verde:
-  - typecheck, lint, Vitest (560 testes), builds de produção e de debug;
-  - Playwright `taps-game` (29 testes: 10 da F-001, 12 da F-002 e 7 da F-003);
+  - typecheck, lint, Vitest (563 testes), builds de produção e de debug;
+  - Playwright `taps-game` (30 testes: 10 da F-001, 12 da F-002 e 8 da F-003);
   - evidências conferidas, com o aviso "fps não conferido: WebGL por software".
 - [x] `scripts/verify.sh --feature F-002 --taps-game --seed 1` continua verde.
 - [x] Evidências em `production/evidencias/F-003/`: `debug-300-vivos-390x844.png` (passo 1.800 do cenário horda, pausado), `heap-60s.json` (Δ de 2,8 KB e no máximo 13 nós por grupo em 60 s, com 570 liberações; limites de 32 KiB e 100) e `desempenho-30s.json` (300 vivos nas 30 leituras; p95 de um passo + p95 do resto até `PRE_RENDER` = 4,3 ms com CPU 4×; 4 draw calls; fps não conferido).
-- [x] Determinismo: a seed 1 dá `e91ed119` no passo 1.000 com a horda e o diretor, no Node e no Chromium (`&teto=300`); a 424242 dá `6173ca75`.
-- [ ] Crítico independente (Q-33): em andamento.
+- [x] Determinismo: a seed 1 dá `e91ed119` no passo 1.000 com a horda e o diretor, no Node e no Chromium (`&teto=300`); a 424242 dá `6173ca75`. O cenário horda (300 vivos) também dá o mesmo hash nos dois motores no passo 1.800.
+- [x] Crítico independente (Q-33): nota **8**, sem bloqueante nem alto. Os 4 achados médios e os baixos (menos o tamanho de 4 commits, de 301 a 341 linhas) foram aplicados (ADR-0005 §9):
+  - teste de que os convertidos contam 10 em vivosEq;
+  - teste da separação contra a força bruta (a visita da grade fica em linha);
+  - spec da queda para `image` sem unidade de textura no vertex shader, e o texto corrigido (uma falha ao ligar o programa não é tratada);
+  - fps médio pelo tempo real da janela;
+  - hash Node × Chromium também no cenário horda, no passo 1.800.
 
 ### Decidido nesta sessão (técnico; detalhes no ADR-0005)
 - **Laço quente:** nenhum double atravessa uma chamada fora de linha nos laços por inimigo; a colisão lê e escreve num `Float64Array` (`COLISAO`). De ≈ 48 KB para ≈ 9 B por passo no V8, com o mesmo hash.

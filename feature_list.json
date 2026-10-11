@@ -237,7 +237,7 @@
     {
       "id": "F-003",
       "nome": "Hordas",
-      "status": "pendente",
+      "status": "pronta",
       "escopo_b": "diretor por timeline (JSON da seção 3.7), pools SoA pré-alocados, grade espacial própria, Oco das Lanternas, dano de contato com invulnerabilidade de 18 passos, HP/dano escalando por minuto, teto de entidades e conversão de excedente",
       "criterio_b": "Teste: grade retorna os mesmos vizinhos que força bruta em 1.000 casos aleatórios; diretor repõe até o mínimo; conversão de excedente ao passar o teto. Playwright: 300 inimigos vivos e `__GAME_DEBUG__.fps` ≥ 55 por 30 s em desktop com throttling de CPU 4×",
       "evidencia_b": "Captura do debug com 300 vivos; relatório de alocações (heap snapshot sem crescimento em 60 s)",
