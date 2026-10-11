@@ -22,7 +22,7 @@ import { avancar } from '../../src/logica/nucleo/passo';
 import { PASSOS_REFERENCIA, SEED_PADRAO } from '../../src/logica/nucleo/referencia';
 import { criarDadosDaVigilia } from '../../src/logica/mundo/dados';
 import charneca from '../../src/dados/regioes/charneca_das_lanternas.json';
-import { DADOS_DA_CHARNECA as D } from './apoio';
+import { DADOS_DA_CHARNECA as D, PARADO } from './apoio';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SEED = Number(process.env['VDC_SEED'] ?? SEED_PADRAO);
@@ -30,7 +30,7 @@ const log: string[] = [];
 
 function executar(seed: number, n: number): number {
   const e = criarEstado(seed, D);
-  avancar(e, n);
+  avancar(e, D, PARADO, n);
   return hashEstado(e);
 }
 
@@ -41,7 +41,7 @@ function executarPorFrames(seed: number, n: number, deltaMs: number): { hash: nu
   let frames = 0;
   let max = 0;
   while (e.cab[CAB.passo]! < n) {
-    max = Math.max(max, rodarFrame(e, acc, deltaMs));
+    max = Math.max(max, rodarFrame(e, D, acc, deltaMs, PARADO));
     frames++;
   }
   expect(e.cab[CAB.passo]).toBe(n);
@@ -63,8 +63,8 @@ describe('determinismo (F-001.1)', () => {
   });
 
   it('valores de referência fixos (mudar layout, semeadura ou hash exige atualizar aqui)', () => {
-    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('9ddb3519');
-    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('095d1240');
+    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('4daef608');
+    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('59895151');
   });
 
   it('o hash muda a cada passo e com qualquer byte do estado', () => {
@@ -81,7 +81,7 @@ describe('determinismo (F-001.1)', () => {
 
   it('o cabeçalho guarda versão, seed, passo, relógio, tutoriais e disposição; reiniciar limpa um estado sujo', () => {
     const e = criarEstado(SEED, D, { tutoriaisVistos: TUTORIAL.mover });
-    avancar(e, 37);
+    avancar(e, D, PARADO, 37);
     expect([e.cab[CAB.versao], e.cab[CAB.seed], e.cab[CAB.passo], e.cab[CAB.relogio]]).toEqual([VERSAO_LAYOUT, SEED, 37, 37]);
     expect([e.cab[CAB.tutoriaisVistos], e.cab[CAB.disposicao]]).toEqual([TUTORIAL.mover, D.impressao]);
     e.bytes.fill(0xab);

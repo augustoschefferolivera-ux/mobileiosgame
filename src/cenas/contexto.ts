@@ -1,7 +1,9 @@
 // Serviços compartilhados pelas cenas, criados uma vez no boot e passados
 // pelo construtor de cada cena (nada de estado global além de __GAME_DEBUG__).
 import type { Acumulador } from '../logica/nucleo/acumulador';
+import type { ComandosDoPasso, FonteDeComandos } from '../logica/nucleo/comandos';
 import type { Estado } from '../logica/nucleo/estado';
+import type { DadosDaVigilia } from '../logica/mundo/dados';
 import type { CamadaDeToque } from '../entrada/camadaDeToque';
 import type { Insets } from '../plataforma/safeArea';
 import type { RegistroDeTelemetria } from '../plataforma/telemetria';
@@ -10,7 +12,12 @@ export type Tela = 'BOOT' | 'ACENDER' | 'VIGILIA';
 
 export interface Simulacao {
   estado: Estado;
+  dados: DadosDaVigilia;
   acumulador: Acumulador;
+  /** Comandos ao vivo: o vetor que o tradutor leu no frame. */
+  readonly comandosAoVivo: ComandosDoPasso;
+  /** De onde vêm os ComandosDoPasso (ao vivo, comandosAoVivo). */
+  fonte: FonteDeComandos;
   /** Driver parado pelos ganchos de debug (avancar). */
   pausada: boolean;
 }

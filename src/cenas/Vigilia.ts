@@ -4,6 +4,7 @@
 // desenhar: o jogador entra na F-002.
 import Phaser from 'phaser';
 import { criarAcumulador } from '../logica/nucleo/acumulador';
+import { criarComandos, fonteConstante } from '../logica/nucleo/comandos';
 import { rodarFrame } from '../logica/nucleo/driver';
 import { criarEstado } from '../logica/nucleo/estado';
 import { criarDadosDaVigilia } from '../logica/mundo/dados';
@@ -22,9 +23,14 @@ export class Vigilia extends Phaser.Scene {
   create(): void {
     cameraLogica(this);
     this.cameras.main.setBackgroundColor(COR.fundo);
+    const dados = criarDadosDaVigilia(charneca, vigilantes.vigilantes[0]!);
+    const comandosAoVivo = criarComandos();
     this.sim = {
-      estado: criarEstado(this.ctx.seed, criarDadosDaVigilia(charneca, vigilantes.vigilantes[0]!)),
+      estado: criarEstado(this.ctx.seed, dados),
+      dados,
       acumulador: criarAcumulador(),
+      comandosAoVivo,
+      fonte: fonteConstante(comandosAoVivo),
       pausada: false,
     };
     this.ctx.simulacao = this.sim;
@@ -47,6 +53,6 @@ export class Vigilia extends Phaser.Scene {
   private aoStep(): void {
     const sim = this.sim;
     if (!sim || sim.pausada) return;
-    rodarFrame(sim.estado, sim.acumulador, this.game.loop.rawDelta);
+    rodarFrame(sim.estado, sim.dados, sim.acumulador, this.game.loop.rawDelta, sim.fonte);
   }
 }

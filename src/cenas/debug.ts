@@ -128,7 +128,7 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
       const sim = ctx.simulacao;
       if (!sim) throw new Error('avancar: a Vigília ainda não começou');
       sim.pausada = true;
-      avancar(sim.estado, n);
+      avancar(sim.estado, sim.dados, sim.fonte, n);
     };
   }
   (window as unknown as { __GAME_DEBUG__: GameDebug }).__GAME_DEBUG__ = debug;
