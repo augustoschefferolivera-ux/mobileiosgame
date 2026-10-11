@@ -18,9 +18,10 @@ describe('tabela das armas', () => {
     expect(ARMA).toEqual({ vazia: 0, espada_longa_do_juramento: 1, facas_de_sal: 2, circulo_de_sal: 3, lamina_do_juramento_eterno: 4 });
   });
 
-  it('as 3 armas compilam nos 8 níveis; a União fica fora até a F-005; a inicial de Aldric é a Espada', () => {
-    expect([...t.nivelMax]).toEqual([0, 8, 8, 8, 0]);
-    expect([...t.arquetipo]).toEqual([0, ARQUETIPO.direcaoMovimento, ARQUETIPO.maisProximo, ARQUETIPO.aura, 0]);
+  it('as 3 armas compilam nos 8 níveis e a União num só (F-005); a inicial de Aldric é a Espada', () => {
+    expect([...t.nivelMax]).toEqual([0, 8, 8, 8, 1]);
+    expect([...t.uniao]).toEqual([0, 0, 0, 0, 1]);
+    expect([...t.arquetipo]).toEqual([0, ARQUETIPO.direcaoMovimento, ARQUETIPO.maisProximo, ARQUETIPO.aura, ARQUETIPO.direcaoMovimento]);
     expect(t.inicial).toBe(ARMA.espada_longa_do_juramento);
   });
 

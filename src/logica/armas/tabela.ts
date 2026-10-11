@@ -4,7 +4,9 @@
 // tipados. A simulação nunca lê string nem deduz a forma pelo id da arma: o
 // arquétipo escolhe a função, e os dados dizem as formas, os golpes e os
 // alcances. Um número pendente numa arma que pode entrar na Vigília é erro
-// aqui, no boot, nunca no meio de um passo. A União fica fora até a F-005.
+// aqui, no boot, nunca no meio de um passo. A União (F-005) compila depois das
+// outras: a base sai do nível de origem (`dano_de`) em inteiros, e os golpes e
+// as formas são copiados de `golpes_de` (design/decisoes-F-005.md §4, U1).
 import { PASSOS_POR_SEGUNDO, segundosEmPassos } from '../nucleo/passos';
 import { FORMA } from '../nucleo/eventos';
 import { MULT_NEUTRO_PCT, PODER_PCT, danoPorAcerto } from './dano';
@@ -20,7 +22,12 @@ export const ARMA = {
 } as const;
 /** Ids por código (o índice é o código). */
 export const IDS_DE_ARMA = ['', 'espada_longa_do_juramento', 'facas_de_sal', 'circulo_de_sal', 'lamina_do_juramento_eterno'] as const;
-const CODIGOS = IDS_DE_ARMA.length;
+export const CODIGOS_DE_ARMA = IDS_DE_ARMA.length;
+const CODIGOS = CODIGOS_DE_ARMA;
+
+/** Atributos na ordem do registro do jogador (Uint8 × 5; chaves de vigilantes.json, sem acento). */
+export const ATRIBUTOS = ['FOR', 'DES', 'INT', 'FE', 'VIG'] as const;
+export const NUMERO_DE_ATRIBUTOS = ATRIBUTOS.length;
 
 /** Arquétipos de alvo implementados (doc 04 §1); os outros entram como funções novas. */
 export const ARQUETIPO = { nenhum: 0, direcaoMovimento: 1, maisProximo: 2, aura: 3 } as const;
@@ -40,7 +47,8 @@ export const GOLPES_MAXIMOS = 4;
 export function indiceDoNivel(codigo: number, nivel: number): number {
   return codigo * (NIVEL_MAXIMO + 1) + nivel;
 }
-const POR_NIVEL = CODIGOS * (NIVEL_MAXIMO + 1);
+/** Posições das tabelas por (arma, nível). */
+export const POR_NIVEL = CODIGOS * (NIVEL_MAXIMO + 1);
 
 /** O que se lê de armas.json (arma.schema.json). */
 export interface ArmaDoJson {
@@ -59,8 +67,17 @@ export type Atributos = Readonly<Record<string, number>>;
 export interface TabelaDeArmas {
   /** Código da arma inicial do Vigilante. */
   readonly inicial: number;
-  /** Nível máximo por código; 0 = a arma não pode entrar nesta Vigília (a União até a F-005). */
+  /** Nível máximo por código; 0 = a arma não existe nesta Vigília. */
   readonly nivelMax: Uint8Array;
+  /** 1 se a arma é União: nunca é carta nem melhoria (design/decisoes-F-005.md L1). */
+  readonly uniao: Uint8Array;
+  /** Grau em centésimos por (arma, atributo), em [código × 5 + índice de ATRIBUTOS] (decisoes-F-005 P4). */
+  readonly grauPorAtributo: Uint8Array;
+  /** Onda de chão por golpe (União, U3): dano base, meia-largura em px, px por 60 passos e vida; 0 = sem onda. */
+  readonly ondaDanoBase: Float64Array;
+  readonly ondaMeia: Float64Array;
+  readonly ondaPxPor60: Uint16Array;
+  readonly ondaVida: Uint8Array;
   readonly arquetipo: Uint8Array;
   /** Passos entre disparos: recarga da salva ou intervalo do tick da aura. */
   readonly periodo: Uint16Array;
@@ -69,7 +86,7 @@ export interface TabelaDeArmas {
   /** Fração do dano base por disparo, num/den: 30/60 no tick da aura, 1/1 nas outras. */
   readonly numDano: Uint16Array;
   readonly denDano: Uint16Array;
-  /** Σ grau em centésimos × atributo (Espada de Aldric: 75 × 6 + 75 × 3 = 675). */
+  /** Σ grau em centésimos × atributo do perfil inicial (Espada de Aldric: 75 × 6 + 75 × 3 = 675); o recálculo da F-005 o reproduz. */
   readonly escalaMil: Uint32Array;
   /** Passos entre os golpes de uma sequência. */
   readonly intervaloGolpes: Uint8Array;
@@ -137,6 +154,12 @@ const FORMAS: Record<string, number> = { ida: FORMA.ida, volta: FORMA.volta, est
 export function criarTabelaDeArmas(armas: readonly ArmaDoJson[], atributos: Atributos, armaInicial: string): TabelaDeArmas {
   const t = {
     nivelMax: new Uint8Array(CODIGOS),
+    uniao: new Uint8Array(CODIGOS),
+    grauPorAtributo: new Uint8Array(CODIGOS * NUMERO_DE_ATRIBUTOS),
+    ondaDanoBase: new Float64Array(CODIGOS),
+    ondaMeia: new Float64Array(CODIGOS),
+    ondaPxPor60: new Uint16Array(CODIGOS),
+    ondaVida: new Uint8Array(CODIGOS),
     arquetipo: new Uint8Array(CODIGOS),
     periodo: new Uint16Array(CODIGOS),
     danoBase: new Float64Array(CODIGOS),
@@ -165,22 +188,19 @@ export function criarTabelaDeArmas(armas: readonly ArmaDoJson[], atributos: Atri
   };
   let empurraoPorPasso = 0;
   let empurraoMaxPassos = 0;
-  for (const a of armas) {
+  // As Uniões depois das outras: copiam o nível de origem já compilado.
+  const ordem = [...armas.filter((a) => !a.uniao), ...armas.filter((a) => a.uniao)];
+  for (const a of ordem) {
     const c = codigoDaArma(a.id);
-    // A União (F-005) ainda não entra numa Vigília: os números dela ficam em armas.json, sem compilar.
-    if (a.uniao) continue;
+    if (a.uniao) {
+      compilarUniao(t, a, c, atributos);
+      continue;
+    }
     const arquetipo = ARQUETIPOS[a.arquetipo];
     if (arquetipo === undefined) throw new Error(`armas.json: ${a.id}: arquétipo ${a.arquetipo} sem implementação`);
     t.arquetipo[c] = arquetipo;
     t.nivelMax[c] = a.nivel_max;
-    let escala = 0;
-    for (const e of a.escala) {
-      const grau = GRAU_CENTESIMOS[e.grau];
-      const attr = atributos[e.atributo];
-      if (grau === undefined || attr === undefined) throw new Error(`armas.json: ${a.id}: escala ${e.atributo} ${e.grau}`);
-      escala += grau * attr;
-    }
-    t.escalaMil[c] = escala;
+    const escala = compilarEscala(t, a, c, atributos);
     const b = a.base;
     const aura = arquetipo === ARQUETIPO.aura;
     t.danoBase[c] = inteiro(numero(b, aura ? 'dano_por_s' : 'dano', a.id), `${a.id} dano base`);
@@ -298,6 +318,69 @@ export function criarTabelaDeArmas(armas: readonly ArmaDoJson[], atributos: Atri
     }
   }
   const inicial = codigoDaArma(armaInicial);
-  if (t.nivelMax[inicial] === 0) throw new Error(`arma inicial fora desta Vigília: ${armaInicial}`);
+  if (t.nivelMax[inicial] === 0 || t.uniao[inicial] === 1) throw new Error(`arma inicial fora desta Vigília: ${armaInicial}`);
   return { ...t, inicial, empurraoPorPasso, empurraoMaxPassos };
+}
+
+type TabelaEmMontagem = Omit<TabelaDeArmas, 'inicial' | 'empurraoPorPasso' | 'empurraoMaxPassos'>;
+
+/** Graus por atributo e Σ grau × atributo do perfil inicial. */
+function compilarEscala(t: TabelaEmMontagem, a: ArmaDoJson, c: number, atributos: Atributos): number {
+  let escala = 0;
+  for (const e of a.escala) {
+    const grau = GRAU_CENTESIMOS[e.grau];
+    const k = ATRIBUTOS.indexOf(e.atributo as (typeof ATRIBUTOS)[number]);
+    const attr = atributos[e.atributo];
+    if (grau === undefined || k < 0 || attr === undefined) throw new Error(`armas.json: ${a.id}: escala ${e.atributo} ${e.grau}`);
+    t.grauPorAtributo[c * NUMERO_DE_ATRIBUTOS + k] = grau;
+    escala += grau * attr;
+  }
+  t.escalaMil[c] = escala;
+  return escala;
+}
+
+/**
+ * União (design/decisoes-F-005.md U1 e U3; W18 da D4): base = base da origem ×
+ * (100 + Σ dano da origem) × mult / 10.000, que tem de dar inteiro (21 na Lâmina);
+ * golpes, formas, alcance e estocada copiados de `golpes_de`; um só nível; a
+ * onda, se houver, com a vida = comprimento ÷ velocidade em passos.
+ */
+function compilarUniao(t: TabelaEmMontagem, a: ArmaDoJson, c: number, atributos: Atributos): void {
+  const b = a.base;
+  const danoDe = b['dano_de'] as { arma: string; nivel: number; mult: number } | undefined;
+  const golpesDe = b['golpes_de'] as { arma: string; nivel: number } | undefined;
+  if (!danoDe || !golpesDe) throw new Error(`armas.json: ${a.id}: União sem dano_de ou golpes_de`);
+  const origem = codigoDaArma(danoDe.arma);
+  const deGolpes = codigoDaArma(golpesDe.arma);
+  if (t.nivelMax[origem]! < danoDe.nivel || t.nivelMax[deGolpes]! < golpesDe.nivel) throw new Error(`armas.json: ${a.id}: nível de origem inexistente`);
+  const arquetipo = ARQUETIPOS[a.arquetipo];
+  if (arquetipo !== ARQUETIPO.direcaoMovimento || a.nivel_max !== 1) throw new Error(`armas.json: ${a.id}: União só de direção do movimento, com 1 nível`);
+  const multPct = inteiro(danoDe.mult * 100, `${a.id} mult`);
+  const io = indiceDoNivel(origem, danoDe.nivel);
+  const base = inteiro((t.danoBase[origem]! * (100 + t.somaDanoPct[io]!) * multPct) / 10000, `${a.id} base da União`);
+  t.uniao[c] = 1;
+  t.arquetipo[c] = arquetipo;
+  t.nivelMax[c] = 1;
+  t.danoBase[c] = base;
+  t.numDano[c] = 1;
+  t.denDano[c] = 1;
+  t.periodo[c] = segundosEmPassos(numero(b, 'cooldown_s', a.id));
+  t.intervaloGolpes[c] = segundosEmPassos(numero(b, 'intervalo_golpes_s', a.id));
+  const escala = compilarEscala(t, a, c, atributos);
+  const i = indiceDoNivel(c, 1);
+  const ig = indiceDoNivel(deGolpes, golpesDe.nivel);
+  t.somaDanoPct[i] = 0;
+  t.danoDoNivel[i] = danoPorAcerto(base, 1, 1, 0, PODER_PCT, escala, MULT_NEUTRO_PCT, MULT_NEUTRO_PCT);
+  t.golpes[i] = t.golpes[ig]!;
+  for (let k = 0; k < GOLPES_MAXIMOS; k++) t.formaDoGolpe[i * GOLPES_MAXIMOS + k] = t.formaDoGolpe[ig * GOLPES_MAXIMOS + k]!;
+  t.alcance[i] = t.alcance[ig]!;
+  t.estocadaL[i] = t.estocadaL[ig]!;
+  t.estocadaW[i] = t.estocadaW[ig]!;
+  const onda = b['onda'] as { comprimento_corpos: number; dano: number; largura_corpos: number; velocidade_corpos_s: number } | undefined;
+  if (onda) {
+    t.ondaDanoBase[c] = inteiro(onda.dano, `${a.id} dano da onda`);
+    t.ondaMeia[c] = (CORPO_PX * onda.largura_corpos) / 2;
+    t.ondaPxPor60[c] = inteiro(CORPO_PX * onda.velocidade_corpos_s, `${a.id} velocidade da onda`);
+    t.ondaVida[c] = inteiro((onda.comprimento_corpos * PASSOS_POR_SEGUNDO) / onda.velocidade_corpos_s, `${a.id} vida da onda`);
+  }
 }
