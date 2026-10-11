@@ -5,24 +5,34 @@
   "description": "Uma linha por minuto (B §3.7; brief §5.4; ADR-0002 §8 e Apêndice A).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "nome_id", "sem_spawn_antes_do_marco_s", "a_fome_em_s", "obstaculos", "linhas"],
+  "required": ["id", "nome_id", "sem_spawn_antes_do_marco_s", "a_fome_em_s", "inicio_jogador", "obstaculos", "linhas"],
   "properties": {
     "id": { "$ref": "comum.schema.json#/$defs/idConteudo" },
     "nome_id": { "$ref": "comum.schema.json#/$defs/idTexto" },
     "sem_spawn_antes_do_marco_s": { "type": "number", "minimum": 0 },
     "a_fome_em_s": { "type": "number", "exclusiveMinimum": 0 },
+    "inicio_jogador": {
+      "description": "Onde o jogador começa a Vigília, em px lógicos do toro 1.170 × 2.532 (design/decisoes-F-002.md §5).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y"],
+      "properties": {
+        "x": { "type": "number", "minimum": 0, "exclusiveMaximum": 1170 },
+        "y": { "type": "number", "minimum": 0, "exclusiveMaximum": 2532 }
+      }
+    },
     "obstaculos": {
-      "description": "Disposição fixa por mapa (Q-04), 4 a 8 por tela (B F-002); forma e tamanho na F-002.",
+      "description": "Disposição fixa por mapa (Q-04), 4 a 8 por tela (B F-002). Só círculos; (x, y) é o centro e tamanho_px o diâmetro (design/decisoes-F-002.md §2). As regras da disposição ficam em tests/dados/obstaculos.test.ts.",
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": ["x", "y", "forma", "tamanho_px"],
         "properties": {
-          "x": { "type": "number", "minimum": 0 },
-          "y": { "type": "number", "minimum": 0 },
-          "forma": { "$ref": "comum.schema.json#/$defs/forma" },
-          "tamanho_px": { "type": "number", "exclusiveMinimum": 0 }
+          "x": { "type": "number", "minimum": 0, "exclusiveMaximum": 1170 },
+          "y": { "type": "number", "minimum": 0, "exclusiveMaximum": 2532 },
+          "forma": { "enum": ["circulo"] },
+          "tamanho_px": { "enum": [64, 80, 96] }
         }
       }
     },

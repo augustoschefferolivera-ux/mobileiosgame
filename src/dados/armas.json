@@ -227,8 +227,7 @@
       },
       "pendencias": [
         "F-004: velocidade e alcance das facas (brief §11.3)",
-        "F-004: escolha de alvo quando a salva tem várias facas (ADR-0002 §7)",
-        "F-002: se os obstáculos bloqueiam as facas (brief §11.3)"
+        "F-004: escolha de alvo quando a salva tem várias facas (ADR-0002 §7)"
       ]
     },
     {
