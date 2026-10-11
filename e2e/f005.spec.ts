@@ -161,6 +161,14 @@ test('F-005.4: no nivel_tres, nível 3 com 2 ofertas no passo 1; modal parado; c
   }
   await page.evaluate(() => window.__GAME_DEBUG__.retomar());
   await page.waitForFunction((p) => window.__GAME_DEBUG__.passo > p, fim.passo, { timeout: 30_000 });
+  // 6. Fila fechada e a simulação andando: o tradutor voltou à Vigília, e um toque novo arrastando na área do joystick o cria e move o jogador.
+  const antes = await page.evaluate(() => ({ criados: window.__GAME_DEBUG__.entrada.joystick.criados, x: window.__GAME_DEBUG__.jogador!.x }));
+  expect(antes.criados).toBe(0);
+  const [de, ate] = [await paraPagina(page, 100, 650), await paraPagina(page, 170, 650)];
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: de.x, y: de.y, id: 7 }] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: ate.x, y: ate.y, id: 7 }] });
+  await page.waitForFunction((x0) => window.__GAME_DEBUG__.entrada.joystick.criados > 0 && window.__GAME_DEBUG__.jogador!.x > x0 + 10, antes.x, { timeout: 30_000 });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 });
 
 test('F-005.7: no bau_uniao, encostar no baú depois das 10:00 forma a União na vaga da Espada; o 1º golpe da Lâmina é o do Node', async ({ page }, info) => {

@@ -15,7 +15,7 @@ import { rodarFrameComPausas } from '../logica/nucleo/driver';
 import { CAB, TIPO_DE_CARTA, TODOS_OS_TUTORIAIS, criarEstado, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
 import { EVENTO, EV, eventosEscritos, inicioDoEvento } from '../logica/nucleo/eventos';
 import { IDS_DE_ARMA } from '../logica/armas/tabela';
-import { bauNaFrente, confirmarModal, modalAberto } from '../logica/progressao/modal';
+import { modalAberto } from '../logica/progressao/modal';
 import { nivelOfertado } from '../logica/progressao/oferta';
 import { IDS_DE_PASSIVA } from '../logica/progressao/tabela';
 import { verificarNaN } from '../logica/nucleo/nan';
@@ -26,6 +26,7 @@ import charneca from '../dados/regioes/charneca_das_lanternas.json';
 import type { ContextoDoJogo, Simulacao } from './contexto';
 import type { Modal } from './Modal';
 import type { Pausa } from './Pausa';
+import { abrirModal, tratarToquesDoModal } from './escolhaDoModal';
 import { COR, cameraLogica } from './estilo';
 import { centroDaCamera } from './render/camera';
 import { criarCamada } from './render/camadas';
@@ -155,55 +156,19 @@ export class Vigilia extends Phaser.Scene {
     (this.scene.get('Pausa') as Pausa).mostrar();
   }
 
-  /**
-   * Abre o modal (M5): todos os dedos soltos, o joystick some, o tradutor no
-   * modo modal (sem joystick, botão de pausa nem gesto), seleção vazia.
-   */
+  /** Abre o modal (M5): ver abrirModal em escolhaDoModal. */
   private abrirModal(): void {
-    const sim = this.sim!;
-    sim.modal.selecionada = null;
-    this.ctx.entrada.fila.pedirSoltarTodos();
-    this.ctx.entrada.tradutor.mudarModo('modal', bauNaFrente(sim.estado) ? 'bau' : 'cartas');
+    abrirModal(this.sim!, this.ctx.entrada);
     (this.scene.get('Modal') as Modal).mostrar();
   }
 
-  /**
-   * Os toques do quadro, em ordem (M4): num baú, o Continuar fecha; nas cartas,
-   * o 1º toque seleciona, outro troca, e o toque na selecionada confirma. Depois
-   * de confirmar, os toques que sobraram são descartados e os dedos soltos; se a
-   * fila acabou, o tradutor volta à Vigília e só um toque novo cria o joystick.
-   */
+  /** Os toques do quadro no modal (M4); a regra está em escolhaDoModal. */
   private tratarToquesDoModal(): void {
     const sim = this.sim!;
-    const trad = this.ctx.entrada.tradutor;
-    for (let i = 0; i < trad.nToquesNoModal; i++) {
-      const k = trad.toquesNoModal[i]!;
-      if (bauNaFrente(sim.estado)) {
-        this.confirmar(0);
-        return;
-      }
-      if (sim.modal.selecionada === k) {
-        this.registrarLevelUp(sim.estado, k);
-        this.confirmar(k);
-        return;
-      }
-      sim.modal.selecionada = k;
-    }
-  }
-
-  private confirmar(k: number): void {
-    const sim = this.sim!;
-    const trad = this.ctx.entrada.tradutor;
-    confirmarModal(sim.estado, sim.dados, k);
-    sim.modal.selecionada = null;
-    trad.descartarToquesDoModal();
-    this.ctx.entrada.fila.pedirSoltarTodos();
-    if (modalAberto(sim.estado)) {
-      trad.mudarModo('modal', bauNaFrente(sim.estado) ? 'bau' : 'cartas');
-    } else {
-      trad.mudarModo('vigilia');
-      (this.scene.get('Modal') as Modal).esconder();
-    }
+    tratarToquesDoModal(sim, this.ctx.entrada, {
+      aoEscolherCarta: (k) => this.registrarLevelUp(sim.estado, k),
+      aoFecharAFila: () => (this.scene.get('Modal') as Modal).esconder(),
+    });
   }
 
   /** Telemetria local `level_up` na confirmação, antes de aplicar (Q-30; decisoes-F-005 T1). */
