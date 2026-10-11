@@ -1,4 +1,5 @@
-// window.__GAME_DEBUG__ (B §3.13; ADR-0002 §14; ADR-0004 §7; design/decisoes-F-003.md §8).
+// window.__GAME_DEBUG__ (B §3.13; ADR-0002 §14; ADR-0004 §7; design/decisoes-F-003.md §8;
+// design/decisoes-F-004.md §8: build, números de dano, últimos eventos, mortes, pausa e opções).
 // Sempre presente e só de leitura; os ganchos de escrita (pausar, retomar,
 // avancar, entrada.injetar, entrada.roteiro e removerInimigo) e as leituras
 // pesadas (quadros, inimigos, hashPorSecao) só existem no build de debug. Os campos dos sistemas
@@ -6,7 +7,12 @@
 // degradacao, build...).
 import type Phaser from 'phaser';
 import { fonteConstante, fonteDoRoteiro, validarRoteiro, type Roteiro } from '../logica/nucleo/comandos';
-import { BYTES_ESTADO, CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR, JOGADOR_U8, MUNDO, hashEstado, hashPorSecao, type Estado } from '../logica/nucleo/estado';
+import { BYTES_ESTADO, CAB, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PROJETEIS, JOGADOR, JOGADOR_U8, MUNDO, VAGAS_DE_ARMA, hashEstado, hashPorSecao, type Estado } from '../logica/nucleo/estado';
+import { BYTES_DO_ANEL, EV, FLAG, eventosEscritos, inicioDoEvento } from '../logica/nucleo/eventos';
+import { quantosAtivos } from '../logica/nucleo/pool';
+import { IDS_DE_ARMA } from '../logica/armas/tabela';
+import { MEMBROS_DAS_ARMAS, MEMBROS_DOS_DIGITOS } from './render/armas';
+import { CAPACIDADE_DE_MORTES } from './render/efeitos';
 import { alvoDaLinha, convertidosVivos, linhaCorrente, vivosEquivalentes } from '../logica/diretor/diretor';
 import { removerInimigo } from '../logica/mundo/inimigos';
 import { IDS_DE_TIPO } from '../logica/mundo/tipos';
@@ -28,15 +34,77 @@ const TIPOS_VIVOS = [
 ] as const;
 type TipoVivo = (typeof TIPOS_VIVOS)[number];
 
-/** Bytes do atlas (512² RGBA) e do buffer de instâncias da horda (500 × 168, na CPU e na GPU). */
+/** Bytes do atlas (512² RGBA) e dos buffers de instâncias das camadas GPU (membros × 168, na CPU e na GPU). */
 const BYTES_DO_ATLAS = 512 * 512 * 4;
-const BYTES_DA_HORDA = 2 * CAPACIDADE_DE_INIMIGOS * FLOATS_POR_MEMBRO * 4;
+export const MEMBROS_DAS_CAMADAS = CAPACIDADE_DE_INIMIGOS + CAPACIDADE_DE_MORTES + CAPACIDADE_DE_INIMIGOS + MEMBROS_DAS_ARMAS + MEMBROS_DOS_DIGITOS;
+const BYTES_DAS_CAMADAS = 2 * MEMBROS_DAS_CAMADAS * FLOATS_POR_MEMBRO * 4;
+
+const NOMES_DOS_EVENTOS = ['', 'acerto', 'morte', 'golpe', 'pulso'] as const;
+type NomeDoEvento = (typeof NOMES_DOS_EVENTOS)[number];
+
+/** Um evento do anel como objeto (ultimosEventos). */
+export interface EventoDebug {
+  passo: number;
+  tipo: NomeDoEvento;
+  arma: string | null;
+  forma: number;
+  alvo: { slot: number; geracao: number } | null;
+  valor: number;
+  x: number;
+  y: number;
+  critico: boolean;
+  matou: boolean;
+  convertido: boolean;
+  causa: number;
+}
+
+function lerEventos(e: Estado): EventoDebug[] {
+  const n = eventosEscritos(e.eventos);
+  const u = e.eventos.u32;
+  const f = e.eventos.f32;
+  const lista: EventoDebug[] = [];
+  for (let k = Math.max(0, n - 1024); k < n; k++) {
+    const i = inicioDoEvento(k);
+    const taf = u[i + EV.tipoArmaForma]!;
+    const alvo = u[i + EV.alvo]!;
+    const ifc = u[i + EV.inimigoFlagsCausa]!;
+    const flags = (ifc >>> 8) & 0xff;
+    const arma = (taf >>> 8) & 0xff;
+    lista.push({
+      passo: u[i + EV.passo]!,
+      tipo: NOMES_DOS_EVENTOS[taf & 0xff] ?? '',
+      arma: arma === 0 ? null : (IDS_DE_ARMA[arma] ?? null),
+      forma: (taf >>> 16) & 0xff,
+      alvo: alvo === 0xffffffff ? null : { slot: alvo & 0xffff, geracao: alvo >>> 16 },
+      valor: f[i + EV.floats + 2]!,
+      x: f[i + EV.floats]!,
+      y: f[i + EV.floats + 1]!,
+      critico: (flags & FLAG.critico) !== 0,
+      matou: (flags & FLAG.matou) !== 0,
+      convertido: (flags & FLAG.convertido) !== 0,
+      causa: (ifc >>> 16) & 0xff,
+    });
+  }
+  return lista;
+}
+
+function buildDe(e: Estado | undefined): { armas: { id: string; nivel: number; recarga: number }[]; passivas: never[] } {
+  const armas: { id: string; nivel: number; recarga: number }[] = [];
+  if (e) {
+    for (let v = 0; v < VAGAS_DE_ARMA; v++) {
+      const c = e.build.codigo[v]!;
+      if (c !== 0) armas.push({ id: IDS_DE_ARMA[c]!, nivel: e.build.nivel[v]!, recarga: e.build.recarga[v]! });
+    }
+  }
+  return { armas, passivas: [] };
+}
 /** O renderer do WebGL por software (SwiftShader, llvmpipe...): o fps não mede o nosso código (decisoes-F-003 E1). */
 const RE_SOFTWARE = /SwiftShader|llvmpipe|softpipe|Software/i;
 
 function contarVivos(e: Estado | undefined): Record<TipoVivo, number> {
   const vivos = Object.fromEntries(TIPOS_VIVOS.map((tipo) => [tipo, 0])) as Record<TipoVivo, number>;
   if (!e) return vivos;
+  vivos.projeteis = quantosAtivos(e.poolDeProjeteis);
   for (let s = 0; s < CAPACIDADE_DE_INIMIGOS; s++) {
     if (e.pool.posicao[s]! < 0) continue;
     const id = IDS_DE_TIPO[e.inimigos.tipo[s]!] as TipoVivo;
@@ -111,8 +179,8 @@ export type TipoInjetado = keyof typeof TIPO_DE_TOQUE;
 export interface EntradaDebug {
   /** navigator.maxTouchPoints: toques simultâneos que o aparelho informa (5 no iPhone; conferir no aparelho, Q-29). */
   readonly maxToques: number;
-  /** Joystick em pt lógicos; a origem fica com ativo = false depois de soltar (F-002.4). */
-  readonly joystick: { ativo: boolean; origemX: number; origemY: number; vx: number; vy: number };
+  /** Joystick em pt lógicos; a origem fica com ativo = false depois de soltar (F-002.4); `criados` conta os donos desde o início da Vigília. */
+  readonly joystick: { ativo: boolean; origemX: number; origemY: number; vx: number; vy: number; criados: number };
   /**
    * Grava um evento na mesma fila da camada de toque, com x e y em pt e t em ms no
    * relógio do TouchEvent.timeStamp, e ajusta o retrato como um TouchEvent faria.
@@ -156,7 +224,20 @@ export interface GameDebug {
   /** Quadros medidos desde o boot (para recortar o anel de quadros() numa janela, F-003.4). */
   readonly quadrosContados: number;
   readonly passos_perdidos: number;
-  readonly recusados: { inimigos: number; projeteis: number; efeitos: number; pickups: number };
+  readonly recusados: { inimigos: number; projeteis: number; efeitos: number; pickups: number; numeros: number; mortes: number };
+  /** Armas da build, na ordem das vagas (recarga em passos), e as passivas (F-005). */
+  readonly build: ReturnType<typeof buildDe>;
+  /** Números de dano vivos no pool do render (não membros de dígito); 0 com a opção desligada. */
+  readonly numerosDeDano: number;
+  /** Os últimos 1.024 eventos do anel, em ordem. */
+  readonly ultimosEventos: EventoDebug[];
+  /** Eventos que o render não leu porque o anel deu a volta. */
+  readonly eventosPerdidos: number;
+  /** Inimigos mortos por arma (o contador do estado). */
+  readonly mortes: number;
+  /** Pausa do jogador (fora do estado; o estado de jogo continua VIGILIA). */
+  readonly pausa: { ativa: boolean; origem: 'botao' | 'gesto' | null };
+  readonly opcoes: { numerosDeDano: boolean };
   readonly memoriaEstimadaMB: number;
   readonly seed: number;
   /** Insets da safe-area em pt lógicos, como a cena ativa os mediu. */
@@ -183,7 +264,9 @@ export interface GameDebug {
   /** Os últimos 2.048 quadros (F-003.4). Só no build de debug. */
   quadros?: () => Quadro[];
   /** Cópia dos inimigos vivos. Só no build de debug. */
-  inimigos?: () => { slot: number; tipo: string; x: number; y: number; convertido: boolean }[];
+  inimigos?: () => { slot: number; tipo: string; x: number; y: number; convertido: boolean; hp: number; salPct: number; salPassos: number; kbPassos: number }[];
+  /** Cópia dos projéteis vivos. Só no build de debug. */
+  projeteis?: () => { slot: number; arma: string; x: number; y: number; vx: number; vy: number; dano: number; vida: number; perfuracoes: number }[];
   /** Hash de cada seção do estado, em hexadecimal. Só no build de debug. */
   hashPorSecao?: () => Record<string, string> | null;
   /** Remove um inimigo vivo pelo caminho comum (o teste do slot morto, decisoes-F-003 §8). Só no build de debug. */
@@ -261,11 +344,42 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
       return ctx.simulacao?.acumulador.passosPerdidos ?? 0;
     },
     get recusados() {
-      return { inimigos: ctx.simulacao?.estado.mundo[MUNDO.recusados] ?? 0, projeteis: 0, efeitos: 0, pickups: 0 };
+      const e = ctx.simulacao?.estado;
+      const ef = ctx.simulacao?.efeitos;
+      return {
+        inimigos: e?.mundo[MUNDO.recusados] ?? 0,
+        projeteis: e?.mundo[MUNDO.projeteisRecusados] ?? 0,
+        efeitos: 0,
+        pickups: 0,
+        numeros: ef?.recusados.numeros ?? 0,
+        mortes: ef?.recusados.mortes ?? 0,
+      };
+    },
+    get build() {
+      return buildDe(ctx.simulacao?.estado);
+    },
+    get numerosDeDano() {
+      return ctx.simulacao?.efeitos?.numerosVivos ?? 0;
+    },
+    get ultimosEventos() {
+      return ctx.simulacao ? lerEventos(ctx.simulacao.estado) : [];
+    },
+    get eventosPerdidos() {
+      return ctx.simulacao?.efeitos?.leitor.perdidos ?? 0;
+    },
+    get mortes() {
+      return ctx.simulacao?.estado.mundo[MUNDO.mortes] ?? 0;
+    },
+    get pausa() {
+      const p = ctx.simulacao?.pausa;
+      return { ativa: p?.ativa ?? false, origem: p?.origem ?? null };
+    },
+    get opcoes() {
+      return { numerosDeDano: ctx.opcoes.numerosDeDano };
     },
     get memoriaEstimadaMB() {
       bytesBackbuffer ??= bytesDoCanvas(jogo);
-      return (BYTES_ESTADO + bytesBackbuffer + BYTES_DO_ATLAS + BYTES_DA_HORDA) / (1024 * 1024);
+      return (BYTES_ESTADO + BYTES_DO_ANEL + bytesBackbuffer + BYTES_DO_ATLAS + BYTES_DAS_CAMADAS) / (1024 * 1024);
     },
     get seed() {
       return ctx.seed;
@@ -308,7 +422,7 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
       },
       get joystick() {
         const { ativo, origemX, origemY, vx, vy } = ctx.entrada.tradutor.joystick;
-        return { ativo, origemX, origemY, vx, vy };
+        return { ativo, origemX, origemY, vx, vy, criados: ctx.entrada.tradutor.joystickCriados };
       },
     },
     get toquesPerdidos() {
@@ -351,11 +465,32 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     debug.inimigos = () => {
       const e = ctx.simulacao?.estado;
       if (!e) return [];
-      const lista: { slot: number; tipo: string; x: number; y: number; convertido: boolean }[] = [];
+      const lista: { slot: number; tipo: string; x: number; y: number; convertido: boolean; hp: number; salPct: number; salPassos: number; kbPassos: number }[] = [];
       for (let s = 0; s < CAPACIDADE_DE_INIMIGOS; s++) {
         if (e.pool.posicao[s]! < 0) continue;
         const ini = e.inimigos;
-        lista.push({ slot: s, tipo: IDS_DE_TIPO[ini.tipo[s]!]!, x: ini.x[s]!, y: ini.y[s]!, convertido: ini.convertido[s] === 1 });
+        lista.push({
+          slot: s,
+          tipo: IDS_DE_TIPO[ini.tipo[s]!]!,
+          x: ini.x[s]!,
+          y: ini.y[s]!,
+          convertido: ini.convertido[s] === 1,
+          hp: ini.hp[s]!,
+          salPct: ini.salPct[s]!,
+          salPassos: ini.salPassos[s]!,
+          kbPassos: ini.kbPassos[s]!,
+        });
+      }
+      return lista;
+    };
+    debug.projeteis = () => {
+      const e = ctx.simulacao?.estado;
+      if (!e) return [];
+      const p = e.projeteis;
+      const lista: { slot: number; arma: string; x: number; y: number; vx: number; vy: number; dano: number; vida: number; perfuracoes: number }[] = [];
+      for (let s = 0; s < CAPACIDADE_DE_PROJETEIS; s++) {
+        if (e.poolDeProjeteis.posicao[s]! < 0) continue;
+        lista.push({ slot: s, arma: IDS_DE_ARMA[p.arma[s]!]!, x: p.x[s]!, y: p.y[s]!, vx: p.vx[s]!, vy: p.vy[s]!, dano: p.dano[s]!, vida: p.vida[s]!, perfuracoes: p.perfuracoes[s]! });
       }
       return lista;
     };
@@ -395,6 +530,9 @@ export function instantaneoDoDebug(d: GameDebug): Record<string, string | number
     cpuFrameMs_p95: Number(cpu.p95.toFixed(1)),
     render: d.render.modo,
     drawCalls: d.render.drawCalls,
+    numerosDeDano: d.numerosDeDano,
+    mortes: d.mortes,
+    projeteis: v.projeteis,
     webgl: d.webgl.renderer.slice(0, 40),
   };
 }

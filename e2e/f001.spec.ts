@@ -4,7 +4,9 @@ import { expect, test } from '@playwright/test';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { alvosDoAcender } from '../src/entrada/alvos';
-import { BYTES_ESTADO } from '../src/logica/nucleo/estado';
+import { BYTES_ESTADO, CAPACIDADE_DE_INIMIGOS } from '../src/logica/nucleo/estado';
+import { BYTES_DO_ANEL } from '../src/logica/nucleo/eventos';
+import { CAPACIDADE_DE_MORTES } from '../src/cenas/render/efeitos';
 import { PASSOS_REFERENCIA, ROTEIRO_REFERENCIA } from '../src/logica/nucleo/referencia';
 import { insetsZerados, type Insets } from '../src/plataforma/safeArea';
 import { EVIDENCIAS, RAIZ, SEED, SEM_HORDA, abrir, paraPagina, proximoFrame, tocarAcender } from './apoio';
@@ -236,12 +238,14 @@ test('__GAME_DEBUG__: fps, vivos por tipo, passos perdidos e memória (B §4 F-0
     oco_das_lanternas: 0, oco_grande: 0, novica_de_sal: 0, oco_grande_coroado: 0, o_lanterneiro: 0,
     projeteis: 0, efeitos: 0, pickups: 0, particulas: 0,
   });
-  expect(d.recusados).toEqual({ inimigos: 0, projeteis: 0, efeitos: 0, pickups: 0 });
+  expect(d.recusados).toEqual({ inimigos: 0, projeteis: 0, efeitos: 0, pickups: 0, numeros: 0, mortes: 0 });
   expect(Number.isInteger(d.passos_perdidos) && d.passos_perdidos >= 0).toBe(true);
   expect(d.relogioIgualPasso).toBe(true);
-  // Sem MSAA (ADR-0003 §9): cor em dobro + depth/stencil a 780 × 1688; mais o atlas (512² RGBA) e o buffer
-  // de instâncias da horda, na CPU e na GPU (500 × 168 B × 2; design/decisoes-F-003.md §8).
-  expect(d.memoria).toBeCloseTo((BYTES_ESTADO + 780 * 1688 * 4 * 3 + 512 * 512 * 4 + 2 * 500 * 168) / (1024 * 1024), 3);
+  // Sem MSAA (ADR-0003 §9): cor em dobro + depth/stencil a 780 × 1688; mais o anel de eventos, o atlas (512² RGBA)
+  // e os buffers de instâncias das 5 camadas, na CPU e na GPU (membros × 168 B × 2; design/decisoes-F-004.md §6):
+  // horda e Sal (um membro por slot), mortes, armas (421) e dígitos (384), contados em src/cenas/render/armas.ts.
+  const membros = CAPACIDADE_DE_INIMIGOS * 2 + CAPACIDADE_DE_MORTES + 421 + 384;
+  expect(d.memoria).toBeCloseTo((BYTES_ESTADO + BYTES_DO_ANEL + 780 * 1688 * 4 * 3 + 512 * 512 * 4 + 2 * membros * 168) / (1024 * 1024), 3);
 });
 
 test('driver real: ≈ 60 passos por segundo e pausa observada entre frames', async ({ page }) => {
