@@ -5,7 +5,7 @@
 ### Estado: F-002 pronta (aguarda a revisão do usuário); F-003 não começada
 
 - [x] Leitura: este arquivo, ADR-0003, `design/decisoes-F-002.md` (D) e a entrada da F-002 no `feature_list.json`. Antes de começar, `scripts/verify.sh --feature F-001 --taps-game` verde.
-- [x] Implementação, em 26 commits (`1b93b8d..HEAD`):
+- [x] Implementação, em commits de até ~300 linhas (`1b93b8d..HEAD`):
   - **dados:** schema da região (só círculo, 64/80/96, centro no toro, `inicio_jogador`), 54 obstáculos na Charneca (6/7/5, 8/4/6, 5/7/6; a tela do início com 4), início em (585, 1.266); saíram as pendências "se os obstáculos bloqueiam" de `armas.json` e `inimigos.json`;
   - **simulação** (`src/logica`): toro (normalização Float32, delta, interpolação, cópia mais próxima), colisão de um círculo contra os obstáculos com deslize e desempate, estado v2 (registro do jogador, tutoriais vistos e impressão da disposição no cabeçalho), `ComandosDoPasso` com fonte ao vivo e roteiro por passo absoluto, movimento a 2,4 px por passo e o prompt de mover;
   - **entrada** (`src/entrada`): vetor do joystick (zona morta radial 0,15, raio 60 pt, curva linear), área do joystick na tabela de alvos, fila de toques em Float64Array, TradutorDeGestos (5 dedos, dono até soltar, reconciliação por `e.touches`), caixa do canvas em cache, mouse e teclado só no debug;
@@ -14,7 +14,7 @@
   - **decisões técnicas** em `docs/decisoes/ADR-0004-implementacao-da-f002.md`; o gerador da disposição em `scripts/gerar-disposicao.py` (`--conferir` reproduz o JSON).
 - [x] `scripts/verify.sh --feature F-002 --taps-game --seed 1` verde:
   - typecheck, lint, Vitest (362 testes), builds de produção e de debug;
-  - Playwright `taps-game` (20 testes: 10 da F-001 e 10 da F-002);
+  - Playwright `taps-game` (22 testes: 10 da F-001 e 12 da F-002);
   - evidências conferidas.
 - [x] Evidências em `production/evidencias/F-002/`:
   - `movimento.webm` (≈ 18 s, 390 × 844, roteiro de D §8);
@@ -41,16 +41,18 @@
 - **O mapa 3 × 3 virou a 5ª evidência da F-002:** assim o `verify.sh` confere que ele é regenerado.
 - **`?render=gpu|image` fica para a F-003,** junto com a 2ª implementação do render.
 
-### Para ratificar
-- **Commit acima de ~300 linhas:** `0b4cc0b` (TradutorDeGestos) tem 317 linhas: 145 de código e 172 de teste. O histórico fica como está; os demais commits têm até 296.
-- **`type: Phaser.WEBGL`:** sem WebGL, o jogo não abre. O motivo é que o tint é só WebGL, e no Canvas tudo sairia branco. Conferir no iPhone (F-010).
-
-### Riscos para o iPhone real (somam-se aos da Sessão 1)
-- 5 dedos simultâneos (Q-29).
-- O joystick perto da borda: a base fica onde o dedo tocou.
-- A zona morta não tem histerese.
-- Um touchend engolido pelo sistema sem touchcancel deixa o joystick ativo até o próximo toque (D §4: sem tempo limite).
-- O FIT na aba do Safari, se a caixa mudar no meio de um arrasto.
+### Decididos por delegação do usuário (2026-10-11: "Pode resolver o que listou acima da melhor maneira que encontrar")
+- **Ratificados como estão:**
+  - a tolerância do desempate (1e-3 × |mov|);
+  - a restrição a mais na disposição (o 1º obstáculo depois da costura é o do deslize);
+  - o mapa 3 × 3 como 5ª evidência da F-002.
+- **Commit de 317 linhas (`0b4cc0b`):** o histórico fica como está, sem reescrita, como na F-001. Os demais commits têm até 296.
+- **Só WebGL:** fica, porque o tint é só WebGL e o WebGL 1 e 2 existe em todo hardware iOS desde o Safari 15 (wiki da Khronos). Sem contexto, agora aparece o aviso `A8.SISTEMA.SEM_WEBGL` no lugar do canvas, em vez de uma página vazia. É um texto novo no `pt-BR.json`, coberto por teste da Playwright com `--disable-webgl`.
+- **Riscos do iPhone** (detalhes e fontes no ADR-0004 §9):
+  - **5 dedos:** é o limite do iPhone (o iPad tem 11), e um 6º dedo cancela os outros, o que o `touchcancel` já trata. `__GAME_DEBUG__.entrada.maxToques` confirma no aparelho em uma leitura;
+  - **fim de toque engolido:** coberto pelo `touchcancel`, por `visibilitychange`/`pagehide`/`blur` e pela reconciliação no toque seguinte. Fica para medir se a Central de Controle dispara `blur`;
+  - **joystick perto da borda e zona morta sem histerese:** ficam como B e D mandam, para reavaliar no build de teste do iPhone (Q-29). Perto da borda esquerda, o movimento para a esquerda é mais lento (com o dedo a 30 pt da borda, 41%);
+  - **caixa do canvas mudando no meio de um arrasto:** não acontece na Vigília: as barras do Safari só encolhem com rolagem, que está bloqueada, e a rotação pausa (F-010).
 
 ## Sessão 1 — brief, arquitetura e lista de features
 

@@ -57,7 +57,11 @@
 
 - **Ordem `Image` → `SpriteGPULayer` (D §5):** a interface `RenderDoMundo` nasce com `RenderPorImagem` (55 objetos: 54 obstáculos e o jogador, em camadas de chão vazio, obstáculos e jogador). O `SpriteGPULayer` entra na F-003, atrás da mesma interface; o parâmetro `?render=gpu|image` entra junto com a 2ª implementação.
 - **Atlas:** `CanvasTexture` de 512 × 512 gerado no Boot com disco (240 px), anel (240 px, traço de 4 px = 2 pt), círculo (192 px) e triângulo (96 px), em branco a 2× e com 4 px de folga entre molduras.
-- **Só WebGL** (`type: Phaser.WEBGL`): o tint é só WebGL no Phaser 4, e no renderer Canvas obstáculos, jogador e joystick sairiam em branco, a cor do aparo. O `SpriteGPULayer` da F-003 também é só WebGL. Sem WebGL, o Phaser lança erro na criação do jogo.
+- **Só WebGL** (`type: Phaser.WEBGL`; ratificado por delegação do usuário em 2026-10-11):
+  - o tint é só WebGL no Phaser 4, e no renderer Canvas obstáculos, jogador e joystick sairiam em branco, a cor do aparo. O `SpriteGPULayer` da F-003 também é só WebGL;
+  - no alvo, isso não restringe: o WebGL 1 e 2 existe em todo hardware iOS recente desde o Safari 15 (wiki da Khronos, "WebGL Implementations: Safari iOS"), e o alvo é iOS 17+;
+  - para uma falha de contexto (memória, contextos demais), `src/plataforma/webgl.ts` testa o mesmo contexto `'webgl'` do renderer antes de criar o jogo e o libera; sem ele, aparece o aviso `A8.SISTEMA.SEM_WEBGL` no lugar do canvas, em vez de uma página vazia com erro no boot. Um teste da Playwright roda o Chromium com `--disable-webgl`.
+  - A perda de contexto no meio da Vigília (`webglcontextlost`) fica para a F-010, com a pausa automática.
 - **Triângulo:** origem (0,5; ≈ 0,691), o incentro; o ângulo é `atan2(dirY, dirX) + π/2`, calculado na cena. A posição desenhada é a interpolada, arredondada para o pixel do canvas como a câmera (C2); sem isso, o triângulo tremia até meio pixel em volta do centro.
 - **Câmera:** o centro é o jogador interpolado, arredondado para 0,5 pt e normalizado em [0, W) × [0, H). Na costura, o centro salta de W para 0, mas como tudo é desenhado na cópia mais próxima dele, a imagem não salta.
 - **Hud:** o painel do prompt é um `Graphics` redesenhado só em `create` e `resize`; por frame, só o alpha muda pelo tween de 200 ms (o ADR-0002 §11 proíbe `Graphics` redesenhado por frame). O joystick são três imagens do atlas que só se movem.
@@ -71,7 +75,8 @@
   - `camera { x, y }`;
   - os dois valem `null` antes da Vigília;
   - `entrada.joystick { ativo, origemX, origemY, vx, vy }`, em pt; a origem fica com `ativo = false` depois de soltar;
-  - `toquesPerdidos`: eventos além de 64 por frame e dedos além de 5, na Vigília.
+  - `toquesPerdidos`: eventos além de 64 por frame e dedos além de 5, na Vigília;
+  - `entrada.maxToques`: `navigator.maxTouchPoints`, para o teste no aparelho conferir os 5 toques (Q-29).
 - **Só no build de debug:**
   - `entrada.injetar(tipo, id, x, y, t)`, com `tipo` em `'inicio' | 'move' | 'fim' | 'cancela'`, x e y em pt e t em ms; grava na mesma fila da camada de toque e ajusta o retrato como um TouchEvent faria (senão a reconciliação soltaria o dedo injetado no frame seguinte). Não se mistura com toques reais: o próximo TouchEvent reescreve o retrato com os seus `e.touches`, e o dedo injetado é solto;
   - `entrada.roteiro(lista | null)`: impõe o roteiro por passo absoluto ao driver e ao `avancar`; chamado antes da Vigília, vale desde o passo 0 (inclusive os passos que o driver roda antes do `avancar`, F-001.11); `null` volta à entrada ao vivo;
@@ -84,8 +89,12 @@
 - **Mapa:** `mapa-585x1266.png`, o mapa a 1/2, desenhado em SVG a partir do JSON, com a contagem por tela, o início, a zona livre e o corredor. Entrou na lista de evidências da F-002, para o `verify.sh` conferir que é regenerado.
 - **JSON na Playwright:** o ESM do Node exige atributo de importação para JSON, então o spec lê a região do disco.
 
-## 9. Fica para o aparelho e para as features seguintes
+## 9. Riscos do aparelho (resolvidos por delegação do usuário em 2026-10-11) e o que fica para medir
 
-- Conferir no iPhone: 5 dedos simultâneos (Q-29), o joystick perto da borda (a base fica onde o dedo tocou), a falta de histerese na zona morta e o encolhimento do FIT na aba do Safari.
+- **5 dedos:** o iPhone distingue até 5 toques simultâneos, contra 11 no iPad; um 6º dedo cancela o rastreio dos outros (relatos de desenvolvedores desde o iPhone OS, no nativo, como `touchesCancelled`; Apple Developer Forums). Os 5 slots batem com isso. No Safari, o cancelamento deve chegar como `touchcancel`, que solta os dedos cancelados (e todos, se não restar nenhum); conferir no aparelho. O retrato de 16 identificadores cobre o iPad. `__GAME_DEBUG__.entrada.maxToques` deixa a confirmação no aparelho em uma leitura.
+- **Fim de toque engolido pelo sistema:** o `touchcancel` dispara quando o sistema interrompe os toques (MDN: "de forma específica da implementação", por exemplo ao trocar de app); a troca de app também dispara `visibilitychange`/`pagehide`, e as duas soltam todos. Além disso, qualquer toque seguinte reconcilia com `e.touches` e solta o dedo preso (§5). Fica para medir no aparelho se a Central de Controle dispara `blur` ou `touchcancel` (já na lista do ADR-0002 §16); até lá, o pior caso é o jogador seguir andando até o próximo toque.
+- **Joystick perto da borda:** fica como está, por B ("aparece onde o polegar toca") e por D §4. Deslocar a base para dentro faria o vetor nascer diferente de zero, apontando para a borda, ou separaria o desenho da conta. É também o comportamento do joystick flutuante comum. Perto da borda esquerda, o movimento para a esquerda fica mais lento (com o dedo a 30 pt da borda, 41% da velocidade); reavaliar no build de teste do iPhone (Q-29), como D já prevê.
+- **Zona morta sem histerese:** fica como está (D §9, "para não criar número"); reavaliar no mesmo build.
+- **Caixa do canvas mudando no meio de um arrasto:** as barras do Safari só encolhem com rolagem, que está bloqueada (`touch-action: none`, `preventDefault` no `touchmove`, `overflow: hidden`), e no PWA não há barras. A rotação leva à tela de "gire o aparelho", que pausa a simulação e solta os dedos (F-010; D §9). Não há mais o que fazer na F-002.
 - O pool de `Image` custou ≈ 0,6 a 0,9 ms para 1.500 quads no bench do ADR-0002; com 55 objetos é irrelevante. A troca para o `SpriteGPULayer` na F-003 não muda a interface.
 - As recomendações de D §9 continuam nas pendências das F-003 a F-010.
