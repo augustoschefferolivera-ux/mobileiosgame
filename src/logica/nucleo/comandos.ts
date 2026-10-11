@@ -23,11 +23,25 @@ export function copiarComandos(de: ComandosDoPasso, para: ComandosDoPasso): void
 export interface FonteDeComandos {
   /** Preenche `out` com os comandos do passo absoluto `passo` (o 1º passo da Vigília é o 0). */
   comandosDoPasso(passo: number, out: ComandosDoPasso): void;
+  /**
+   * Escolha do modal de ordem `ordem` (0 = o 1º da Vigília; decisoes-F-005 M2):
+   * a carta (0 a 2; num baú, qualquer valor ≥ 0 fecha). Ausente ou −1: esperar o jogador.
+   */
+  escolhaDoModal?(ordem: number): number;
 }
 
-/** A mesma intenção em todos os passos: ao vivo, o vetor que o tradutor leu no frame. */
-export function fonteConstante(cmd: ComandosDoPasso): FonteDeComandos {
-  return { comandosDoPasso: (_passo, out) => copiarComandos(cmd, out) };
+/** Escolhas dos modais de um roteiro: por ordem (a falta é a carta 0), ou sempre a 1ª carta. */
+export type EscolhasDoRoteiro = readonly number[] | 'primeira';
+
+function escolhaDe(escolhas: EscolhasDoRoteiro, ordem: number): number {
+  return escolhas === 'primeira' ? 0 : (escolhas[ordem] ?? 0);
+}
+
+/** A mesma intenção em todos os passos: ao vivo, o vetor que o tradutor leu no frame (sem escolhas: espera). */
+export function fonteConstante(cmd: ComandosDoPasso, escolhas?: EscolhasDoRoteiro): FonteDeComandos {
+  const fonte: FonteDeComandos = { comandosDoPasso: (_passo, out) => copiarComandos(cmd, out) };
+  if (escolhas !== undefined) fonte.escolhaDoModal = (ordem) => escolhaDe(escolhas, ordem);
+  return fonte;
 }
 
 /** Trecho de roteiro: do passo `passo` em diante, a intenção (mx, my), até o trecho seguinte. */
@@ -53,10 +67,14 @@ export function validarRoteiro(roteiro: Roteiro): void {
   }
 }
 
-/** Comandos por passo absoluto: vale o último trecho com `passo` ≤ o pedido; antes do 1º, parado. */
-export function fonteDoRoteiro(roteiro: Roteiro): FonteDeComandos {
+/**
+ * Comandos por passo absoluto: vale o último trecho com `passo` ≤ o pedido;
+ * antes do 1º, parado. Com `escolhas`, os modais se confirmam por elas; sem,
+ * o roteiro para no 1º modal.
+ */
+export function fonteDoRoteiro(roteiro: Roteiro, escolhas?: EscolhasDoRoteiro): FonteDeComandos {
   validarRoteiro(roteiro);
-  return {
+  const fonte: FonteDeComandos = {
     comandosDoPasso(passo, out) {
       let lo = 0;
       let hi = roteiro.length - 1;
@@ -74,4 +92,6 @@ export function fonteDoRoteiro(roteiro: Roteiro): FonteDeComandos {
       out.movimento[1] = achado < 0 ? 0 : roteiro[achado]!.my;
     },
   };
+  if (escolhas !== undefined) fonte.escolhaDoModal = (ordem) => escolhaDe(escolhas, ordem);
+  return fonte;
 }
