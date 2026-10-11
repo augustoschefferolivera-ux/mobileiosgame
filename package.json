@@ -10,7 +10,9 @@
   "scripts": {
     "test": "vitest run",
     "test:dados": "vitest run tests/dados.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test:lint": "vitest run tests/lint.test.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

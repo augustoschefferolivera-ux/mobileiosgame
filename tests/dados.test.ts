@@ -9,6 +9,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
+import { A_EVITAR, proibidasEm, tokens } from '../eslint/glossario.js';
 
 type Json = null | boolean | number | string | Json[] | { [chave: string]: Json };
 type Objeto = { [chave: string]: Json };
@@ -95,32 +96,6 @@ function percorrer(valor: Json, visitar: (chave: string, v: Json, caminho: strin
 // ---------------------------------------------------------------------------
 // Palavras proibidas (B §3.15; Q-31) e palavras a evitar (doc 17 §5; doc 01 §8)
 // ---------------------------------------------------------------------------
-
-function normalizar(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2') // camelCase (Q-33) antes das minúsculas
-    .toLowerCase();
-}
-
-function tokens(s: string): string[] {
-  return normalizar(s).split(/[^a-z0-9+]+/).filter(Boolean);
-}
-
-const PROIBIDAS_PALAVRA = [
-  'run', 'runs', 'checkpoint', 'checkpoints', 'zumbi', 'zumbis', 'roguelike', 'roguelikes',
-  'upgrade', 'upgrades', 'gema', 'gemas', 'fusao', 'fusoes', 'mutator', 'mutators',
-];
-const PROIBIDAS_EXPRESSAO = [/\bgame\s*over\b/, /\bmenus?\s*principa(l|is)\b/, /\bng\s*(\+|plus\b)/, /\bcheck\s+points?\b/];
-const A_EVITAR = ['vitoria', 'vitorias', 'morte', 'mortes', 'menu', 'partida', 'partidas', 'save', 'ouro', 'moeda', 'moedas', 'handicap', 'evolucao', 'diamante'];
-
-function proibidasEm(s: string): string[] {
-  const achadas = tokens(s).filter((t) => PROIBIDAS_PALAVRA.includes(t));
-  const n = normalizar(s).replace(/[^a-z0-9+]+/g, ' ');
-  for (const re of PROIBIDAS_EXPRESSAO) if (re.test(n)) achadas.push(re.source);
-  return achadas;
-}
 
 // ---------------------------------------------------------------------------
 

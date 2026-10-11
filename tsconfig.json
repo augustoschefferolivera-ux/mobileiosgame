@@ -10,6 +10,8 @@
     "exactOptionalPropertyTypes": false,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "allowJs": true,
+    "checkJs": false,
     "skipLibCheck": true,
     "types": ["node"]
   },
