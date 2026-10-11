@@ -1,24 +1,27 @@
 // Tela de pausa mínima (Q-25; ADR-0002 §11.1, a cena Modal; design/decisoes-F-004.md
-// P5, P6 e P9): véu sobre a Vigília e a Hud, título, a build (nome e nível de
-// cada arma, dois Text por linha), a opção de números de dano e Continuar. Os
+// P5, P6 e P9; decisoes-F-005 §6): véu sobre a Vigília e a Hud, título, a build
+// (nome e nível de cada arma e de cada passiva, dois Text por linha, a União sem
+// o nível), a opção de números de dano e Continuar. Os
 // Text são criados uma vez, na raiz da cena (o __GAME_DEBUG__.textoAtivo os
 // lê), e a cena fica invisível fora da pausa. Os toques vêm do tradutor, no
 // modo pausa: esta cena só desenha. Som, Flashes, estatísticas e Abandonar
 // entram nas F-006 e F-007.
 import Phaser from 'phaser';
 import { CAIXA_DA_OPCAO, alvosDaTelaDePausa, caixaDaOpcao, type Alvo } from '../entrada/alvos';
-import { IDS_DE_ARMA } from '../logica/armas/tabela';
-import { VAGAS_DE_ARMA } from '../logica/nucleo/estado';
 import { ALTURA_LOGICA, LARGURA_LOGICA } from '../plataforma/safeArea';
 import type { ContextoDoJogo } from './contexto';
 import { COR, cameraLogica, texto } from './estilo';
+import { PARES_DA_PAUSA, linhasDaPausa, type LinhaDaPausa } from './linhasDaPausa';
 import { t } from './textos';
 
 /** Véu #0b0e14 a 60% (P6). */
 const ALFA_DO_VEU = 0.6;
 /** Transições ≤ 200 ms (doc 11 §1). */
 const FADE_MS = 200;
-const ENTRE_LINHAS_DA_BUILD = 24;
+/** 11 linhas de 15 pt cabem no terço de cima com o título (era 24 pt entre linhas com 5 armas). */
+const ENTRE_LINHAS_DA_BUILD = 18;
+const TITULO_ABAIXO_DO_TOPO = 24;
+const PRIMEIRA_LINHA_ABAIXO_DO_TOPO = 56;
 const ENTRE_NOME_E_NIVEL = 12;
 
 export class Pausa extends Phaser.Scene {
@@ -30,6 +33,7 @@ export class Pausa extends Phaser.Scene {
   private rotuloDaOpcao: Phaser.GameObjects.Text | null = null;
   private continuar: Phaser.GameObjects.Text | null = null;
   private readonly alvos: Alvo[] = [];
+  private readonly linhas: LinhaDaPausa[] = [];
   private aberta = false;
   private numerosDesenhados: boolean | null = null;
 
@@ -44,7 +48,7 @@ export class Pausa extends Phaser.Scene {
     this.titulo = texto(this, 0, 0, 'A6.PAUSA.TITULO', 22, COR.osso).setOrigin(0.5);
     this.nomes.length = 0;
     this.niveis.length = 0;
-    for (let v = 0; v < VAGAS_DE_ARMA; v++) {
+    for (let v = 0; v < PARES_DA_PAUSA; v++) {
       this.nomes.push(texto(this, 0, 0, 'F1.ESPADA_LONGA_DO_JURAMENTO.NOME', 15, COR.osso).setOrigin(0, 0.5));
       this.niveis.push(texto(this, 0, 0, 'A6.PAUSA.NIVEL', 15, COR.sal, { nivel: 1 }).setOrigin(0, 0.5));
     }
@@ -91,23 +95,26 @@ export class Pausa extends Phaser.Scene {
     });
   }
 
-  /** Uma linha por arma da build: o nome (F1.*.NOME) e "Nível {nivel}" (A6.PAUSA.NIVEL); vagas vazias somem. */
+  /** Um par por item da build, armas e depois passivas: o nome (F1/F2/F3.*.NOME) e "Nível {nivel}" (A6.PAUSA.NIVEL); a União não mostra o nível; vagas vazias somem. */
   private preencherBuild(): void {
-    const e = this.ctx.simulacao?.estado;
-    for (let v = 0; v < VAGAS_DE_ARMA; v++) {
-      const codigo = e ? e.build.codigo[v]! : 0;
+    const sim = this.ctx.simulacao;
+    const e = sim?.estado;
+    const linhas = e
+      ? linhasDaPausa({ armas: e.build, passivas: e.passivas, uniao: sim.dados.armas.uniao, nivelMax: sim.dados.armas.nivelMax }, this.linhas)
+      : this.linhas.splice(0);
+    for (let v = 0; v < PARES_DA_PAUSA; v++) {
       const nome = this.nomes[v]!;
       const nivel = this.niveis[v]!;
-      if (codigo === 0) {
+      const l = linhas[v];
+      if (l === undefined) {
         nome.setVisible(false);
         nivel.setVisible(false);
         continue;
       }
-      const id = `F1.${IDS_DE_ARMA[codigo]!.toUpperCase()}.NOME`;
-      if (nome.getData('idTexto') !== id) nome.setText(t(id)).setData('idTexto', id);
-      nivel.setText(t('A6.PAUSA.NIVEL', { nivel: e!.build.nivel[v]! }));
+      if (nome.getData('idTexto') !== l.idDoNome) nome.setText(t(l.idDoNome)).setData('idTexto', l.idDoNome);
       nome.setVisible(true);
-      nivel.setVisible(true);
+      if (l.nivel === null) nivel.setVisible(false);
+      else nivel.setText(t('A6.PAUSA.NIVEL', { nivel: l.nivel })).setVisible(true);
     }
   }
 
@@ -115,17 +122,16 @@ export class Pausa extends Phaser.Scene {
     const ins = this.ctx.insets;
     alvosDaTelaDePausa(ins, this.alvos);
     const cx = ins.esquerda + (LARGURA_LOGICA - ins.esquerda - ins.direita) / 2;
-    const util = ALTURA_LOGICA - ins.topo - ins.baixo;
     this.veu!.clear().fillStyle(COR.pedra, ALFA_DO_VEU).fillRect(0, 0, LARGURA_LOGICA, ALTURA_LOGICA);
-    // Textos no terço de cima: o título e, logo abaixo, a build.
-    const yTitulo = ins.topo + util / 6;
-    this.titulo!.setPosition(cx, yTitulo);
-    // Cada linha centrada pelo conjunto "nome  Nível n".
-    let y = yTitulo + 44;
-    for (let v = 0; v < VAGAS_DE_ARMA; v++) {
+    // Textos no terço de cima: o título e, logo abaixo, até 11 linhas da build.
+    this.titulo!.setPosition(cx, ins.topo + TITULO_ABAIXO_DO_TOPO);
+    // Cada linha centrada pelo conjunto "nome  Nível n" (só o nome, na União).
+    let y = ins.topo + PRIMEIRA_LINHA_ABAIXO_DO_TOPO;
+    for (let v = 0; v < PARES_DA_PAUSA; v++) {
       const nome = this.nomes[v]!;
       const nivel = this.niveis[v]!;
-      const x0 = cx - (nome.width + ENTRE_NOME_E_NIVEL + nivel.width) / 2;
+      const largura = nivel.visible ? nome.width + ENTRE_NOME_E_NIVEL + nivel.width : nome.width;
+      const x0 = cx - largura / 2;
       nome.setPosition(x0, y);
       nivel.setPosition(x0 + nome.width + ENTRE_NOME_E_NIVEL, y);
       if (nome.visible) y += ENTRE_LINHAS_DA_BUILD;
