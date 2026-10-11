@@ -17,6 +17,7 @@ import { suportaWebGL } from '../plataforma/webgl';
 import { Acender } from './Acender';
 import { Boot } from './Boot';
 import { Hud } from './Hud';
+import { Pausa } from './Pausa';
 import type { ContextoDoJogo } from './contexto';
 import { instalarDebug, instantaneoDoDebug } from './debug';
 import { MedidorDeQuadros } from './medidas';
@@ -77,6 +78,7 @@ export function iniciarJogo(): Phaser.Game | null {
     }),
     cenario: params.cenario === null ? null : { id: params.cenario, parametros: parametrosDoCenario(params.cenario) },
     render: { modo: params.render, origem: 'parametro', bufferDinamico: params.bufferDinamico, aquecido: false },
+    opcoes: { numerosDeDano: true },
     debug: params.debug,
     medidor: new MedidorDeQuadros(),
   };
@@ -118,7 +120,7 @@ export function iniciarJogo(): Phaser.Game | null {
         if (ehBuildDeDebug) ligarTecladoDeDebug(window, ctx.entrada.tradutor.teclado);
       },
     },
-    scene: [new Boot(ctx), new Acender(ctx), new Vigilia(ctx), new Hud(ctx)],
+    scene: [new Boot(ctx), new Acender(ctx), new Vigilia(ctx), new Hud(ctx), new Pausa(ctx)],
   });
   const debug = instalarDebug(jogo, ctx);
   if (ctx.debug) instalarPainelDeDebug(document, () => instantaneoDoDebug(debug));

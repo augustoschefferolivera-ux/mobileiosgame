@@ -6,7 +6,7 @@ import type { Estado } from '../logica/nucleo/estado';
 import type { DadosDaVigilia } from '../logica/mundo/dados';
 import type { CamadaDeToque } from '../entrada/camadaDeToque';
 import type { FilaDeToques } from '../entrada/filaDeToques';
-import type { TradutorDeGestos } from '../entrada/tradutorDeGestos';
+import type { OrigemDaPausa, TradutorDeGestos } from '../entrada/tradutorDeGestos';
 import type { ParametrosDaVigilia } from '../logica/nucleo/estado';
 import type { ModoDeRender } from '../plataforma/parametros';
 import type { Insets } from '../plataforma/safeArea';
@@ -29,6 +29,12 @@ export interface Simulacao {
   readonly camera: { x: number; y: number };
   /** Driver parado pelos ganchos de debug (avancar); pausada, o render desenha o estado atual (alfa = 1). */
   pausada: boolean;
+  /**
+   * Pausa do jogador (botão ou gesto; design/decisoes-F-004.md P4): fora do
+   * estado, do hash, do replay e dos ComandosDoPasso; o driver não roda passo
+   * e o render congela o alfa enquanto ela está ativa.
+   */
+  readonly pausa: { ativa: boolean; origem: OrigemDaPausa | null; alfa: number };
   /** O escritor da horda desta Vigília, para o debug. */
   horda: EscritorDaHorda | null;
 }
@@ -69,6 +75,8 @@ export interface ContextoDoJogo {
   /** ?cenario (só no build de debug): o id e os parâmetros da Vigília que ele impõe. */
   readonly cenario: { readonly id: string; readonly parametros: Omit<ParametrosDaVigilia, 'teto'> } | null;
   readonly render: RenderDaHorda;
+  /** Opções do jogador, em memória, fora da simulação (design/decisoes-F-004.md N8); o meta da F-007 as grava. */
+  readonly opcoes: { numerosDeDano: boolean };
   /** ?debug=1 (só no build de debug): painel e verificação de NaN. */
   readonly debug: boolean;
   readonly medidor: MedidorDeQuadros;

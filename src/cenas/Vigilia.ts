@@ -8,7 +8,7 @@
 import Phaser from 'phaser';
 import { alfa, criarAcumulador } from '../logica/nucleo/acumulador';
 import { criarComandos, fonteConstante, fonteDoRoteiro } from '../logica/nucleo/comandos';
-import { rodarFrame } from '../logica/nucleo/driver';
+import { rodarFrameComPausas } from '../logica/nucleo/driver';
 import { TODOS_OS_TUTORIAIS, criarEstado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
 import { verificarNaN } from '../logica/nucleo/nan';
 import { criarDadosDaVigilia } from '../logica/mundo/dados';
@@ -17,6 +17,7 @@ import inimigos from '../dados/inimigos.json';
 import vigilantes from '../dados/vigilantes.json';
 import charneca from '../dados/regioes/charneca_das_lanternas.json';
 import type { ContextoDoJogo, Simulacao } from './contexto';
+import type { Pausa } from './Pausa';
 import { COR, cameraLogica } from './estilo';
 import { centroDaCamera } from './render/camera';
 import { HordaPorGPU, HordaPorImagem } from './render/escritores';
@@ -55,6 +56,7 @@ export class Vigilia extends Phaser.Scene {
       fonte: this.ctx.roteiro ? fonteDoRoteiro(this.ctx.roteiro) : fonteConstante(comandosAoVivo),
       camera: { x: dados.inicioX, y: dados.inicioY },
       pausada: false,
+      pausa: { ativa: false, origem: null, alfa: 0 },
       horda: this.render.horda,
     };
     this.ctx.simulacao = this.sim;
@@ -64,6 +66,7 @@ export class Vigilia extends Phaser.Scene {
     fila.reiniciar();
     tradutor.reiniciar();
     this.scene.launch('Hud');
+    this.scene.launch('Pausa');
     const eventos = this.game.events;
     eventos.on(Phaser.Core.Events.PRE_STEP, this.aoPreStep, this);
     eventos.on(Phaser.Core.Events.STEP, this.aoStep, this);
@@ -77,6 +80,7 @@ export class Vigilia extends Phaser.Scene {
       this.render?.liberar();
       fila.ativa = false;
       this.scene.stop('Hud');
+      this.scene.stop('Pausa');
     });
     // MVP: Ciclo I, Maldição 0, sem Relíquias; a árvore comprada entra com o save meta (F-010).
     this.ctx.telemetria.registrar('vigilia_inicio', 0, {
@@ -97,13 +101,42 @@ export class Vigilia extends Phaser.Scene {
     const sim = this.sim;
     if (!sim) return;
     // Uma tradução por frame; ao vivo, o vetor vale para todos os passos do frame (design/decisoes-F-002.md §4).
-    this.ctx.entrada.tradutor.traduzir(this.ctx.entrada.fila, sim.comandosAoVivo);
-    if (sim.pausada) return;
+    // O agora do quadro, no relógio do TouchEvent.timeStamp, completa os 500 ms do gesto de pausa (decisoes-F-004 P3).
+    const trad = this.ctx.entrada.tradutor;
+    trad.traduzir(this.ctx.entrada.fila, sim.comandosAoVivo, performance.now());
+    if (trad.pedidoDePausa !== null && !sim.pausa.ativa) this.abrirPausa(trad.pedidoDePausa);
+    else if (sim.pausa.ativa && trad.toqueNaPausa === 'continuar') this.fecharPausa();
+    else if (sim.pausa.ativa && trad.toqueNaPausa === 'numeros') this.ctx.opcoes.numerosDeDano = !this.ctx.opcoes.numerosDeDano;
     const t0 = performance.now();
-    const n = rodarFrame(sim.estado, sim.dados, sim.acumulador, this.game.loop.rawDelta, sim.fonte);
+    const n = rodarFrameComPausas(sim.estado, sim.dados, sim.acumulador, this.game.loop.rawDelta, sim.fonte, sim.pausa.ativa, sim.pausada);
     this.ctx.medidor.simulou(performance.now() - t0, n);
     // Fora do tempo medido como simulação (o F-003.4 roda com ?debug=1).
     if (this.ctx.debug && n > 0) verificarNaN(sim.estado, n);
+  }
+
+  /**
+   * Abre a pausa do jogador (P4, P8): o relógio e o passo param, o alfa do
+   * render congela, todos os dedos são soltos e o tradutor passa ao modo da
+   * tela de pausa. O estado de jogo (`__GAME_DEBUG__.estado`) continua VIGILIA.
+   */
+  private abrirPausa(origem: 'botao' | 'gesto'): void {
+    const sim = this.sim!;
+    sim.pausa.ativa = true;
+    sim.pausa.origem = origem;
+    sim.pausa.alfa = alfa(sim.acumulador);
+    this.ctx.entrada.fila.pedirSoltarTodos();
+    this.ctx.entrada.tradutor.mudarModo('pausa');
+    (this.scene.get('Pausa') as Pausa).mostrar();
+  }
+
+  /** Continuar (P7): sem contagem; só um toque novo cria o joystick (P8). */
+  private fecharPausa(): void {
+    const sim = this.sim!;
+    sim.pausa.ativa = false;
+    sim.pausa.origem = null;
+    this.ctx.entrada.fila.pedirSoltarTodos();
+    this.ctx.entrada.tradutor.mudarModo('vigilia');
+    (this.scene.get('Pausa') as Pausa).esconder();
   }
 
   private aoPreRender(): void {
@@ -118,7 +151,8 @@ export class Vigilia extends Phaser.Scene {
     const sim = this.sim;
     if (!sim || !this.render) return;
     // Pausada pelo debug, desenha o estado atual: a imagem depende só da seed e do passo (decisoes-F-003 §8).
-    const a = sim.pausada ? 1 : alfa(sim.acumulador);
+    // Na pausa do jogador, o alfa fica o do instante em que ela abriu (P4).
+    const a = sim.pausada ? 1 : sim.pausa.ativa ? sim.pausa.alfa : alfa(sim.acumulador);
     centroDaCamera(sim.estado, a, sim.camera);
     this.render.sincronizar(sim.estado, a, sim.camera.x, sim.camera.y);
     this.cameras.main.centerOn(sim.camera.x, sim.camera.y);
