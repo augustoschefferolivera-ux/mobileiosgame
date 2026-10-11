@@ -184,8 +184,16 @@ describe('telemetria local (F-001.15; Q-30)', () => {
 });
 
 describe('parâmetros de URL (ADR-0002 §14)', () => {
-  it('o build de produção ignora ?seed e ?tutorial', () => {
-    expect(lerParametros('?seed=5&tutorial=0', false)).toEqual({ seed: null, pularTutoriais: false });
+  it('o build de produção ignora ?seed, ?tutorial e os parâmetros da F-003', () => {
+    expect(lerParametros('?seed=5&tutorial=0&teto=500&render=image&buffer=dinamico&cenario=horda&debug=1', false)).toEqual({
+      seed: null,
+      pularTutoriais: false,
+      teto: null,
+      render: 'gpu',
+      bufferDinamico: false,
+      cenario: null,
+      debug: false,
+    });
   });
 
   it.each([

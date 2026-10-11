@@ -1,8 +1,10 @@
 // F-001.1 e F-001.5: mesma seed + 1.000 passos = mesmo hash; 1 e 5 passos por
 // frame dão o mesmo hash. Desde a F-002, os passos seguem o roteiro fixo de
 // ComandosDoPasso (ROTEIRO_REFERENCIA: movimento, deslize e as duas costuras)
-// na Charneca com Aldric. Com VDC_EVIDENCIAS=1 (scripts/verify.sh), grava o log
-// de evidência e o hash de referência que a Playwright compara (F-001.11).
+// na Charneca com Aldric; desde a F-003, com a horda e o diretor ligados
+// (design/decisoes-F-003.md §6). Com VDC_EVIDENCIAS=1 (scripts/verify.sh),
+// grava o log de evidência e o hash de referência que a Playwright compara
+// (F-001.11).
 import { afterAll, describe, expect, it } from 'vitest';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -16,19 +18,23 @@ import {
   BYTES_ESTADO,
   CAB,
   JOGADOR,
+  JOGADOR_U8,
+  MUNDO,
   TUTORIAL,
   VERSAO_LAYOUT,
   criarEstado,
   hashEstado,
+  hashPorSecao,
   reiniciarEstado,
 } from '../../src/logica/nucleo/estado';
 import { avancar } from '../../src/logica/nucleo/passo';
+import { quantosAtivos } from '../../src/logica/nucleo/pool';
 import { PASSOS_REFERENCIA, ROTEIRO_REFERENCIA, SEED_PADRAO } from '../../src/logica/nucleo/referencia';
 import { RAIO_DO_JOGADOR } from '../../src/logica/mundo/jogador';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, deltaNoToro } from '../../src/logica/mundo/toro';
-import { criarDadosDaVigilia, type DadosDaVigilia } from '../../src/logica/mundo/dados';
+import type { DadosDaVigilia } from '../../src/logica/mundo/dados';
 import charneca from '../../src/dados/regioes/charneca_das_lanternas.json';
-import { DADOS_DA_CHARNECA as D } from './apoio';
+import { DADOS_DA_CHARNECA as D, SEM_HORDA, dadosDe } from './apoio';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SEED = Number(process.env['VDC_SEED'] ?? SEED_PADRAO);
@@ -69,9 +75,51 @@ describe('determinismo (F-001.1)', () => {
     expect(new Set(hashes).size).toBe(new Set([1, 2, 3, 42, 2026, SEED]).size);
   });
 
-  it('valores de referência fixos (mudar layout, semeadura, hash, roteiro ou disposição exige atualizar aqui)', () => {
-    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('3510977e');
-    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('3b7955cb');
+  it('valores de referência fixos (mudar layout, semeadura, hash, roteiro, disposição, horda ou diretor exige atualizar aqui)', () => {
+    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('e91ed119');
+    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('6173ca75');
+  });
+
+  it('com a horda: vivos, spawns e o 1º acerto de contato ficam travados no passo 1.000', () => {
+    const fatos = (seed: number): number[] => {
+      const e = criarEstado(seed, D);
+      const fonte = fonteDoRoteiro(ROTEIRO_REFERENCIA);
+      let acerto = -1;
+      for (let k = 1; k <= PASSOS_REFERENCIA; k++) {
+        avancar(e, D, fonte, 1);
+        if (acerto < 0 && e.jogadorU8[JOGADOR_U8.invulContato]! > 0) acerto = k;
+      }
+      return [quantosAtivos(e.pool), e.mundo[MUNDO.spawns]!, acerto, e.jogador[JOGADOR.hp]!];
+    };
+    const [vivos, spawns, acerto, hp] = fatos(SEED);
+    if (SEED === SEED_PADRAO) expect([vivos, spawns, acerto, hp]).toEqual([15, 15, 146, 138]);
+    expect(fatos(424242)).toEqual([15, 15, 283, 102]);
+    log.push(`horda no passo ${PASSOS_REFERENCIA}: vivos=${vivos} spawns=${spawns} 1o_acerto=passo ${acerto} hp=${hp}`);
+  });
+
+  it('copiar o buffer no passo 500 para um estado novo e seguir os dois até o 1.000 dá o mesmo hash (nada fica fora do buffer)', () => {
+    const fonte = fonteDoRoteiro(ROTEIRO_REFERENCIA);
+    const a = criarEstado(SEED, D);
+    avancar(a, D, fonte, 500);
+    const b = criarEstado(SEED + 1, D);
+    avancar(b, D, fonte, 37);
+    b.bytes.set(a.bytes);
+    avancar(a, D, fonte, PASSOS_REFERENCIA - 500);
+    avancar(b, D, fonte, PASSOS_REFERENCIA - 500);
+    expect(hashEstado(b)).toBe(hashEstado(a));
+    expect(hashEstado(a)).toBe(executar(SEED, PASSOS_REFERENCIA));
+  });
+
+  it('trilha a cada 100 passos, com o hash por seção (ADR-0002 §5)', () => {
+    const e = criarEstado(SEED, D);
+    const fonte = fonteDoRoteiro(ROTEIRO_REFERENCIA);
+    for (let k = 100; k <= PASSOS_REFERENCIA; k += 100) {
+      avancar(e, D, fonte, 100);
+      const s = hashPorSecao(e);
+      expect(Object.keys(s)).toEqual(['cabecalho', 'rng', 'jogador', 'mundo', 'inimigos']);
+      const secoes = Object.entries(s).map(([nome, h]) => `${nome}=${hex8(h)}`).join(' ');
+      log.push(`trilha passo=${k} hash=${hex8(hashEstado(e))} ${secoes}`);
+    }
   });
 
   it('o hash muda a cada passo e com qualquer byte do estado', () => {
@@ -96,8 +144,8 @@ describe('determinismo (F-001.1)', () => {
     expect(hashEstado(e)).toBe(hashEstado(criarEstado(SEED, D)));
   });
 
-  it('o roteiro de referência anda, desliza num obstáculo e cruza as costuras em x e em y', () => {
-    const e = criarEstado(SEED, D);
+  it('sem horda, o roteiro de referência anda, desliza num obstáculo e cruza as costuras em x e em y', () => {
+    const e = criarEstado(SEED, D, SEM_HORDA);
     const fonte = fonteDoRoteiro(ROTEIRO_REFERENCIA);
     let cruzouX = -1;
     let cruzouY = -1;
@@ -129,8 +177,11 @@ describe('determinismo (F-001.1)', () => {
     const base = executar(SEED, PASSOS_REFERENCIA);
     const outro: Roteiro = [...ROTEIRO_REFERENCIA, { passo: 990, mx: 0, my: 0.5 }, { passo: 991, mx: 0, my: 1 }];
     expect(executar(SEED, PASSOS_REFERENCIA, outro)).not.toBe(base);
-    const semUm = criarDadosDaVigilia({ ...charneca, obstaculos: charneca.obstaculos.slice(1) }, { velocidade: 1 });
+    const semUm = dadosDe({ ...charneca, obstaculos: charneca.obstaculos.slice(1) });
     expect(executar(SEED, 0, ROTEIRO_REFERENCIA, semUm)).not.toBe(executar(SEED, 0));
+    const semHorda = criarEstado(SEED, D, SEM_HORDA);
+    avancar(semHorda, D, fonteDoRoteiro(ROTEIRO_REFERENCIA), PASSOS_REFERENCIA);
+    expect(hashEstado(semHorda)).not.toBe(base);
   });
 
   it.each([-1, 1.5, 2 ** 32, Number.NaN])('seed %s fora de u32 é erro', (s) => {
