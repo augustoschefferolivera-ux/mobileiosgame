@@ -38,7 +38,7 @@ export interface ContextoDoJogo {
   camada: CamadaDeToque | null;
   /** Fila de toques (a camada escreve) e tradutor de gestos (a Vigília lê uma vez por frame). */
   readonly entrada: { readonly fila: FilaDeToques; readonly tradutor: TradutorDeGestos };
-  /** Insets da safe-area em pt lógicos, medidos pela cena ativa no create e no resize (na F-001, a de Acender). */
+  /** Insets da safe-area em pt lógicos, medidos no create e no resize pela Tela de Acender e, na Vigília, pela Hud. */
   readonly insets: Insets;
   tela: Tela;
   simulacao: Simulacao | null;

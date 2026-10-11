@@ -110,6 +110,20 @@ describe('joystick flutuante', () => {
 });
 
 describe('capacidade, reconciliação e soltar todos', () => {
+  it('5 slots de dedo (design/decisoes-F-002.md §4, T1)', () => {
+    expect(MAX_DEDOS).toBe(5);
+  });
+
+  it('se o dono solta no mesmo frame em que outro dedo começa, depois dele, o outro não herda o joystick (J2)', () => {
+    toque(T.inicio, 1, 100, 600);
+    frame();
+    toque(T.inicio, 2, 150, 700);
+    toque(T.fim, 1, 100, 600); // o retrato do frame já não tem o dedo 1
+    toque(T.move, 2, 150, 640);
+    expect(frame()).toEqual([0, 0]);
+    expect(trad.joystick).toMatchObject({ ativo: false, origemX: 100, origemY: 600 });
+  });
+
   it(`o ${MAX_DEDOS + 1}º dedo é descartado e contado`, () => {
     for (let i = 0; i <= MAX_DEDOS; i++) toque(T.inicio, i, 300, 100 + i);
     frame();
@@ -151,6 +165,15 @@ describe('capacidade, reconciliação e soltar todos', () => {
     toque(T.inicio, 2, 120, 650);
     frame();
     expect(trad.joystick).toMatchObject({ ativo: true, origemX: 120 });
+  });
+
+  it('soltar todos solta também o mouse de debug, que a reconciliação nunca solta', () => {
+    fila.empurrar(T.inicio, ID_DO_MOUSE, 100, 600, 0);
+    fila.empurrar(T.move, ID_DO_MOUSE, 160, 600, 0);
+    expect(frame()).toEqual([1, 0]);
+    fila.pedirSoltarTodos();
+    expect(frame()).toEqual([0, 0]);
+    expect(trad.joystick.ativo).toBe(false);
   });
 
   it('o mouse de debug não é solto pelo retrato de toques', () => {

@@ -18,6 +18,10 @@ const ativa = (): FilaDeToques => {
 const ids = (n: number) => Array.from({ length: n }, (_, i) => ({ identifier: 100 + i }));
 
 describe('FilaDeToques', () => {
+  it('capacidade de 64 eventos por frame (design/decisoes-F-002.md §4, T1)', () => {
+    expect(CAPACIDADE_DA_FILA).toBe(64);
+  });
+
   it('copia tipo, id, x, y e t de cada evento, na ordem', () => {
     const f = ativa();
     f.empurrar(T.inicio, 3, 10.5, 20.25, 1000.125);

@@ -1,7 +1,8 @@
-// window.__GAME_DEBUG__ (B §3.13; ADR-0002 §14). Sempre presente e só de
-// leitura; os ganchos de escrita (pausar, retomar, avancar) só existem no build
-// de debug. Os campos dos sistemas que ainda não existem entram com as suas
-// features (jogador, chefe, save, teto, degradacao, cpuFrameMs, build...).
+// window.__GAME_DEBUG__ (B §3.13; ADR-0002 §14; ADR-0004 §7). Sempre presente
+// e só de leitura; os ganchos de escrita (pausar, retomar, avancar,
+// entrada.injetar e entrada.roteiro) só existem no build de debug. Os campos
+// dos sistemas que ainda não existem entram com as suas features (hp e
+// stamina do jogador, chefe, save, teto, degradacao, cpuFrameMs, build...).
 import type Phaser from 'phaser';
 import { fonteConstante, fonteDoRoteiro, validarRoteiro, type Roteiro } from '../logica/nucleo/comandos';
 import { BYTES_ESTADO, CAB, JOGADOR, hashEstado } from '../logica/nucleo/estado';

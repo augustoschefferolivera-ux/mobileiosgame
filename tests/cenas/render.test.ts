@@ -4,7 +4,9 @@
 import { describe, expect, it } from 'vitest';
 import { MOLDURA, escalaPara, type NomeDaMoldura } from '../../src/cenas/render/atlas';
 import { arredondarParaOPixel, centroDaCamera } from '../../src/cenas/render/camera';
-import { ORIGEM_Y_DO_JOGADOR, anguloDoJogador } from '../../src/cenas/render/mundo';
+import { ORIGEM_Y_DO_JOGADOR, RenderPorImagem, anguloDoJogador } from '../../src/cenas/render/mundo';
+import type Phaser from 'phaser';
+import { criarDadosDaVigilia } from '../../src/logica/mundo/dados';
 import { JOGADOR as J, criarEstado } from '../../src/logica/nucleo/estado';
 import { LARGURA_DO_MAPA as W, deltaNoToro } from '../../src/logica/mundo/toro';
 import { DADOS_SEM_OBSTACULOS as D } from '../logica/apoio';
@@ -51,6 +53,15 @@ describe('câmera (§5)', () => {
     expect([0.24, 0.26, 0.74, 585.3, 585.2].map(arredondarParaOPixel)).toEqual([0, 0.5, 0.5, 585.5, 585]);
   });
 
+  it('o centro da câmera sai arredondado: jogador em (585,3; 1.266,2) dá (585,5; 1.266)', () => {
+    const e = criarEstado(1, D);
+    e.jogador[J.x] = e.jogador[J.xAnt] = 585.3;
+    e.jogador[J.y] = e.jogador[J.yAnt] = 1266.2;
+    const c = { x: 0, y: 0 };
+    centroDaCamera(e, 0, c);
+    expect(c).toEqual({ x: 585.5, y: 1266 });
+  });
+
   it('centra no jogador interpolado; na costura fica contínua e em [0, W)', () => {
     const e = criarEstado(1, D);
     const c = { x: 0, y: 0 };
@@ -66,5 +77,43 @@ describe('câmera (§5)', () => {
       vistos.push(c.x);
     }
     for (let i = 1; i < vistos.length; i++) expect(Math.abs(deltaNoToro(vistos[i - 1]!, vistos[i]!, W))).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('render por Image (cópia mais próxima da câmera)', () => {
+  /** Cena falsa: só o que o RenderPorImagem usa (add.image, add.layer e os setters). */
+  function cenaFalsa(): { cena: Phaser.Scene; imagens: { x: number; y: number }[] } {
+    const imagens: { x: number; y: number }[] = [];
+    const add = {
+      layer: () => ({ add: () => undefined }),
+      image: (x: number, y: number) => {
+        const img = {
+          x,
+          y,
+          setTint: () => img,
+          setScale: () => img,
+          setOrigin: () => img,
+          setRotation: () => img,
+          setPosition: (nx: number, ny: number) => Object.assign(img, { x: nx, y: ny }),
+        };
+        imagens.push(img);
+        return img;
+      },
+    };
+    return { cena: { add } as unknown as Phaser.Scene, imagens };
+  }
+
+  it('um obstáculo em x = 40 com a câmera em 1.150 é desenhado em 1.210; o jogador, no pixel da câmera', () => {
+    const dados = criarDadosDaVigilia(
+      { inicio_jogador: { x: 1150, y: 2520 }, obstaculos: [{ x: 40, y: 10, tamanho_px: 64 }] },
+      { velocidade: 1 },
+    );
+    const { cena, imagens } = cenaFalsa();
+    const render = new RenderPorImagem(cena, dados);
+    const e = criarEstado(1, dados);
+    e.jogador[J.x] = e.jogador[J.xAnt] = 1150.2;
+    render.sincronizar(e, 0, 1150, 2520);
+    expect(imagens[0]).toMatchObject({ x: 1210, y: 2542 });
+    expect(imagens[1]).toMatchObject({ x: 1150, y: 2520 });
   });
 });

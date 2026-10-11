@@ -73,7 +73,7 @@ export class TradutorDeGestos {
       if (tipo === TIPO_DE_TOQUE.inicio) {
         // ADR-0002 §12: a cada touchstart, os slots são conferidos com e.touches antes de classificar o dedo
         // novo; assim, o toque que segue um fim perdido pode virar dono.
-        this.reconciliar(fila);
+        this.reconciliar(fila, k + 1);
         this.comecar(id, ev[i + 2]!, ev[i + 3]!);
       } else {
         const s = this.slotDe(id);
@@ -86,8 +86,8 @@ export class TradutorDeGestos {
         } else this.soltar(s);
       }
     }
+    this.reconciliar(fila, fila.n);
     fila.n = 0;
-    this.reconciliar(fila);
     const j = this.joystick;
     if (j.ativo) {
       const dx = this.atualX - j.origemX;
@@ -106,14 +106,20 @@ export class TradutorDeGestos {
 
   /**
    * Solta os dedos que não estão mais em `e.touches` (um fim descartado pela fila cheia ou que não chegou).
-   * O retrato é o do último evento do frame: se o dono soltar no mesmo frame em que outro dedo começa, depois
-   * dele, o dedo novo vira dono (≤ 1 frame de diferença).
+   * O retrato é o do último evento do frame; por isso, um dedo com evento na fila a partir de `desde` ainda
+   * estava na tela naquele ponto e fica: o seu próprio fim o solta.
    */
-  private reconciliar(fila: FilaDeToques): void {
+  private reconciliar(fila: FilaDeToques, desde: number): void {
     if (!fila.retratoValido) return;
     for (let s = 0; s < MAX_DEDOS; s++) {
-      if (this.papel[s] !== PAPEL.livre && this.ids[s] !== ID_DO_MOUSE && !fila.noRetrato(this.ids[s]!)) this.soltar(s);
+      if (this.papel[s] === PAPEL.livre || this.ids[s] === ID_DO_MOUSE || fila.noRetrato(this.ids[s]!)) continue;
+      if (!this.temEventoDesde(fila, desde, this.ids[s]!)) this.soltar(s);
     }
+  }
+
+  private temEventoDesde(fila: FilaDeToques, desde: number, id: number): boolean {
+    for (let k = desde; k < fila.n; k++) if (fila.eventos[k * CAMPOS_POR_EVENTO + 1] === id) return true;
+    return false;
   }
 
   private slotDe(id: number): number {

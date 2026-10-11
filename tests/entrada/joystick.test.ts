@@ -23,6 +23,18 @@ describe('vetor do joystick (F-002.1)', () => {
     expect(v(6.3, 6.29)).toEqual({ x: 0, y: 0 });
   });
 
+  it('a zona morta é radial: (8, 8) está a 11,3 pt, fora dela, mesmo com cada eixo abaixo de 9 pt', () => {
+    const p = v(8, 8);
+    expect(modulo(p)).toBeCloseTo((Math.sqrt(128) / 60 - 0.15) / 0.85, 12);
+    expect(p.x).toBeCloseTo(p.y, 12);
+  });
+
+  it('não há zona morta por eixo: (20, 5) mantém a direção do dedo', () => {
+    const p = v(20, 5);
+    expect(p.x / modulo(p)).toBeCloseTo(20 / Math.sqrt(425), 12);
+    expect(p.y / modulo(p)).toBeCloseTo(5 / Math.sqrt(425), 12);
+  });
+
   it('logo depois da zona morta o vetor começa de 0, sem salto', () => {
     expect(modulo(v(9.01, 0))).toBeGreaterThan(0);
     expect(modulo(v(9.01, 0))).toBeLessThan(0.001);
