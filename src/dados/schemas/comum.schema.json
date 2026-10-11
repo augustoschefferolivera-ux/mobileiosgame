@@ -126,6 +126,7 @@
           ]
         },
         "fator_pct": {
+          "description": "Para o Sal: redução da velocidade em % (50 = −50%).",
           "type": "number"
         },
         "duracao_s": {

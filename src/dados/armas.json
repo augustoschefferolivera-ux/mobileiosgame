@@ -25,8 +25,12 @@
         "cooldown_s": 1.2,
         "golpes": 1,
         "arco_graus": 120,
-        "alcance_corpos": null,
-        "intervalo_golpes_s": null
+        "alcance_corpos": 2,
+        "intervalo_golpes_s": 0.2,
+        "estocada": {
+          "comprimento_corpos": 3,
+          "meia_largura_corpos": 0.5
+        }
       },
       "niveis": [
         {
@@ -50,7 +54,8 @@
           "efeitos": [
             {
               "tipo": "golpes_extra",
-              "valor": 1
+              "valor": 1,
+              "forma": "volta"
             }
           ]
         },
@@ -91,7 +96,9 @@
           "marco": true,
           "efeitos": [
             {
-              "tipo": "estocada_perfurante"
+              "tipo": "golpes_extra",
+              "valor": 1,
+              "forma": "estocada"
             }
           ]
         },
@@ -101,23 +108,14 @@
           "efeitos": [
             {
               "tipo": "golpes_extra",
-              "valor": 1
+              "valor": 1,
+              "forma": "ida"
             }
           ]
         }
       ],
-      "pendentes": {
-        "base.alcance_corpos": "F-004",
-        "base.intervalo_golpes_s": "F-004"
-      },
       "pendencias": [
-        "F-004: alcance do arco (brief §11.3)",
-        "F-004: intervalo entre os golpes extras (brief §11.3)",
-        "F-004: o que o +20% de área do nv5 aumenta, alcance ou ângulo (brief §11.3)",
-        "F-004: o nv7 transforma o 3º golpe, que só existe no nv8 (brief §11.3)",
-        "F-004: os dois +20% de dano (nv2 e nv6) se somam (+40%) ou se multiplicam (×1,44)?",
-        "F-004: direção com o jogador parado (ADR-0002 §7)",
-        "F-004: ordem de empilhamento dos multiplicadores (Contra-ataque ×2, Postura Quebrada ×2, nv4 +50%, Quebra ×2, Postura Firme −40%) (brief §11.3; ADR-0002 §7)"
+        "F-006: ordem de empilhamento dos multiplicadores (Contra-ataque ×2, Postura Quebrada ×2, nv4 +50%) e da Quebra e Postura Firme na F-009 (brief §11.3; design/decisoes-F-004.md D3)"
       ]
     },
     {
@@ -139,9 +137,11 @@
         "dano": 6,
         "projeteis": 2,
         "cooldown_s": 0.9,
-        "velocidade_projetil_corpos_s": null,
-        "alcance_corpos": null,
-        "projeteis_extra_esquiva_perfeita": 1
+        "velocidade_projetil_corpos_s": 12,
+        "alcance_corpos": 6,
+        "projeteis_extra_esquiva_perfeita": 1,
+        "raio_projetil_corpos": 0.25,
+        "espacamento_lateral_corpos": 0.25
       },
       "niveis": [
         {
@@ -175,7 +175,12 @@
           "marco": true,
           "efeitos": [
             {
-              "tipo": "aplica_sal"
+              "tipo": "aplica_sal",
+              "aplica": {
+                "status": "sal",
+                "fator_pct": 50,
+                "duracao_s": 3
+              }
             }
           ]
         },
@@ -221,14 +226,7 @@
           ]
         }
       ],
-      "pendentes": {
-        "base.velocidade_projetil_corpos_s": "F-004",
-        "base.alcance_corpos": "F-004"
-      },
-      "pendencias": [
-        "F-004: velocidade e alcance das facas (brief §11.3)",
-        "F-004: escolha de alvo quando a salva tem várias facas (ADR-0002 §7)"
-      ]
+      "pendencias": []
     },
     {
       "id": "circulo_de_sal",
@@ -249,7 +247,7 @@
         "dano_por_s": 4,
         "cooldown_s": null,
         "raio_corpos": 2,
-        "intervalo_tick_s": null,
+        "intervalo_tick_s": 0.5,
         "aplica": {
           "status": "sal",
           "fator_pct": 50,
@@ -288,7 +286,7 @@
           "marco": true,
           "efeitos": [
             {
-              "tipo": "sal_fator_pct",
+              "tipo": "sal_reducao_pct",
               "valor": 60
             }
           ]
@@ -321,7 +319,8 @@
             {
               "tipo": "pulso_knockback",
               "intervalo_s": 5,
-              "forca_corpos": null
+              "velocidade_corpos_s": 15,
+              "duracao_max_s": 0.2
             }
           ]
         },
@@ -336,16 +335,8 @@
           ]
         }
       ],
-      "pendentes": {
-        "base.intervalo_tick_s": "F-004",
-        "niveis[6].efeitos[0].forca_corpos": "F-004"
-      },
       "pendencias": [
-        "F-004: frequência do tick do dano (brief §11.3)",
-        "F-004: força e distância do pulso de knockback do nv7 (brief §11.3)",
-        "F-004: os bônus de raio se somam ou se multiplicam (ADR-0002 §6)",
-        "F-006: como a aura participa do Contra-ataque (brief §11.3)",
-        "F-004: os dois +20% de dano (nv3 e nv6) se somam (+40%) ou se multiplicam (×1,44)?"
+        "F-006: como a aura participa do Contra-ataque (brief §11.3)"
       ]
     },
     {
@@ -373,12 +364,17 @@
           "nivel": 8,
           "mult": 1.5
         },
+        "golpes_de": {
+          "arma": "espada_longa_do_juramento",
+          "nivel": 8
+        },
+        "intervalo_golpes_s": 0.2,
         "cooldown_s": 1.0,
         "onda": {
           "comprimento_corpos": 3,
           "dano": 8,
-          "largura_corpos": null,
-          "velocidade_corpos_s": null
+          "largura_corpos": 1,
+          "velocidade_corpos_s": 12
         }
       },
       "niveis": [
@@ -388,15 +384,7 @@
           "efeitos": []
         }
       ],
-      "pendentes": {
-        "base.onda.largura_corpos": "F-004",
-        "base.onda.velocidade_corpos_s": "F-004"
-      },
-      "pendencias": [
-        "F-004: quantos golpes, que arco e que alcance a União herda da Espada (brief §11.3)",
-        "F-004: largura, velocidade e escala do dano da onda (brief §11.3)",
-        "F-004: direção com o jogador parado (brief §11.3; ADR-0002 §7)"
-      ]
+      "pendencias": []
     }
   ]
 }

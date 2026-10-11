@@ -205,6 +205,54 @@
           "description": "Facas de Sal: esquiva perfeita adiciona 1 faca (doc 04 §3; doc 02 §5.3).",
           "type": "integer",
           "minimum": 1
+        },
+        "golpes_de": {
+          "description": "Golpes, formas e intervalo herdados de outra arma num nível (União: Espada nv8; design/decisoes-F-004.md W18).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "arma",
+            "nivel"
+          ],
+          "properties": {
+            "arma": {
+              "$ref": "comum.schema.json#/$defs/idConteudo"
+            },
+            "nivel": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8
+            }
+          }
+        },
+        "estocada": {
+          "description": "Retângulo da estocada a partir do centro do jogador, ao longo da mira (design/decisoes-F-004.md W8).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "comprimento_corpos",
+            "meia_largura_corpos"
+          ],
+          "properties": {
+            "comprimento_corpos": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "meia_largura_corpos": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "raio_projetil_corpos": {
+          "description": "Raio da hitbox do projétil (design/decisoes-F-004.md W9).",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "espacamento_lateral_corpos": {
+          "description": "Distância lateral entre projéteis da mesma salva no mesmo alvo (W11).",
+          "type": "number",
+          "exclusiveMinimum": 0
         }
       }
     },
@@ -249,25 +297,43 @@
             "golpes_extra",
             "dano_pct_vs_postura_quebrada",
             "area_pct",
-            "estocada_perfurante",
             "projeteis_extra",
             "aplica_sal",
             "velocidade_projetil_pct",
             "perfura",
             "raio_pct",
-            "sal_fator_pct",
+            "sal_reducao_pct",
             "pulso_knockback"
           ]
         },
         "valor": {
-          "type": "number"
+          "type": "number",
+          "description": "sal_reducao_pct: redução da velocidade em % (60 = −60%)."
         },
         "intervalo_s": {
           "type": "number",
           "exclusiveMinimum": 0
         },
-        "forca_corpos": {
-          "$ref": "comum.schema.json#/$defs/positivoOuPendente"
+        "forma": {
+          "description": "Forma do golpe extra; a ordem dos efeitos dá a posição na sequência (design/decisoes-F-004.md W5).",
+          "enum": [
+            "ida",
+            "volta",
+            "estocada"
+          ]
+        },
+        "aplica": {
+          "$ref": "comum.schema.json#/$defs/status"
+        },
+        "velocidade_corpos_s": {
+          "description": "Pulso: velocidade do afastamento (W/K1).",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "duracao_max_s": {
+          "description": "Pulso: duração máxima do afastamento (K1).",
+          "type": "number",
+          "exclusiveMinimum": 0
         }
       }
     }

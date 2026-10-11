@@ -2,10 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "cenario.schema.json",
   "title": "Receita de cenário de teste (src/dados/cenarios/<id>.json)",
-  "description": "Só no build de debug (?cenario=<id>; ADR-0002 §14). Na F-003 o cenário é uma receita de parâmetros da Vigília, não um save vigilia, que só nasce na F-008 (design/decisoes-F-003.md §5).",
+  "description": "Só no build de debug (?cenario=<id>; ADR-0002 §14). Desde a F-003 o cenário é uma receita de parâmetros da Vigília, não um save vigilia, que só nasce na F-008 (design/decisoes-F-003.md §5).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "versao", "linha_fixa", "jogador", "diretor_desligado", "tutoriais_vistos", "rotacao"],
+  "required": ["id", "versao", "linha_fixa", "jogador", "diretor_desligado", "tutoriais_vistos", "rotacao", "armas"],
   "properties": {
     "id": { "$ref": "comum.schema.json#/$defs/idConteudo" },
     "versao": { "type": "integer", "minimum": 1 },
@@ -29,6 +29,22 @@
       "type": "integer",
       "minimum": 0,
       "maximum": 500
+    },
+    "armas": {
+      "description": "Build inicial, na ordem das vagas (design/decisoes-F-004.md §5). O teste de integridade confere que a arma existe, que o nível ≤ nivel_max e que não é União.",
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["arma", "nivel"],
+        "properties": {
+          "arma": { "$ref": "comum.schema.json#/$defs/idConteudo" },
+          "nivel": { "type": "integer", "minimum": 1, "maximum": 8 }
+        }
+      }
     }
   }
 }
