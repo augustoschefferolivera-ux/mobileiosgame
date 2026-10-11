@@ -30,7 +30,9 @@
 ## 3. Anel de eventos
 
 - `src/logica/nucleo/eventos.ts`: 1.024 entradas de 4 Uint32 (passo; tipo, arma e forma; handle do alvo; tipo do inimigo, flags e causa) e 4 Float32, num `ArrayBuffer` próprio no objeto `Estado`, fora do buffer, do hash e do save. O contador `escritos` só cresce.
-- **A simulação só escreve:** `gravarEvento` recebe inteiros pequenos (o handle é montado lá dentro a partir do slot e da geração) e lê os floats de `FLOATS_DO_EVENTO`. Um teste de `tests/lint.test.ts` confere que, em `src/logica`, o anel só aparece em `gravarEvento` e `esvaziarAnel`, e que nada importa as leituras.
+- **A simulação só escreve:** `gravarEvento` recebe inteiros pequenos (o handle é montado lá dentro a partir do slot e da geração) e lê os floats de `FLOATS_DO_EVENTO`. Duas guardas:
+  - um teste de `tests/lint.test.ts` confere que, em `src/logica`, o anel só aparece em `gravarEvento` e `esvaziarAnel`, e que nada importa as leituras;
+  - uma regra `no-restricted-syntax` barra, em `src/logica`, o apelido (`const a = e.eventos`), a desestruturação (`const { eventos } = e`) e o acesso às views (`e.eventos.u32`). A regra entrou depois do crítico, porque o grep sozinho deixava passar a desestruturação.
 - **Leitores:** `LeitorDeEventos` (o render, pelo contador; conta os eventos perdidos quando o anel dá a volta) e o `__GAME_DEBUG__`.
 
 ## 4. Render
@@ -69,7 +71,9 @@
 - **E5** (horda depois do pulso, linha 19, build esvaziada): volta à S5 em 11 passos (seed 1) e 5 (seed 2) depois do 12º passo de empurrão, estável até 1.500 passos; limite fixo de 120 passos.
 - **E6** (`tests/cenas/alocacao.test.ts`, as 3 armas no nv8 matando na linha 19, com o render das armas): ≤ 16 B por passo somando todas as funções de `src/`, sem lista branca. Com 3.000 passos de aquecimento, o 1º código media ≈ 260 a 280 B por passo, a maior parte da aura e da salva ainda no interpretador. Depois do dano no boot, dos rascunhos no caminho de nascer, das mortes e efeitos em linha no consumidor e de 9.000 passos de aquecimento: ≈ 13 B por passo em 3 rodadas.
 - **Outras medidas:** 1º acerto do `tres_armas` nos passos 158 a 190 (seeds 1, 2, 3 e 424242); 1ª morte da Vigília normal parada no passo 433 nas seeds 1 a 20; queda do HP em Float32 até 2,9e-6 relativo do valor do evento.
-- **Lint novo:** `no-restricted-syntax` contra a leitura de `.ativos` (membro, membro calculado e desestruturação) em `src/logica`, fora de `pool.ts`, com casos em `tests/lint.test.ts`.
+- **Lint novo:** `no-restricted-syntax` contra a leitura de `.ativos` (membro, membro calculado e desestruturação) em `src/logica`, fora de `pool.ts`, e contra a leitura do anel (§3), com casos em `tests/lint.test.ts`.
+- **Desenho das armas:** os testes de pixel da D4 §6 (V1 a V4) foram trocados por testes da saída de `prepararArmas` e `prepararStatus`: visível, moldura, cor, alpha, posição e o tamanho na tela (anel com 2R, faca de 4 × 16 pt, cunha com raio R, estocada com L × 2w, marcador de 8 pt). Os escritores são cobertos pelo gpu × image, e o conjunto pela evidência E7. A caixa da opção (P9) é lida no pixel pelo F-004.5: osso quando ligada; a geometria dela fica em `caixaDaOpcao` (`src/entrada/alvos.ts`), sem Phaser.
+- **Consulta das armas à grade:** `consultarGradeDoRascunho` roda em todos os casos do F-003.1 (os 1.000 aleatórios e os fixos nas costuras) e tem de achar os mesmos ids que `consultarGrade`.
 - **Desempenho:** nenhum gate de tempo novo; o usuário pediu para não otimizar pelo contêiner, que roda o WebGL por software.
 
 ## 9. Divergências
@@ -98,4 +102,23 @@ Da D3 e do ADR-0005:
 
 ## 10. Crítico independente (Q-33)
 
-A preencher com o resultado do crítico.
+- **Nota 7** (o Pronto exige ≥ 7), sem bug no código e sem achado bloqueante. O crítico rodou o typecheck, o lint e o Vitest. Também:
+  - refez a regressão v3 com o código da F-003 extraído à parte (os 6 hashes batem);
+  - refez as medidas deste ADR (a 1ª morte no passo 433 nas seeds 1 a 20; o 1º acerto do `tres_armas`);
+  - fez 43 mutações: 30 reprovaram, 3 eram equivalentes e 10 sobreviveram.
+- **As 10 mutações sobreviventes** viraram os achados A1 a A7. Os testes novos reprovam cada uma:
+  - A1 (alto): o teste de S1 aplicava o Sal à mão, e a mutação "sobrescreve" passava → S1 testado por `acertar`, no mesmo passo nas duas ordens e no t / t + 100;
+  - A2: M1 sem teste na aura e na salva → um Oco de 1 HP morto pela Espada dentro da aura leva 1 acerto e nenhum tick; com o mais próximo morto, as facas vão ao 2º candidato;
+  - A3: a borda exata da W3 sem caso na estocada e na faca → a borda de trás da estocada a 16 px exatos e a faca parada a 24 px exatos (e + 1/16, não);
+  - A4: `consultarGradeDoRascunho` sem equivalência com a força bruta → §8, e a aura cruzando a costura em y;
+  - A5: o preparo do desenho das armas sem teste → §8;
+  - A6: W11 com divisão desigual → o "3 + 2" confere os deslocamentos (−8, 0, +8 e −4, +4);
+  - A7: o anel lido por desestruturação passava no grep → regra de lint (§3).
+- **Achados baixos, também aplicados:**
+  - A8: o F-004.5 pausava mesmo sem acerto até o passo 400, e o "60 passos" aceitava a 1ª leitura depois → agora espera o 1º acerto e confere o passo em que o número novo aparece;
+  - A9: `recusados.efeitos` fixo em 0 → lê a recusa do pool de 16 efeitos; a Noviça salgada ganhou teste próprio (aproxima e recua com metade da velocidade); o F-004.1 confere o HP acerto a acerto, hpDepois = fround(hpAntes − valor).
+- **Equivalentes, sem mudança:**
+  - a recarga 1 no equip (a recarga decrementa antes de testar);
+  - M1 no pulso (`removerInimigo` zera `kbPassos`);
+  - `mudarModo` sem soltar os dedos (o app solta no quadro seguinte, e a Playwright (c, d) cobre).
+- **Commits:** três commits passavam de ~300 linhas e foram redivididos (a árvore final é a mesma). Ficam os de 302 a 308 linhas, os maiores sendo um arquivo só cada: o teste das Facas e o spec da F-004.

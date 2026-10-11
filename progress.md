@@ -1,8 +1,49 @@
 # progress.md
 
+## Sessão 4 — F-004 "Armas automáticas"
+
+### Estado: F-004 pronta (aguarda a revisão do usuário); F-005 não começada
+
+- [x] Leitura: este arquivo, ADR-0005, `design/decisoes-F-003.md` (§9) e a entrada da F-004 no `feature_list.json`. Branch `claude/f004-armas`, a partir do fim da F-003 (`aad3094`).
+- [x] **Etapa 1, decisões:** `design/decisoes-F-004.md` (aqui, D4).
+  - Levantamento: 4 pesquisadores (armas, alvos e geometria; dano, níveis, Sal, knockback e morte; feedback, números, pausa e debug; estado, ordem do passo, projéteis, TETO, cenários, desempenho e testes), cada um com um verificador cético, e um crítico de completude: 148 perguntas, 13 já respondidas pelos documentos; 8 contradições resolvidas no lugar de cada uma.
+  - Revisão adversarial: 55 achados, 52 confirmados e aplicados, 3 refutados com o motivo (D4 §11).
+  - A §0 lista para veto rápido as decisões delegadas (W1 a W18, DN1 a DN3, S1, K1, M1 a M4, N1 a N8, V1 a V7, P1 a P9, E1 a E7). O que é de outras features ficou como recomendação (§9), registrada nas pendências das F-005 a F-010.
+- [x] **Etapa 2, implementação** (`aad3094..HEAD`, ≈ 47 commits de até ~300 linhas; os maiores, de 302 a 308, são um arquivo só cada: o teste das Facas e o spec da F-004):
+  - **simulação:** estado v4 (42.988 B: build de 5 vagas, `mortes`, `projeteisRecusados`, Sal e knockback nos inimigos, pool de 400 projéteis), tabela de armas e dano por (arma, nível) no boot, Espada (setor, ida e volta, estocada), Facas (salva em ciclo pelos candidatos, voo, perfuração, limite 200/400 pelo TETO), Círculo (tick de 30 passos, pulso com knockback), Sal (maior fator e maior duração), mortes em slot crescente, anel de eventos de 1.024 fora do buffer e só escrito pela simulação; o caminho de nascer da F-003 adequado à regra do laço quente, bit a bit igual (regressão v3);
+  - **render:** 5 camadas GPU (mortes, horda, status, armas, dígitos), cada uma com preparo puro e plano B `image`; números de dano com fonte pixel 5 × 7 bicolor, agregação e pool de 96 com recusa; golpe em brasa, facas, anel da aura e marcador de Sal em sal; morte com a forma do tipo;
+  - **pausa:** botão de 72 pt, gesto de dois dedos parados por 500 ms, tela de pausa (build, opção de números, Continuar), fora do estado e dos `ComandosDoPasso`; o joystick só volta com um toque novo;
+  - **plataforma:** sonda do TETO na Tela de Acender e cache `vdc.teto`; `?sonda=0`; cenário `tres_armas`; painel do debug a safe-area + 76 pt;
+  - **`__GAME_DEBUG__`:** build, números de dano, últimos eventos, eventos perdidos, mortes, pausa, opções, recusados de números e mortes; só no debug, `projeteis()` e `inimigos()` com HP, Sal e knockback;
+  - **testes:** 735 no Vitest (tabela de dano, Espada, Facas, Círculo, estado, F-004.1 com a tabela de evidência, regressão v3, referências, render e preparo do desenho das armas, alocação E6, sonda, tradutor e alvos da pausa, lint de `.ativos` e do anel, pares de cor da V6) e 38 na Playwright (8 da F-004);
+  - **decisões técnicas** em `docs/decisoes/ADR-0006-implementacao-da-f004.md`, com as 16 divergências (§9).
+- [x] `scripts/verify.sh --feature F-004 --taps-game --seed 1` verde:
+  - typecheck, lint, Vitest (735 testes), builds de produção e de debug;
+  - Playwright `taps-game` (38 testes: 10 da F-001, 12 da F-002, 8 da F-003 e 8 da F-004);
+  - evidências conferidas; a regra nova aceita o `.md` só com `aprovado: true`.
+- [x] Evidências em `production/evidencias/F-004/`: `tres-armas-390x844.png` (cenário `tres_armas`, passo 601, com a estocada, as facas em voo, o anel da aura, o Sal e os números) e `tabela-de-dano.md` (as três armas, níveis 1 a 8, esperado × obtido, `aprovado: true`). As evidências das F-002 e F-003 foram regeradas, agora com o botão de pausa na tela.
+- [x] Determinismo: a seed 1 dá `901adb6d` no passo 1.000 (com a Espada da build inicial), no Node e no Chromium; a 424242 dá `9cdc2c63`. Também iguais nos dois motores: a 1ª morte da Vigília normal parada (passo 433, `86aa5388`), o `tres_armas` no passo 601 (`5628633f`) e o cenário horda no 1.800 (`6767ce88`).
+- [x] Crítico independente (Q-33): nota **7**, sem bug no código e sem bloqueante. Das 43 mutações que ele fez, 10 sobreviveram; todas viraram testes que agora as reprovam (ADR-0006 §10):
+  - S1 testado pelo `acertar`, e não à mão (o achado alto);
+  - M1 na aura e na salva; bordas exatas da W3 na estocada e na faca; W11 com divisão desigual;
+  - a consulta das armas à grade contra a força bruta, e a aura na costura em y;
+  - o preparo do desenho das armas (anel, faca, cunha, estocada, pulso, marcador de Sal) e a caixa da opção da pausa lida no pixel;
+  - regra de lint contra ler o anel por apelido, desestruturação ou views;
+  - os baixos: o F-004.5 mais estrito, `recusados.efeitos` no debug, a Noviça salgada e o HP acerto a acerto no F-004.1.
+
+### Decidido nesta sessão (técnico; detalhes no ADR-0006)
+- **Laço quente também no que roda pouco:** uma função chamada uma vez por golpe ou por spawn fica no interpretador do V8 e aloca HeapNumber. Entradas e saídas por rascunhos `Float64Array`, dano no boot e 9.000 passos de aquecimento no E6: de ≈ 270 para ≈ 13 B por passo, com o mesmo hash.
+- **gpu × image das armas:** os membros translúcidos (dígitos no fade, estocada, facas) diferem em ±1 num canal entre o `SpriteGPULayer` e o `Image`, também por software (0,5% dos pixels); o spec aceita ≤ 1 em ≤ 1%. A horda opaca continua byte a byte.
+- **F-004.6 na Playwright:** o CDP do Chromium não solta um dedo só; os testes que precisam disso usam `TouchEvent` sintético no canvas, o mesmo caminho da camada de toque. O teste de 300 ms confere o tempo que a página viu.
+- **Desempenho:** nenhum gate de tempo novo (pedido do usuário).
+
+### Ratificado pelo usuário (2026-10-11: "Por mim, concordo com tudo que decidi até agora [...] as outras decisões que você escolheu, eu concordo")
+- As decisões delegadas da §0 de D4 e as recomendações da §9 para as F-005 a F-010.
+- Desempenho: não otimizar pelo contêiner, que roda o WebGL por software; a medida que vale é a do aparelho.
+
 ## Sessão 3 — F-003 "Hordas"
 
-### Estado: F-003 pronta (aguarda a revisão do usuário); F-004 não começada
+### Estado: F-003 pronta
 
 - [x] Leitura: este arquivo, ADR-0004, `design/decisoes-F-002.md` (sobretudo a §9) e a entrada da F-003 no `feature_list.json`. Antes de começar, `scripts/verify.sh --feature F-002 --taps-game --seed 1` verde. Branch `claude/f003-hordas`, a partir de `claude/clever-galileo-26bjed`.
 - [x] **Etapa 1, decisões:** `design/decisoes-F-003.md` (aqui, D3).
@@ -42,7 +83,7 @@
 
 ## Sessão 2 — F-002 "Movimento e mapa"
 
-### Estado: F-002 pronta (aguarda a revisão do usuário); F-003 não começada
+### Estado: F-002 pronta
 
 - [x] Leitura: este arquivo, ADR-0003, `design/decisoes-F-002.md` (D) e a entrada da F-002 no `feature_list.json`. Antes de começar, `scripts/verify.sh --feature F-001 --taps-game` verde.
 - [x] Implementação, em commits de até ~300 linhas (`1b93b8d..HEAD`):
@@ -156,11 +197,11 @@
 
 ### Como rodar
 - `npm install`.
-- `scripts/verify.sh --feature F-00N [--seed N] [--taps-game]` (o Pronto; F-001, F-002 e F-003 verdes; ≈ 12 min, dos quais ≈ 4 nos specs de desempenho e de heap da F-003).
+- `scripts/verify.sh --feature F-00N [--seed N] [--taps-game]` (o Pronto; F-001 a F-004 verdes; ≈ 15 min, dos quais ≈ 4 nos specs de desempenho e de heap da F-003).
 - Avulsos: `npm test` (Vitest), `npm run typecheck`, `npm run lint`, `npm run build:debug` e depois `npm run e2e`, `npm run dev`.
 - Módulo novo: `scripts/novo-modulo.sh <area>/<nome> [--cena NomeDaCena]`.
 - Disposição dos obstáculos: `scripts/gerar-disposicao.py --conferir`; direções do anel: `scripts/gerar-direcoes.py --conferir` (Python 3).
-- Cenários do build de debug: `?cenario=horda|horda_rotativa|sem_horda`, `?teto=300|500`, `?render=gpu|image`, `?buffer=dinamico`, `?debug=1` (painel e verificação de NaN).
+- Cenários do build de debug: `?cenario=horda|horda_rotativa|sem_horda|tres_armas`, `?teto=300|500`, `?sonda=0` (desliga a sonda do TETO), `?render=gpu|image`, `?buffer=dinamico`, `?debug=1` (painel e verificação de NaN).
 
 ### Ambiente
 - Não existem: `CLAUDE.md`, `playbook/` e os comandos `/brief-do-jogo`, `/checkpoint-e-retomada`, `/ciclo-de-feature` e `/critico-independente`. O crítico é um subagente (Q-33). `scripts/` e o ADR-0001 foram criados nesta sessão.
@@ -172,8 +213,9 @@
 ### Retomada
 - **Sessão 1:** fechou na F-001.
 - **Sessão 2:** fechou na F-002.
-- **Sessão 3:** fecha na F-003, que aguarda a revisão do usuário. A F-004 não foi começada.
-- **Próxima sessão (F-004 "Armas"):**
-  - ler este arquivo, o ADR-0005, `design/decisoes-F-003.md` (sobretudo a §9) e a entrada da F-004 no `feature_list.json`;
-  - antes de implementar, fechar as pendências da F-004, inclusive as recomendações da F-003 (campo `armas` vazio nas receitas `horda` e `horda_rotativa`, Sal só no deslocamento de comportamento, sonda do TETO);
-  - rodar `scripts/verify.sh --feature F-003 --taps-game --seed 1` para conferir que a horda continua verde.
+- **Sessão 3:** fechou na F-003.
+- **Sessão 4:** fecha na F-004, que aguarda a revisão do usuário. A F-005 não foi começada.
+- **Próxima sessão (F-005 "XP, level up, passivas e União"):**
+  - ler este arquivo, o ADR-0006, `design/decisoes-F-004.md` (sobretudo a §9) e a entrada da F-005 no `feature_list.json`;
+  - antes de implementar, fechar as pendências da F-005, inclusive as recomendações das F-002 a F-004 que já estão nela (level up solta os dedos; camada GPU "mundo"; forma das Cinzas; hpMax; União com os números da W18 e a geometria da onda);
+  - rodar `scripts/verify.sh --feature F-004 --taps-game --seed 1` para conferir que as armas continuam verdes.

@@ -341,7 +341,7 @@
     {
       "id": "F-004",
       "nome": "Armas automáticas",
-      "status": "pendente",
+      "status": "pronta",
       "escopo_b": "arquétipos de alvo (direção do movimento, mais próximo, aura), Espada Longa, Facas de Sal, Círculo de Sal com níveis 1 a 8, fórmula de dano com escala por atributo, status Sal, números de dano na tela (desligáveis)",
       "criterio_b": "Teste por arma: dano em cada nível bate com a tabela 3.8 (±1%); Sal reduz velocidade em 50% por 3 s; aura acerta a 2 corpos e não a 2,1. Playwright: inimigos morrem sem input",
       "evidencia_b": "Screenshots das três armas ativas; tabela de dano gerada pelo teste",
