@@ -7,8 +7,10 @@ import { expect, test, type Page } from '@playwright/test';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { COR, COR_DO_INIMIGO } from '../src/cenas/paleta';
+import { alvoDaPausa } from '../src/entrada/alvos';
+import { insetsZerados } from '../src/plataforma/safeArea';
 import { ALTURA_DO_MAPA as H, LARGURA_DO_MAPA as W, deltaNoToro } from '../src/logica/mundo/toro';
-import { EVIDENCIAS, RAIZ, SEED, abrir, proximoFrame, tocarAcender, type Debug } from './apoio';
+import { EVIDENCIAS, RAIZ, SEED, abrir, esperarIguais, proximoFrame, tocarAcender, type Debug } from './apoio';
 
 const HORDA = '&cenario=horda&teto=300';
 /** Meia dimensão do desenho de cada tipo, em pt (círculo de 32 e quadrados de 48). */
@@ -56,44 +58,6 @@ async function cores(page: Page, png: Buffer, pontos: { x: number; y: number }[]
   );
 }
 
-/** Pixels diferentes entre dois PNG do mesmo tamanho, e a maior diferença num canal. */
-async function diferenca(page: Page, a: Buffer, b: Buffer): Promise<{ diferentes: number; total: number; maior: number }> {
-  return page.evaluate(
-    async ([x, y]) => {
-      const ler = async (b64: string): Promise<Uint8ClampedArray> => {
-        const img = new Image();
-        img.src = `data:image/png;base64,${b64}`;
-        await img.decode();
-        const c = document.createElement('canvas');
-        [c.width, c.height] = [img.width, img.height];
-        const ctx = c.getContext('2d', { willReadFrequently: true })!;
-        ctx.drawImage(img, 0, 0);
-        return ctx.getImageData(0, 0, c.width, c.height).data;
-      };
-      const [pa, pb] = [await ler(x), await ler(y)];
-      let diferentes = 0;
-      let maior = 0;
-      for (let i = 0; i < pa.length; i += 4) {
-        const d = Math.max(Math.abs(pa[i]! - pb[i]!), Math.abs(pa[i + 1]! - pb[i + 1]!), Math.abs(pa[i + 2]! - pb[i + 2]!));
-        if (d > 0) diferentes++;
-        maior = Math.max(maior, d);
-      }
-      return { diferentes, total: pa.length / 4, maior };
-    },
-    [a.toString('base64'), b.toString('base64')] as const,
-  );
-}
-
-/** Iguais byte a byte com WebGL por software; com GPU de hardware, ≤ 1 por canal em ≤ 0,1% dos pixels (§7). */
-async function esperarIguais(page: Page, a: Buffer, b: Buffer, rotulo: string): Promise<void> {
-  if (a.equals(b)) return;
-  const software = await page.evaluate(() => window.__GAME_DEBUG__.webgl.software);
-  const d = await diferenca(page, a, b);
-  expect(software, `${rotulo}: ${d.diferentes} pixels diferentes (maior ${d.maior}) com WebGL por software`).toBe(false);
-  expect(d.maior, rotulo).toBeLessThanOrEqual(1);
-  expect(d.diferentes / d.total, rotulo).toBeLessThanOrEqual(0.001);
-}
-
 interface NaTela {
   slot: number;
   tipo: string;
@@ -117,10 +81,17 @@ async function naTela(page: Page): Promise<{ lista: NaTela[]; jogador: { x: numb
 /** O centro de `a` está dentro do desenho de `b` (com 2 pt de folga, pelo quadrado que contém o círculo)? */
 const cobre = (b: NaTela, a: NaTela): boolean => Math.abs(b.x - a.x) < MEIO[b.tipo]! + 2 && Math.abs(b.y - a.y) < MEIO[b.tipo]! + 2;
 
-/** Visíveis, longe das bordas e do jogador; `isolado` pede que nenhum outro cubra o centro, `topo` só os de slot maior. */
+/** O botão de pausa da F-004, desenhado por cima da horda (design/decisoes-F-004.md, T18). */
+const PAUSA = alvoDaPausa(insetsZerados(), { id: '', x: 0, y: 0, largura: 0, altura: 0 });
+/** O desenho de `a` (com 2 pt de folga) não encosta no botão de pausa? */
+const longeDaPausa = (a: NaTela): boolean =>
+  a.x - MEIO[a.tipo]! - 2 > PAUSA.x + PAUSA.largura || a.y - MEIO[a.tipo]! - 2 > PAUSA.y + PAUSA.altura;
+
+/** Visíveis, longe das bordas, do botão de pausa e do jogador; `isolado` pede que nenhum outro cubra o centro, `topo` só os de slot maior. */
 function escolher(lista: NaTela[], jogador: { x: number; y: number }, n: number, isolado: boolean): NaTela[] {
   return lista
     .filter((a) => a.x > 30 && a.x < 360 && a.y > 60 && a.y < 784)
+    .filter(longeDaPausa)
     .filter((a) => Math.hypot(a.x - jogador.x, a.y - jogador.y) > MEIO[a.tipo]! + 24 + 2)
     .filter((a) => !lista.some((b) => b.slot !== a.slot && (isolado || b.slot > a.slot) && cobre(b, a)))
     .slice(0, n);

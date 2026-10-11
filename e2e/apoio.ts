@@ -1,7 +1,7 @@
 // Auxiliares dos testes da Playwright (projeto taps-game): o contrato do
 // __GAME_DEBUG__, a abertura com a seed de VDC_SEED (o --seed do
 // scripts/verify.sh), a conversão de pt para a página e o toque em Acender.
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,7 +18,7 @@ export const SEM_HORDA = '&cenario=sem_horda';
 
 /** O contrato do __GAME_DEBUG__ (src/cenas/debug.ts), com os ganchos do build de debug, que é o que a Playwright serve. */
 export type Debug = Omit<GameDebug, 'entrada'> &
-  Required<Pick<GameDebug, 'pausar' | 'retomar' | 'avancar' | 'quadros' | 'inimigos' | 'hashPorSecao' | 'removerInimigo'>> & {
+  Required<Pick<GameDebug, 'pausar' | 'retomar' | 'avancar' | 'quadros' | 'inimigos' | 'projeteis' | 'hashPorSecao' | 'removerInimigo'>> & {
     entrada: Required<EntradaDebug>;
   };
 declare global {
@@ -62,4 +62,48 @@ export function textoDe(id: string): string {
   const achado = tabela.textos.find((x) => x.id === id);
   if (!achado) throw new Error(`textoDe: ${id} não está no pt-BR.json`);
   return achado.texto;
+}
+
+/** Pixels diferentes entre dois PNG do mesmo tamanho, e a maior diferença num canal. */
+export async function diferenca(page: Page, a: Buffer, b: Buffer): Promise<{ diferentes: number; total: number; maior: number }> {
+  return page.evaluate(
+    async ([x, y]) => {
+      const ler = async (b64: string): Promise<Uint8ClampedArray> => {
+        const img = new Image();
+        img.src = `data:image/png;base64,${b64}`;
+        await img.decode();
+        const c = document.createElement('canvas');
+        [c.width, c.height] = [img.width, img.height];
+        const ctx = c.getContext('2d', { willReadFrequently: true })!;
+        ctx.drawImage(img, 0, 0);
+        return ctx.getImageData(0, 0, c.width, c.height).data;
+      };
+      const [pa, pb] = [await ler(x), await ler(y)];
+      let diferentes = 0;
+      let maior = 0;
+      for (let i = 0; i < pa.length; i += 4) {
+        const d = Math.max(Math.abs(pa[i]! - pb[i]!), Math.abs(pa[i + 1]! - pb[i + 1]!), Math.abs(pa[i + 2]! - pb[i + 2]!));
+        if (d > 0) diferentes++;
+        maior = Math.max(maior, d);
+      }
+      return { diferentes, total: pa.length / 4, maior };
+    },
+    [a.toString('base64'), b.toString('base64')] as const,
+  );
+}
+
+/**
+ * Iguais byte a byte com WebGL por software; com GPU de hardware, ≤ 1 por canal em ≤ 0,1% dos pixels
+ * (design/decisoes-F-003.md §7). Com membros translúcidos (`translucidos`: as camadas das armas), a mistura de
+ * alpha arredonda diferente no SpriteGPULayer e no Image, também por software: ≤ 1 por canal em ≤ 1% dos pixels
+ * (medido: 0,5% no tres_armas, só nos dígitos, na estocada e nas facas; ADR-0006).
+ */
+export async function esperarIguais(page: Page, a: Buffer, b: Buffer, rotulo: string, translucidos = false): Promise<void> {
+  if (a.equals(b)) return;
+  const software = await page.evaluate(() => window.__GAME_DEBUG__.webgl.software);
+  const d = await diferenca(page, a, b);
+  const resumo = `${rotulo}: ${d.diferentes} pixels diferentes (maior ${d.maior}) com WebGL ${software ? 'por software' : 'de hardware'}`;
+  if (!translucidos) expect(software, resumo).toBe(false);
+  expect(d.maior, resumo).toBeLessThanOrEqual(1);
+  expect(d.diferentes / d.total, resumo).toBeLessThanOrEqual(translucidos ? 0.01 : 0.001);
 }
