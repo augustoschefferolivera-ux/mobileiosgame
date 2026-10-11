@@ -1,12 +1,15 @@
-// F-001.13: com insets de safe-area não nulos, nenhum alvo de toque cai dentro
-// deles; todo alvo tem pelo menos 72 pt (B §3.5).
+// F-001.13 e F-002.7: com insets de safe-area não nulos, nenhum alvo de toque
+// cai dentro deles; todo alvo tem pelo menos 72 pt (B §3.5), inclusive a área
+// do joystick da Vigília (design/decisoes-F-002.md §4 e §8).
 import { describe, expect, it } from 'vitest';
 import {
   ALVO_MINIMO_PT,
   ALVOS_POR_TELA,
   acharAlvo,
   alvoInvadeInsets,
+  alvosDaVigilia,
   alvosDoAcender,
+  areaDoJoystick,
   type Alvo,
 } from '../../src/entrada/alvos';
 import { clienteParaPontos } from '../../src/entrada/camadaDeToque';
@@ -29,6 +32,25 @@ describe.each(Object.entries(ALVOS_POR_TELA))('tela %s', (_tela, gerar) => {
       expect(a.altura, a.id).toBeGreaterThanOrEqual(ALVO_MINIMO_PT);
       expect(alvoInvadeInsets(a, insets), a.id).toBe(false);
     }
+  });
+});
+
+describe('área do joystick (F-002.7)', () => {
+  it('em retrato sem insets: x de 0 a 234 pt e y de 422 pt até a borda de baixo', () => {
+    expect(alvosDaVigilia(insetsZerados(), [])).toEqual([{ id: 'joystick', x: 0, y: 422, largura: 234, altura: 422 }]);
+  });
+
+  it('ancorada na safe-area: começa no inset esquerdo, termina acima do inset de baixo, 60% da largura útil', () => {
+    const ins: Insets = { topo: 59, direita: 40, baixo: 34, esquerda: 30 };
+    const a = areaDoJoystick(ins, { id: '', x: 0, y: 0, largura: 0, altura: 0 });
+    expect(a).toEqual({ id: 'joystick', x: 30, y: 422, largura: 0.6 * (390 - 70), altura: 844 - 34 - 422 });
+    // Com um inset de cima maior que a metade da tela, a área começa abaixo dele.
+    expect(areaDoJoystick({ ...ins, topo: 500 }, a).y).toBe(500);
+  });
+
+  it.each(CASOS)('%s: os 40% da direita da largura útil ficam livres para os botões futuros', (_nome, insets) => {
+    const limite = insets.esquerda + 0.6 * (390 - insets.esquerda - insets.direita);
+    for (const a of alvosDaVigilia(insets, [])) expect(a.x + a.largura).toBeLessThanOrEqual(limite + 1e-9);
   });
 });
 
