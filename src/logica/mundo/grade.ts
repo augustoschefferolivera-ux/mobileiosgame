@@ -106,6 +106,57 @@ export function intervaloDeCelulas(x: number, y: number, r: number, out: Int32Ar
 
 const intervalo = new Int32Array(4);
 
+/** Consulta de consultarGradeDoRascunho: x, y e r, escritos por quem consulta (sem passar double). */
+export const CONSULTA = new Float64Array(3);
+
+/**
+ * Como consultarGrade, com x, y e r lidos de CONSULTA: para os laços quentes
+ * das armas, onde um double atravessando a chamada alocaria um HeapNumber no
+ * V8 (design/decisoes-F-004.md §4). O intervalo de células vai em linha.
+ */
+export function consultarGradeDoRascunho(g: Grade, xs: Float32Array, ys: Float32Array, out: Int32Array): number {
+  const x = CONSULTA[0]!;
+  const y = CONSULTA[1]!;
+  const r = CONSULTA[2]!;
+  let m = (x - r) % LARGURA_DO_MAPA;
+  if (m < 0) m += LARGURA_DO_MAPA;
+  const c0 = Math.floor(m / LADO_DA_CELULA);
+  m = (x + r) % LARGURA_DO_MAPA;
+  if (m < 0) m += LARGURA_DO_MAPA;
+  const c1 = Math.floor(m / LADO_DA_CELULA);
+  m = (y - r) % ALTURA_DO_MAPA;
+  if (m < 0) m += ALTURA_DO_MAPA;
+  let l = Math.floor(m / LADO_DA_CELULA);
+  m = (y + r) % ALTURA_DO_MAPA;
+  if (m < 0) m += ALTURA_DO_MAPA;
+  const l1 = Math.floor(m / LADO_DA_CELULA);
+  const nc = 2 * r >= LARGURA_DO_MAPA - LADO_DA_CELULA ? COLUNAS : ((c1 - c0 + COLUNAS) % COLUNAS) + 1;
+  const nl = 2 * r >= ALTURA_DO_MAPA - LADO_DA_CELULA ? LINHAS : ((l1 - l + LINHAS) % LINHAS) + 1;
+  const r2 = r * r;
+  const { inicio, indices } = g;
+  let achados = 0;
+  for (let i = 0; i < nl; i++) {
+    let c = c0;
+    for (let j = 0; j < nc; j++) {
+      const cel = l * COLUNAS + c;
+      const fim = inicio[cel + 1]!;
+      for (let k = inicio[cel]!; k < fim; k++) {
+        const id = indices[k]!;
+        let dx = xs[id]! - x;
+        if (dx > MEIA_LARGURA) dx -= LARGURA_DO_MAPA;
+        if (dx < -MEIA_LARGURA) dx += LARGURA_DO_MAPA;
+        let dy = ys[id]! - y;
+        if (dy > MEIA_ALTURA) dy -= ALTURA_DO_MAPA;
+        if (dy < -MEIA_ALTURA) dy += ALTURA_DO_MAPA;
+        if (dx * dx + dy * dy <= r2) out[achados++] = id;
+      }
+      if (++c === COLUNAS) c = 0;
+    }
+    if (++l === LINHAS) l = 0;
+  }
+  return achados;
+}
+
 /**
  * Escreve em `out` os ids a distância no toro ≤ `r` de (x, y), e devolve
  * quantos. A ordem é a das células visitadas (colunas e linhas a partir da

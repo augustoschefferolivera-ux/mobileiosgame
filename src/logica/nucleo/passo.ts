@@ -1,8 +1,11 @@
 // Um passo da simulação (1/60 s). Só lê o estado, os dados fixos da Vigília e
 // os ComandosDoPasso; nunca lê relógio, DOM nem Math.random (ADR-0002 §2).
-// Ordem (design/decisoes-F-003.md §2): relógio; jogador (bloqueado pelos
-// inimigos e pelos obstáculos) e prompt; horda (comportamento, grade,
-// separação, jogador e obstáculos); contato; rotação do cenário; diretor.
+// Ordem (design/decisoes-F-003.md §2; design/decisoes-F-004.md §4): relógio;
+// jogador (bloqueado pelos inimigos e pelos obstáculos) e prompt; horda
+// (comportamento com Sal e afastamento, grade, separação, jogador e
+// obstáculos); armas (grade das posições finais, projéteis, vagas e mortes);
+// contato, só com os sobreviventes; rotação do cenário; diretor.
+import { rodarArmas } from '../armas/armas';
 import { rodarDiretor } from '../diretor/diretor';
 import { aplicarRotacao } from '../mundo/cenario';
 import { aplicarContato } from '../mundo/contato';
@@ -18,6 +21,7 @@ export function passo(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): v
   const moveu = moverJogador(e, dados, cmd);
   atualizarPromptDeMover(e, moveu);
   moverHorda(e, dados);
+  rodarArmas(e, dados);
   aplicarContato(e, dados);
   aplicarRotacao(e);
   rodarDiretor(e, dados, moveu);

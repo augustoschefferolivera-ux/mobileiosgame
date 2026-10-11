@@ -1,8 +1,10 @@
 // Dados fixos de uma Vigília, montados uma vez a partir dos JSON da região,
-// dos inimigos e do Vigilante: obstáculos (e a lista por célula), início, HP e
-// velocidade do jogador, tipos de inimigo e a timeline do diretor compilada.
+// dos inimigos, das armas e do Vigilante: obstáculos (e a lista por célula),
+// início, HP e velocidade do jogador, tipos de inimigo, a tabela das armas e a
+// timeline do diretor compilada.
 // Não mudam durante a Vigília e não ficam no estado; o estado guarda só a
 // impressão da disposição (design/decisoes-F-002.md §2), que entra no hash.
+import { criarTabelaDeArmas, type ArmaDoJson, type TabelaDeArmas } from '../armas/tabela';
 import { compilarTimeline, type LinhaDoJson, type Timeline } from '../diretor/timeline';
 import { PASSOS_POR_SEGUNDO } from '../nucleo/passos';
 import {
@@ -37,6 +39,8 @@ export interface DadosDaVigilia {
   /** HP inicial: hp × (1 + passiva), arredondado (B §3.3: 130 × 1,15 → 150). */
   readonly hpInicial: number;
   readonly tipos: TiposDeInimigo;
+  /** Armas por código e por nível, com a escala do Vigilante (design/decisoes-F-004.md §2). */
+  readonly armas: TabelaDeArmas;
   readonly timeline: Timeline;
 }
 
@@ -53,12 +57,15 @@ export interface VigilanteDoJson {
   readonly velocidade: number;
   readonly hp: number;
   readonly passiva: { readonly hp_max_pct: number };
+  readonly atributos: Readonly<Record<string, number>>;
+  readonly arma_inicial: string;
 }
 
 export function criarDadosDaVigilia(
   regiao: RegiaoDoJson,
   vigilante: VigilanteDoJson,
   inimigos: readonly InimigoDoJson[],
+  armas: readonly ArmaDoJson[],
 ): DadosDaVigilia {
   const obstaculos = criarObstaculos(regiao.obstaculos);
   const timeline = compilarTimeline(regiao.linhas, regiao.sem_spawn_antes_do_marco_s);
@@ -72,6 +79,7 @@ export function criarDadosDaVigilia(
     velocidadePorPasso: (vigilante.velocidade * CORPOS_POR_SEGUNDO_NA_VELOCIDADE_1 * CORPO_PX) / PASSOS_POR_SEGUNDO,
     hpInicial: Math.round((vigilante.hp * (100 + vigilante.passiva.hp_max_pct)) / 100),
     tipos,
+    armas: criarTabelaDeArmas(armas, vigilante.atributos, vigilante.arma_inicial),
     timeline,
   };
 }

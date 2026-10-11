@@ -1,9 +1,12 @@
-// Inimigos no pool (ADR-0002 §4; design/decisoes-F-003.md §2 e §6): nascer e
-// remover. Um slot só é escrito por nascerInimigo, que grava xAnt = x (sem isso
-// o render interpolaria a partir do ocupante anterior), e removerInimigo zera
-// todos os campos, para o hash do buffer inteiro conter só os slots vivos. HP e
-// dano são fixados no spawn pela escala do minuto (B §3.6; Q-10), em inteiros.
+// Inimigos no pool (ADR-0002 §4; design/decisoes-F-003.md §2 e §6;
+// design/decisoes-F-004.md M3): nascer, remover e matar. Um slot só é escrito
+// por nascerInimigo, que grava xAnt = x (sem isso o render interpolaria a
+// partir do ocupante anterior), e removerInimigo zera todos os campos, para o
+// hash do buffer inteiro conter só os slots vivos. HP e dano são fixados no
+// spawn pela escala do minuto (B §3.6; Q-10), em inteiros. matarInimigo é o
+// único caminho de morte: grava o evento, conta e remove.
 import { CAB, LINHA_LIVRE, MUNDO, type Estado } from '../nucleo/estado';
+import { CAUSA, EVENTO, FLAG, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import { alocar, liberar } from '../nucleo/pool';
 import type { DadosDaVigilia } from './dados';
 import { PASSOS_POR_MINUTO } from '../diretor/timeline';
@@ -47,6 +50,7 @@ export function nascerInimigo(e: Estado, dados: DadosDaVigilia, codigo: number, 
   ini.y[slot] = ini.yAnt[slot] = y;
   ini.tipo[slot] = codigo;
   ini.convertido[slot] = convertido ? 1 : 0;
+  ini.salPct[slot] = ini.salPassos[slot] = ini.kbPassos[slot] = 0;
   ini.hp[slot] = convertido
     ? hpNoSpawn(MASSA_POR_CONVERTIDO * t.hpBase[TIPO.oco_das_lanternas]!, min, i10)
     : hpNoSpawn(t.hpBase[codigo]!, min, i10);
@@ -54,13 +58,32 @@ export function nascerInimigo(e: Estado, dados: DadosDaVigilia, codigo: number, 
   return slot;
 }
 
-/** Libera o slot e zera os campos, sem efeito de morte (XP, Almas e evento são das F-004 e F-005). */
+/** Libera o slot e zera os campos, sem efeito de morte (testes e rotação do cenário). */
 export function removerInimigo(e: Estado, slot: number): void {
   liberar(e.pool, slot);
   const ini = e.inimigos;
   ini.x[slot] = ini.y[slot] = ini.xAnt[slot] = ini.yAnt[slot] = ini.hp[slot] = ini.dano[slot] = 0;
   ini.tipo[slot] = 0;
   ini.convertido[slot] = 0;
+  ini.salPct[slot] = ini.salPassos[slot] = ini.kbPassos[slot] = 0;
+}
+
+/**
+ * Morte de um inimigo (M3): grava o evento `morte` com o handle da geração
+ * que morreu, a posição, o tipo, a causa e o bit de convertido; soma 1 em
+ * `mortes` se a causa é arma; e só então remove. Chamada só pela varredura do
+ * fim da fase de armas. As Cinzas de XP (F-005) saem daqui.
+ */
+export function matarInimigo(e: Estado, slot: number, causa: number): void {
+  const ini = e.inimigos;
+  FLOATS_DO_EVENTO[0] = ini.x[slot]!;
+  FLOATS_DO_EVENTO[1] = ini.y[slot]!;
+  FLOATS_DO_EVENTO[2] = 0;
+  FLOATS_DO_EVENTO[3] = 0;
+  const flags = ini.convertido[slot] === 1 ? FLAG.convertido : 0;
+  gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.morte, 0, 0, slot, e.pool.geracao[slot]!, ini.tipo[slot]!, flags, causa);
+  if (causa === CAUSA.arma) e.mundo[MUNDO.mortes] = e.mundo[MUNDO.mortes]! + 1;
+  removerInimigo(e, slot);
 }
 
 /** Slot ativo? (a posição dele na lista densa é ≥ 0). */

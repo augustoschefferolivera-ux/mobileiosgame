@@ -1,6 +1,8 @@
-// Física da horda num passo (design/decisoes-F-003.md §2), depois do jogador:
+// Física da horda num passo (design/decisoes-F-003.md §2; design/decisoes-F-004.md §3 e §4), depois do jogador:
 //  3. cada inimigo, em ordem de slot: xAnt; deslocamento de comportamento em
-//     direção ao jogador já movido; normaliza;
+//     direção ao jogador já movido, com a velocidade reduzida pelo Sal, ou, com
+//     afastamento do pulso pendente, o afastamento no lugar dele (K1); o Sal
+//     decrementa uma vez, em todo vivo; normaliza;
 //  4. grade (counting sort, slots crescentes);
 //  5. separação: ½ da penetração de cada par sobreposto para cada lado,
 //     acumulada (Jacobi) e limitada, por corpo, à velocidade base do tipo;
@@ -22,9 +24,9 @@ import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_M
 
 const N = CAPACIDADE_DE_INIMIGOS;
 
-/** Rascunhos do passo, alocados uma vez. */
-const grade = criarGrade(N);
-const vivos = new Int32Array(N);
+/** Rascunhos do passo, alocados uma vez; a grade e a lista de vivos servem também às armas (refeitas na fase 7a). */
+export const grade = criarGrade(N);
+export const vivos = new Int32Array(N);
 const sepX = new Float64Array(N);
 const sepY = new Float64Array(N);
 /** Deslocamento de comportamento do passo, que vai ao desempate dos obstáculos. */
@@ -36,7 +38,7 @@ export const EMPURRAO = { separacao2: 0, jogador2: 1, obstaculo2: 2, total2: 3 }
 export const empurroesDoPasso = new Float64Array(4);
 
 /** Lista os slots vivos em ordem crescente em `vivos` e devolve quantos. */
-function listarVivos(e: Estado): number {
+export function listarVivos(e: Estado): number {
   let n = 0;
   const pos = e.pool.posicao;
   for (let s = 0; s < N; s++) if (pos[s]! >= 0) vivos[n++] = s;
@@ -169,8 +171,25 @@ export function moverHorda(e: Estado, dados: DadosDaVigilia): void {
     const d = Math.sqrt(dx * dx + dy * dy);
     let mx = 0;
     let my = 0;
-    if (d > 0) {
-      const v = t.velocidade[tipo]!;
+    // Sal (decisoes-F-004 §3): só o comportamento anda mais devagar; a separação, o bloqueio e os obstáculos não mudam.
+    const salPassos = ini.salPassos[s]!;
+    const salPct = salPassos > 0 ? ini.salPct[s]! : 0;
+    if (salPassos > 0) {
+      ini.salPassos[s] = salPassos - 1;
+      if (salPassos === 1) ini.salPct[s] = 0;
+    }
+    const kb = ini.kbPassos[s]!;
+    if (kb > 0) {
+      // Afastamento do pulso (K1), no lugar do comportamento: radial, do jogador para o inimigo, recalculado a cada passo.
+      const empurrao = dados.armas.empurraoPorPasso;
+      if (d > 0) {
+        mx = (-dx / d) * empurrao;
+        my = (-dy / d) * empurrao;
+      } else mx = empurrao;
+      ini.kbPassos[s] = kb - 1;
+    } else if (d > 0) {
+      const vBase = t.velocidade[tipo]!;
+      const v = salPct > 0 ? (vBase * (100 - salPct)) / 100 : vBase;
       const comportamento = t.comportamento[tipo]!;
       const p =
         comportamento === COMPORTAMENTO.perseguir

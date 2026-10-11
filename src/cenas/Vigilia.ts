@@ -12,6 +12,7 @@ import { rodarFrame } from '../logica/nucleo/driver';
 import { TODOS_OS_TUTORIAIS, criarEstado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
 import { verificarNaN } from '../logica/nucleo/nan';
 import { criarDadosDaVigilia } from '../logica/mundo/dados';
+import armas from '../dados/armas.json';
 import inimigos from '../dados/inimigos.json';
 import vigilantes from '../dados/vigilantes.json';
 import charneca from '../dados/regioes/charneca_das_lanternas.json';
@@ -33,7 +34,7 @@ export class Vigilia extends Phaser.Scene {
   create(): void {
     cameraLogica(this);
     this.cameras.main.setBackgroundColor(COR.fundo);
-    const dados = criarDadosDaVigilia(charneca, vigilantes.vigilantes[0]!, inimigos.inimigos);
+    const dados = criarDadosDaVigilia(charneca, vigilantes.vigilantes[0]!, inimigos.inimigos, armas.armas);
     const comandosAoVivo = criarComandos();
     // Os tutoriais vistos vêm do meta a partir da F-007; até lá, de ?tutorial=0 ou do cenário.
     const params: Partial<ParametrosDaVigilia> = {
