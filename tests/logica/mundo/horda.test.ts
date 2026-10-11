@@ -3,7 +3,7 @@
 // (S6), casos degenerados, costura, o invariante de 32 px por passo (D §2) e a
 // lista de obstáculos por célula, bit a bit igual à lista inteira.
 import { describe, expect, it } from 'vitest';
-import { CAB, CENARIO, JOGADOR, criarEstado, type Estado, type ParametrosDaVigilia } from '../../../src/logica/nucleo/estado';
+import { CAB, JOGADOR, criarEstado, type Estado, type ParametrosDaVigilia } from '../../../src/logica/nucleo/estado';
 import { criarComandos, fonteConstante, type ComandosDoPasso } from '../../../src/logica/nucleo/comandos';
 import { avancar, passo } from '../../../src/logica/nucleo/passo';
 import { semear, proximoUnitario } from '../../../src/logica/nucleo/rng';
@@ -13,6 +13,7 @@ import { colidirComObstaculos, colidirComObstaculosDaCelula } from '../../../src
 import { TIPO } from '../../../src/logica/mundo/tipos';
 import { ALTURA_DO_MAPA as H, LARGURA_DO_MAPA as W, deltaNoToro, normalizarNoToro } from '../../../src/logica/mundo/toro';
 import type { DadosDaVigilia } from '../../../src/logica/mundo/dados';
+import { parametrosDoCenario } from '../../../src/plataforma/cenarios';
 import { DADOS_DA_CHARNECA, DADOS_SEM_OBSTACULOS as VAZIO, PARADO, SEM_HORDA, dadosDe } from '../apoio';
 
 const V = { oco: 1.32, grande: 1.68, novica: 1.92 };
@@ -164,7 +165,7 @@ describe('separação (S1, S5)', () => {
 
   it('linha 19 com o jogador parado: sobreposição média ≤ 25% e máxima ≤ 70% da soma dos raios; a horda assenta', () => {
     const D = DADOS_DA_CHARNECA;
-    const e = criarEstado(1, D, { linhaFixa: 19, cenario: CENARIO.jogadorInvulneravel, tutoriaisVistos: 1 });
+    const e = criarEstado(1, D, parametrosDoCenario('horda'));
     avancar(e, D, PARADO, 6600);
     let soma = 0;
     let max = 0;
@@ -206,7 +207,7 @@ describe('separação (S1, S5)', () => {
 describe('inimigos sólidos para o jogador (S4)', () => {
   it('o jogador parado no meio da horda da linha 19 nunca é deslocado (3.600 passos)', () => {
     const D = DADOS_DA_CHARNECA;
-    const e = criarEstado(1, D, { linhaFixa: 19, cenario: CENARIO.jogadorInvulneravel, tutoriaisVistos: 1 });
+    const e = criarEstado(1, D, parametrosDoCenario('horda'));
     const x0 = e.jogador[JOGADOR.x];
     const y0 = e.jogador[JOGADOR.y];
     for (let k = 0; k < 3600; k++) {
@@ -296,7 +297,7 @@ describe('comportamento provisório (S6, S7)', () => {
 describe('invariante de 32 px por passo (D §2)', () => {
   it('na linha 19, com o jogador andando, nenhum empurrão nem deslocamento de um passo passa de 32 px', () => {
     const D = DADOS_DA_CHARNECA;
-    const e = criarEstado(1, D, { linhaFixa: 19, cenario: CENARIO.jogadorInvulneravel, tutoriaisVistos: 1 });
+    const e = criarEstado(1, D, parametrosDoCenario('horda'));
     const rumos: [number, number][] = [[1, 0], [0, 1], [-1, 0], [0, -1]];
     for (let k = 0; k < 1500; k++) {
       const [mx, my] = rumos[Math.floor(k / 120) % 4]!;

@@ -15,7 +15,7 @@ import { DIRECAO_X, DIRECAO_Y } from '../../../src/logica/mundo/direcoes';
 import { CAB, MUNDO, criarEstado } from '../../../src/logica/nucleo/estado';
 import { semear } from '../../../src/logica/nucleo/rng';
 import { ALTURA_DO_MAPA as H, LARGURA_DO_MAPA as W, deltaNoToro } from '../../../src/logica/mundo/toro';
-import { DADOS_DA_CHARNECA, DADOS_SEM_OBSTACULOS, dadosDe } from '../apoio';
+import { DADOS_DA_CHARNECA, DADOS_SEM_OBSTACULOS, SEM_ARMAS, dadosDe } from '../apoio';
 
 const N = 10000;
 const R2 = 0.7071067811865476;
@@ -157,7 +157,7 @@ describe('distância e ponto livre na Charneca (Q-06; R5 e R7)', () => {
 
   it('sem nenhuma direção livre, o spawn é recusado e soma em semPontoLivre', () => {
     const fechado = dadosDe({ obstaculos: [{ x: 585, y: 1266, tamanho_px: 1600 }] });
-    const e = criarEstado(1, fechado);
+    const e = criarEstado(1, fechado, SEM_ARMAS);
     e.cab[CAB.passo] = 1;
     e.cab[CAB.relogio] = 1;
     rodarDiretor(e, fechado, false);

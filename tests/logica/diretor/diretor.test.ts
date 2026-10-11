@@ -22,7 +22,7 @@ import { quantosAtivos } from '../../../src/logica/nucleo/pool';
 import { danoNoSpawn, hpNoSpawn, nascerInimigo, removerInimigo } from '../../../src/logica/mundo/inimigos';
 import { TIPO } from '../../../src/logica/mundo/tipos';
 import charneca from '../../../src/dados/regioes/charneca_das_lanternas.json';
-import { DADOS_DA_CHARNECA as D, PARADO, dadosDe } from '../apoio';
+import { DADOS_DA_CHARNECA as D, PARADO, SEM_ARMAS, dadosDe } from '../apoio';
 
 const SEED = 1;
 
@@ -99,7 +99,7 @@ describe('tipos que podem nascer (§4)', () => {
 
 describe('linha corrente e janela (Q-10, Q-11)', () => {
   it('linha = minuto inteiro do relógio já incrementado; depois da 22, vale a 22', () => {
-    const e = criarEstado(SEED, D);
+    const e = criarEstado(SEED, D, SEM_ARMAS);
     const linha = (r: number) => {
       e.cab[CAB.relogio] = r;
       return linhaCorrente(e, D);
@@ -108,7 +108,7 @@ describe('linha corrente e janela (Q-10, Q-11)', () => {
   });
 
   it('janela meio-aberta de 30 s antes das linhas 5, 10 e 15; o 19:30 não entra', () => {
-    const e = criarEstado(SEED, D);
+    const e = criarEstado(SEED, D, SEM_ARMAS);
     const janela = (r: number) => {
       e.cab[CAB.relogio] = r;
       return naJanelaDoMarco(e, D);
@@ -123,14 +123,14 @@ describe('linha corrente e janela (Q-10, Q-11)', () => {
 
 describe('reposição (F-003.2; Q-07; ADR-0002 §8.7)', () => {
   it('a 1ª reposição é no 1º passo (r = 1): 15 Ocos (doc 02 §11: "0:00 | 15 Ocos lentos")', () => {
-    const e = criarEstado(SEED, D);
+    const e = criarEstado(SEED, D, SEM_ARMAS);
     passoDoDiretor(e);
     expect(vivosPorTipo(e)).toEqual({ [TIPO.oco_das_lanternas]: 15 });
     expect(e.mundo[MUNDO.spawns]).toBe(15);
   });
 
   it('reposições em r = 1 + 120k na linha 0; removidos 5 em r = 50, voltam em r = 121', () => {
-    const e = criarEstado(SEED, D);
+    const e = criarEstado(SEED, D, SEM_ARMAS);
     for (let r = 1; r <= 49; r++) passoDoDiretor(e);
     removerAlguns(e, 5);
     while (e.cab[CAB.relogio]! < 120) passoDoDiretor(e);
@@ -142,7 +142,7 @@ describe('reposição (F-003.2; Q-07; ADR-0002 §8.7)', () => {
 
   it('remover k vivos faz entrar exatamente alvo − vivosEq na reposição seguinte, em qualquer linha', () => {
     for (const m of [2, 8, 13]) {
-      const e = criarEstado(SEED, D);
+      const e = criarEstado(SEED, D, SEM_ARMAS);
       e.cab[CAB.relogio] = m * PASSOS_POR_MINUTO - 1;
       passoDoDiretor(e);
       const alvo = charneca.linhas[m]!.min_na_tela;
@@ -157,7 +157,7 @@ describe('reposição (F-003.2; Q-07; ADR-0002 §8.7)', () => {
   });
 
   it('sem nada abaixo do mínimo, a reposição recarrega o intervalo e não faz nascer ninguém', () => {
-    const e = criarEstado(SEED, D);
+    const e = criarEstado(SEED, D, SEM_ARMAS);
     passoDoDiretor(e);
     const antes = e.mundo[MUNDO.spawns]!;
     for (let k = 0; k < 600; k++) passoDoDiretor(e);
@@ -167,7 +167,7 @@ describe('reposição (F-003.2; Q-07; ADR-0002 §8.7)', () => {
 
 describe('conversão de excedente (F-003.3; Q-08; ADR-0002 §8.7)', () => {
   function linha19ComI11(teto: number): Estado {
-    const e = criarEstado(SEED, D, { linhaFixa: 19, teto });
+    const e = criarEstado(SEED, D, { ...SEM_ARMAS, linhaFixa: 19, teto });
     e.mundo[MUNDO.intensidade10] = 11;
     passoDoDiretor(e);
     return e;
@@ -194,7 +194,7 @@ describe('conversão de excedente (F-003.3; Q-08; ADR-0002 §8.7)', () => {
   });
 
   it('290 comuns com alvo 330: entram 7 do roster + 3 convertidos (vivosEq 327); depois, nada', () => {
-    const e = criarEstado(SEED, D, { linhaFixa: 19 });
+    const e = criarEstado(SEED, D, { ...SEM_ARMAS, linhaFixa: 19 });
     passoDoDiretor(e);
     removerAlguns(e, 10);
     e.mundo[MUNDO.intensidade10] = 11;
@@ -249,7 +249,7 @@ describe('escala no spawn (F-003.6; B §3.6; Q-10)', () => {
   });
 
   it('o valor fica fixo no spawn: um Oco nascido em 1:59 mantém o HP do minuto 1 depois das 2:00', () => {
-    const e = criarEstado(SEED, D, { cenario: CENARIO.diretorDesligado });
+    const e = criarEstado(SEED, D, { ...SEM_ARMAS, cenario: CENARIO.diretorDesligado });
     e.cab[CAB.relogio] = 2 * PASSOS_POR_MINUTO - 1;
     const s = nascerInimigo(e, D, TIPO.oco_das_lanternas, 100, 100, false);
     expect(e.inimigos.hp[s]).toBe(Math.fround(13.44));
@@ -261,7 +261,7 @@ describe('escala no spawn (F-003.6; B §3.6; Q-10)', () => {
 
 describe('janela sem spawn antes dos marcos (F-003.8; Q-11)', () => {
   it.each([5, 10, 15])('nenhum spawn em 3.600·%s − 1.800 ≤ r < 3.600·m, mesmo sem ninguém vivo; no marco, a reposição volta', (m) => {
-    const e = criarEstado(SEED, D);
+    const e = criarEstado(SEED, D, SEM_ARMAS);
     const inicio = m * PASSOS_POR_MINUTO - 1800;
     e.cab[CAB.relogio] = inicio - 1;
     const antes = e.mundo[MUNDO.spawns]!;
@@ -276,13 +276,13 @@ describe('janela sem spawn antes dos marcos (F-003.8; Q-11)', () => {
   });
 
   it('controle: removidos em r = 16.100 são repostos antes de 16.200; às 19:30 a reposição continua', () => {
-    const e = criarEstado(SEED, D);
+    const e = criarEstado(SEED, D, SEM_ARMAS);
     e.cab[CAB.relogio] = 16099;
     passoDoDiretor(e);
     removerTodos(e);
     while (e.cab[CAB.relogio]! < 16199) passoDoDiretor(e);
     expect(quantosAtivos(e.pool)).toBe(55);
-    const f = criarEstado(SEED, D);
+    const f = criarEstado(SEED, D, SEM_ARMAS);
     f.cab[CAB.relogio] = 19.5 * PASSOS_POR_MINUTO;
     passoDoDiretor(f);
     removerTodos(f);
@@ -294,7 +294,7 @@ describe('janela sem spawn antes dos marcos (F-003.8; Q-11)', () => {
 describe('garantidos (R3; Q-26)', () => {
   it('no 1º passo das linhas 1 e 3 nasce exatamente 1 Oco Grande (HP 112) e 1 Noviça (108,8), uma vez', () => {
     // Fora de um passo de reposição (espera > 0), o garantido nasce sozinho.
-    const f = criarEstado(SEED, D);
+    const f = criarEstado(SEED, D, SEM_ARMAS);
     f.cab[CAB.relogio] = 3599;
     f.mundo[MUNDO.garantidosEntregues] = 0b1;
     f.mundo[MUNDO.espera] = 50;
@@ -306,7 +306,7 @@ describe('garantidos (R3; Q-26)', () => {
     expect(f.mundo[MUNDO.garantidosEntregues]! & 0b10).toBe(0b10);
     for (let k = 0; k < 40; k++) passoDoDiretor(f);
     expect(quantosAtivos(f.pool)).toBe(1);
-    const g = criarEstado(SEED, D);
+    const g = criarEstado(SEED, D, SEM_ARMAS);
     g.cab[CAB.relogio] = 3 * PASSOS_POR_MINUTO - 1;
     g.mundo[MUNDO.garantidosEntregues] = 0b111;
     g.mundo[MUNDO.espera] = 50;
@@ -315,7 +315,7 @@ describe('garantidos (R3; Q-26)', () => {
   });
 
   it('com os slots no TETO, o garantido não nasce e soma em garantidosPerdidos', () => {
-    const e = criarEstado(SEED, D);
+    const e = criarEstado(SEED, D, SEM_ARMAS);
     for (let k = 0; k < 300; k++) nascerInimigo(e, D, TIPO.oco_das_lanternas, 10 + k, 10, false);
     e.cab[CAB.relogio] = 3599;
     e.mundo[MUNDO.garantidosEntregues] = 1;
@@ -325,7 +325,7 @@ describe('garantidos (R3; Q-26)', () => {
   });
 
   it('com a linha fixa do cenário, nem garantidos nem janela', () => {
-    const e = criarEstado(SEED, D, { linhaFixa: 19 });
+    const e = criarEstado(SEED, D, { ...SEM_ARMAS, linhaFixa: 19 });
     e.cab[CAB.relogio] = 16300;
     passoDoDiretor(e);
     expect(quantosAtivos(e.pool)).toBe(300);
@@ -335,7 +335,7 @@ describe('garantidos (R3; Q-26)', () => {
 
 describe('sorteio do tipo (§4)', () => {
   it('na linha 3 (10/1/2), 130.000 sorteios dão 10/13, 1/13 e 2/13 ± 0,005', () => {
-    const e = criarEstado(SEED, D);
+    const e = criarEstado(SEED, D, SEM_ARMAS);
     const base = baseDoFluxo('diretor');
     const c: Record<number, number> = {};
     const N = 130000;
@@ -350,7 +350,7 @@ describe('sorteio do tipo (§4)', () => {
 
   it('o consumo do fluxo é fixo: parado ou andando, o k-ésimo tipo sorteado é o mesmo', () => {
     const tipos = (moveu: boolean): number[] => {
-      const e = criarEstado(SEED, D, { linhaFixa: 3 });
+      const e = criarEstado(SEED, D, { ...SEM_ARMAS, linhaFixa: 3 });
       passoDoDiretor(e, moveu);
       const lista: number[] = [];
       for (let s = 0; s < 500; s++) if (e.pool.posicao[s]! >= 0) lista.push(e.inimigos.tipo[s]!);
@@ -362,7 +362,7 @@ describe('sorteio do tipo (§4)', () => {
 
 describe('passo completo', () => {
   it('quem nasce fica com xAnt = x e só anda no passo seguinte', () => {
-    const e = criarEstado(SEED, D);
+    const e = criarEstado(SEED, D, SEM_ARMAS);
     passo(e, D, criarComandos());
     for (let s = 0; s < 500; s++) {
       if (e.pool.posicao[s]! < 0) continue;

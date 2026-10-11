@@ -133,7 +133,7 @@ describe('determinismo (F-001.1)', () => {
     for (let k = 100; k <= PASSOS_REFERENCIA; k += 100) {
       avancar(e, D, fonte, 100);
       const s = hashPorSecao(e);
-      expect(Object.keys(s)).toEqual(['cabecalho', 'rng', 'jogador', 'mundo', 'inimigos']);
+      expect(Object.keys(s)).toEqual(['cabecalho', 'rng', 'jogador', 'mundo', 'inimigos', 'projeteis']);
       const secoes = Object.entries(s).map(([nome, h]) => `${nome}=${hex8(h)}`).join(' ');
       log.push(`trilha passo=${k} hash=${hex8(hashEstado(e))} ${secoes}`);
     }

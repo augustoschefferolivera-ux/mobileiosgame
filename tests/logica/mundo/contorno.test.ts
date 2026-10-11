@@ -6,6 +6,7 @@
 // da reserva (campo de fluxo por BFS) antes de fechar.
 import { describe, expect, it } from 'vitest';
 import charneca from '../../../src/dados/regioes/charneca_das_lanternas.json';
+import armas from '../../../src/dados/armas.json';
 import inimigos from '../../../src/dados/inimigos.json';
 import vigilantes from '../../../src/dados/vigilantes.json';
 import { JOGADOR, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
@@ -83,7 +84,7 @@ describe('C1: um corpo atrás de um obstáculo de 96 px', () => {
     for (const [nome, tipo, sintetico, chegou] of corpos) {
       it.each(DESLOCAMENTOS)(`obstáculo ${nomeDoCaso}; ${nome}; deslocamento %s px`, (desloc) => {
         const obstaculos = [{ x: JX, y: oy }];
-        const dados = criarDadosDaVigilia(regiao(obstaculos), aldric, sintetico ? SINTETICO : inimigos.inimigos);
+        const dados = criarDadosDaVigilia(regiao(obstaculos), aldric, sintetico ? SINTETICO : inimigos.inimigos, armas.armas);
         const { e, slots } = rodar(dados, [{ tipo, x: JX + desloc, y: JY - 400 }], obstaculos);
         expect(chegou(dist(e, slots[0]!)), `d = ${dist(e, slots[0]!)}`).toBe(true);
       });
@@ -108,7 +109,7 @@ describe('C2 e C3: grupos atrás de um obstáculo e por uma fenda de 64 px', () 
   ] as const;
   for (const [nome, obstaculos, corpos] of grupos) {
     it.each(DESLOCAMENTOS)(`${nome}; deslocamento %s px: todos a d ≤ R_emp + 64`, (desloc) => {
-      const dados = criarDadosDaVigilia(regiao([...obstaculos]), aldric, inimigos.inimigos);
+      const dados = criarDadosDaVigilia(regiao([...obstaculos]), aldric, inimigos.inimigos, armas.armas);
       const { e, slots } = rodar(dados, corpos.map((c) => ({ ...c, x: c.x + desloc })), [...obstaculos]);
       const limite = raioEmpacotado(dados, corpos.map((c) => c.tipo)) + 64;
       const pior = Math.max(...slots.map((s) => dist(e, s)));

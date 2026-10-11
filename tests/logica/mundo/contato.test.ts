@@ -22,7 +22,7 @@ const JX = 585;
 const JY = 1266;
 
 function estadoEm(jx: number, jy: number, cenario = 0): Estado {
-  const e = criarEstado(1, D, { cenario: CENARIO.diretorDesligado | cenario });
+  const e = criarEstado(1, D, { cenario: CENARIO.diretorDesligado | cenario, armas: [] });
   e.jogador[JOGADOR.x] = e.jogador[JOGADOR.xAnt] = jx;
   e.jogador[JOGADOR.y] = e.jogador[JOGADOR.yAnt] = jy;
   return e;
