@@ -1,0 +1,128 @@
+// Obstáculos da região (B §3.2; Q-04; ADR-0002 §6; design/decisoes-F-002.md
+// §2 e §3): círculos estáticos, fixos no JSON, numa estrutura montada uma vez
+// no início da Vigília, fora da grade dinâmica. A colisão é a mesma para o
+// jogador e para os inimigos (a F-003 a usa nos Ocos): um círculo de raio r é
+// empurrado para fora pela menor penetração, ao longo da normal centro a
+// centro, medida pelo delta toroidal. Nada é alocado por passo.
+import { FNV_BASE, fnv1aU32 } from '../nucleo/hash';
+import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, deltaNoToro } from './toro';
+
+/** Iterações por passo: a 2ª resolve o empurrão de um obstáculo para dentro de outro (junções). */
+export const ITERACOES_DE_COLISAO = 2;
+
+export interface Obstaculos {
+  readonly n: number;
+  /** Centro, em px lógicos do toro. */
+  readonly x: Float32Array;
+  readonly y: Float32Array;
+  /** Raio = metade de tamanho_px. */
+  readonly r: Float32Array;
+}
+
+/** O que a estrutura lê de cada obstáculo do JSON da região (forma: só "circulo"). */
+export interface ObstaculoDoJson {
+  readonly x: number;
+  readonly y: number;
+  readonly tamanho_px: number;
+}
+
+export function criarObstaculos(lista: readonly ObstaculoDoJson[]): Obstaculos {
+  const n = lista.length;
+  const o = { n, x: new Float32Array(n), y: new Float32Array(n), r: new Float32Array(n) };
+  for (let i = 0; i < n; i++) {
+    const item = lista[i]!;
+    o.x[i] = item.x;
+    o.y[i] = item.y;
+    o.r[i] = item.tamanho_px / 2;
+  }
+  return o;
+}
+
+const bitsF32 = new Float32Array(1);
+const bitsU32 = new Uint32Array(bitsF32.buffer);
+
+/**
+ * Impressão da disposição (decisoes-F-002 §2): FNV-1a de n e dos bits Float32
+ * de x, y e r de cada obstáculo, na ordem do JSON. Vai para o cabeçalho do
+ * estado e entra no hash: um replay feito com outra disposição deixa de bater.
+ */
+export function impressaoDaDisposicao(o: Obstaculos): number {
+  let h = fnv1aU32(FNV_BASE, o.n);
+  for (let i = 0; i < o.n; i++) {
+    h = misturarF32(h, o.x[i]!);
+    h = misturarF32(h, o.y[i]!);
+    h = misturarF32(h, o.r[i]!);
+  }
+  return h;
+}
+
+function misturarF32(h: number, v: number): number {
+  bitsF32[0] = v;
+  return fnv1aU32(h, bitsU32[0]!);
+}
+
+export interface Ponto {
+  x: number;
+  y: number;
+}
+
+/**
+ * Empurra o círculo de centro (x, y) e raio `raio` para fora de todos os
+ * obstáculos, em ordem fixa de índice, com ITERACOES_DE_COLISAO passadas
+ * (decisoes-F-002 §3, passo 3). Centros coincidentes empurram para +x. O resto
+ * do movimento fica tangente, e o corpo desliza junto à borda.
+ *
+ * `movX`/`movY` é o deslocamento do passo. Com `desempate` (inimigos), se a
+ * componente tangente dele for exatamente nula e ele apontar para dentro do
+ * obstáculo, o corpo desliza ao longo da normal girada +90° (−ny, nx), pelo
+ * mesmo comprimento. O jogador não usa o desempate: andar de frente para um
+ * obstáculo só para.
+ *
+ * Escreve a posição em `out`, sem normalizar no toro (quem chama normaliza) e
+ * devolve quantos empurrões houve.
+ */
+export function colidirComObstaculos(
+  o: Obstaculos,
+  x: number,
+  y: number,
+  raio: number,
+  movX: number,
+  movY: number,
+  desempate: boolean,
+  out: Ponto,
+): number {
+  let px = x;
+  let py = y;
+  let empurroes = 0;
+  for (let it = 0; it < ITERACOES_DE_COLISAO; it++) {
+    for (let i = 0; i < o.n; i++) {
+      const dx = deltaNoToro(o.x[i]!, px, LARGURA_DO_MAPA);
+      const dy = deltaNoToro(o.y[i]!, py, ALTURA_DO_MAPA);
+      const minimo = o.r[i]! + raio;
+      const d2 = dx * dx + dy * dy;
+      if (d2 >= minimo * minimo) continue;
+      empurroes++;
+      let nx = 1;
+      let ny = 0;
+      let d = 0;
+      if (d2 > 0) {
+        d = Math.sqrt(d2);
+        nx = dx / d;
+        ny = dy / d;
+      }
+      px += nx * (minimo - d);
+      py += ny * (minimo - d);
+      if (desempate) {
+        const tangente = -ny * movX + nx * movY;
+        const normal = nx * movX + ny * movY;
+        if (tangente === 0 && normal < 0) {
+          px += -ny * -normal;
+          py += nx * -normal;
+        }
+      }
+    }
+  }
+  out.x = px;
+  out.y = py;
+  return empurroes;
+}
