@@ -49,7 +49,7 @@
       "required": ["inimigo", "peso"],
       "properties": {
         "inimigo": { "$ref": "comum.schema.json#/$defs/idConteudo" },
-        "peso": { "type": "number", "exclusiveMinimum": 0 }
+        "peso": { "description": "Peso inteiro do sorteio (design/decisoes-F-003.md §4).", "type": "integer", "minimum": 1 }
       }
     },
     "linha": {

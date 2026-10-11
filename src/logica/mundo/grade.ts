@@ -3,7 +3,10 @@
 // última linha (36 px) mais estreitas. É refeita a cada passo por counting sort
 // (contagem, início e índices ordenados em Int32Array) e não fica no estado:
 // deriva das posições e não entra no hash. Nada é alocado depois de criarGrade().
-import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, deltaNoToro } from './toro';
+import { ALTURA_DO_MAPA, LARGURA_DO_MAPA } from './toro';
+
+const MEIA_LARGURA = LARGURA_DO_MAPA / 2;
+const MEIA_ALTURA = ALTURA_DO_MAPA / 2;
 
 /** Lado da célula: 64 px = 2 corpos (ADR-0002 §6, aprovado na §15 item 2). */
 export const LADO_DA_CELULA = 64;
@@ -44,6 +47,11 @@ function linha(y: number): number {
 function voltaNoToro(v: number, L: number): number {
   const m = v % L;
   return m < 0 ? m + L : m;
+}
+
+/** Célula de um ponto qualquer, levado ao toro (a posição pode ter saído de [0, W) × [0, H) no meio do passo). */
+export function celulaDoPonto(x: number, y: number): number {
+  return linha(voltaNoToro(y, ALTURA_DO_MAPA)) * COLUNAS + coluna(voltaNoToro(x, LARGURA_DO_MAPA));
 }
 
 /**
@@ -91,6 +99,24 @@ function celulasNoEixo(c0: number, c1: number, r: number, L: number, n: number):
  * borda de menor coordenada do intervalo, com wrap) e, dentro de cada célula,
  * a da reconstrução. Quem chama exclui o próprio item, se precisar.
  */
+/**
+ * Intervalo de células que cobre o disco de raio r em volta de (x, y), pelas
+ * coordenadas em px (ADR-0002 §6): escreve em `out` a 1ª coluna, quantas
+ * colunas, a 1ª linha e quantas linhas, avançando com wrap de índice.
+ */
+export function intervaloDeCelulas(x: number, y: number, r: number, out: Int32Array): void {
+  const c0 = coluna(voltaNoToro(x - r, LARGURA_DO_MAPA));
+  const c1 = coluna(voltaNoToro(x + r, LARGURA_DO_MAPA));
+  const l0 = linha(voltaNoToro(y - r, ALTURA_DO_MAPA));
+  const l1 = linha(voltaNoToro(y + r, ALTURA_DO_MAPA));
+  out[0] = c0;
+  out[1] = celulasNoEixo(c0, c1, r, LARGURA_DO_MAPA, COLUNAS);
+  out[2] = l0;
+  out[3] = celulasNoEixo(l0, l1, r, ALTURA_DO_MAPA, LINHAS);
+}
+
+const intervalo = new Int32Array(4);
+
 export function consultarGrade(
   g: Grade,
   xs: Float32Array,
@@ -100,26 +126,33 @@ export function consultarGrade(
   r: number,
   out: Int32Array,
 ): number {
-  const c0 = coluna(voltaNoToro(x - r, LARGURA_DO_MAPA));
-  const c1 = coluna(voltaNoToro(x + r, LARGURA_DO_MAPA));
-  const l0 = linha(voltaNoToro(y - r, ALTURA_DO_MAPA));
-  const l1 = linha(voltaNoToro(y + r, ALTURA_DO_MAPA));
-  const nc = celulasNoEixo(c0, c1, r, LARGURA_DO_MAPA, COLUNAS);
-  const nl = celulasNoEixo(l0, l1, r, ALTURA_DO_MAPA, LINHAS);
+  intervaloDeCelulas(x, y, r, intervalo);
+  const c0 = intervalo[0]!;
+  const nc = intervalo[1]!;
+  const nl = intervalo[3]!;
   const r2 = r * r;
+  const { inicio, indices } = g;
   let achados = 0;
+  // O mesmo delta de deltaNoToro, escrito aqui por ser o laço mais quente da horda.
+  let l = intervalo[2]!;
   for (let i = 0; i < nl; i++) {
-    const l = (l0 + i) % LINHAS;
+    let c = c0;
     for (let j = 0; j < nc; j++) {
-      const c = l * COLUNAS + ((c0 + j) % COLUNAS);
-      const fim = g.inicio[c + 1]!;
-      for (let k = g.inicio[c]!; k < fim; k++) {
-        const id = g.indices[k]!;
-        const dx = deltaNoToro(x, xs[id]!, LARGURA_DO_MAPA);
-        const dy = deltaNoToro(y, ys[id]!, ALTURA_DO_MAPA);
+      const cel = l * COLUNAS + c;
+      const fim = inicio[cel + 1]!;
+      for (let k = inicio[cel]!; k < fim; k++) {
+        const id = indices[k]!;
+        let dx = xs[id]! - x;
+        if (dx > MEIA_LARGURA) dx -= LARGURA_DO_MAPA;
+        if (dx < -MEIA_LARGURA) dx += LARGURA_DO_MAPA;
+        let dy = ys[id]! - y;
+        if (dy > MEIA_ALTURA) dy -= ALTURA_DO_MAPA;
+        if (dy < -MEIA_ALTURA) dy += ALTURA_DO_MAPA;
         if (dx * dx + dy * dy <= r2) out[achados++] = id;
       }
+      if (++c === COLUNAS) c = 0;
     }
+    if (++l === LINHAS) l = 0;
   }
   return achados;
 }

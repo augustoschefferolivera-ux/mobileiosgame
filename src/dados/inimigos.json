@@ -23,9 +23,7 @@
       },
       "ataques": [],
       "pendentes": {},
-      "pendencias": [
-        "F-003: força de separação entre Ocos (brief §11.3)"
-      ]
+      "pendencias": []
     },
     {
       "id": "oco_grande",
