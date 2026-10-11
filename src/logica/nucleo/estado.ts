@@ -1,17 +1,24 @@
 // Estado da simulação: um único ArrayBuffer com views tipadas (ADR-0002 §4).
-// Nada é alocado depois de criarEstado(). Na F-004 (VERSAO_LAYOUT 4;
+// Nada é alocado depois de criarEstado(). Na F-004 (layout 4;
 // design/decisoes-F-004.md §4): cabeçalho com os parâmetros da Vigília, fluxos
 // de RNG, registro do jogador com a build (5 vagas de arma), bloco do mundo e
-// do diretor, o pool de inimigos e o pool de projéteis. As seções ficam em
-// múltiplos de 4 bytes. O anel de eventos mora no objeto, num ArrayBuffer
-// próprio, fora do hash e do save. Cada feature seguinte aumenta VERSAO_LAYOUT.
+// do diretor, o pool de inimigos e o pool de projéteis. Na F-005 (VERSAO_LAYOUT
+// 5; design/decisoes-F-005.md §5), no fim, para os 42.988 bytes do v4 não
+// mudarem de lugar: progressão, hpMax, atributos, passivas, oferta, fila de
+// baús, o 2º bloco do mundo, o pool de pickups (Cinzas e baús) e o de efeitos
+// de chão (ondas). As seções ficam em múltiplos de 4 bytes. O anel de eventos
+// e os derivados (o dano vivo) moram no objeto, fora do buffer, do hash e do
+// save. Cada feature seguinte aumenta VERSAO_LAYOUT.
 import type { DadosDaVigilia } from '../mundo/dados';
 import { criarAnel, esvaziarAnel, type AnelDeEventos } from './eventos';
 import { fnv1aBytes, FNV_BASE } from './hash';
-import { bytesDoPool, esvaziarPool, viewsDoPool, type Pool } from './pool';
+import { alocar, bytesDoPool, esvaziarPool, viewsDoPool, type Pool } from './pool';
 import { FLUXOS, PALAVRAS_POR_FLUXO, indiceDoFluxo, semear, type Fluxo } from './rng';
+import { CODIGOS_DE_ARMA, NUMERO_DE_ATRIBUTOS, POR_NIVEL } from '../armas/tabela';
+import { recalcularDano } from '../progressao/dano';
+import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, normalizarNoToro } from '../mundo/toro';
 
-export const VERSAO_LAYOUT = 4;
+export const VERSAO_LAYOUT = 5;
 
 /** Palavras do cabeçalho (Uint32). As não usadas ficam em zero e entram no hash. */
 export const CAB = {
@@ -42,7 +49,7 @@ export const TUTORIAL = { mover: 1 } as const;
 export const TODOS_OS_TUTORIAIS = TUTORIAL.mover;
 
 /** Bits de `CAB.cenario` (design/decisoes-F-003.md §5). */
-export const CENARIO = { jogadorInvulneravel: 1, diretorDesligado: 2 } as const;
+export const CENARIO = { jogadorInvulneravel: 1, diretorDesligado: 2, semCinzas: 4 } as const;
 /** `CAB.linhaFixa` sem linha fixa: o diretor segue o relógio. */
 export const LINHA_LIVRE = 0xffffffff;
 /** TETO de fallback (ADR-0002 §13; B §3.7). */
@@ -169,6 +176,17 @@ export interface ArmaInicial {
   readonly codigo: number;
   readonly nivel: number;
 }
+/** Uma passiva inicial: código da tabela de passivas e nível. */
+export interface PassivaInicial {
+  readonly codigo: number;
+  readonly nivel: number;
+}
+/** Um baú no chão no início: deslocamento do início do jogador, em px. */
+export interface BauInicial {
+  readonly dx: number;
+  readonly dy: number;
+  readonly dourado: boolean;
+}
 
 export interface ParametrosDaVigilia {
   /** Bits de TUTORIAL já cumpridos: do meta (F-007) ou de ?tutorial=0. */
@@ -179,6 +197,14 @@ export interface ParametrosDaVigilia {
   readonly rotacao: number;
   /** Build inicial, na ordem das vagas; null = a arma inicial do Vigilante no nv1 (design/decisoes-F-004.md §5). */
   readonly armas: readonly ArmaInicial[] | null;
+  /** Passivas iniciais, na ordem das vagas. */
+  readonly passivas: readonly PassivaInicial[];
+  /** Baús no chão no início, soltos nessa ordem. */
+  readonly baus: readonly BauInicial[];
+  /** XP dada no início: os níveis que ela cruza abrem no passo 1. */
+  readonly xpInicial: number;
+  /** Relógio no início, em passos (exige linha fixa). */
+  readonly relogioInicial: number;
 }
 export const PARAMETROS_PADRAO: ParametrosDaVigilia = {
   tutoriaisVistos: 0,
@@ -187,7 +213,94 @@ export const PARAMETROS_PADRAO: ParametrosDaVigilia = {
   linhaFixa: LINHA_LIVRE,
   rotacao: 0,
   armas: null,
+  passivas: [],
+  baus: [],
+  xpInicial: 0,
+  relogioInicial: 0,
 };
+
+/** Bloco da progressão, Uint32 (design/decisoes-F-005.md §5). */
+export const PROGRESSAO = {
+  nivel: 0,
+  /** XP no nível atual (o resto depois dos cruzamentos). */
+  xp: 1,
+  /** Níveis cruzados ainda sem carta escolhida. */
+  niveisPendentes: 2,
+  /** Baús abertos cujo modal ainda não fechou (até a capacidade da fila). */
+  bausPorFechar: 3,
+  /** Modais confirmados: a ordem das escolhas no replay (M2). */
+  modaisConfirmados: 4,
+  almas: 5,
+  xpTotal: 6,
+} as const;
+const PALAVRAS_PROGRESSAO = 8;
+/** Floats do 2º registro do jogador: [0] = hpMax (valor inteiro). */
+export const JOGADOR2 = { hpMax: 0 } as const;
+const FLOATS_JOGADOR2 = 2;
+const BYTES_ATRIBUTOS = 8;
+/** Vagas de passiva (B §3.3; vigilantes.json `vagas.passivas`). */
+export const VAGAS_DE_PASSIVA = 6;
+/** Cartas da oferta e os tipos de carta (0 = vaga, sem oferta). */
+export const CARTAS = 3;
+export const TIPO_DE_CARTA = { nenhuma: 0, melhoriaDeArma: 1, armaNova: 2, melhoriaDePassiva: 3, passivaNova: 4, bolsa: 5 } as const;
+const BYTES_OFERTA = 8;
+/** Fila de baús: até 4 entradas de 20 bytes [itens, união, categoria × 5, código × 5, nível × 5, 3 livres]. */
+export const FILA_DE_BAUS = 4;
+export const BYTES_POR_BAU = 20;
+export const BAU = { itens: 0, uniao: 1, categoria: 2, codigo: 7, nivel: 12 } as const;
+/** Categoria de cada item do baú (e do evento `item`). */
+export const CATEGORIA_DE_ITEM = { arma: 1, passiva: 2, bolsa: 3 } as const;
+/** 2º bloco do mundo, Uint32. */
+export const MUNDO2 = {
+  /** Cinzas juntadas na mais próxima com o pool cheio (X6). */
+  juncoes: 0,
+  /** Baús soltos: o índice de queda do próximo é este + 1. */
+  bausSoltos: 1,
+  /** Ondas recusadas pelo limite de projéteis e efeitos (U5). */
+  efeitosRecusados: 2,
+} as const;
+const PALAVRAS_MUNDO2 = 4;
+/** Pool de pickups (ADR-0002 §4). */
+export const CAPACIDADE_DE_PICKUPS = 512;
+export const TIPO_DE_PICKUP = { vazio: 0, cinza: 1, bauComum: 2, bauDourado: 3 } as const;
+/** Pool de efeitos de chão (ADR-0002 §4): as ondas da União. */
+export const CAPACIDADE_DE_EFEITOS = 64;
+/** Bits de "já acertou" por onda: 512 slots de inimigo em 16 Uint32 (U4). */
+export const PALAVRAS_DO_BITSET = 16;
+
+/** Campos de cada pickup. */
+export interface CamposDosPickups {
+  readonly x: Float32Array;
+  readonly y: Float32Array;
+  readonly xAnt: Float32Array;
+  readonly yAnt: Float32Array;
+  /** XP da Cinza, ou o índice de queda do baú. */
+  readonly valor: Uint32Array;
+  readonly tipo: Uint8Array;
+}
+
+/** Campos de cada efeito de chão (onda). */
+export interface CamposDosEfeitos {
+  /** Origem: o centro do jogador no passo do golpe. */
+  readonly x: Float32Array;
+  readonly y: Float32Array;
+  /** A mira do golpe. */
+  readonly dirX: Float32Array;
+  readonly dirY: Float32Array;
+  /** Dano fixado na criação (W13). */
+  readonly dano: Float32Array;
+  /** "Já acertou", [slot da onda × 16 + palavra]. */
+  readonly bits: Uint32Array;
+  /** Passos desde a criação (0 no passo do golpe). */
+  readonly idade: Uint8Array;
+  readonly arma: Uint8Array;
+}
+
+/** Derivados por Estado, fora do buffer (P4): o dano por (arma, nível) e o da onda por arma. */
+export interface Derivados {
+  readonly danoVivo: Float64Array;
+  readonly danoOnda: Float64Array;
+}
 
 const PALAVRAS_RNG = FLUXOS.length * PALAVRAS_POR_FLUXO;
 const BYTES_CAB = PALAVRAS_CAB * 4;
@@ -210,7 +323,28 @@ const INICIO_PROJETEIS_U32 = INICIO_PROJETEIS_F32 + CAMPOS_PROJETIL_F32.length *
 const INICIO_PROJETEIS_U16 = INICIO_PROJETEIS_U32 + P * 4;
 const INICIO_PROJETEIS_U8 = INICIO_PROJETEIS_U16 + P * 2;
 const CAMPOS_PROJETIL_U8 = ['tipo', 'arma', 'perfuracoes', 'salPct', 'salPassos'] as const;
-export const BYTES_ESTADO = INICIO_PROJETEIS_U8 + CAMPOS_PROJETIL_U8.length * P;
+/** Fim do layout v4 da F-004 (a regressão v4 compara os bytes até aqui). */
+export const BYTES_DO_LAYOUT_4 = INICIO_PROJETEIS_U8 + CAMPOS_PROJETIL_U8.length * P;
+const INICIO_PROGRESSAO = BYTES_DO_LAYOUT_4;
+const INICIO_JOGADOR2 = INICIO_PROGRESSAO + PALAVRAS_PROGRESSAO * 4;
+const INICIO_ATRIBUTOS = INICIO_JOGADOR2 + FLOATS_JOGADOR2 * 4;
+const INICIO_PASSIVAS = INICIO_ATRIBUTOS + BYTES_ATRIBUTOS;
+const INICIO_OFERTA = INICIO_PASSIVAS + 2 * VAGAS_DE_PASSIVA;
+const INICIO_FILA_DE_BAUS = INICIO_OFERTA + BYTES_OFERTA;
+const INICIO_MUNDO2 = INICIO_FILA_DE_BAUS + FILA_DE_BAUS * BYTES_POR_BAU;
+const INICIO_POOL_PICKUPS = INICIO_MUNDO2 + PALAVRAS_MUNDO2 * 4;
+const K = CAPACIDADE_DE_PICKUPS;
+const INICIO_PICKUPS_F32 = INICIO_POOL_PICKUPS + bytesDoPool(K);
+const CAMPOS_PICKUP_F32 = ['x', 'y', 'xAnt', 'yAnt'] as const;
+const INICIO_PICKUPS_U32 = INICIO_PICKUPS_F32 + CAMPOS_PICKUP_F32.length * K * 4;
+const INICIO_PICKUPS_U8 = INICIO_PICKUPS_U32 + K * 4;
+const INICIO_POOL_EFEITOS = INICIO_PICKUPS_U8 + K;
+const F = CAPACIDADE_DE_EFEITOS;
+const INICIO_EFEITOS_F32 = INICIO_POOL_EFEITOS + bytesDoPool(F);
+const CAMPOS_EFEITO_F32 = ['x', 'y', 'dirX', 'dirY', 'dano'] as const;
+const INICIO_EFEITOS_BITS = INICIO_EFEITOS_F32 + CAMPOS_EFEITO_F32.length * F * 4;
+const INICIO_EFEITOS_U8 = INICIO_EFEITOS_BITS + F * PALAVRAS_DO_BITSET * 4;
+export const BYTES_ESTADO = INICIO_EFEITOS_U8 + 2 * F;
 
 /** Deslocamento de cada seção no buffer (o teste de layout trava todos e o alinhamento de cada view). */
 export const LAYOUT = {
@@ -228,6 +362,21 @@ export const LAYOUT = {
   projeteisU32: INICIO_PROJETEIS_U32,
   projeteisU16: INICIO_PROJETEIS_U16,
   projeteisU8: INICIO_PROJETEIS_U8,
+  progressao: INICIO_PROGRESSAO,
+  jogador2: INICIO_JOGADOR2,
+  atributos: INICIO_ATRIBUTOS,
+  passivas: INICIO_PASSIVAS,
+  oferta: INICIO_OFERTA,
+  filaDeBaus: INICIO_FILA_DE_BAUS,
+  mundo2: INICIO_MUNDO2,
+  poolDePickups: INICIO_POOL_PICKUPS,
+  pickupsF32: INICIO_PICKUPS_F32,
+  pickupsU32: INICIO_PICKUPS_U32,
+  pickupsU8: INICIO_PICKUPS_U8,
+  poolDeEfeitos: INICIO_POOL_EFEITOS,
+  efeitosF32: INICIO_EFEITOS_F32,
+  efeitosBits: INICIO_EFEITOS_BITS,
+  efeitosU8: INICIO_EFEITOS_U8,
   fim: BYTES_ESTADO,
 } as const;
 
@@ -252,8 +401,28 @@ export interface Estado {
   /** Pool dos projéteis do jogador (facas). */
   readonly poolDeProjeteis: Pool;
   readonly projeteis: CamposDosProjeteis;
+  /** Progressão (nível, XP, fila de modais, Almas), pelos índices de PROGRESSAO. */
+  readonly progresso: Uint32Array;
+  /** 2º registro Float32 do jogador, pelos índices de JOGADOR2. */
+  readonly jogador2: Float32Array;
+  /** Atributos, na ordem de ATRIBUTOS (FOR, DES, INT, FE, VIG). */
+  readonly atributos: Uint8Array;
+  /** As 6 vagas de passiva, na ordem de aquisição; código 0 = vazia. */
+  readonly passivas: { readonly codigo: Uint8Array; readonly nivel: Uint8Array };
+  /** A oferta aberta: tipo (TIPO_DE_CARTA) e item (código) de cada carta. */
+  readonly oferta: { readonly tipo: Uint8Array; readonly item: Uint8Array };
+  /** Baús abertos por fechar, em ordem (BAU, BYTES_POR_BAU). */
+  readonly filaDeBaus: Uint8Array;
+  /** 2º bloco do mundo, pelos índices de MUNDO2. */
+  readonly mundo2: Uint32Array;
+  readonly poolDePickups: Pool;
+  readonly pickups: CamposDosPickups;
+  readonly poolDeEfeitos: Pool;
+  readonly efeitos: CamposDosEfeitos;
   /** Anel de eventos: fora de `bytes`, do hash e do save; só a simulação escreve (decisoes-F-004 §4). */
   readonly eventos: AnelDeEventos;
+  /** Dano vivo: fora de `bytes`; recalculado nos eventos raros (decisoes-F-005 P4). */
+  readonly derivados: Derivados;
 }
 
 export function criarEstado(seed: number, dados: DadosDaVigilia, params: Partial<ParametrosDaVigilia> = {}): Estado {
@@ -314,7 +483,41 @@ export function criarEstado(seed: number, dados: DadosDaVigilia, params: Partial
       salPct: pu8('salPct'),
       salPassos: pu8('salPassos'),
     },
+    progresso: new Uint32Array(buffer, INICIO_PROGRESSAO, PALAVRAS_PROGRESSAO),
+    jogador2: new Float32Array(buffer, INICIO_JOGADOR2, FLOATS_JOGADOR2),
+    atributos: new Uint8Array(buffer, INICIO_ATRIBUTOS, NUMERO_DE_ATRIBUTOS),
+    passivas: {
+      codigo: new Uint8Array(buffer, INICIO_PASSIVAS, VAGAS_DE_PASSIVA),
+      nivel: new Uint8Array(buffer, INICIO_PASSIVAS + VAGAS_DE_PASSIVA, VAGAS_DE_PASSIVA),
+    },
+    oferta: {
+      tipo: new Uint8Array(buffer, INICIO_OFERTA, CARTAS),
+      item: new Uint8Array(buffer, INICIO_OFERTA + CARTAS, CARTAS),
+    },
+    filaDeBaus: new Uint8Array(buffer, INICIO_FILA_DE_BAUS, FILA_DE_BAUS * BYTES_POR_BAU),
+    mundo2: new Uint32Array(buffer, INICIO_MUNDO2, PALAVRAS_MUNDO2),
+    poolDePickups: viewsDoPool(buffer, INICIO_POOL_PICKUPS, K),
+    pickups: {
+      x: new Float32Array(buffer, INICIO_PICKUPS_F32, K),
+      y: new Float32Array(buffer, INICIO_PICKUPS_F32 + K * 4, K),
+      xAnt: new Float32Array(buffer, INICIO_PICKUPS_F32 + 2 * K * 4, K),
+      yAnt: new Float32Array(buffer, INICIO_PICKUPS_F32 + 3 * K * 4, K),
+      valor: new Uint32Array(buffer, INICIO_PICKUPS_U32, K),
+      tipo: new Uint8Array(buffer, INICIO_PICKUPS_U8, K),
+    },
+    poolDeEfeitos: viewsDoPool(buffer, INICIO_POOL_EFEITOS, F),
+    efeitos: {
+      x: new Float32Array(buffer, INICIO_EFEITOS_F32, F),
+      y: new Float32Array(buffer, INICIO_EFEITOS_F32 + F * 4, F),
+      dirX: new Float32Array(buffer, INICIO_EFEITOS_F32 + 2 * F * 4, F),
+      dirY: new Float32Array(buffer, INICIO_EFEITOS_F32 + 3 * F * 4, F),
+      dano: new Float32Array(buffer, INICIO_EFEITOS_F32 + 4 * F * 4, F),
+      bits: new Uint32Array(buffer, INICIO_EFEITOS_BITS, F * PALAVRAS_DO_BITSET),
+      idade: new Uint8Array(buffer, INICIO_EFEITOS_U8, F),
+      arma: new Uint8Array(buffer, INICIO_EFEITOS_U8 + F, F),
+    },
     eventos: criarAnel(),
+    derivados: { danoVivo: new Float64Array(POR_NIVEL), danoOnda: new Float64Array(CODIGOS_DE_ARMA) },
   };
   reiniciarEstado(estado, seed, dados, params);
   return estado;
@@ -333,6 +536,12 @@ export function reiniciarEstado(e: Estado, seed: number, dados: DadosDaVigilia, 
   if (p.linhaFixa !== LINHA_LIVRE && !(Number.isInteger(p.linhaFixa) && p.linhaFixa >= 0 && p.linhaFixa < dados.timeline.linhas)) {
     throw new Error(`linha fixa fora da timeline: ${p.linhaFixa}`);
   }
+  if (!Number.isInteger(p.xpInicial) || p.xpInicial < 0) throw new Error(`XP inicial inválida: ${p.xpInicial}`);
+  if (!Number.isInteger(p.relogioInicial) || p.relogioInicial < 0) throw new Error(`relógio inicial inválido: ${p.relogioInicial}`);
+  if (p.relogioInicial > 0 && p.linhaFixa === LINHA_LIVRE) throw new Error('relógio inicial > 0 exige linha fixa (decisoes-F-005 §7)');
+  if (dados.progressao.poolDePickups !== CAPACIDADE_DE_PICKUPS) throw new Error('progressao.json: pool_pickups difere do layout');
+  if (p.baus.length > CAPACIDADE_DE_PICKUPS) throw new Error('baús demais no início');
+  for (const b of p.baus) if (!(Math.abs(b.dx) <= 500 && Math.abs(b.dy) <= 500)) throw new Error('baú inicial fora do alcance');
   e.bytes.fill(0);
   e.cab[CAB.versao] = VERSAO_LAYOUT;
   e.cab[CAB.seed] = seed >>> 0;
@@ -342,6 +551,7 @@ export function reiniciarEstado(e: Estado, seed: number, dados: DadosDaVigilia, 
   e.cab[CAB.cenario] = p.cenario >>> 0;
   e.cab[CAB.linhaFixa] = p.linhaFixa >>> 0;
   e.cab[CAB.rotacao] = p.rotacao >>> 0;
+  e.cab[CAB.relogio] = p.relogioInicial >>> 0;
   for (const fluxo of FLUXOS) semear(e.rng, baseDoFluxo(fluxo), seed, fluxo);
   const j = e.jogador;
   j[JOGADOR.x] = j[JOGADOR.xAnt] = dados.inicioX;
@@ -360,6 +570,49 @@ export function reiniciarEstado(e: Estado, seed: number, dados: DadosDaVigilia, 
     validarBuild(p.armas, dados);
     for (let v = 0; v < p.armas.length; v++) equiparNaVaga(e, v, p.armas[v]!.codigo, p.armas[v]!.nivel);
   }
+  // F-005: progressão no nível 1, perfil do Vigilante, hpMax, passivas, baús e o dano vivo.
+  const pr = dados.progressao;
+  e.progresso[PROGRESSAO.nivel] = 1;
+  e.progresso[PROGRESSAO.xp] = p.xpInicial;
+  e.progresso[PROGRESSAO.xpTotal] = p.xpInicial;
+  e.atributos.set(pr.atributosIniciais);
+  e.jogador2[JOGADOR2.hpMax] = dados.hpInicial;
+  esvaziarPool(e.poolDePickups);
+  esvaziarPool(e.poolDeEfeitos);
+  validarPassivas(p.passivas, dados);
+  for (let v = 0; v < p.passivas.length; v++) {
+    e.passivas.codigo[v] = p.passivas[v]!.codigo;
+    e.passivas.nivel[v] = p.passivas[v]!.nivel;
+  }
+  // Baús iniciais (cenário bau_uniao): o pool está vazio, e o índice de queda é a ordem da lista.
+  for (const b of p.baus) {
+    const s = alocar(e.poolDePickups);
+    const indice = e.mundo2[MUNDO2.bausSoltos]! + 1;
+    e.mundo2[MUNDO2.bausSoltos] = indice;
+    e.pickups.x[s] = e.pickups.xAnt[s] = normalizarNoToro(dados.inicioX + b.dx, LARGURA_DO_MAPA);
+    e.pickups.y[s] = e.pickups.yAnt[s] = normalizarNoToro(dados.inicioY + b.dy, ALTURA_DO_MAPA);
+    e.pickups.valor[s] = indice;
+    e.pickups.tipo[s] = b.dourado ? TIPO_DE_PICKUP.bauDourado : TIPO_DE_PICKUP.bauComum;
+  }
+  recalcularDano(e, dados);
+}
+
+/** Recusa passivas impossíveis na montagem (como validarBuild). */
+function validarPassivas(passivas: readonly PassivaInicial[], dados: DadosDaVigilia): void {
+  if (passivas.length > VAGAS_DE_PASSIVA) throw new Error(`passivas: ${passivas.length}; o máximo é ${VAGAS_DE_PASSIVA}`);
+  const vistas = new Set<number>();
+  const max = dados.progressao.passivaNivelMax;
+  for (const p of passivas) {
+    if (!Number.isInteger(p.codigo) || p.codigo <= 0 || p.codigo >= max.length || max[p.codigo] === 0) throw new Error(`passiva desconhecida: ${p.codigo}`);
+    if (!Number.isInteger(p.nivel) || p.nivel < 1 || p.nivel > max[p.codigo]!) throw new Error(`passiva ${p.codigo}: nível ${p.nivel}`);
+    if (vistas.has(p.codigo)) throw new Error(`passiva repetida: ${p.codigo}`);
+    vistas.add(p.codigo);
+  }
+}
+
+/** Cópia de bytes de outro estado: refaz os derivados, que ficam fora do buffer (decisoes-F-005 P4). */
+export function sincronizarDerivados(e: Estado, dados: DadosDaVigilia): void {
+  recalcularDano(e, dados);
 }
 
 /** Recusa uma build impossível na montagem (design/decisoes-F-004.md §5). */
@@ -435,7 +688,9 @@ export function hashEstado(e: Estado): number {
  * Hash por seção (ADR-0002 §5), para achar a 1ª seção divergente quando dois
  * hashes não batem (testes e build de debug; aloca as views).
  */
-export function hashPorSecao(e: Estado): Record<'cabecalho' | 'rng' | 'jogador' | 'mundo' | 'inimigos' | 'projeteis', number> {
+export function hashPorSecao(
+  e: Estado,
+): Record<'cabecalho' | 'rng' | 'jogador' | 'mundo' | 'inimigos' | 'projeteis' | 'progressao' | 'pickups' | 'efeitos', number> {
   const secao = (inicio: number, fim: number): number => fnv1aBytes(FNV_BASE, new Uint8Array(e.buffer, inicio, fim - inicio));
   return {
     cabecalho: secao(0, BYTES_CAB),
@@ -443,6 +698,9 @@ export function hashPorSecao(e: Estado): Record<'cabecalho' | 'rng' | 'jogador' 
     jogador: secao(INICIO_JOGADOR, INICIO_MUNDO),
     mundo: secao(INICIO_MUNDO, INICIO_POOL),
     inimigos: secao(INICIO_POOL, INICIO_POOL_PROJETEIS),
-    projeteis: secao(INICIO_POOL_PROJETEIS, BYTES_ESTADO),
+    projeteis: secao(INICIO_POOL_PROJETEIS, BYTES_DO_LAYOUT_4),
+    progressao: secao(INICIO_PROGRESSAO, INICIO_POOL_PICKUPS),
+    pickups: secao(INICIO_POOL_PICKUPS, INICIO_POOL_EFEITOS),
+    efeitos: secao(INICIO_POOL_EFEITOS, BYTES_ESTADO),
   };
 }

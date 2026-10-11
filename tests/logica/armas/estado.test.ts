@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { liberarProjetil, rodarArmas } from '../../../src/logica/armas/armas';
 import { ARMA } from '../../../src/logica/armas/tabela';
 import {
+  BYTES_DO_LAYOUT_4,
   BYTES_ESTADO,
   CAPACIDADE_DE_PROJETEIS,
   CENARIO,
@@ -31,15 +32,22 @@ const E = ARMA.espada_longa_do_juramento;
 const F = ARMA.facas_de_sal;
 const C = ARMA.circulo_de_sal;
 
-describe('layout v4', () => {
-  it('versão 4, 42.988 bytes, cada seção em múltiplo de 4 e cada view alinhada à sua largura', () => {
-    expect(VERSAO_LAYOUT).toBe(4);
-    expect(BYTES_ESTADO).toBe(42988);
+describe('layout v5 (o v4 da F-004 intacto no começo)', () => {
+  it('versão 5, 67.488 bytes; os 42.988 do v4 no mesmo lugar; cada seção em múltiplo de 4 e cada view alinhada à sua largura', () => {
+    expect(VERSAO_LAYOUT).toBe(5);
+    expect(BYTES_DO_LAYOUT_4).toBe(42988);
+    expect(BYTES_ESTADO).toBe(67488);
     expect(Object.values(LAYOUT).every((o) => o % 4 === 0)).toBe(true);
     const e = criarEstado(1, D);
-    const views = [e.cab, e.rng, e.jogador, e.build.recarga, e.mundo, e.pool.livres, e.inimigos.x, e.projeteis.x, e.projeteis.ultimoAlvo, e.projeteis.vida];
+    const views = [
+      e.cab, e.rng, e.jogador, e.build.recarga, e.mundo, e.pool.livres, e.inimigos.x, e.projeteis.x, e.projeteis.ultimoAlvo, e.projeteis.vida,
+      e.progresso, e.jogador2, e.mundo2, e.poolDePickups.livres, e.poolDePickups.geracao, e.pickups.x, e.pickups.valor,
+      e.poolDeEfeitos.livres, e.efeitos.x, e.efeitos.bits,
+    ];
     for (const v of views) expect(v.byteOffset % v.BYTES_PER_ELEMENT).toBe(0);
-    expect(e.projeteis.salPassos.byteOffset + CAPACIDADE_DE_PROJETEIS).toBe(BYTES_ESTADO);
+    expect(e.projeteis.salPassos.byteOffset + CAPACIDADE_DE_PROJETEIS).toBe(BYTES_DO_LAYOUT_4);
+    expect(LAYOUT.progressao).toBe(BYTES_DO_LAYOUT_4);
+    expect(e.efeitos.arma.byteOffset + e.efeitos.arma.length).toBe(BYTES_ESTADO);
   });
 
   it('a Vigília normal começa com a Espada nv1 na vaga 0, as outras vazias', () => {
@@ -55,7 +63,9 @@ describe('layout v4', () => {
     expect(() => criarEstado(1, D, { armas: [arma(1, 9)] })).toThrow(/nível/);
     expect(() => criarEstado(1, D, { armas: [arma(2, 1), arma(2, 3)] })).toThrow(/repetida/);
     expect(() => criarEstado(1, D, { armas: [arma(9, 1)] })).toThrow(/desconhecida/);
-    expect(() => criarEstado(1, D, { armas: [arma(ARMA.lamina_do_juramento_eterno, 1)] })).toThrow(/fora desta Vigília/);
+    // A União entra numa build de teste (E6 da F-005) só no nível 1; a receita de cenário a recusa (tests/dados.test.ts).
+    expect(() => criarEstado(1, D, { armas: [arma(ARMA.lamina_do_juramento_eterno, 2)] })).toThrow(/nível/);
+    expect(criarEstado(1, D, { armas: [arma(ARMA.lamina_do_juramento_eterno, 1)] }).build.codigo[0]).toBe(ARMA.lamina_do_juramento_eterno);
   });
 });
 
@@ -203,7 +213,7 @@ describe('morte (M1 a M3) e remoções', () => {
   it('M3: matar um convertido soma 1 em mortes e grava 1 morte com a flag convertido; a rotação não mexe em mortes', () => {
     const e = estadoCom([]);
     const s = nascerInimigo(e, D, TIPO.oco_grande, J.x, J.y - 300, true);
-    matarInimigo(e, s, CAUSA.arma);
+    matarInimigo(e, D, s, CAUSA.arma);
     expect(e.mundo[MUNDO.mortes]).toBe(1);
     const [m] = eventos(e).filter((v) => v.tipo === EVENTO.morte);
     expect([m!.inimigo, m!.flags & FLAG.convertido, m!.causa, m!.slot]).toEqual([TIPO.oco_grande, FLAG.convertido, CAUSA.arma, s]);
@@ -237,7 +247,7 @@ describe('morte (M1 a M3) e remoções', () => {
     let mortos = 0;
     for (let s = 0; s < 500 && mortos < 5; s++) {
       if (e.pool.posicao[s]! < 0) continue;
-      matarInimigo(e, s, CAUSA.arma);
+      matarInimigo(e, D, s, CAUSA.arma);
       mortos++;
     }
     avancar(e, DADOS_DA_CHARNECA, PARADO, 600);

@@ -74,10 +74,14 @@ describe('receitas de cenário (T2 e T3)', () => {
   it('horda: linha 19 fixa, jogador invulnerável, diretor ligado, tutoriais vistos, sem rotação e sem armas (F-004)', () => {
     expect(parametrosDoCenario('horda')).toEqual({
       tutoriaisVistos: TODOS_OS_TUTORIAIS,
-      cenario: CENARIO.jogadorInvulneravel,
+      cenario: CENARIO.jogadorInvulneravel | CENARIO.semCinzas,
       linhaFixa: 19,
       rotacao: 0,
       armas: [],
+      passivas: [],
+      baus: [],
+      xpInicial: 0,
+      relogioInicial: 0,
     });
   });
 
@@ -88,17 +92,21 @@ describe('receitas de cenário (T2 e T3)', () => {
   it('sem_horda: só o bit do diretor desligado, sem linha fixa, com os tutoriais por ver (o prompt de mover da F-002) e sem armas', () => {
     expect(parametrosDoCenario('sem_horda')).toEqual({
       tutoriaisVistos: 0,
-      cenario: CENARIO.diretorDesligado,
+      cenario: CENARIO.diretorDesligado | CENARIO.semCinzas,
       linhaFixa: LINHA_LIVRE,
       rotacao: 0,
       armas: [],
+      passivas: [],
+      baus: [],
+      xpInicial: 0,
+      relogioInicial: 0,
     });
   });
 
   it('tres_armas (F-004 E1): linha 6 fixa, invulnerável, diretor ligado, Espada, Facas e Círculo no nv8 nas vagas 0, 1 e 2', () => {
     expect(parametrosDoCenario('tres_armas')).toEqual({
       tutoriaisVistos: TODOS_OS_TUTORIAIS,
-      cenario: CENARIO.jogadorInvulneravel,
+      cenario: CENARIO.jogadorInvulneravel | CENARIO.semCinzas,
       linhaFixa: 6,
       rotacao: 0,
       armas: [
@@ -106,6 +114,46 @@ describe('receitas de cenário (T2 e T3)', () => {
         { codigo: 2, nivel: 8 },
         { codigo: 3, nivel: 8 },
       ],
+      passivas: [],
+      baus: [],
+      xpInicial: 0,
+      relogioInicial: 0,
+    });
+  });
+
+  it('F-005: nivel_tres (XP 29 no início, diretor desligado, com Cinzas), bau_uniao (10:00, Espada nv8, Elmo nv2, baú dourado a 96 px) e vigilia_sem_cinzas', () => {
+    expect(parametrosDoCenario('nivel_tres')).toEqual({
+      tutoriaisVistos: TODOS_OS_TUTORIAIS,
+      cenario: CENARIO.diretorDesligado,
+      linhaFixa: LINHA_LIVRE,
+      rotacao: 0,
+      armas: [{ codigo: 1, nivel: 1 }],
+      passivas: [],
+      baus: [],
+      xpInicial: 29,
+      relogioInicial: 0,
+    });
+    expect(parametrosDoCenario('bau_uniao')).toEqual({
+      tutoriaisVistos: TODOS_OS_TUTORIAIS,
+      cenario: CENARIO.jogadorInvulneravel | CENARIO.semCinzas,
+      linhaFixa: 6,
+      rotacao: 0,
+      armas: [{ codigo: 1, nivel: 8 }],
+      passivas: [{ codigo: 1, nivel: 2 }],
+      baus: [{ dx: 0, dy: -96, dourado: true }],
+      xpInicial: 0,
+      relogioInicial: 36000,
+    });
+    expect(parametrosDoCenario('vigilia_sem_cinzas')).toEqual({
+      tutoriaisVistos: 0,
+      cenario: CENARIO.semCinzas,
+      linhaFixa: LINHA_LIVRE,
+      rotacao: 0,
+      armas: [{ codigo: 1, nivel: 1 }],
+      passivas: [],
+      baus: [],
+      xpInicial: 0,
+      relogioInicial: 0,
     });
   });
 
