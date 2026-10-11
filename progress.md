@@ -34,7 +34,13 @@
   - Decisões técnicas em `docs/decisoes/ADR-0003-implementacao-da-f001.md`.
   - Skills do Phaser lidas de novo para a F-001: game-setup-and-config, scale-and-responsive, scenes, audio-and-sound, além de trechos de time-and-timers, text-and-bitmaptext, cameras e input-keyboard-mouse-touch. Também o código-fonte de Game.js, TimeStep.js, WebAudioSoundManager.js, BaseSoundManager.js, Config.js e WebGLRenderer.js.
 
-### Para o usuário ratificar (F-001)
+### Decididos por delegação do usuário (2026-10-11: "Deixo a decisão por você")
+- **Commits acima de ~300 linhas:** o histórico fica como está, sem reescrita. O limite vale daqui em diante.
+- **Flag de autoplay:** fica `--autoplay-policy=document-user-activation-required`, como no ADR-0002 §12 e no F-001.4 corrigidos.
+- **`A8.SISTEMA.TITULO` e o layout provisório do botão de Acender (288 × 72 pt):** ficam até a arte, depois da F-010.
+- **As pendências da F-002:** decididas com base no GDD e no briefing; o registro vai para `design/decisoes-F-002.md`.
+
+### Itens que estavam para ratificar (F-001; decididos acima)
 - **Commits acima de ~300 linhas:** 5 dos primeiros commits da F-001 (bfbfddc, a390393, bb83f78, b3b4fc3, cc8f097) têm de 443 a 595 linhas, sem contar o lockfile. Os commits de correção ficaram dentro do limite. O histórico já foi enviado e não foi reescrito; das próximas features em diante, um commit por módulo + teste.
 - **Artefatos aprovados alterados:**
   - ADR-0002 §12 e o "como" da F-001.4: a flag do Chromium passou a `--autoplay-policy=document-user-activation-required`. Medido: com `user-gesture-required`, o AudioContext já nasce `running`. O critério passou a descrever o teste mais forte.
