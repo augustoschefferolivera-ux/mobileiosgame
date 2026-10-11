@@ -8,6 +8,8 @@ import {
   segundosEmPassos,
 } from '../../src/logica/nucleo/passos';
 import { alfa, avancarAcumulador, criarAcumulador } from '../../src/logica/nucleo/acumulador';
+import { rodarFrame } from '../../src/logica/nucleo/driver';
+import { CAB, criarEstado } from '../../src/logica/nucleo/estado';
 
 const bytes = (s: string): Uint8Array => new TextEncoder().encode(s);
 
@@ -38,6 +40,8 @@ describe('segundos em passos (ADR-0002 §3)', () => {
     [0.6, 36],
     [1.5, 90],
     [0.08, 5], // congelamento de 80 ms (brief §11.3 F-006)
+    [0.07, 4], // 4,2: arredonda para baixo (descarta Math.ceil)
+    [0.025, 2], // 1,5: meio passo arredonda para cima (Math.round)
     [1.2, 72],
     [0.9, 54],
     [3, 180],
@@ -95,6 +99,29 @@ describe('acumulador', () => {
       const a = alfa(acc);
       expect(a).toBeGreaterThanOrEqual(0);
       expect(a).toBeLessThan(1);
+    }
+  });
+});
+
+describe('driver de produção (rodarFrame)', () => {
+  it('roda exatamente os passos do acumulador, no máximo 5, e conta os perdidos', () => {
+    const e = criarEstado(1);
+    const acc = criarAcumulador();
+    expect(rodarFrame(e, acc, PASSO_MS)).toBe(1);
+    expect(e.cab[CAB.passo]).toBe(1);
+    expect(rodarFrame(e, acc, PASSO_MS / 2)).toBe(0);
+    expect(rodarFrame(e, acc, PASSO_MS / 2)).toBe(1);
+    expect(rodarFrame(e, acc, 8 * PASSO_MS)).toBe(5);
+    expect(e.cab[CAB.passo]).toBe(7);
+    expect(acc.passosPerdidos).toBe(3);
+  });
+
+  it('1 s de frames a 60 Hz e a 30 Hz dá 60 passos', () => {
+    for (const fps of [60, 30]) {
+      const e = criarEstado(1);
+      const acc = criarAcumulador();
+      for (let i = 0; i < fps; i++) rodarFrame(e, acc, 1000 / fps);
+      expect(e.cab[CAB.passo], `${fps} fps`).toBe(60);
     }
   });
 });

@@ -80,6 +80,23 @@ describe('fluxos', () => {
     expect(lvA).toBe(lvB);
   });
 
+  it('cada fluxo tem as suas 4 palavras, disjuntas e cobrindo o bloco', () => {
+    const e = criarEstado(1);
+    const usadas = FLUXOS.flatMap((f) => [0, 1, 2, 3].map((i) => baseDoFluxo(f) + i)).sort((a, b) => a - b);
+    expect(usadas).toEqual(Array.from({ length: e.rng.length }, (_, i) => i));
+  });
+
+  it.each(FLUXOS)('consumir %s não mexe em nenhum outro fluxo', (fluxo) => {
+    const e = criarEstado(77);
+    const controle = criarEstado(77);
+    for (let i = 0; i < 1000; i++) proximoU32(e.rng, baseDoFluxo(fluxo));
+    for (const outro of FLUXOS) {
+      if (outro === fluxo) continue;
+      const b = baseDoFluxo(outro);
+      expect(Array.from(e.rng.slice(b, b + 4)), outro).toEqual(Array.from(controle.rng.slice(b, b + 4)));
+    }
+  });
+
   it('fluxos diferentes não andam juntos', () => {
     const e = criarEstado(1);
     const primeiras = FLUXOS.map((f) => proximoU32(e.rng, baseDoFluxo(f)));

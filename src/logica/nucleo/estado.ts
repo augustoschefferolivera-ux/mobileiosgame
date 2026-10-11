@@ -43,8 +43,9 @@ export function criarEstado(seed: number): Estado {
   return estado;
 }
 
-/** Zera o estado e semeia todos os fluxos, sem alocar. */
+/** Zera o estado e semeia todos os fluxos, sem alocar. A seed é um inteiro de 32 bits sem sinal. */
 export function reiniciarEstado(e: Estado, seed: number): void {
+  if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff) throw new Error(`seed fora de u32: ${seed}`);
   e.bytes.fill(0);
   e.cab[CAB.versao] = VERSAO_LAYOUT;
   e.cab[CAB.seed] = seed >>> 0;

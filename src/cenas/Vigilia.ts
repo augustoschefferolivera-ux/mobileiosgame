@@ -3,9 +3,9 @@
 // rAF e roda no máximo 5 passos por frame. Na F-001 ainda não há mundo para
 // desenhar: o jogador entra na F-002.
 import Phaser from 'phaser';
-import { avancarAcumulador, criarAcumulador } from '../logica/nucleo/acumulador';
+import { criarAcumulador } from '../logica/nucleo/acumulador';
+import { rodarFrame } from '../logica/nucleo/driver';
 import { criarEstado } from '../logica/nucleo/estado';
-import { passo } from '../logica/nucleo/passo';
 import vigilantes from '../dados/vigilantes.json';
 import charneca from '../dados/regioes/charneca_das_lanternas.json';
 import type { ContextoDoJogo, Simulacao } from './contexto';
@@ -42,7 +42,6 @@ export class Vigilia extends Phaser.Scene {
   private aoStep(): void {
     const sim = this.sim;
     if (!sim || sim.pausada) return;
-    const n = avancarAcumulador(sim.acumulador, this.game.loop.rawDelta);
-    for (let i = 0; i < n; i++) passo(sim.estado);
+    rodarFrame(sim.estado, sim.acumulador, this.game.loop.rawDelta);
   }
 }
