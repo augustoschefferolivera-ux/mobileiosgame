@@ -1,5 +1,6 @@
 // window.__GAME_DEBUG__ (B §3.13; ADR-0002 §14; ADR-0004 §7; design/decisoes-F-003.md §8;
-// design/decisoes-F-004.md §8: build, números de dano, últimos eventos, mortes, pausa e opções).
+// design/decisoes-F-004.md §8: build, números de dano, últimos eventos, mortes, pausa e opções;
+// design/decisoes-F-005.md: progressão, level up, baú, pickups e ondas).
 // Sempre presente e só de leitura; os ganchos de escrita (pausar, retomar,
 // avancar, entrada.injetar, entrada.roteiro e removerInimigo) e as leituras
 // pesadas (quadros, inimigos, hashPorSecao) só existem no build de debug. Os campos dos sistemas
@@ -7,11 +8,19 @@
 // degradacao, build...).
 import type Phaser from 'phaser';
 import { fonteConstante, fonteDoRoteiro, validarRoteiro, type Roteiro } from '../logica/nucleo/comandos';
-import { BYTES_ESTADO, CAB, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PROJETEIS, JOGADOR, JOGADOR_U8, MUNDO, VAGAS_DE_ARMA, hashEstado, hashPorSecao, type Estado } from '../logica/nucleo/estado';
+import {
+  BAU, BYTES_ESTADO, CAB, CAPACIDADE_DE_EFEITOS, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CAPACIDADE_DE_PROJETEIS, CARTAS, CATEGORIA_DE_ITEM, JOGADOR, JOGADOR2, JOGADOR_U8,
+  MUNDO, MUNDO2, PROGRESSAO, TIPO_DE_CARTA, TIPO_DE_PICKUP, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, hashEstado, hashPorSecao, type Estado,
+} from '../logica/nucleo/estado';
 import { BYTES_DO_ANEL, EV, FLAG, eventosEscritos, inicioDoEvento } from '../logica/nucleo/eventos';
 import { quantosAtivos } from '../logica/nucleo/pool';
-import { IDS_DE_ARMA } from '../logica/armas/tabela';
+import { ATRIBUTOS, IDS_DE_ARMA } from '../logica/armas/tabela';
+import { IDS_DE_PASSIVA } from '../logica/progressao/tabela';
+import { armadura, poderPct } from '../logica/progressao/dano';
+import { bauNaFrente, modalAberto } from '../logica/progressao/modal';
+import { completaUniao } from '../logica/progressao/oferta';
 import { MEMBROS_DAS_ARMAS, MEMBROS_DOS_DIGITOS } from './render/armas';
+import { MEMBROS_DO_MUNDO } from './render/pickups';
 import { CAPACIDADE_DE_MORTES } from './render/efeitos';
 import { alvoDaLinha, convertidosVivos, linhaCorrente, vivosEquivalentes } from '../logica/diretor/diretor';
 import { removerInimigo } from '../logica/mundo/inimigos';
@@ -36,10 +45,12 @@ type TipoVivo = (typeof TIPOS_VIVOS)[number];
 
 /** Bytes do atlas (512² RGBA) e dos buffers de instâncias das camadas GPU (membros × 168, na CPU e na GPU). */
 const BYTES_DO_ATLAS = 512 * 512 * 4;
-export const MEMBROS_DAS_CAMADAS = CAPACIDADE_DE_INIMIGOS + CAPACIDADE_DE_MORTES + CAPACIDADE_DE_INIMIGOS + MEMBROS_DAS_ARMAS + MEMBROS_DOS_DIGITOS;
+export const MEMBROS_DAS_CAMADAS = MEMBROS_DO_MUNDO + CAPACIDADE_DE_INIMIGOS + CAPACIDADE_DE_MORTES + CAPACIDADE_DE_INIMIGOS + MEMBROS_DAS_ARMAS + MEMBROS_DOS_DIGITOS;
 const BYTES_DAS_CAMADAS = 2 * MEMBROS_DAS_CAMADAS * FLOATS_POR_MEMBRO * 4;
 
-const NOMES_DOS_EVENTOS = ['', 'acerto', 'morte', 'golpe', 'pulso'] as const;
+const NOMES_DOS_EVENTOS = ['', 'acerto', 'morte', 'golpe', 'pulso', 'nivel', 'carta', 'onda', 'bau', 'item', 'uniao'] as const;
+const NOMES_DAS_CARTAS = ['', 'melhoriaDeArma', 'armaNova', 'melhoriaDePassiva', 'passivaNova', 'bolsa'] as const;
+const NOMES_DAS_CATEGORIAS = ['', 'arma', 'passiva', 'bolsa'] as const;
 type NomeDoEvento = (typeof NOMES_DOS_EVENTOS)[number];
 
 /** Um evento do anel como objeto (ultimosEventos). */
@@ -88,15 +99,61 @@ function lerEventos(e: Estado): EventoDebug[] {
   return lista;
 }
 
-function buildDe(e: Estado | undefined): { armas: { id: string; nivel: number; recarga: number }[]; passivas: never[] } {
+function buildDe(e: Estado | undefined): { armas: { id: string; nivel: number; recarga: number }[]; passivas: { id: string; nivel: number }[] } {
   const armas: { id: string; nivel: number; recarga: number }[] = [];
+  const passivas: { id: string; nivel: number }[] = [];
   if (e) {
     for (let v = 0; v < VAGAS_DE_ARMA; v++) {
       const c = e.build.codigo[v]!;
       if (c !== 0) armas.push({ id: IDS_DE_ARMA[c]!, nivel: e.build.nivel[v]!, recarga: e.build.recarga[v]! });
     }
+    for (let v = 0; v < VAGAS_DE_PASSIVA; v++) {
+      const c = e.passivas.codigo[v]!;
+      if (c !== 0) passivas.push({ id: IDS_DE_PASSIVA[c]!, nivel: e.passivas.nivel[v]! });
+    }
   }
-  return { armas, passivas: [] };
+  return { armas, passivas };
+}
+
+/** Nome do item de uma carta ou de um item de baú (arma, passiva ou null na Bolsa). */
+function idDoItem(passiva: boolean, codigo: number): string | null {
+  if (codigo === 0) return null;
+  return passiva ? (IDS_DE_PASSIVA[codigo] ?? null) : (IDS_DE_ARMA[codigo] ?? null);
+}
+
+/** Nível que a carta deixa o item (melhoria: atual + 1; novo: 1; Bolsa: 0). */
+function nivelDaCarta(e: Estado, tipo: number, item: number): number {
+  if (tipo === TIPO_DE_CARTA.melhoriaDeArma) return e.build.nivel[e.build.codigo.indexOf(item)]! + 1;
+  if (tipo === TIPO_DE_CARTA.melhoriaDePassiva) return e.passivas.nivel[e.passivas.codigo.indexOf(item)]! + 1;
+  return tipo === TIPO_DE_CARTA.bolsa ? 0 : 1;
+}
+
+function levelUpDe(e: Estado, dados: DadosDaVigilia, selecionada: number | null) {
+  const aberto = modalAberto(e) && !bauNaFrente(e);
+  const cartas = [];
+  if (aberto) {
+    for (let k = 0; k < CARTAS; k++) {
+      const tipo = e.oferta.tipo[k]!;
+      const item = e.oferta.item[k]!;
+      const passiva = tipo === TIPO_DE_CARTA.melhoriaDePassiva || tipo === TIPO_DE_CARTA.passivaNova;
+      const uniao = completaUniao(e, dados, tipo, item);
+      cartas.push({ tipo: NOMES_DAS_CARTAS[tipo] ?? '', item: idDoItem(passiva, item), nivel: nivelDaCarta(e, tipo, item), completaUniao: uniao === 0 ? null : IDS_DE_ARMA[uniao]! });
+    }
+  }
+  return { aberto, pendentes: e.progresso[PROGRESSAO.niveisPendentes]!, nivel: e.progresso[PROGRESSAO.nivel]!, cartas, selecionada: aberto ? selecionada : null };
+}
+
+function bauDe(e: Estado) {
+  const aberto = bauNaFrente(e);
+  const f = e.filaDeBaus;
+  const itens = [];
+  if (aberto) {
+    for (let k = 0; k < f[BAU.itens]!; k++) {
+      const cat = f[BAU.categoria + k]!;
+      itens.push({ categoria: NOMES_DAS_CATEGORIAS[cat] ?? '', item: idDoItem(cat === CATEGORIA_DE_ITEM.passiva, f[BAU.codigo + k]!), nivel: f[BAU.nivel + k]! });
+    }
+  }
+  return { aberto, porFechar: e.progresso[PROGRESSAO.bausPorFechar]!, uniao: aberto && f[BAU.uniao] === 1, itens };
 }
 /** O renderer do WebGL por software (SwiftShader, llvmpipe...): o fps não mede o nosso código (decisoes-F-003 E1). */
 const RE_SOFTWARE = /SwiftShader|llvmpipe|softpipe|Software/i;
@@ -105,6 +162,8 @@ function contarVivos(e: Estado | undefined): Record<TipoVivo, number> {
   const vivos = Object.fromEntries(TIPOS_VIVOS.map((tipo) => [tipo, 0])) as Record<TipoVivo, number>;
   if (!e) return vivos;
   vivos.projeteis = quantosAtivos(e.poolDeProjeteis);
+  vivos.pickups = quantosAtivos(e.poolDePickups);
+  vivos.efeitos = quantosAtivos(e.poolDeEfeitos);
   for (let s = 0; s < CAPACIDADE_DE_INIMIGOS; s++) {
     if (e.pool.posicao[s]! < 0) continue;
     const id = IDS_DE_TIPO[e.inimigos.tipo[s]!] as TipoVivo;
@@ -224,7 +283,7 @@ export interface GameDebug {
   /** Quadros medidos desde o boot (para recortar o anel de quadros() numa janela, F-003.4). */
   readonly quadrosContados: number;
   readonly passos_perdidos: number;
-  readonly recusados: { inimigos: number; projeteis: number; efeitos: number; pickups: number; numeros: number; mortes: number };
+  readonly recusados: { inimigos: number; projeteis: number; efeitos: number; pickups: number; efeitosDeChao: number; numeros: number; mortes: number };
   /** Armas da build, na ordem das vagas (recarga em passos), e as passivas (F-005). */
   readonly build: ReturnType<typeof buildDe>;
   /** Números de dano vivos no pool do render (não membros de dígito); 0 com a opção desligada. */
@@ -250,7 +309,18 @@ export interface GameDebug {
   /** `locked` do SoundManager do Phaser: só o nosso desbloqueio o leva a false (F-001.14). */
   readonly somTravado: boolean;
   /** Jogador em px lógicos do toro (estado da simulação), a direção do triângulo, o HP e o timer de contato. */
-  readonly jogador: { x: number; y: number; dirX: number; dirY: number; hp: number; invulContato: number } | null;
+  readonly jogador: {
+    x: number; y: number; dirX: number; dirY: number; hp: number; invulContato: number;
+    /** Progressão (F-005): nível, XP no nível e o custo do próximo, XP total, níveis por escolher. */
+    nivel: number; xp: number; xpParaSubir: number; xpTotal: number; niveisPendentes: number;
+    atributos: Record<string, number>; poderPct: number; armadura: number; hpMax: number; almas: number;
+  } | null;
+  /** O modal de level up (F-005): aberto, níveis pendentes, as 3 cartas e a carta selecionada na tela. */
+  readonly levelUp: ReturnType<typeof levelUpDe> | null;
+  /** O modal do baú da frente da fila (F-005). */
+  readonly bau: ReturnType<typeof bauDe> | null;
+  /** Cinzas juntadas com o pool de pickups cheio (X6). */
+  readonly juncoes: number;
   /** Centro da câmera do mundo, em px lógicos do toro (arredondado para 0,5 pt). */
   readonly camera: { x: number; y: number } | null;
   readonly entrada: EntradaDebug;
@@ -260,7 +330,12 @@ export interface GameDebug {
   audio(): string;
   pausar?: () => void;
   retomar?: () => void;
-  avancar?: (n: number) => void;
+  /** Roda n passos (para antes num modal aberto) e devolve quantos rodaram. Só no build de debug. */
+  avancar?: (n: number) => number;
+  /** Cópia dos pickups vivos (Cinzas e baús). Só no build de debug. */
+  pickups?: () => { slot: number; tipo: string; x: number; y: number; valor: number }[];
+  /** Cópia das ondas vivas da União. Só no build de debug. */
+  efeitosDeChao?: () => { slot: number; arma: string; x: number; y: number; dirX: number; dirY: number; dano: number; idade: number }[];
   /** Os últimos 2.048 quadros (F-003.4). Só no build de debug. */
   quadros?: () => Quadro[];
   /** Cópia dos inimigos vivos. Só no build de debug. */
@@ -351,6 +426,7 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
         projeteis: e?.mundo[MUNDO.projeteisRecusados] ?? 0,
         efeitos: ef?.recusados.efeitos ?? 0,
         pickups: 0,
+        efeitosDeChao: e?.mundo2[MUNDO2.efeitosRecusados] ?? 0,
         numeros: ef?.recusados.numeros ?? 0,
         mortes: ef?.recusados.mortes ?? 0,
       };
@@ -410,7 +486,27 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
         dirY: j[JOGADOR.dirY]!,
         hp: j[JOGADOR.hp]!,
         invulContato: e.jogadorU8[JOGADOR_U8.invulContato]!,
+        nivel: e.progresso[PROGRESSAO.nivel]!,
+        xp: e.progresso[PROGRESSAO.xp]!,
+        xpParaSubir: ctx.simulacao!.dados.progressao.custo[e.progresso[PROGRESSAO.nivel]!] ?? 0,
+        xpTotal: e.progresso[PROGRESSAO.xpTotal]!,
+        niveisPendentes: e.progresso[PROGRESSAO.niveisPendentes]!,
+        atributos: Object.fromEntries(ATRIBUTOS.map((a, i) => [a, e.atributos[i]!])),
+        poderPct: poderPct(e, ctx.simulacao!.dados),
+        armadura: armadura(e, ctx.simulacao!.dados),
+        hpMax: e.jogador2[JOGADOR2.hpMax]!,
+        almas: e.progresso[PROGRESSAO.almas]!,
       };
+    },
+    get levelUp() {
+      const sim = ctx.simulacao;
+      return sim ? levelUpDe(sim.estado, sim.dados, sim.modal.selecionada) : null;
+    },
+    get bau() {
+      return ctx.simulacao ? bauDe(ctx.simulacao.estado) : null;
+    },
+    get juncoes() {
+      return ctx.simulacao?.estado.mundo2[MUNDO2.juncoes] ?? 0;
     },
     get camera() {
       const c = ctx.simulacao?.camera;
@@ -459,7 +555,30 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
       const sim = ctx.simulacao;
       if (!sim) throw new Error('avancar: a Vigília ainda não começou');
       sim.pausada = true;
-      avancar(sim.estado, sim.dados, sim.fonte, n);
+      return avancar(sim.estado, sim.dados, sim.fonte, n);
+    };
+    debug.pickups = () => {
+      const e = ctx.simulacao?.estado;
+      if (!e) return [];
+      const p = e.pickups;
+      const nomes = ['', 'cinza', 'bauComum', 'bauDourado'];
+      const lista: { slot: number; tipo: string; x: number; y: number; valor: number }[] = [];
+      for (let s = 0; s < CAPACIDADE_DE_PICKUPS; s++) {
+        if (e.poolDePickups.posicao[s]! < 0 || p.tipo[s] === TIPO_DE_PICKUP.vazio) continue;
+        lista.push({ slot: s, tipo: nomes[p.tipo[s]!]!, x: p.x[s]!, y: p.y[s]!, valor: p.valor[s]! });
+      }
+      return lista;
+    };
+    debug.efeitosDeChao = () => {
+      const e = ctx.simulacao?.estado;
+      if (!e) return [];
+      const f = e.efeitos;
+      const lista: { slot: number; arma: string; x: number; y: number; dirX: number; dirY: number; dano: number; idade: number }[] = [];
+      for (let s = 0; s < CAPACIDADE_DE_EFEITOS; s++) {
+        if (e.poolDeEfeitos.posicao[s]! < 0) continue;
+        lista.push({ slot: s, arma: IDS_DE_ARMA[f.arma[s]!]!, x: f.x[s]!, y: f.y[s]!, dirX: f.dirX[s]!, dirY: f.dirY[s]!, dano: f.dano[s]!, idade: f.idade[s]! });
+      }
+      return lista;
     };
     debug.quadros = () => ctx.medidor.quadros();
     debug.inimigos = () => {
@@ -533,6 +652,10 @@ export function instantaneoDoDebug(d: GameDebug): Record<string, string | number
     numerosDeDano: d.numerosDeDano,
     mortes: d.mortes,
     projeteis: v.projeteis,
+    nivel: d.jogador?.nivel ?? 0,
+    xp: d.jogador ? `${d.jogador.xp}/${d.jogador.xpParaSubir}` : null,
+    pendentes: d.jogador?.niveisPendentes ?? 0,
+    cinzas: v.pickups,
     webgl: d.webgl.renderer.slice(0, 40),
   };
 }
