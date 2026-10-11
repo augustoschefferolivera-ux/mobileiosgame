@@ -8,6 +8,7 @@ import { criarComandos, fonteConstante, fonteDoRoteiro } from '../logica/nucleo/
 import { rodarFrame } from '../logica/nucleo/driver';
 import { criarEstado } from '../logica/nucleo/estado';
 import { criarDadosDaVigilia } from '../logica/mundo/dados';
+import { medirSafeArea } from '../plataforma/safeArea';
 import vigilantes from '../dados/vigilantes.json';
 import charneca from '../dados/regioes/charneca_das_lanternas.json';
 import type { ContextoDoJogo, Simulacao } from './contexto';
@@ -35,9 +36,15 @@ export class Vigilia extends Phaser.Scene {
     };
     this.ctx.simulacao = this.sim;
     this.ctx.tela = 'VIGILIA';
+    // Toques de antes da Vigília (o de Acender) ficam de fora: só um toque novo cria o joystick.
+    const { fila, tradutor } = this.ctx.entrada;
+    fila.reiniciar();
+    tradutor.reiniciar();
+    tradutor.definirArea(medirSafeArea(this.ctx.sonda, this.game.canvas, this.ctx.container, this.ctx.insets));
     this.game.events.on(Phaser.Core.Events.STEP, this.aoStep, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.game.events.off(Phaser.Core.Events.STEP, this.aoStep, this);
+      fila.ativa = false;
     });
     // MVP: Ciclo I, Maldição 0, sem Relíquias; a árvore comprada entra com o save meta (F-010).
     this.ctx.telemetria.registrar('vigilia_inicio', 0, {
@@ -52,7 +59,10 @@ export class Vigilia extends Phaser.Scene {
 
   private aoStep(): void {
     const sim = this.sim;
-    if (!sim || sim.pausada) return;
+    if (!sim) return;
+    // Uma tradução por frame; ao vivo, o vetor vale para todos os passos do frame (design/decisoes-F-002.md §4).
+    this.ctx.entrada.tradutor.traduzir(this.ctx.entrada.fila, sim.comandosAoVivo);
+    if (sim.pausada) return;
     rodarFrame(sim.estado, sim.dados, sim.acumulador, this.game.loop.rawDelta, sim.fonte);
   }
 }

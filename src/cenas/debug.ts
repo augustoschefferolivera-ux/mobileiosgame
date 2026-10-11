@@ -4,7 +4,8 @@
 // features (jogador, chefe, save, teto, degradacao, cpuFrameMs, build...).
 import type Phaser from 'phaser';
 import { fonteConstante, fonteDoRoteiro, validarRoteiro, type Roteiro } from '../logica/nucleo/comandos';
-import { BYTES_ESTADO, CAB, hashEstado } from '../logica/nucleo/estado';
+import { BYTES_ESTADO, CAB, JOGADOR, hashEstado } from '../logica/nucleo/estado';
+import { TIPO_DE_TOQUE } from '../entrada/filaDeToques';
 import { hex8 } from '../logica/nucleo/hash';
 import { avancar } from '../logica/nucleo/passo';
 import { atributosDe, bytesDoBackbuffer } from '../plataforma/memoria';
@@ -25,7 +26,18 @@ function bytesDoCanvas(jogo: Phaser.Game): number {
   return bytesDoBackbuffer(width, height, atributosDe(gl));
 }
 
+/** Tipos do gancho `entrada.injetar` (design/decisoes-F-002.md §8). */
+export type TipoInjetado = keyof typeof TIPO_DE_TOQUE;
+
 export interface EntradaDebug {
+  /** Joystick em pt lógicos; a origem fica com ativo = false depois de soltar (F-002.4). */
+  readonly joystick: { ativo: boolean; origemX: number; origemY: number; vx: number; vy: number };
+  /**
+   * Grava um evento na mesma fila da camada de toque, com x e y em pt e t em ms no
+   * relógio do TouchEvent.timeStamp, e ajusta o retrato como um TouchEvent faria.
+   * Só no build de debug.
+   */
+  injetar?: (tipo: TipoInjetado, id: number, x: number, y: number, t: number) => void;
   /**
    * Impõe ComandosDoPasso por passo absoluto (design/decisoes-F-002.md §6 e §8),
    * para o driver e para avancar, desde o passo 0 se chamado antes da Vigília.
@@ -54,7 +66,11 @@ export interface GameDebug {
   readonly desbloqueioDoAudio: string | null;
   /** `locked` do SoundManager do Phaser: só o nosso desbloqueio o leva a false (F-001.14). */
   readonly somTravado: boolean;
+  /** Jogador em px lógicos do toro (estado da simulação) e a direção do triângulo. */
+  readonly jogador: { x: number; y: number; dirX: number; dirY: number } | null;
   readonly entrada: EntradaDebug;
+  /** Eventos de toque descartados (fila de 64 por frame) e dedos além de 5, na Vigília. */
+  readonly toquesPerdidos: number;
   hash(): string | null;
   audio(): string;
   pausar?: () => void;
@@ -120,7 +136,19 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     get somTravado() {
       return jogo.sound.locked;
     },
-    entrada: {},
+    get jogador() {
+      const j = ctx.simulacao?.estado.jogador;
+      return j ? { x: j[JOGADOR.x]!, y: j[JOGADOR.y]!, dirX: j[JOGADOR.dirX]!, dirY: j[JOGADOR.dirY]! } : null;
+    },
+    entrada: {
+      get joystick() {
+        const { ativo, origemX, origemY, vx, vy } = ctx.entrada.tradutor.joystick;
+        return { ativo, origemX, origemY, vx, vy };
+      },
+    },
+    get toquesPerdidos() {
+      return ctx.entrada.fila.perdidos + ctx.entrada.tradutor.dedosPerdidos;
+    },
     hash() {
       return ctx.simulacao ? hex8(hashEstado(ctx.simulacao.estado)) : null;
     },
@@ -135,6 +163,12 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     };
     debug.retomar = () => {
       if (ctx.simulacao) ctx.simulacao.pausada = false;
+    };
+    debug.entrada.injetar = (tipo, id, x, y, t) => {
+      const codigo = TIPO_DE_TOQUE[tipo];
+      if (codigo === undefined) throw new Error(`injetar: tipo desconhecido: ${String(tipo)}`);
+      ctx.entrada.fila.empurrar(codigo, id, x, y, t);
+      ctx.entrada.fila.ajustarRetrato(codigo, id);
     };
     debug.entrada.roteiro = (lista) => {
       if (lista) validarRoteiro(lista);

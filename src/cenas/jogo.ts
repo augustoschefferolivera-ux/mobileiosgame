@@ -3,6 +3,9 @@
 // passo fixo sem suavização e todo o input do Phaser desligado.
 import Phaser from 'phaser';
 import { CamadaDeToque } from '../entrada/camadaDeToque';
+import { FilaDeToques } from '../entrada/filaDeToques';
+import { ligarTecladoDeDebug } from '../entrada/teclado';
+import { TradutorDeGestos } from '../entrada/tradutorDeGestos';
 import { criarAudioSilencioso } from '../plataforma/audio';
 import { bloquearGestos } from '../plataforma/bloqueioDeGestos';
 import { lerParametros, sortearSeed } from '../plataforma/parametros';
@@ -38,6 +41,7 @@ export function iniciarJogo(): Phaser.Game {
     sonda: elemento('sonda-safe-area'),
     container: elemento('jogo'),
     camada: null,
+    entrada: { fila: new FilaDeToques(), tradutor: new TradutorDeGestos() },
     insets: insetsZerados(),
     tela: 'BOOT',
     simulacao: null,
@@ -72,9 +76,12 @@ export function iniciarJogo(): Phaser.Game {
         }
       },
       postBoot: (game) => {
-        const camada = new CamadaDeToque(game.canvas, ehBuildDeDebug);
+        const camada = new CamadaDeToque(game.canvas, ehBuildDeDebug, ctx.entrada.fila);
         camada.ligar();
+        // O FIT muda o estilo do canvas no refresh do ScaleManager, que emite RESIZE.
+        game.scale.on(Phaser.Scale.Events.RESIZE, camada.invalidarCaixa);
         ctx.camada = camada;
+        if (ehBuildDeDebug) ligarTecladoDeDebug(window, ctx.entrada.tradutor.teclado);
       },
     },
     scene: [new Boot(ctx), new Acender(ctx), new Vigilia(ctx)],

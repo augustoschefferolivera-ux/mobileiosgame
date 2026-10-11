@@ -5,6 +5,8 @@ import type { ComandosDoPasso, FonteDeComandos, Roteiro } from '../logica/nucleo
 import type { Estado } from '../logica/nucleo/estado';
 import type { DadosDaVigilia } from '../logica/mundo/dados';
 import type { CamadaDeToque } from '../entrada/camadaDeToque';
+import type { FilaDeToques } from '../entrada/filaDeToques';
+import type { TradutorDeGestos } from '../entrada/tradutorDeGestos';
 import type { Insets } from '../plataforma/safeArea';
 import type { RegistroDeTelemetria } from '../plataforma/telemetria';
 
@@ -30,6 +32,8 @@ export interface ContextoDoJogo {
   readonly container: HTMLElement;
   /** Ligada no postBoot, quando o canvas existe. */
   camada: CamadaDeToque | null;
+  /** Fila de toques (a camada escreve) e tradutor de gestos (a Vigília lê uma vez por frame). */
+  readonly entrada: { readonly fila: FilaDeToques; readonly tradutor: TradutorDeGestos };
   /** Insets da safe-area em pt lógicos, medidos pela cena ativa no create e no resize (na F-001, a de Acender). */
   readonly insets: Insets;
   tela: Tela;
