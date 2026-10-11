@@ -127,6 +127,19 @@ describe('capacidade, reconciliação e soltar todos', () => {
     expect(trad.joystick.ativo).toBe(false);
   });
 
+  it('o toque que segue um fim que não chegou vira dono: a reconciliação roda também no touchstart', () => {
+    toque(T.inicio, 1, 100, 600);
+    toque(T.move, 1, 160, 600);
+    expect(frame()).toEqual([1, 0]);
+    naTela = []; // o touchend do dedo 1 nunca chegou ao canvas
+    toque(T.inicio, 2, 120, 700);
+    toque(T.move, 2, 120, 640);
+    const [mx, my] = frame();
+    expect(trad.joystick).toMatchObject({ ativo: true, origemX: 120, origemY: 700 });
+    expect(mx).toBe(0);
+    expect(my).toBeCloseTo(-1, 6);
+  });
+
   it('soltar todos (touchcancel sem toques, blur, pagehide, visibilitychange) desliga o joystick', () => {
     toque(T.inicio, 1, 100, 600);
     toque(T.move, 1, 160, 600);

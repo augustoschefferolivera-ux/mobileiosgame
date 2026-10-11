@@ -3,14 +3,16 @@
 // SpriteGPULayer, caminho principal, entra na F-003 atrás da mesma interface,
 // junto com a horda. Na F-002 há 55 objetos: 54 obstáculos e o jogador. Cada um
 // é desenhado na cópia mais próxima da câmera; o jogador, na posição
-// interpolada pelo delta toroidal. Camadas: chão (vazio no MVP), obstáculos e
-// jogador. Nada é alocado por frame.
+// interpolada pelo delta toroidal, arredondada para o pixel do canvas como a
+// câmera. Camadas: chão (vazio no MVP), obstáculos e jogador. Nada é alocado
+// por frame.
 import type Phaser from 'phaser';
 import { JOGADOR, type Estado } from '../../logica/nucleo/estado';
 import type { DadosDaVigilia } from '../../logica/mundo/dados';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, copiaMaisProxima, interpolarNoToro } from '../../logica/mundo/toro';
 import { COR } from '../estilo';
 import { CHAVE_DO_ATLAS, escalaPara } from './atlas';
+import { arredondarParaOPixel } from './camera';
 
 export interface RenderDoMundo {
   /** Desenha o estado interpolado por `alfa`, com a câmera centrada em (camX, camY), em px lógicos. */
@@ -64,8 +66,9 @@ export class RenderPorImagem implements RenderDoMundo {
       this.obstaculos[i]!.setPosition(copiaMaisProxima(o.x[i]!, camX, LARGURA_DO_MAPA), copiaMaisProxima(o.y[i]!, camY, ALTURA_DO_MAPA));
     }
     const j = e.jogador;
-    const x = interpolarNoToro(j[JOGADOR.xAnt]!, j[JOGADOR.x]!, alfa, LARGURA_DO_MAPA);
-    const y = interpolarNoToro(j[JOGADOR.yAnt]!, j[JOGADOR.y]!, alfa, ALTURA_DO_MAPA);
+    // Arredondado como a câmera (C2): o triângulo fica no mesmo pixel, sem tremor sub-pixel no centro da tela.
+    const x = arredondarParaOPixel(interpolarNoToro(j[JOGADOR.xAnt]!, j[JOGADOR.x]!, alfa, LARGURA_DO_MAPA));
+    const y = arredondarParaOPixel(interpolarNoToro(j[JOGADOR.yAnt]!, j[JOGADOR.y]!, alfa, ALTURA_DO_MAPA));
     this.jogador.setPosition(copiaMaisProxima(x, camX, LARGURA_DO_MAPA), copiaMaisProxima(y, camY, ALTURA_DO_MAPA));
     this.jogador.setRotation(anguloDoJogador(j[JOGADOR.dirX]!, j[JOGADOR.dirY]!));
   }

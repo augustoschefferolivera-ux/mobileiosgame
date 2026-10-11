@@ -70,8 +70,12 @@ export class TradutorDeGestos {
       const i = k * CAMPOS_POR_EVENTO;
       const tipo = ev[i]!;
       const id = ev[i + 1]!;
-      if (tipo === TIPO_DE_TOQUE.inicio) this.comecar(id, ev[i + 2]!, ev[i + 3]!);
-      else {
+      if (tipo === TIPO_DE_TOQUE.inicio) {
+        // ADR-0002 §12: a cada touchstart, os slots são conferidos com e.touches antes de classificar o dedo
+        // novo; assim, o toque que segue um fim perdido pode virar dono.
+        this.reconciliar(fila);
+        this.comecar(id, ev[i + 2]!, ev[i + 3]!);
+      } else {
         const s = this.slotDe(id);
         if (s < 0) continue;
         if (tipo === TIPO_DE_TOQUE.move) {
@@ -83,12 +87,7 @@ export class TradutorDeGestos {
       }
     }
     fila.n = 0;
-    // Reconciliação: solta os dedos que não estão mais em `e.touches` (um fim descartado pela fila cheia).
-    if (fila.retratoValido) {
-      for (let s = 0; s < MAX_DEDOS; s++) {
-        if (this.papel[s] !== PAPEL.livre && this.ids[s] !== ID_DO_MOUSE && !fila.noRetrato(this.ids[s]!)) this.soltar(s);
-      }
-    }
+    this.reconciliar(fila);
     const j = this.joystick;
     if (j.ativo) {
       const dx = this.atualX - j.origemX;
@@ -103,6 +102,18 @@ export class TradutorDeGestos {
     // O toque tem prioridade sobre o teclado (§4).
     out.movimento[0] = j.ativo ? j.vx : this.teclado.x;
     out.movimento[1] = j.ativo ? j.vy : this.teclado.y;
+  }
+
+  /**
+   * Solta os dedos que não estão mais em `e.touches` (um fim descartado pela fila cheia ou que não chegou).
+   * O retrato é o do último evento do frame: se o dono soltar no mesmo frame em que outro dedo começa, depois
+   * dele, o dedo novo vira dono (≤ 1 frame de diferença).
+   */
+  private reconciliar(fila: FilaDeToques): void {
+    if (!fila.retratoValido) return;
+    for (let s = 0; s < MAX_DEDOS; s++) {
+      if (this.papel[s] !== PAPEL.livre && this.ids[s] !== ID_DO_MOUSE && !fila.noRetrato(this.ids[s]!)) this.soltar(s);
+    }
   }
 
   private slotDe(id: number): number {

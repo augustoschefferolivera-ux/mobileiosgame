@@ -53,7 +53,9 @@ export function iniciarJogo(): Phaser.Game {
   };
 
   const jogo = new Phaser.Game({
-    type: Phaser.AUTO,
+    // Só WebGL: o render da F-002 em diante depende do tint (WebGL only no Phaser 4) e, na F-003, do
+    // SpriteGPULayer. No renderer Canvas tudo sairia em branco, a cor do aparo (ADR-0004 §6).
+    type: Phaser.WEBGL,
     backgroundColor: COR.fundo,
     banner: false,
     scale: {

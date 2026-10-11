@@ -36,13 +36,14 @@ export class CamadaDeToque {
     this.alvo.addEventListener('touchmove', this.aoTouchMove, NAO_PASSIVO);
     this.alvo.addEventListener('touchend', this.aoTouchEnd, NAO_PASSIVO);
     this.alvo.addEventListener('touchcancel', this.aoTouchCancel, NAO_PASSIVO);
-    if (this.aceitarMouse) {
-      this.alvo.addEventListener('mousedown', this.aoMouse);
-      this.alvo.addEventListener('mousemove', this.aoMouse);
-      this.alvo.addEventListener('mouseup', this.aoMouse);
-    }
     // Soltar todos os dedos (design/decisoes-F-002.md §4); addEventListener, nunca window.onblur (ADR-0002 §12).
     const janela = this.alvo.ownerDocument.defaultView;
+    if (this.aceitarMouse) {
+      // O botão pode soltar fora do canvas (no letterbox, por exemplo): move e up vêm da janela.
+      this.alvo.addEventListener('mousedown', this.aoMouse);
+      janela?.addEventListener('mousemove', this.aoMouse);
+      janela?.addEventListener('mouseup', this.aoMouse);
+    }
     janela?.addEventListener('blur', this.soltarTodos);
     janela?.addEventListener('pagehide', this.soltarTodos);
     this.alvo.ownerDocument.addEventListener('visibilitychange', this.soltarTodos);
@@ -118,6 +119,7 @@ export class CamadaDeToque {
   }
 
   private avisar(clientX: number, clientY: number): void {
+    if (this.ouvintes.length === 0) return;
     this.paraPontos(clientX, clientY);
     for (const fn of this.ouvintes.slice()) fn(this.ponto.x, this.ponto.y);
   }
