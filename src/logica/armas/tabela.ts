@@ -202,6 +202,7 @@ export function criarTabelaDeArmas(armas: readonly ArmaDoJson[], atributos: Atri
     t.nivelMax[c] = a.nivel_max;
     const escala = compilarEscala(t, a, c, atributos);
     const b = a.base;
+    compilarOnda(t, a, c);
     const aura = arquetipo === ARQUETIPO.aura;
     t.danoBase[c] = inteiro(numero(b, aura ? 'dano_por_s' : 'dano', a.id), `${a.id} dano base`);
     t.periodo[c] = segundosEmPassos(numero(b, aura ? 'intervalo_tick_s' : 'cooldown_s', a.id));
@@ -376,11 +377,16 @@ function compilarUniao(t: TabelaEmMontagem, a: ArmaDoJson, c: number, atributos:
   t.alcance[i] = t.alcance[ig]!;
   t.estocadaL[i] = t.estocadaL[ig]!;
   t.estocadaW[i] = t.estocadaW[ig]!;
-  const onda = b['onda'] as { comprimento_corpos: number; dano: number; largura_corpos: number; velocidade_corpos_s: number } | undefined;
-  if (onda) {
-    t.ondaDanoBase[c] = inteiro(onda.dano, `${a.id} dano da onda`);
-    t.ondaMeia[c] = (CORPO_PX * onda.largura_corpos) / 2;
-    t.ondaPxPor60[c] = inteiro(CORPO_PX * onda.velocidade_corpos_s, `${a.id} velocidade da onda`);
-    t.ondaVida[c] = inteiro((onda.comprimento_corpos * PASSOS_POR_SEGUNDO) / onda.velocidade_corpos_s, `${a.id} vida da onda`);
-  }
+  compilarOnda(t, a, c);
+}
+
+/** A onda de chão (U3), se a arma tem `base.onda`: o código não depende do id. */
+function compilarOnda(t: TabelaEmMontagem, a: ArmaDoJson, c: number): void {
+  const onda = a.base['onda'] as { comprimento_corpos: number; dano: number; largura_corpos: number; velocidade_corpos_s: number } | undefined;
+  if (!onda) return;
+  if (t.arquetipo[c] !== ARQUETIPO.direcaoMovimento) throw new Error(`armas.json: ${a.id}: onda só em arma de direção do movimento`);
+  t.ondaDanoBase[c] = inteiro(onda.dano, `${a.id} dano da onda`);
+  t.ondaMeia[c] = (CORPO_PX * onda.largura_corpos) / 2;
+  t.ondaPxPor60[c] = inteiro(CORPO_PX * onda.velocidade_corpos_s, `${a.id} velocidade da onda`);
+  t.ondaVida[c] = inteiro((onda.comprimento_corpos * PASSOS_POR_SEGUNDO) / onda.velocidade_corpos_s, `${a.id} vida da onda`);
 }
