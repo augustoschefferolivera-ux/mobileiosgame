@@ -10,24 +10,24 @@
   },
   "snapshots": {
     "a": {
-      "passo": 3992,
+      "passo": 4204,
       "vivos": 300,
-      "liberacoes": 660,
-      "spawns": 960,
-      "bytes": 14605227,
-      "nos": 90461
+      "liberacoes": 700,
+      "spawns": 1000,
+      "bytes": 14606109,
+      "nos": 90467
     },
     "b": {
-      "passo": 6582,
+      "passo": 6989,
       "vivos": 300,
-      "liberacoes": 1090,
-      "spawns": 1390,
-      "bytes": 14608836,
-      "nos": 90512
+      "liberacoes": 1160,
+      "spawns": 1460,
+      "bytes": 14609470,
+      "nos": 90509
     },
-    "intervalo_s": 64.1
+    "intervalo_s": 63.5
   },
-  "liberacoes_no_intervalo": 430,
+  "liberacoes_no_intervalo": 460,
   "excluidos": {
     "(code)": "código do JIT, que cresce com a otimização",
     "PerformanceLongTaskTiming": "entradas de desempenho do navegador, que crescem com tarefas longas",
@@ -39,18 +39,18 @@
     "delta_por_grupo": 100,
     "calibracao": "ADR-0005"
   },
-  "delta_bytes": 3609,
-  "delta_nos": 51,
+  "delta_bytes": 3361,
+  "delta_nos": 42,
   "maior_delta_de_grupo": {
     "grupo": "(hidden)",
-    "delta_n": 19,
-    "delta_bytes": 2188
+    "delta_n": 15,
+    "delta_bytes": 2204
   },
   "grupos_que_mudaram": [
     {
       "grupo": "(hidden)",
-      "delta_n": 19,
-      "delta_bytes": 2188
+      "delta_n": 15,
+      "delta_bytes": 2204
     },
     {
       "grupo": "(string)",
@@ -63,13 +63,13 @@
       "delta_bytes": 332
     },
     {
-      "grupo": "PerformanceLongAnimationFrameTiming",
-      "delta_n": 2,
-      "delta_bytes": 288
-    },
-    {
       "grupo": "(array)",
       "delta_n": 2,
+      "delta_bytes": 144
+    },
+    {
+      "grupo": "PerformanceLongAnimationFrameTiming",
+      "delta_n": 1,
       "delta_bytes": 144
     },
     {
@@ -83,6 +83,11 @@
       "delta_bytes": 124
     },
     {
+      "grupo": "Event",
+      "delta_n": -1,
+      "delta_bytes": -120
+    },
+    {
       "grupo": "(concatenated string)",
       "delta_n": -1,
       "delta_bytes": -20
@@ -91,20 +96,25 @@
       "grupo": "Array",
       "delta_n": 1,
       "delta_bytes": 16
+    },
+    {
+      "grupo": "InternalNode",
+      "delta_n": -3,
+      "delta_bytes": 0
     }
   ],
   "heap_usado_a_cada_10s": [
     {
       "s": 10,
-      "usadoKB": 7461
-    },
-    {
-      "s": 20,
       "usadoKB": 7447
     },
     {
+      "s": 20,
+      "usadoKB": 7449
+    },
+    {
       "s": 30,
-      "usadoKB": 7448
+      "usadoKB": 7449
     },
     {
       "s": 40,
@@ -112,11 +122,11 @@
     },
     {
       "s": 50,
-      "usadoKB": 7448
+      "usadoKB": 7450
     },
     {
       "s": 60,
-      "usadoKB": 7448
+      "usadoKB": 7451
     }
   ],
   "aprovado": true
