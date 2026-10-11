@@ -1,10 +1,14 @@
-// TradutorDeGestos na F-002 (ADR-0002 §12; design/decisoes-F-002.md §4): uma
-// vez por frame, esvazia a fila de toques em slots fixos de dedos, classifica
-// cada dedo pelo lugar onde começou, reconcilia com o retrato de `e.touches`
-// e escreve o movimento nos ComandosDoPasso, já com a zona morta, a curva e o
-// limite. Swipe e toque duplo (esquiva) ficam para a F-006. Não aloca.
+// TradutorDeGestos (ADR-0002 §12; design/decisoes-F-002.md §4;
+// design/decisoes-F-004.md §7): uma vez por frame, esvazia a fila de toques em
+// slots fixos de dedos, classifica cada dedo pelo lugar onde começou,
+// reconcilia com o retrato de `e.touches` e escreve o movimento nos
+// ComandosDoPasso, já com a zona morta, a curva e o limite. Na F-004 também
+// entrega, numa saída própria (fora dos ComandosDoPasso, P4), o pedido de
+// pausa pelo botão ou pelo gesto de dois dedos parados por 0,5 s, e, no modo
+// da tela de pausa, o toque nos alvos dela. Swipe e toque duplo (esquiva)
+// ficam para a F-006. Não aloca.
 import type { ComandosDoPasso } from '../logica/nucleo/comandos';
-import { areaDoJoystick, contem, type Alvo } from './alvos';
+import { alvoDaPausa, alvosDaTelaDePausa, areaDoJoystick, contem, type Alvo } from './alvos';
 import { CAMPOS_POR_EVENTO, TIPO_DE_TOQUE, type FilaDeToques } from './filaDeToques';
 import { pinoDoJoystick, vetorDoJoystick, type Vetor } from './joystick';
 import type { Insets } from '../plataforma/safeArea';
@@ -14,7 +18,16 @@ export const MAX_DEDOS = 5;
 /** Identificador do dedo virtual do mouse (build de debug); nunca solto pelo retrato de toques. */
 export const ID_DO_MOUSE = -1;
 
-const PAPEL = { livre: 0, joystick: 1, outro: 2 } as const;
+/** Papel do dedo, pelo lugar onde começou: o botão de pausa não cria joystick nem conta para o gesto (P1, P3). */
+const PAPEL = { livre: 0, joystick: 1, outro: 2, botao: 3 } as const;
+
+/** Gesto de pausa (P3): "parado" = até 10 pt do ponto do touchstart, por pelo menos 500 ms (o UILongPressGestureRecognizer). */
+export const GESTO_DE_PAUSA = { movimentoMaximoPt: 10, duracaoMs: 500, dedos: 2 } as const;
+/** Um timeStamp a mais de 60 s do relógio do quadro está em outro relógio: vale o agora do quadro (P3). */
+const RELOGIO_SUSPEITO_MS = 60_000;
+
+export type OrigemDaPausa = 'botao' | 'gesto';
+export type ModoDoTradutor = 'vigilia' | 'pausa';
 
 /** Estado do joystick, em pt lógicos; a cena Hud o desenha e o __GAME_DEBUG__ o lê. */
 export interface EstadoDoJoystick {
@@ -34,8 +47,25 @@ export class TradutorDeGestos {
   readonly joystick: EstadoDoJoystick = { ativo: false, origemX: 0, origemY: 0, pinoX: 0, pinoY: 0, vx: 0, vy: 0 };
   /** Toques novos descartados por falta de slot desde reiniciar(). */
   dedosPerdidos = 0;
+  /** Toques que viraram dono do joystick desde reiniciar() (__GAME_DEBUG__.entrada.joystick.criados). */
+  joystickCriados = 0;
+  /** Pedido de pausa deste frame (botão ou gesto), lido pela Vigília depois de traduzir. */
+  pedidoDePausa: OrigemDaPausa | null = null;
+  /** No modo pausa: o alvo da tela de pausa acionado neste frame (começou e soltou dentro). */
+  toqueNaPausa: string | null = null;
+  /** 'vigilia': joystick, botão e gesto; 'pausa': só os alvos da tela de pausa (P8). */
+  modo: ModoDoTradutor = 'vigilia';
   private readonly ids = new Float64Array(MAX_DEDOS);
   private readonly papel = new Uint8Array(MAX_DEDOS);
+  private readonly inicioX = new Float64Array(MAX_DEDOS);
+  private readonly inicioY = new Float64Array(MAX_DEDOS);
+  private readonly inicioT = new Float64Array(MAX_DEDOS);
+  private readonly parado = new Uint8Array(MAX_DEDOS);
+  /** No modo pausa: o índice do alvo onde o dedo começou (−1 = nenhum). */
+  private readonly alvoInicial = new Int8Array(MAX_DEDOS);
+  private gestoTravado = false;
+  private readonly botao: Alvo = { id: 'pausa', x: 0, y: 0, largura: 0, altura: 0 };
+  private readonly alvosDaPausa: Alvo[] = [];
   private dono = -1;
   private atualX = 0;
   private atualY = 0;
@@ -51,16 +81,40 @@ export class TradutorDeGestos {
     this.joystick.ativo = false;
     this.joystick.vx = this.joystick.vy = 0;
     this.dedosPerdidos = 0;
+    this.joystickCriados = 0;
     this.teclado.x = this.teclado.y = 0;
+    this.modo = 'vigilia';
+    this.pedidoDePausa = null;
+    this.toqueNaPausa = null;
+    this.gestoTravado = false;
   }
 
-  /** Recalcula a área do joystick (create e resize da Hud). */
+  /** Recalcula a área do joystick, o botão de pausa e os alvos da tela de pausa (create e resize da Hud). */
   definirArea(insets: Insets): void {
     areaDoJoystick(insets, this.area);
+    alvoDaPausa(insets, this.botao);
+    alvosDaTelaDePausa(insets, this.alvosDaPausa);
   }
 
-  /** Esvazia a fila e escreve o movimento do frame em `out`. */
-  traduzir(fila: FilaDeToques, out: ComandosDoPasso): void {
+  /**
+   * Troca de modo (P8): ao abrir a pausa e ao continuar, todos os dedos são
+   * soltos; depois do Continuar, só um toque novo cria o joystick, e um toque
+   * que começou antes da abertura nunca aciona um alvo da pausa.
+   */
+  mudarModo(modo: ModoDoTradutor): void {
+    for (let s = 0; s < MAX_DEDOS; s++) this.soltar(s);
+    this.modo = modo;
+    this.gestoTravado = false;
+  }
+
+  /**
+   * Esvazia a fila e escreve o movimento do frame em `out`. `agora` é o
+   * performance.now() do quadro, no relógio do TouchEvent.timeStamp: com ele,
+   * os dedos parados (que não geram evento) completam os 500 ms do gesto (P3).
+   */
+  traduzir(fila: FilaDeToques, out: ComandosDoPasso, agora = Number.NaN): void {
+    this.pedidoDePausa = null;
+    this.toqueNaPausa = null;
     if (fila.soltarTodos) {
       for (let s = 0; s < MAX_DEDOS; s++) this.soltar(s);
       fila.soltarTodos = false;
@@ -70,11 +124,13 @@ export class TradutorDeGestos {
       const i = k * CAMPOS_POR_EVENTO;
       const tipo = ev[i]!;
       const id = ev[i + 1]!;
+      let t = ev[i + 4]!;
+      if (Math.abs(agora - t) > RELOGIO_SUSPEITO_MS) t = agora;
       if (tipo === TIPO_DE_TOQUE.inicio) {
         // ADR-0002 §12: a cada touchstart, os slots são conferidos com e.touches antes de classificar o dedo
         // novo; assim, o toque que segue um fim perdido pode virar dono.
         this.reconciliar(fila, k + 1);
-        this.comecar(id, ev[i + 2]!, ev[i + 3]!);
+        this.comecar(id, ev[i + 2]!, ev[i + 3]!, t);
       } else {
         const s = this.slotDe(id);
         if (s < 0) continue;
@@ -82,12 +138,23 @@ export class TradutorDeGestos {
           if (s === this.dono) {
             this.atualX = ev[i + 2]!;
             this.atualY = ev[i + 3]!;
+          } else if (this.parado[s] === 1) {
+            const dx = ev[i + 2]! - this.inicioX[s]!;
+            const dy = ev[i + 3]! - this.inicioY[s]!;
+            const m = GESTO_DE_PAUSA.movimentoMaximoPt;
+            if (dx * dx + dy * dy > m * m) this.parado[s] = 0;
           }
-        } else this.soltar(s);
+        } else {
+          // O gesto pode completar entre o último quadro e o fim do dedo: avalia no instante do evento.
+          this.avaliarGesto(t);
+          if (tipo === TIPO_DE_TOQUE.fim) this.acionar(s, ev[i + 2]!, ev[i + 3]!);
+          this.soltar(s);
+        }
       }
     }
     this.reconciliar(fila, fila.n);
     fila.n = 0;
+    this.avaliarGesto(agora);
     const j = this.joystick;
     if (j.ativo) {
       const dx = this.atualX - j.origemX;
@@ -99,9 +166,10 @@ export class TradutorDeGestos {
       j.vx = this.v.x;
       j.vy = this.v.y;
     }
-    // O toque tem prioridade sobre o teclado (§4).
-    out.movimento[0] = j.ativo ? j.vx : this.teclado.x;
-    out.movimento[1] = j.ativo ? j.vy : this.teclado.y;
+    // O toque tem prioridade sobre o teclado (§4); na pausa, nada move.
+    const pausa = this.modo === 'pausa';
+    out.movimento[0] = pausa ? 0 : j.ativo ? j.vx : this.teclado.x;
+    out.movimento[1] = pausa ? 0 : j.ativo ? j.vy : this.teclado.y;
   }
 
   /**
@@ -127,8 +195,12 @@ export class TradutorDeGestos {
     return -1;
   }
 
-  /** O 1º dedo que começa na área vira dono do joystick, até soltar (§4). */
-  private comecar(id: number, x: number, y: number): void {
+  /**
+   * Classifica o dedo novo. Na Vigília: no botão de pausa, só o botão; senão, o
+   * 1º dedo que começa na área vira dono do joystick, até soltar (F-002 §4); os
+   * outros contam para o gesto. Na pausa: guarda o alvo onde começou.
+   */
+  private comecar(id: number, x: number, y: number, t: number): void {
     if (this.slotDe(id) >= 0) return;
     let s = 0;
     while (s < MAX_DEDOS && this.papel[s] !== PAPEL.livre) s++;
@@ -137,9 +209,22 @@ export class TradutorDeGestos {
       return;
     }
     this.ids[s] = id;
-    if (this.dono < 0 && contem(this.area, x, y)) {
+    this.inicioX[s] = x;
+    this.inicioY[s] = y;
+    this.inicioT[s] = t;
+    this.parado[s] = 1;
+    this.alvoInicial[s] = -1;
+    if (this.modo === 'pausa') {
+      this.papel[s] = PAPEL.outro;
+      for (let k = 0; k < this.alvosDaPausa.length; k++) if (contem(this.alvosDaPausa[k]!, x, y)) this.alvoInicial[s] = k;
+      return;
+    }
+    if (contem(this.botao, x, y)) {
+      this.papel[s] = PAPEL.botao;
+    } else if (this.dono < 0 && contem(this.area, x, y)) {
       this.papel[s] = PAPEL.joystick;
       this.dono = s;
+      this.joystickCriados++;
       const j = this.joystick;
       j.ativo = true;
       j.origemX = this.atualX = x;
@@ -150,8 +235,35 @@ export class TradutorDeGestos {
     }
   }
 
+  /** Fim de um dedo (não cancelamento): o botão e os alvos da pausa acionam se o dedo começou e soltou dentro (P1, P7, P9). */
+  private acionar(s: number, x: number, y: number): void {
+    if (this.modo === 'vigilia') {
+      if (this.papel[s] === PAPEL.botao && contem(this.botao, x, y)) this.pedidoDePausa = 'botao';
+      return;
+    }
+    const k = this.alvoInicial[s]!;
+    if (k >= 0 && contem(this.alvosDaPausa[k]!, x, y)) this.toqueNaPausa = this.alvosDaPausa[k]!.id;
+  }
+
+  /**
+   * Gesto de pausa (P3): dispara com pelo menos 2 dedos que contam (não são o
+   * dono do joystick nem começaram no botão) parados há pelo menos 500 ms; uma
+   * vez só, até um deles soltar.
+   */
+  private avaliarGesto(agora: number): void {
+    if (this.modo !== 'vigilia' || this.gestoTravado) return;
+    let n = 0;
+    for (let s = 0; s < MAX_DEDOS; s++) {
+      if (this.papel[s] === PAPEL.outro && this.parado[s] === 1 && agora - this.inicioT[s]! >= GESTO_DE_PAUSA.duracaoMs) n++;
+    }
+    if (n < GESTO_DE_PAUSA.dedos) return;
+    this.gestoTravado = true;
+    if (this.pedidoDePausa === null) this.pedidoDePausa = 'gesto';
+  }
+
   private soltar(s: number): void {
     if (this.papel[s] === PAPEL.livre) return;
+    if (this.papel[s] === PAPEL.outro) this.gestoTravado = false;
     this.papel[s] = PAPEL.livre;
     if (s !== this.dono) return;
     this.dono = -1;

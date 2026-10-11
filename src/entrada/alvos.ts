@@ -76,10 +76,45 @@ export function areaDoJoystick(insets: Insets, out: Alvo): Alvo {
   return out;
 }
 
-/** Vigília (F-002): só a área do joystick; os botões entram com as suas features. */
+/**
+ * Botão de pausa (design/decisoes-F-004.md P1): alvo de 72 × 72 pt no canto
+ * superior esquerdo da área segura (doc 11 §3.6; doc 02 §4), escrito em `out`.
+ */
+export function alvoDaPausa(insets: Insets, out: Alvo): Alvo {
+  out.id = 'pausa';
+  out.x = insets.esquerda;
+  out.y = insets.topo;
+  out.largura = ALVO_MINIMO_PT;
+  out.altura = ALVO_MINIMO_PT;
+  return out;
+}
+
+/** Vigília: o botão de pausa (F-004) e a área do joystick (F-002); os outros botões entram com as suas features. */
 export function alvosDaVigilia(insets: Insets, out: Alvo[]): Alvo[] {
   out.length = 0;
+  out.push(alvoDaPausa(insets, { id: '', x: 0, y: 0, largura: 0, altura: 0 }));
   out.push(areaDoJoystick(insets, { id: '', x: 0, y: 0, largura: 0, altura: 0 }));
+  return out;
+}
+
+/** Botões da tela de pausa (P6): 288 × 72 pt, como o Acender; a largura encolhe com a área segura. */
+export const BOTAO_DA_PAUSA = { largura: 288, altura: ALVO_MINIMO_PT } as const;
+/** Continuar a 24 pt do inset de baixo, e a opção 16 pt acima dele (P6). */
+const MARGEM_DO_CONTINUAR = 24;
+const ENTRE_BOTOES = 16;
+
+/**
+ * Tela de pausa (P5, P6, P9): a opção de números (a linha inteira é o alvo) e o
+ * Continuar, na zona de controles, centrados na área segura.
+ */
+export function alvosDaTelaDePausa(insets: Insets, out: Alvo[]): Alvo[] {
+  const larguraUtil = LARGURA_LOGICA - insets.esquerda - insets.direita;
+  const largura = Math.max(ALVO_MINIMO_PT, Math.min(BOTAO_DA_PAUSA.largura, larguraUtil));
+  const x = insets.esquerda + (larguraUtil - largura) / 2;
+  const yContinuar = ALTURA_LOGICA - insets.baixo - MARGEM_DO_CONTINUAR - BOTAO_DA_PAUSA.altura;
+  out.length = 0;
+  out.push({ id: 'numeros', x, y: yContinuar - ENTRE_BOTOES - BOTAO_DA_PAUSA.altura, largura, altura: BOTAO_DA_PAUSA.altura });
+  out.push({ id: 'continuar', x, y: yContinuar, largura, altura: BOTAO_DA_PAUSA.altura });
   return out;
 }
 
@@ -87,4 +122,5 @@ export function alvosDaVigilia(insets: Insets, out: Alvo[]): Alvo[] {
 export const ALVOS_POR_TELA: Record<string, (insets: Insets, out: Alvo[]) => Alvo[]> = {
   acender: alvosDoAcender,
   vigilia: alvosDaVigilia,
+  pausa: alvosDaTelaDePausa,
 };
