@@ -116,6 +116,7 @@ export class EfeitosDaVigilia {
     const anel = e.eventos;
     const n = this.leitor.pendentes(anel);
     const u32 = anel.u32;
+    const f32 = anel.f32;
     // Os métodos leem o evento do anel pelo índice: nenhum double nem handle (≥ 2³⁰) atravessa a chamada.
     for (let k = 0; k < n; k++) {
       const i = inicioDoEvento(this.leitor.proximo + k);
@@ -124,9 +125,37 @@ export class EfeitosDaVigilia {
       if (tipo === EVENTO.acerto) {
         if (this.numerosLigados) this.somarAcerto(e, i);
       } else if (tipo === EVENTO.morte) {
-        if (((u32[i + EV.inimigoFlagsCausa]! >>> 16) & 0xff) === CAUSA.arma) this.criarMorte(e, i);
+        // A morte e os efeitos são criados aqui, em linha: são raros por quadro, e numa função à parte ficariam no
+        // interpretador do V8, que guarda cada double lido como objeto (E6).
+        if (((u32[i + EV.inimigoFlagsCausa]! >>> 16) & 0xff) !== CAUSA.arma) continue;
+        const m = this.mortes;
+        let j = 0;
+        while (j < CAPACIDADE_DE_MORTES && m.ativo[j] === 1) j++;
+        if (j === CAPACIDADE_DE_MORTES) {
+          this.recusados.mortes++;
+          continue;
+        }
+        m.ativo[j] = 1;
+        m.x[j] = f32[i + EV.floats]!;
+        m.y[j] = f32[i + EV.floats + 1]!;
+        m.tipo[j] = u32[i + EV.inimigoFlagsCausa]! & 0xff;
+        m.passo[j] = u32[i + EV.passo]!;
       } else if (tipo === EVENTO.golpe || tipo === EVENTO.pulso) {
-        this.criarEfeito(e, i, tipo === EVENTO.golpe ? EFEITO.golpe : EFEITO.pulso);
+        const ef = this.efeitos;
+        let j = 0;
+        while (j < CAPACIDADE_DE_EFEITOS && ef.ativo[j] === 1) j++;
+        if (j === CAPACIDADE_DE_EFEITOS) {
+          this.recusados.efeitos++;
+          continue;
+        }
+        ef.ativo[j] = 1;
+        ef.tipo[j] = tipo === EVENTO.golpe ? EFEITO.golpe : EFEITO.pulso;
+        ef.forma[j] = (u32[i + EV.tipoArmaForma]! >>> 16) & 0xff;
+        ef.passo[j] = u32[i + EV.passo]!;
+        ef.a[j] = f32[i + EV.floats]!;
+        ef.b[j] = f32[i + EV.floats + 1]!;
+        ef.c[j] = f32[i + EV.floats + 2]!;
+        ef.d[j] = f32[i + EV.floats + 3]!;
       }
     }
     this.leitor.proximo += n;
@@ -188,43 +217,6 @@ export class EfeitosDaVigilia {
     nu.critico[k] = critico;
     if (slot < CAPACIDADE_DE_INIMIGOS) this.numeroDoSlot[slot] = k;
     this.numerosVivos++;
-  }
-
-  private criarMorte(e: Estado, i: number): void {
-    const m = this.mortes;
-    let k = 0;
-    while (k < CAPACIDADE_DE_MORTES && m.ativo[k] === 1) k++;
-    if (k === CAPACIDADE_DE_MORTES) {
-      this.recusados.mortes++;
-      return;
-    }
-    const u32 = e.eventos.u32;
-    const f32 = e.eventos.f32;
-    m.ativo[k] = 1;
-    m.x[k] = f32[i + EV.floats]!;
-    m.y[k] = f32[i + EV.floats + 1]!;
-    m.tipo[k] = u32[i + EV.inimigoFlagsCausa]! & 0xff;
-    m.passo[k] = u32[i + EV.passo]!;
-  }
-
-  private criarEfeito(e: Estado, i: number, tipo: number): void {
-    const ef = this.efeitos;
-    let k = 0;
-    while (k < CAPACIDADE_DE_EFEITOS && ef.ativo[k] === 1) k++;
-    if (k === CAPACIDADE_DE_EFEITOS) {
-      this.recusados.efeitos++;
-      return;
-    }
-    const u32 = e.eventos.u32;
-    const f32 = e.eventos.f32;
-    ef.ativo[k] = 1;
-    ef.tipo[k] = tipo;
-    ef.forma[k] = (u32[i + EV.tipoArmaForma]! >>> 16) & 0xff;
-    ef.passo[k] = u32[i + EV.passo]!;
-    ef.a[k] = f32[i + EV.floats]!;
-    ef.b[k] = f32[i + EV.floats + 1]!;
-    ef.c[k] = f32[i + EV.floats + 2]!;
-    ef.d[k] = f32[i + EV.floats + 3]!;
   }
 }
 

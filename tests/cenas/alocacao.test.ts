@@ -15,8 +15,11 @@ import { Session } from 'node:inspector/promises';
 import { describe, expect, it } from 'vitest';
 import inimigos from '../../src/dados/inimigos.json';
 import { HordaPorGPU } from '../../src/cenas/render/escritores';
+import { MEMBROS_DAS_ARMAS, MEMBROS_DOS_DIGITOS, prepararArmas, prepararMortes, prepararNumeros, prepararStatus } from '../../src/cenas/render/armas';
+import { CamadaPorGPU, criarSaidaDeSprites } from '../../src/cenas/render/camadas';
+import { CAPACIDADE_DE_MORTES, EfeitosDaVigilia } from '../../src/cenas/render/efeitos';
 import { criarSaidaDaHorda, criarTabelaDeDesenho, prepararHorda } from '../../src/cenas/render/horda';
-import { MUNDO, criarEstado } from '../../src/logica/nucleo/estado';
+import { CAPACIDADE_DE_INIMIGOS, MUNDO, criarEstado } from '../../src/logica/nucleo/estado';
 import { avancar } from '../../src/logica/nucleo/passo';
 import { quantosAtivos } from '../../src/logica/nucleo/pool';
 import { parametrosDoCenario } from '../../src/plataforma/cenarios';
@@ -87,23 +90,38 @@ describe('alocação no caminho quente (E4)', () => {
   // E6 (design/decisoes-F-004.md §8): com as armas matando, o diretor repõe o tempo todo e o caminho de nascer
   // fica morno. Aquecimento de 9.000 passos (2,5 min de jogo): com 3.000, as funções da aura e da salva, que
   // retornam cedo na maioria dos passos, ainda não foram otimizadas pelo TurboFan e o interpretador guarda cada
-  // double como objeto (≈ 215 B/passo medidos); com 9.000, 12 a 13 B/passo em 3 rodadas, quase tudo no caminho de
-  // nascer (funções chamadas a cada reposição, que ficam no interpretador).
+  // double como objeto (≈ 215 B/passo medidos); com 9.000 e o render das armas (consumidor do anel, preparos e as 4
+  // camadas GPU novas), 12,6 a 13,2 B/passo em 3 rodadas, quase tudo no caminho de nascer (funções chamadas a cada
+  // reposição, que ficam no interpretador).
   it(`com as 3 armas no nv8 matando na linha 19 (E6), ${MEDIDOS} passos e quadros: ≤ ${LIMITE} B por passo, sem lista branca`, async () => {
     const e = criarEstado(1, D, { ...parametrosDoCenario('tres_armas'), linhaFixa: 19, teto: 300 });
     const { cena } = criarCena();
     const escritor = new HordaPorGPU(cena, false);
     const tabela = criarTabelaDeDesenho(inimigos.inimigos, D.tipos.existe);
     const saida = criarSaidaDaHorda();
+    // O render das armas: o consumidor do anel, os preparos e os escritores GPU das 4 camadas novas.
+    const ef = new EfeitosDaVigilia(D.tipos);
+    const camada = (n: number) => ({ gpu: new CamadaPorGPU(cena, n, false), saida: criarSaidaDeSprites(n) });
+    const [mortes, status, armas, digitos] = [camada(CAPACIDADE_DE_MORTES), camada(CAPACIDADE_DE_INIMIGOS), camada(MEMBROS_DAS_ARMAS), camada(MEMBROS_DOS_DIGITOS)];
     const { porPasso, maiores } = await medir((n) => {
       for (let k = 0; k < n; k++) {
         avancar(e, D, PARADO, 1);
+        ef.consumir(e, true);
         prepararHorda(e, 0.5, 585, 1266, saida);
         escritor.escrever(saida, tabela);
+        prepararMortes(ef, e, 0.5, 585, 1266, tabela, mortes.saida);
+        mortes.gpu.escrever(mortes.saida);
+        prepararStatus(e, saida, status.saida);
+        status.gpu.escrever(status.saida);
+        prepararArmas(e, D, ef, 0.5, 585, 1266, 585, 1266, armas.saida);
+        armas.gpu.escrever(armas.saida);
+        prepararNumeros(ef, e, 0.5, 585, 1266, digitos.saida);
+        digitos.gpu.escrever(digitos.saida);
       }
     }, AQUECIMENTO_COM_ARMAS);
+    expect(ef.leitor.perdidos).toBe(0);
     // As armas matam o tempo todo (≈ 0,03 por passo medido): o caminho de nascer e de morrer é exercitado.
     expect(e.mundo[MUNDO.mortes]! / (AQUECIMENTO_COM_ARMAS + MEDIDOS)).toBeGreaterThan(0.02);
     expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
-  }, 180_000);
+  }, 240_000);
 });
