@@ -12,8 +12,9 @@
 #   3. build de produção (dist/) e build de debug (dist-debug/);
 #   4. Playwright no projeto taps-game, com a mesma seed;
 #   5. confere as evidências da feature listadas em feature_list.json: geradas
-#      nesta execução, PNG com as dimensões do nome, logs com iguais=true e
-#      relatórios .json com aprovado: true (avisa se o fps não foi conferido).
+#      nesta execução, PNG com as dimensões do nome, logs com iguais=true,
+#      relatórios .json com aprovado: true (avisa se o fps não foi conferido) e
+#      .md com uma linha "aprovado:" só se ela for "aprovado: true".
 # O crítico independente (nota ≥ 7) e o commit ficam fora do script.
 set -euo pipefail
 
@@ -26,7 +27,7 @@ while [[ $# -gt 0 ]]; do
     --feature) valor "$@"; FEATURE="$2"; shift 2 ;;
     --seed) valor "$@"; SEED="$2"; shift 2 ;;
     --taps-game) PROJETO="taps-game"; shift ;;
-    -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "verify: argumento desconhecido: $1" >&2; exit 2 ;;
   esac
 done
@@ -88,6 +89,10 @@ node -e '
       const t = fs.readFileSync(arquivo, "utf-8");
       if (/iguais=false/.test(t)) return "há iguais=false";
       if (!/iguais=true/.test(t)) return "sem nenhum iguais=true";
+    }
+    if (arquivo.endsWith(".md")) {
+      const linhas = fs.readFileSync(arquivo, "utf-8").split("\n").filter((l) => /^\s*aprovado:/.test(l));
+      if (linhas.some((l) => l.trim() !== "aprovado: true")) return "aprovado não é true";
     }
     if (arquivo.endsWith(".json")) {
       const j = JSON.parse(fs.readFileSync(arquivo, "utf-8"));

@@ -3,7 +3,8 @@
 // Cada caso roda o ESLint do projeto sobre um trecho, num caminho virtual.
 import { describe, expect, it } from 'vitest';
 import { ESLint } from 'eslint';
-import { dirname, join } from 'node:path';
+import { readFileSync, readdirSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -64,6 +65,48 @@ describe('fronteiras de src/logica (ADR-0002 §2 e §5)', () => {
   it('aceita a aritmética exata', async () => {
     const ok = 'export const v = Math.sqrt(2) + Math.imul(3, 5) + Math.floor(1.5) + Math.fround(0.1) + (7 % 3);';
     expect(await regras(ok, LOGICA)).toEqual([]);
+  });
+});
+
+describe('a lista densa do pool só no pool (design/decisoes-F-004.md §4, Remoções)', () => {
+  it.each([
+    ['declare const p: { ativos: Int32Array };\nexport const s = p.ativos[0];'],
+    ["declare const p: { ativos: Int32Array };\nexport const s = p['ativos'][0];"],
+    ['declare const p: { ativos: Int32Array };\nconst { ativos } = p;\nexport const s = ativos[0];'],
+  ])('%s → no-restricted-syntax', async (codigo) => {
+    expect(await regras(codigo, 'src/logica/armas/__trecho__.ts')).toContain('no-restricted-syntax');
+  });
+
+  it('pool.ts lê a lista densa; fora de src/logica a regra não vale', async () => {
+    const codigo = 'declare const p: { ativos: Int32Array };\nexport const s = p.ativos[0];';
+    expect(await regras(codigo, 'src/logica/nucleo/pool.ts')).toEqual([]);
+    expect(await regras(codigo, CENAS)).toEqual([]);
+  });
+});
+
+/** Arquivos .ts de uma pasta, recursivo. */
+function arquivosTs(pasta: string): string[] {
+  return readdirSync(pasta, { withFileTypes: true }).flatMap((d) =>
+    d.isDirectory() ? arquivosTs(join(pasta, d.name)) : d.name.endsWith('.ts') ? [join(pasta, d.name)] : [],
+  );
+}
+
+describe('a simulação só escreve no anel de eventos (design/decisoes-F-004.md §4)', () => {
+  it('em src/logica, fora de eventos.ts, o anel só aparece em gravarEvento e esvaziarAnel, e nada importa as leituras', () => {
+    const achados: string[] = [];
+    for (const arquivo of arquivosTs(join(RAIZ, 'src', 'logica'))) {
+      const nome = relative(RAIZ, arquivo);
+      if (nome === join('src', 'logica', 'nucleo', 'eventos.ts')) continue;
+      readFileSync(arquivo, 'utf-8').split('\n').forEach((linha, i) => {
+        const usos = linha.match(/\.eventos\b/g)?.length ?? 0;
+        const gravados = linha.match(/(gravarEvento|esvaziarAnel)\(\w+\.eventos\b/g)?.length ?? 0;
+        if (usos > gravados) achados.push(`${nome}:${i + 1}: ${linha.trim()}`);
+        if (/\b(eventosEscritos|inicioDoEvento|LeitorDeEventos)\b/.test(linha) && !/^\s*(\/\/|\*)/.test(linha)) {
+          achados.push(`${nome}:${i + 1}: ${linha.trim()}`);
+        }
+      });
+    }
+    expect(achados).toEqual([]);
   });
 });
 

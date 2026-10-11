@@ -1,5 +1,6 @@
 // Lint do projeto: TypeScript recomendado + fronteiras da simulação (ADR-0002 §2 e §5),
-// Phaser só em src/cenas, textos visíveis só por t(id) e glossário (Q-31).
+// a lista densa do pool só no pool (design/decisoes-F-004.md §4), Phaser só em
+// src/cenas, textos visíveis só por t(id) e glossário (Q-31).
 import js from '@eslint/js';
 import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
@@ -29,6 +30,24 @@ const MODULOS_DO_NODE = {
   regex: '^(node:|(fs|path|os|crypto|timers|perf_hooks|process|child_process|worker_threads|util|events)(/|$))',
   message: 'src/logica não usa módulos do Node (ADR-0002 §2).',
 };
+
+const SINTAXE_DA_LOGICA = [
+  { selector: "BinaryExpression[operator='**']", message: 'O operador ** é aproximado (ADR-0002 §5).' },
+  { selector: "AssignmentExpression[operator='**=']", message: 'O operador **= é aproximado (ADR-0002 §5).' },
+  { selector: 'ImportExpression', message: 'src/logica não usa import() dinâmico (ADR-0002 §2).' },
+  {
+    selector: "CallExpression[callee.property.name='sort'][arguments.length=0]",
+    message: 'A simulação nunca ordena sem critério de desempate (ADR-0002 §5).',
+  },
+];
+
+/** A simulação percorre os slots por índice; a lista densa `ativos` só conta e aloca, dentro do pool. */
+const MENSAGEM_DE_ATIVOS = 'Fora de pool.ts, src/logica não lê a lista densa `ativos` (design/decisoes-F-004.md §4, Remoções).';
+const LER_ATIVOS = [
+  { selector: "MemberExpression[property.name='ativos']", message: MENSAGEM_DE_ATIVOS },
+  { selector: "MemberExpression[computed=true][property.value='ativos']", message: MENSAGEM_DE_ATIVOS },
+  { selector: "ObjectPattern > Property[key.name='ativos']", message: MENSAGEM_DE_ATIVOS },
+];
 
 export default defineConfig(
   { ignores: ['dist/', 'dist-debug/', 'node_modules/', 'coverage/', 'test-results/', 'playwright-report/', '.verify/', 'design/', 'docs/', 'production/'] },
@@ -72,17 +91,13 @@ export default defineConfig(
         { object: 'Math', property: 'random', message: 'Use o RNG com seed de src/logica/nucleo/rng (ADR-0002 §5).' },
         ...MATEMATICA_APROXIMADA,
       ],
-      'no-restricted-syntax': [
-        'error',
-        { selector: "BinaryExpression[operator='**']", message: 'O operador ** é aproximado (ADR-0002 §5).' },
-        { selector: "AssignmentExpression[operator='**=']", message: 'O operador **= é aproximado (ADR-0002 §5).' },
-        { selector: 'ImportExpression', message: 'src/logica não usa import() dinâmico (ADR-0002 §2).' },
-        {
-          selector: "CallExpression[callee.property.name='sort'][arguments.length=0]",
-          message: 'A simulação nunca ordena sem critério de desempate (ADR-0002 §5).',
-        },
-      ],
+      'no-restricted-syntax': ['error', ...SINTAXE_DA_LOGICA, ...LER_ATIVOS],
     },
+  },
+  {
+    // O pool é o dono da lista densa (design/decisoes-F-004.md §4, Remoções).
+    files: ['src/logica/nucleo/pool.ts'],
+    rules: { 'no-restricted-syntax': ['error', ...SINTAXE_DA_LOGICA] },
   },
   {
     // Q-31: o glossário vale para todo o código (os testes do detector desligam a regra no arquivo).

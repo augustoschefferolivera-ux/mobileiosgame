@@ -12,6 +12,7 @@ import { arredondarParaOPixel } from '../../src/cenas/render/camera';
 import { FLOATS_POR_MEMBRO, HordaPorGPU, OFFSET, tintOpaco } from '../../src/cenas/render/escritores';
 import { criarSaidaDaHorda, criarTabelaDeDesenho, prepararHorda } from '../../src/cenas/render/horda';
 import { escalaPara } from '../../src/cenas/render/atlas';
+import { COR_DO_CRITICO } from '../../src/cenas/render/armas';
 import { criarEstado } from '../../src/logica/nucleo/estado';
 import { semear, proximoUnitario } from '../../src/logica/nucleo/rng';
 import { nascerInimigo, removerInimigo } from '../../src/logica/mundo/inimigos';
@@ -161,6 +162,31 @@ describe('cores dos inimigos (V1)', () => {
         for (const m of [DEUTERANOPIA, PROTANOPIA]) expect(de2000(simular(a, m), simular(b, m))).toBeGreaterThanOrEqual(17.5);
       }
     }
+  });
+});
+
+describe('pares de cor aceitos abaixo de 14 (V6, design/decisoes-F-004.md §6)', () => {
+  /** Cada par com o ΔE2000 medido e o motivo de ficar abaixo do mínimo da V1 da F-003. */
+  const ACEITOS = [
+    {
+      par: 'sal × branco',
+      a: COR.sal,
+      b: 0xffffff,
+      de: 6.5,
+      motivo: 'as armas são de sal (doc 13 §1.3); nenhum efeito de arma usa branco e nenhuma área em sal é preenchida',
+    },
+    {
+      par: 'crítico × brasa',
+      a: COR_DO_CRITICO,
+      b: COR.brasa,
+      de: 9.8,
+      motivo: 'o número crítico tem contorno escuro, é 1,5× maior e fica numa camada acima da cunha em brasa',
+    },
+  ];
+  it.each(ACEITOS)('$par: ΔE2000 ≈ $de, aceito porque $motivo', ({ a, b, de }) => {
+    const medido = de2000(rgb(a), rgb(b));
+    expect(medido).toBeLessThan(14);
+    expect(Math.abs(medido - de)).toBeLessThan(0.05);
   });
 });
 
