@@ -3,6 +3,7 @@
 // de debug. Os campos dos sistemas que ainda não existem entram com as suas
 // features (jogador, chefe, save, teto, degradacao, cpuFrameMs, build...).
 import type Phaser from 'phaser';
+import { fonteConstante, fonteDoRoteiro, validarRoteiro, type Roteiro } from '../logica/nucleo/comandos';
 import { BYTES_ESTADO, CAB, hashEstado } from '../logica/nucleo/estado';
 import { hex8 } from '../logica/nucleo/hash';
 import { avancar } from '../logica/nucleo/passo';
@@ -22,6 +23,15 @@ function bytesDoCanvas(jogo: Phaser.Game): number {
   const gl = (jogo.renderer as Partial<Phaser.Renderer.WebGL.WebGLRenderer>).gl;
   if (!gl) return width * height * 4 * 2;
   return bytesDoBackbuffer(width, height, atributosDe(gl));
+}
+
+export interface EntradaDebug {
+  /**
+   * Impõe ComandosDoPasso por passo absoluto (design/decisoes-F-002.md §6 e §8),
+   * para o driver e para avancar, desde o passo 0 se chamado antes da Vigília.
+   * `null` volta à entrada ao vivo. Só no build de debug.
+   */
+  roteiro?: (lista: Roteiro | null) => void;
 }
 
 export interface GameDebug {
@@ -44,6 +54,7 @@ export interface GameDebug {
   readonly desbloqueioDoAudio: string | null;
   /** `locked` do SoundManager do Phaser: só o nosso desbloqueio o leva a false (F-001.14). */
   readonly somTravado: boolean;
+  readonly entrada: EntradaDebug;
   hash(): string | null;
   audio(): string;
   pausar?: () => void;
@@ -109,6 +120,7 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     get somTravado() {
       return jogo.sound.locked;
     },
+    entrada: {},
     hash() {
       return ctx.simulacao ? hex8(hashEstado(ctx.simulacao.estado)) : null;
     },
@@ -123,6 +135,12 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     };
     debug.retomar = () => {
       if (ctx.simulacao) ctx.simulacao.pausada = false;
+    };
+    debug.entrada.roteiro = (lista) => {
+      if (lista) validarRoteiro(lista);
+      ctx.roteiro = lista ? lista.map((t) => ({ ...t })) : null;
+      const sim = ctx.simulacao;
+      if (sim) sim.fonte = ctx.roteiro ? fonteDoRoteiro(ctx.roteiro) : fonteConstante(sim.comandosAoVivo);
     };
     debug.avancar = (n: number) => {
       const sim = ctx.simulacao;

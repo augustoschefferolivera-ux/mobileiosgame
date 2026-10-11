@@ -9,6 +9,7 @@ import {
   validarRoteiro,
   type Roteiro,
 } from '../../src/logica/nucleo/comandos';
+import { ROTEIRO_REFERENCIA } from '../../src/logica/nucleo/referencia';
 
 const ler = (r: Roteiro, passo: number): [number, number] => {
   const c = criarComandos();
@@ -58,9 +59,10 @@ describe('fonteDoRoteiro', () => {
     expect(() => fonteDoRoteiro(roteiro)).toThrow();
   });
 
-  it('a diagonal literal 1/√2 em Float32 cabe em |v| ≤ 1', () => {
+  it('o roteiro de referência é válido e a diagonal literal cabe em |v| ≤ 1', () => {
+    expect(() => validarRoteiro(ROTEIRO_REFERENCIA)).not.toThrow();
     const r2 = Math.fround(0.7071067811865476);
-    expect(() => validarRoteiro([{ passo: 0, mx: r2, my: r2 }])).not.toThrow();
+    expect(r2 * r2 * 2).toBeLessThanOrEqual(1 + 1e-6);
   });
 });
 

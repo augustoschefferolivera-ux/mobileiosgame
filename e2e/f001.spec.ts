@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { alvosDoAcender } from '../src/entrada/alvos';
 import { BYTES_ESTADO } from '../src/logica/nucleo/estado';
-import { PASSOS_REFERENCIA, SEED_PADRAO } from '../src/logica/nucleo/referencia';
+import { PASSOS_REFERENCIA, ROTEIRO_REFERENCIA, SEED_PADRAO } from '../src/logica/nucleo/referencia';
 import { insetsZerados, type Insets } from '../src/plataforma/safeArea';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -28,6 +28,7 @@ interface Debug {
   eventos: { evento: string; passo: number; campos: Record<string, unknown> }[];
   desbloqueioDoAudio: string | null;
   somTravado: boolean;
+  entrada: { roteiro(lista: unknown): void };
   hash(): string | null;
   audio(): string;
   pausar(): void;
@@ -223,6 +224,8 @@ test('F-001.11: mesmo hash da seed no passo 1.000 no Vitest (Node) e no Chromium
   expect(ref.seed).toBe(SEED);
   expect(ref.passos).toBe(PASSOS_REFERENCIA);
   await abrir(page);
+  // O mesmo roteiro de ComandosDoPasso do Vitest, desde o passo 0 (design/decisoes-F-002.md §6).
+  await page.evaluate((roteiro) => window.__GAME_DEBUG__.entrada.roteiro(roteiro), ROTEIRO_REFERENCIA);
   await tocarAcender(page);
   await proximoFrame(page);
   const r = await page.evaluate((alvo) => {

@@ -43,6 +43,7 @@ export function iniciarJogo(): Phaser.Game {
     simulacao: null,
     audioSilencioso: criarAudioSilencioso(document),
     desbloqueioDoAudio: null,
+    roteiro: null,
   };
 
   const jogo = new Phaser.Game({

@@ -1,6 +1,7 @@
-# F-001 — log do teste de determinismo (Vitest, Node)
-# gerado em 2026-10-11T01:57:13.186Z com Node v22.22.0
-# referencia: seed=1 passos=1000 hash=faad4a1f (comparado pela Playwright, F-001.11)
-seed=1 passos=1000 execucao1=faad4a1f execucao2=faad4a1f iguais=true
-1 passo/frame: 1000 frames hash=faad4a1f; 5 passos/frame: 200 frames hash=faad4a1f; iguais=true
-chromium (Playwright): seed=1 passos=1000 (3 pelo driver real + 997 por avancar) hash=faad4a1f iguais=true
+# F-001 — log do teste de determinismo (Vitest, Node); desde a F-002, com o roteiro de ComandosDoPasso
+# gerado em 2026-10-11T04:01:06.665Z com Node v22.22.0
+# referencia: seed=1 passos=1000 hash=3510977e (comparado pela Playwright, F-001.11)
+seed=1 passos=1000 execucao1=3510977e execucao2=3510977e iguais=true
+roteiro: costura x no passo 258, costura y no passo 962, 91 passos de deslize
+1 passo/frame: 1000 frames hash=3510977e; 5 passos/frame: 200 frames hash=3510977e; iguais=true
+chromium (Playwright): seed=1 passos=1000 (6 pelo driver real + 994 por avancar) hash=3510977e iguais=true
