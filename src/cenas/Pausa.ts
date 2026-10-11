@@ -6,7 +6,7 @@
 // modo pausa: esta cena só desenha. Som, Flashes, estatísticas e Abandonar
 // entram nas F-006 e F-007.
 import Phaser from 'phaser';
-import { alvosDaTelaDePausa, type Alvo } from '../entrada/alvos';
+import { CAIXA_DA_OPCAO, alvosDaTelaDePausa, caixaDaOpcao, type Alvo } from '../entrada/alvos';
 import { IDS_DE_ARMA } from '../logica/armas/tabela';
 import { VAGAS_DE_ARMA } from '../logica/nucleo/estado';
 import { ALTURA_LOGICA, LARGURA_LOGICA } from '../plataforma/safeArea';
@@ -18,10 +18,6 @@ import { t } from './textos';
 const ALFA_DO_VEU = 0.6;
 /** Transições ≤ 200 ms (doc 11 §1). */
 const FADE_MS = 200;
-/** Caixa da opção: 28 pt, borda de 2 pt (P9). */
-const CAIXA_PT = 28;
-const BORDA_PT = 2;
-const MARGEM_DA_LINHA = 20;
 const ENTRE_LINHAS_DA_BUILD = 24;
 const ENTRE_NOME_E_NIVEL = 12;
 
@@ -135,7 +131,7 @@ export class Pausa extends Phaser.Scene {
       if (nome.visible) y += ENTRE_LINHAS_DA_BUILD;
     }
     const [opcao, cont] = this.alvos;
-    this.rotuloDaOpcao!.setPosition(opcao!.x + MARGEM_DA_LINHA, opcao!.y + opcao!.altura / 2);
+    this.rotuloDaOpcao!.setPosition(opcao!.x + CAIXA_DA_OPCAO.margem, opcao!.y + opcao!.altura / 2);
     this.continuar!.setPosition(cont!.x + cont!.largura / 2, cont!.y + cont!.altura / 2);
     this.desenharBotoes();
   }
@@ -149,12 +145,11 @@ export class Pausa extends Phaser.Scene {
       g.fillStyle(COR.cinzaFrio).fillRect(a.x, a.y, a.largura, a.altura);
       g.lineStyle(2, COR.laranjaQueimado).strokeRect(a.x, a.y, a.largura, a.altura);
     }
-    const opcao = this.alvos[0]!;
-    const x = opcao.x + opcao.largura - MARGEM_DA_LINHA - CAIXA_PT;
-    const y = opcao.y + (opcao.altura - CAIXA_PT) / 2;
-    if (ligada) g.fillStyle(COR.osso).fillRect(x, y, CAIXA_PT, CAIXA_PT);
-    else g.fillStyle(COR.pedra, ALFA_DO_VEU).fillRect(x, y, CAIXA_PT, CAIXA_PT);
-    g.lineStyle(BORDA_PT, COR.osso).strokeRect(x + BORDA_PT / 2, y + BORDA_PT / 2, CAIXA_PT - BORDA_PT, CAIXA_PT - BORDA_PT);
+    const { lado, borda } = CAIXA_DA_OPCAO;
+    const { x, y } = caixaDaOpcao(this.alvos[0]!);
+    if (ligada) g.fillStyle(COR.osso).fillRect(x, y, lado, lado);
+    else g.fillStyle(COR.pedra, ALFA_DO_VEU).fillRect(x, y, lado, lado);
+    g.lineStyle(borda, COR.osso).strokeRect(x + borda / 2, y + borda / 2, lado - borda, lado - borda);
   }
 
   override update(): void {

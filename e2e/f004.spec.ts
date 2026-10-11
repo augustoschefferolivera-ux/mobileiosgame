@@ -5,7 +5,8 @@
 import { expect, test, type CDPSession, type Page } from '@playwright/test';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { alvoDaPausa, alvosDaTelaDePausa } from '../src/entrada/alvos';
+import { CAIXA_DA_OPCAO, alvoDaPausa, alvosDaTelaDePausa, caixaDaOpcao } from '../src/entrada/alvos';
+import { COR } from '../src/cenas/paleta';
 import { insetsZerados } from '../src/plataforma/safeArea';
 import { EVIDENCIAS, RAIZ, SEED, abrir, esperarIguais, paraPagina, proximoFrame, tocarAcender } from './apoio';
 
@@ -86,6 +87,26 @@ async function tocar(page: Page, p: { x: number; y: number }): Promise<void> {
   await page.touchscreen.tap(q.x, q.y);
 }
 
+/** Cor (r, g, b) do canvas num ponto em pt, pelos pixels na escala do dispositivo. */
+async function corNoCanvas(page: Page, p: { x: number; y: number }): Promise<number[]> {
+  const png = await page.locator('#jogo canvas').screenshot({ scale: 'device' });
+  return page.evaluate(
+    async ({ b64, x, y }) => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${b64}`;
+      await img.decode();
+      const c = document.createElement('canvas');
+      [c.width, c.height] = [img.width, img.height];
+      const ctx = c.getContext('2d', { willReadFrequently: true })!;
+      ctx.drawImage(img, 0, 0);
+      return Array.from(ctx.getImageData(Math.floor((x * img.width) / 390), Math.floor((y * img.height) / 844), 1, 1).data.slice(0, 3));
+    },
+    { b64: png.toString('base64'), x: p.x, y: p.y },
+  );
+}
+const rgb = (cor: number): number[] => [(cor >> 16) & 255, (cor >> 8) & 255, cor & 255];
+const distancia = (a: number[], b: number[]): number => Math.max(...a.map((v, i) => Math.abs(v - b[i]!)));
+
 const pausa = (page: Page) => page.evaluate(() => window.__GAME_DEBUG__.pausa);
 const passo = (page: Page) => page.evaluate(() => window.__GAME_DEBUG__.passo);
 
@@ -128,12 +149,21 @@ test('F-004.5: com a opção desligada na pausa, nenhum número vivo enquanto os
   test.setTimeout(150_000);
   await abrir(page, TRES_ARMAS);
   await tocarAcender(page);
-  await page.waitForFunction(() => window.__GAME_DEBUG__.ultimosEventos.some((e) => e.tipo === 'acerto') || window.__GAME_DEBUG__.passo >= 400, null, { timeout: 60_000 });
+  // Só pausa depois do 1º acerto (no tres_armas, entre os passos 158 e 190).
+  await page.waitForFunction(() => window.__GAME_DEBUG__.ultimosEventos.some((e) => e.tipo === 'acerto'), null, { timeout: 60_000 });
+  const caixa = caixaDaOpcao(OPCAO!);
+  const meioDaCaixa = { x: caixa.x + CAIXA_DA_OPCAO.lado / 2, y: caixa.y + CAIXA_DA_OPCAO.lado / 2 };
   const alternar = async (ligada: boolean): Promise<number> => {
     await tocar(page, centro(BOTAO));
     await page.waitForFunction(() => window.__GAME_DEBUG__.pausa.ativa);
     await tocar(page, centro(OPCAO!));
     await page.waitForFunction((l) => window.__GAME_DEBUG__.opcoes.numerosDeDano === l, ligada);
+    // A caixa (P9): cheia de osso quando ligada; vazia (o véu sobre o botão) quando desligada. Depois do fade de 200 ms.
+    await page.waitForTimeout(300);
+    await proximoFrame(page);
+    const cor = await corNoCanvas(page, meioDaCaixa);
+    if (ligada) expect(distancia(cor, rgb(COR.osso)), `caixa ligada: ${cor}`).toBeLessThanOrEqual(2);
+    else expect(distancia(cor, rgb(COR.osso)), `caixa desligada: ${cor}`).toBeGreaterThan(60);
     await tocar(page, centro(CONTINUAR!));
     await page.waitForFunction(() => !window.__GAME_DEBUG__.pausa.ativa);
     return passo(page);
@@ -149,9 +179,11 @@ test('F-004.5: com a opção desligada na pausa, nenhum número vivo enquanto os
   const acertosDepois = await page.evaluate((f) => window.__GAME_DEBUG__.ultimosEventos.filter((e) => e.tipo === 'acerto' && e.passo > f).length, fim);
   expect(acertosDepois).toBeGreaterThan(0);
   const religada = await alternar(true);
-  await page.waitForFunction((r) => window.__GAME_DEBUG__.numerosDeDano > 0 || window.__GAME_DEBUG__.passo > r + 60, religada);
-  const r = await page.evaluate(() => ({ n: window.__GAME_DEBUG__.numerosDeDano, passo: window.__GAME_DEBUG__.passo }));
-  expect(r.n, `no passo ${r.passo}`).toBeGreaterThan(0);
+  // O passo em que o 1º número novo aparece: até 60 passos depois do Continuar (o tick da aura sai a cada 30).
+  const aparece = await (
+    await page.waitForFunction(() => (window.__GAME_DEBUG__.numerosDeDano > 0 ? window.__GAME_DEBUG__.passo : 0), null, { timeout: 30_000 })
+  ).jsonValue();
+  expect(aparece - religada, `número no passo ${aparece}, Continuar no ${religada}`).toBeLessThanOrEqual(60);
 });
 
 test.describe('F-004.6: botão, gesto e tela de pausa', () => {

@@ -6,14 +6,18 @@ import { criarCena } from './phaserFalso';
 import type Phaser from 'phaser';
 import { describe, expect, it } from 'vitest';
 import inimigos from '../../src/dados/inimigos.json';
-import { COR_DO_CRITICO, DIGITOS_POR_NUMERO, prepararMortes, prepararNumeros } from '../../src/cenas/render/armas';
+import { COR_DO_CRITICO, DIGITOS_POR_NUMERO, MEMBROS_DAS_ARMAS, prepararArmas, prepararMortes, prepararNumeros, prepararStatus } from '../../src/cenas/render/armas';
 import { FONTE_DOS_DIGITOS, MOLDURA } from '../../src/cenas/render/atlas';
 import { CamadaPorGPU, OFFSET_DA_ORIGEM, criarSaidaDeSprites, indiceDaMoldura } from '../../src/cenas/render/camadas';
 import { CAPACIDADE_DE_MORTES, CAPACIDADE_DE_NUMEROS, EfeitosDaVigilia, digitosDe } from '../../src/cenas/render/efeitos';
 import { FLOATS_POR_MEMBRO, OFFSET } from '../../src/cenas/render/escritores';
-import { criarTabelaDeDesenho } from '../../src/cenas/render/horda';
+import { criarSaidaDaHorda, criarTabelaDeDesenho, prepararHorda } from '../../src/cenas/render/horda';
+import { liberarProjetil, rodarArmas } from '../../src/logica/armas/armas';
+import { ARMA } from '../../src/logica/armas/tabela';
+import { removerInimigo } from '../../src/logica/mundo/inimigos';
+import { J, estadoCom, por } from '../logica/armas/apoio';
 import { COR } from '../../src/cenas/paleta';
-import { CAB, criarEstado, type Estado } from '../../src/logica/nucleo/estado';
+import { CAB, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PROJETEIS, criarEstado, type Estado } from '../../src/logica/nucleo/estado';
 import { CAUSA, EVENTO, FLAG, FLOATS_DO_EVENTO, FORMA, gravarEvento } from '../../src/logica/nucleo/eventos';
 import { avancar } from '../../src/logica/nucleo/passo';
 import { TIPO } from '../../src/logica/mundo/tipos';
@@ -207,6 +211,125 @@ describe('mortes (V5)', () => {
     e.cab[CAB.passo] = 42;
     prepararMortes(ef, e, 1, 585, 1266, tabela, s);
     expect(s.visivel[k]).toBe(0);
+  });
+});
+
+describe('desenho das armas (V1 a V4)', () => {
+  const ANEL = indiceDaMoldura('anel');
+  /** A camada das armas com a câmera e o jogador interpolado no jogador parado em J (alfa 1). */
+  function preparar(e: Estado, ef: EfeitosDaVigilia): ReturnType<typeof criarSaidaDeSprites> {
+    const out = criarSaidaDeSprites(MEMBROS_DAS_ARMAS);
+    prepararArmas(e, D, ef, 1, J.x, J.y, J.x, J.y, out);
+    return out;
+  }
+  /** Um golpe ou pulso sintético no anel, consumido no passo dele. */
+  function efeito(e: Estado, ef: EfeitosDaVigilia, passo: number, tipo: number, forma: number, f: [number, number, number, number]): number {
+    FLOATS_DO_EVENTO.set(f);
+    gravarEvento(e.eventos, passo, tipo, ARMA.espada_longa_do_juramento, forma, -1, 0, 0, 0, 0);
+    consumirEm(ef, e, passo);
+    return CAPACIDADE_DE_PROJETEIS + 5 + ef.efeitos.ativo.indexOf(1);
+  }
+
+  it('anel da aura (V3): só nas vagas de aura, centrado no jogador, com 2R de diâmetro (128 no nv1, 192 no nv8), sal a 60%', () => {
+    for (const [nivel, R] of [
+      [1, 64],
+      [8, 96],
+    ] as const) {
+      const e = estadoCom([
+        [ARMA.espada_longa_do_juramento, 1],
+        [ARMA.circulo_de_sal, nivel],
+      ]);
+      const out = preparar(e, new EfeitosDaVigilia(D.tipos));
+      const [espada, aura] = [CAPACIDADE_DE_PROJETEIS, CAPACIDADE_DE_PROJETEIS + 1];
+      expect([out.visivel[espada], out.visivel[aura], out.visivel[aura + 1]]).toEqual([0, 1, 0]);
+      expect([out.x[aura], out.y[aura], out.moldura[aura], out.cor[aura]]).toEqual([J.x, J.y, ANEL, COR.sal]);
+      expect(MOLDURA.anel.largura * out.escalaX[aura]!, `nv${nivel}`).toBeCloseTo(2 * R, 9);
+      expect(out.alpha[aura]).toBeCloseTo(0.6, 9);
+    }
+  });
+
+  it('faca (V2): um membro por projétil vivo, 4 × 16 pt em sal, girada pelo voo (para cima, 0); o slot liberado some', () => {
+    const e = estadoCom([[ARMA.facas_de_sal, 1]]);
+    por(e, TIPO.oco_das_lanternas, 0, -100);
+    rodarArmas(e, D);
+    const vivas: number[] = [];
+    for (let p = 0; p < CAPACIDADE_DE_PROJETEIS; p++) if (e.poolDeProjeteis.posicao[p]! >= 0) vivas.push(p);
+    expect(vivas).toHaveLength(2);
+    let out = preparar(e, new EfeitosDaVigilia(D.tipos));
+    for (const p of vivas) {
+      expect([out.visivel[p], out.moldura[p], out.cor[p]]).toEqual([1, indiceDaMoldura('faca'), COR.sal]);
+      expect([MOLDURA.faca.largura * out.escalaX[p]!, MOLDURA.faca.altura * out.escalaY[p]!]).toEqual([4, 16]);
+      expect(out.rotacao[p]).toBeCloseTo(0, 9);
+      expect([out.x[p], out.y[p]]).toEqual([e.projeteis.x[p], e.projeteis.y[p]]);
+    }
+    expect(Array.from(out.visivel.subarray(0, CAPACIDADE_DE_PROJETEIS)).filter((v) => v === 1)).toHaveLength(2);
+    liberarProjetil(e, vivas[0]!);
+    out = preparar(e, new EfeitosDaVigilia(D.tipos));
+    expect([out.visivel[vivas[0]!], out.visivel[vivas[1]!]]).toEqual([0, 1]);
+  });
+
+  it('golpe (V1): cunha em brasa com raio R e a ponta no jogador, alpha 0,5 → 0,25 na idade 4; some na idade 8', () => {
+    const e = criarEstado(1, D);
+    const ef = new EfeitosDaVigilia(D.tipos);
+    const k = efeito(e, ef, 10, EVENTO.golpe, FORMA.ida, [0, -1, 64, 0]);
+    let out = preparar(e, ef);
+    expect([out.visivel[k], out.moldura[k], out.cor[k], out.x[k], out.y[k]]).toEqual([1, indiceDaMoldura('cunha'), COR.brasa, J.x, J.y]);
+    expect([out.origemX[k], out.origemY[k]]).toEqual([0.5, 1]);
+    expect(MOLDURA.cunha.altura * out.escalaY[k]!).toBeCloseTo(64, 9);
+    expect(out.rotacao[k]).toBeCloseTo(0, 9);
+    expect(out.alpha[k]).toBeCloseTo(0.5, 9);
+    consumirEm(ef, e, 14);
+    out = preparar(e, ef);
+    expect(out.alpha[k]).toBeCloseTo(0.25, 9);
+    consumirEm(ef, e, 18);
+    expect(preparar(e, ef).visivel[k]).toBe(0);
+  });
+
+  it('estocada (V1): retângulo de L × 2w a partir do jogador, ao longo da mira (para a direita, girado 90°)', () => {
+    const e = criarEstado(1, D);
+    const ef = new EfeitosDaVigilia(D.tipos);
+    const k = efeito(e, ef, 10, EVENTO.golpe, FORMA.estocada, [1, 0, 115.2, 19.2]);
+    const out = preparar(e, ef);
+    expect([out.visivel[k], out.moldura[k], out.cor[k]]).toEqual([1, indiceDaMoldura('quadrado'), COR.brasa]);
+    expect(MOLDURA.quadrado.largura * out.escalaX[k]!).toBeCloseTo(2 * 19.2, 4);
+    expect(MOLDURA.quadrado.altura * out.escalaY[k]!).toBeCloseTo(115.2, 4);
+    expect(out.rotacao[k]).toBeCloseTo(Math.PI / 2, 9);
+  });
+
+  it('pulso (V3): o anel cresce 96 px em 12 passos (na idade 6, raio R + 48 e alpha 0,3) e some na idade 12', () => {
+    const e = criarEstado(1, D);
+    const ef = new EfeitosDaVigilia(D.tipos);
+    const k = efeito(e, ef, 10, EVENTO.pulso, 0, [0, 0, 96, 12]);
+    consumirEm(ef, e, 16);
+    const out = preparar(e, ef);
+    expect([out.visivel[k], out.moldura[k], out.cor[k]]).toEqual([1, ANEL, COR.sal]);
+    expect(MOLDURA.anel.largura * out.escalaX[k]!).toBeCloseTo(2 * 144, 9);
+    expect(out.alpha[k]).toBeCloseTo(0.3, 9);
+    consumirEm(ef, e, 22);
+    expect(preparar(e, ef).visivel[k]).toBe(0);
+  });
+
+  it('Sal no inimigo (V4): losango de 8 pt em sal na posição da horda, só com salPassos > 0 e só no slot vivo', () => {
+    const e = estadoCom([]);
+    const s = por(e, TIPO.oco_grande, 0, -100);
+    const outro = por(e, TIPO.oco_das_lanternas, 60, 0);
+    const horda = criarSaidaDaHorda();
+    const out = criarSaidaDeSprites(CAPACIDADE_DE_INIMIGOS);
+    prepararHorda(e, 1, J.x, J.y, horda);
+    prepararStatus(e, horda, out);
+    expect([out.visivel[s], out.visivel[outro]]).toEqual([0, 0]);
+    e.inimigos.salPct[s] = 50;
+    e.inimigos.salPassos[s] = 10;
+    prepararStatus(e, horda, out);
+    expect([out.visivel[s], out.visivel[outro], out.moldura[s], out.cor[s]]).toEqual([1, 0, indiceDaMoldura('losango'), COR.sal]);
+    expect([out.x[s], out.y[s]]).toEqual([horda.x[s], horda.y[s]]);
+    expect(MOLDURA.losango.largura * out.escalaX[s]!).toBe(8);
+    // Slot vazio na horda: não desenha, mesmo com um salPassos que sobrasse no slot.
+    removerInimigo(e, s);
+    e.inimigos.salPassos[s] = 10;
+    prepararHorda(e, 1, J.x, J.y, horda);
+    prepararStatus(e, horda, out);
+    expect(out.visivel[s]).toBe(0);
   });
 });
 

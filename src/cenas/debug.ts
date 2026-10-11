@@ -349,7 +349,7 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
       return {
         inimigos: e?.mundo[MUNDO.recusados] ?? 0,
         projeteis: e?.mundo[MUNDO.projeteisRecusados] ?? 0,
-        efeitos: 0,
+        efeitos: ef?.recusados.efeitos ?? 0,
         pickups: 0,
         numeros: ef?.recusados.numeros ?? 0,
         mortes: ef?.recusados.mortes ?? 0,

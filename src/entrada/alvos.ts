@@ -118,6 +118,17 @@ export function alvosDaTelaDePausa(insets: Insets, out: Alvo[]): Alvo[] {
   return out;
 }
 
+/** Caixa da opção de números (P9): 28 pt com borda de 2 pt, a 20 pt da direita da linha, centrada na altura. */
+export const CAIXA_DA_OPCAO = { lado: 28, borda: 2, margem: 20 } as const;
+
+/** Canto superior esquerdo da caixa da opção, em pt, dentro do alvo `numeros` da tela de pausa. */
+export function caixaDaOpcao(opcao: Alvo): { x: number; y: number } {
+  return {
+    x: opcao.x + opcao.largura - CAIXA_DA_OPCAO.margem - CAIXA_DA_OPCAO.lado,
+    y: opcao.y + (opcao.altura - CAIXA_DA_OPCAO.lado) / 2,
+  };
+}
+
 /** Todas as telas com alvos; o teste de safe-area (F-001.13 e F-002.7) percorre esta tabela. */
 export const ALVOS_POR_TELA: Record<string, (insets: Insets, out: Alvo[]) => Alvo[]> = {
   acender: alvosDoAcender,
