@@ -4,7 +4,6 @@
 // acerto em curso passa por ACERTO, para nenhum double atravessar a chamada.
 import { CAB, CAPACIDADE_DE_INIMIGOS, VAGAS_DE_ARMA, type Estado } from '../nucleo/estado';
 import { EVENTO, FLAG, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
-import type { DadosDaVigilia } from '../mundo/dados';
 
 /** Resultados das consultas à grade (rascunho). */
 export const ACHADOS = new Int32Array(CAPACIDADE_DE_INIMIGOS);
@@ -36,10 +35,10 @@ export function acertar(e: Estado, s: number, arma: number, forma: number, salPc
 }
 
 /**
- * Dano de um disparo da vaga, em DANO[vaga]: o da tabela por (arma, nível),
- * calculado no boot pela fórmula única (Poder, atributos e multiplicadores não
- * mudam durante a Vigília na F-004). Lido no passo em que a vaga age.
+ * Dano de um disparo da vaga, em DANO[vaga]: o dano vivo por (arma, nível),
+ * refeito pela fórmula única quando mudam os atributos ou o Poder
+ * (decisoes-F-005 P4). Lido no passo em que a vaga age.
  */
-export function calcularDano(dados: DadosDaVigilia, vaga: number, i: number): void {
-  DANO[vaga] = dados.armas.danoDoNivel[i]!;
+export function calcularDano(e: Estado, vaga: number, i: number): void {
+  DANO[vaga] = e.derivados.danoVivo[i]!;
 }

@@ -2,7 +2,7 @@
 // armas de arquétipo "mais próximo" (Facas) e o voo, o acerto e a perfuração
 // dos projéteis em voo. A salva grava direto nos campos do pool; o voo e o
 // acerto ficam em linha, sem double atravessando chamada.
-import { CAB, CAPACIDADE_DE_PROJETEIS, JOGADOR, MUNDO, PERFURACAO_INFINITA, TIPO_DE_PROJETIL, type Estado } from '../nucleo/estado';
+import { CAPACIDADE_DE_PROJETEIS, JOGADOR, MUNDO, PERFURACAO_INFINITA, TIPO_DE_PROJETIL, type Estado } from '../nucleo/estado';
 import { FORMA, SEM_ALVO } from '../nucleo/eventos';
 import { alocar, liberar, quantosAtivos } from '../nucleo/pool';
 import type { DadosDaVigilia } from '../mundo/dados';
@@ -11,6 +11,7 @@ import { grade } from '../mundo/horda';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../mundo/toro';
 import { ACERTO, ACHADOS, DANO, acertar, calcularDano } from './acerto';
 import { indiceDoNivel } from './tabela';
+import { limiteDeProjeteis, projeteisEEfeitos } from './ondas';
 
 const NP = CAPACIDADE_DE_PROJETEIS;
 /** Candidatos de uma salva no máximo: 5 facas no nv8 + 1 da esquiva perfeita (F-006). */
@@ -18,10 +19,6 @@ export const MAX_CANDIDATOS = 6;
 const CAND_SLOT = new Int32Array(MAX_CANDIDATOS);
 const CAND_D2 = new Float64Array(MAX_CANDIDATOS);
 
-/** Limite lógico de projéteis: 200 com TETO 300 e 400 com TETO 500 (leitura de B §3.13; decisoes-F-004 §4). */
-export function limiteDeProjeteis(e: Estado): number {
-  return e.cab[CAB.teto] === 500 ? 400 : 200;
-}
 
 /**
  * Salva (W9 a W13): se a recarga venceu e há candidatos com o centro no
@@ -73,7 +70,7 @@ export function rodarMaisProximo(e: Estado, dados: DadosDaVigilia, v: number): v
     if (M < limite) M++;
   }
   if (M === 0) return;
-  calcularDano(dados, v, i);
+  calcularDano(e, v, i);
   const dano = Math.fround(DANO[v]!);
   const vel = t.velocidade[i]!;
   const vida = t.vida[i]!;
@@ -105,7 +102,7 @@ export function rodarMaisProximo(e: Estado, dados: DadosDaVigilia, v: number): v
       ux = j[JOGADOR.dirX]!;
       uy = j[JOGADOR.dirY]!;
     }
-    if (quantosAtivos(pool) >= limiteLogico) {
+    if (projeteisEEfeitos(e) >= limiteLogico) {
       e.mundo[MUNDO.projeteisRecusados] = e.mundo[MUNDO.projeteisRecusados]! + 1;
       continue;
     }

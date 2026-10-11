@@ -19,10 +19,12 @@ import { grade, listarVivos, vivos } from '../mundo/horda';
 import { matarInimigo } from '../mundo/inimigos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../mundo/toro';
 import { ACERTO, ACHADOS, DANO, acertar, calcularDano } from './acerto';
+import { criarOnda, rodarOndas } from './ondas';
 import { moverProjeteis, rodarMaisProximo } from './projeteis';
 import { ARQUETIPO, GOLPES_MAXIMOS, indiceDoNivel } from './tabela';
 
-export { liberarProjetil, limiteDeProjeteis, MAX_CANDIDATOS } from './projeteis';
+export { liberarProjetil, MAX_CANDIDATOS } from './projeteis';
+export { limiteDeProjeteis } from './ondas';
 
 const N = CAPACIDADE_DE_INIMIGOS;
 /** cos 60° e sen 60° literais (ADR-0002 §5): o setor de 120° sem trigonometria. */
@@ -35,6 +37,8 @@ export function rodarArmas(e: Estado, dados: DadosDaVigilia): void {
   reconstruirGrade(grade, e.inimigos.x, e.inimigos.y, vivos, n);
   // 7b. Projéteis em voo (os disparados em 7c só andam no passo seguinte).
   moverProjeteis(e, dados);
+  // 7b'. Ondas de chão (decisoes-F-005 U5; as criadas em 7c só agem no passo seguinte).
+  rodarOndas(e, dados);
   // 7c. Vagas, em ordem (W17).
   const b = e.build;
   const arquetipo = dados.armas.arquetipo;
@@ -49,7 +53,7 @@ export function rodarArmas(e: Estado, dados: DadosDaVigilia): void {
   // 7d. Mortes, em slot crescente: a pilha de livres recebe os slots em ordem.
   const pos = e.pool.posicao;
   const hp = e.inimigos.hp;
-  for (let s = 0; s < N; s++) if (pos[s]! >= 0 && hp[s]! <= 0) matarInimigo(e, s, CAUSA.arma);
+  for (let s = 0; s < N; s++) if (pos[s]! >= 0 && hp[s]! <= 0) matarInimigo(e, dados, s, CAUSA.arma);
 }
 
 // ——— Direção do movimento (Espada) ———
@@ -100,7 +104,7 @@ function golpear(e: Estado, dados: DadosDaVigilia, v: number, forma: number): vo
   const t = dados.armas;
   const codigo = e.build.codigo[v]!;
   const i = indiceDoNivel(codigo, e.build.nivel[v]!);
-  calcularDano(dados, v, i);
+  calcularDano(e, v, i);
   ACERTO[0] = DANO[v]!;
   const j = e.jogador;
   const jx = j[JOGADOR.x]!;
@@ -116,6 +120,8 @@ function golpear(e: Estado, dados: DadosDaVigilia, v: number, forma: number): vo
   FLOATS_DO_EVENTO[2] = estocada ? L : R;
   FLOATS_DO_EVENTO[3] = estocada ? w : 0;
   gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.golpe, codigo, forma, -1, 0, 0, 0, 0);
+  // Uma onda por golpe da arma com onda (União, decisoes-F-005 U3), antes dos acertos do golpe.
+  if (t.ondaVida[codigo]! > 0) criarOnda(e, codigo);
   const rMax = dados.tipos.raioMaximo;
   CONSULTA[0] = jx;
   CONSULTA[1] = jy;
@@ -208,7 +214,7 @@ function rodarAura(e: Estado, dados: DadosDaVigilia, v: number): void {
   const ini = e.inimigos;
   const raio = dados.tipos.raio;
   if (tick) {
-    calcularDano(dados, v, i);
+    calcularDano(e, v, i);
     ACERTO[0] = DANO[v]!;
     const salPct = t.salPct[i]!;
     const salPassos = t.salPassos[i]!;
