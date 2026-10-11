@@ -12,7 +12,7 @@ import { armadura, poderPct } from '../../../src/logica/progressao/atributos';
 import { rodarPickups, soltarBau } from '../../../src/logica/progressao/pickups';
 import { custoDoNivel, hpMaximo } from '../../../src/logica/progressao/tabela';
 import progressao from '../../../src/dados/progressao.json';
-import { PARADO } from '../apoio';
+import { PARADO, SEM_CINZAS } from '../apoio';
 import { eventos, por } from '../armas/apoio';
 import { D, ELMO, ESPADA, LUVAS, P, cinzaEm, estadoDe } from './apoio';
 
@@ -186,5 +186,18 @@ describe('Ímã e coleta (X4; F-005.5)', () => {
     avancar(a, D, PARADO, 40);
     for (let k = 0; k < 8; k++) avancar(b, D, PARADO, 5);
     expect(hashEstado(a)).toBe(hashEstado(b));
+  });
+});
+
+describe('Vigília normal parada (E6, teste-guarda)', () => {
+  it('seed 1: o 1º modal não abre antes do passo 700 e abre até o 760 (medido: 723); com SEM_CINZAS, nunca', () => {
+    const e = criarEstado(1, D);
+    const rodados = avancar(e, D, PARADO, 760);
+    expect(rodados).toBeGreaterThanOrEqual(700);
+    expect(rodados).toBeLessThan(760);
+    expect(e.progresso[P.niveisPendentes]).toBe(1);
+    const s = criarEstado(1, D, SEM_CINZAS);
+    expect(avancar(s, D, PARADO, 2000)).toBe(2000);
+    expect(s.progresso[P.nivel]).toBe(1);
   });
 });

@@ -9,10 +9,10 @@ import { BYTES_DO_ANEL } from '../src/logica/nucleo/eventos';
 import { CAPACIDADE_DE_MORTES } from '../src/cenas/render/efeitos';
 import { PASSOS_REFERENCIA, ROTEIRO_REFERENCIA } from '../src/logica/nucleo/referencia';
 import { insetsZerados, type Insets } from '../src/plataforma/safeArea';
-import { EVIDENCIAS, RAIZ, SEED, SEM_HORDA, abrir, paraPagina, proximoFrame, tocarAcender } from './apoio';
+import { EVIDENCIAS, RAIZ, SEED, SEM_CINZAS, SEM_HORDA, abrir, paraPagina, proximoFrame, tocarAcender } from './apoio';
 
 test('F-001.2 e F-001.7: 390 × 844 sem barras de rolagem, viewport-fit=cover e screenshot', async ({ page }, info) => {
-  await abrir(page);
+  await abrir(page, SEM_CINZAS);
   const m = await page.evaluate(() => ({
     sh: document.scrollingElement!.scrollHeight,
     sw: document.scrollingElement!.scrollWidth,
@@ -46,7 +46,7 @@ test('F-001.2 e F-001.7: 390 × 844 sem barras de rolagem, viewport-fit=cover e 
 });
 
 test('F-001.4 e F-001.3: áudio suspended antes e running depois do toque; o passo avança', async ({ page }) => {
-  await abrir(page);
+  await abrir(page, SEM_CINZAS);
   expect(await page.evaluate(() => window.__GAME_DEBUG__.audio())).toBe('suspended');
   // Sem toque, nada retoma o áudio nem começa a Vigília.
   await page.waitForTimeout(500);
@@ -75,7 +75,7 @@ test('F-001.4 e F-001.3: áudio suspended antes e running depois do toque; o pas
 });
 
 test('F-001.6: o canvas fica em 780 × 1688 depois de resize e rotação', async ({ page }) => {
-  await abrir(page);
+  await abrir(page, SEM_CINZAS);
   const medir = (): Promise<[number, number, string]> =>
     page.evaluate(() => {
       const c = document.querySelector<HTMLCanvasElement>('#jogo canvas')!;
@@ -105,7 +105,7 @@ test('F-001.6: o canvas fica em 780 × 1688 depois de resize e rotação', async
 });
 
 test('F-001.8: touchmove não passivo com preventDefault; touch-action none', async ({ page }) => {
-  await abrir(page);
+  await abrir(page, SEM_CINZAS);
   const r = await page.evaluate(() => {
     const canvas = document.querySelector<HTMLCanvasElement>('#jogo canvas')!;
     const mover = (alvo: EventTarget): boolean => {
@@ -203,7 +203,7 @@ test('F-001.15: telemetria local em __GAME_DEBUG__.eventos, sem rede', async ({ 
   page.on('request', (req) => {
     if (carregou && /^https?:/.test(req.url())) depoisDaCarga.push(req.url());
   });
-  await abrir(page);
+  await abrir(page, SEM_CINZAS);
   await page.waitForLoadState('networkidle');
   carregou = true;
   await tocarAcender(page);
@@ -249,7 +249,7 @@ test('__GAME_DEBUG__: fps, vivos por tipo, passos perdidos e memória (B §4 F-0
 });
 
 test('driver real: ≈ 60 passos por segundo e pausa observada entre frames', async ({ page }) => {
-  await abrir(page);
+  await abrir(page, SEM_CINZAS);
   await tocarAcender(page);
   const ler = (): Promise<[number, number]> => page.evaluate(() => [window.__GAME_DEBUG__.passo, performance.now()]);
   const [p0, t0] = await ler();
@@ -273,7 +273,7 @@ test('F-001.7 e F-001.13 de ponta a ponta: insets emulados chegam aos alvos em p
   await cdp.send('Emulation.setSafeAreaInsetsOverride', {
     insets: { top: insets.topo, right: insets.direita, bottom: insets.baixo, left: insets.esquerda },
   });
-  await abrir(page);
+  await abrir(page, SEM_CINZAS);
   // 390 × 844 sem letterbox: 1 px CSS = 1 pt.
   expect(await page.evaluate(() => window.__GAME_DEBUG__.safeArea)).toEqual(insets);
   const semInsets = alvosDoAcender(insetsZerados(), [])[0]!;
@@ -288,7 +288,7 @@ test('F-001.7 e F-001.13 de ponta a ponta: insets emulados chegam aos alvos em p
 });
 
 test('o desbloqueio acontece no touchend, não no touchstart (B §3.14)', async ({ page }) => {
-  await abrir(page);
+  await abrir(page, SEM_CINZAS);
   const b = alvosDoAcender(insetsZerados(), [])[0]!;
   const p = await paraPagina(page, b.x + b.largura / 2, b.y + b.altura / 2);
   const cdp = await page.context().newCDPSession(page);

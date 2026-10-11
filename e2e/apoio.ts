@@ -15,6 +15,11 @@ export const SEED = Number(process.env['VDC_SEED'] ?? SEED_PADRAO);
 export const EVIDENCIAS = process.env['VDC_EVIDENCIAS'] === '1';
 /** Vigília sem diretor (design/decisoes-F-003.md §5, T3): os testes de movimento das F-001 e F-002. */
 export const SEM_HORDA = '&cenario=sem_horda';
+/**
+ * A Vigília normal sem Cinzas (design/decisoes-F-005.md §5, E6): parada, a normal abre o 1º level up no
+ * passo 723 (seed 1); os specs antigos que passam de 600 passos sem tratar o modal usam esta receita.
+ */
+export const SEM_CINZAS = '&cenario=vigilia_sem_cinzas';
 
 /** O contrato do __GAME_DEBUG__ (src/cenas/debug.ts), com os ganchos do build de debug, que é o que a Playwright serve. */
 export type Debug = Omit<GameDebug, 'entrada'> &

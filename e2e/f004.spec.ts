@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { CAIXA_DA_OPCAO, alvoDaPausa, alvosDaTelaDePausa, caixaDaOpcao } from '../src/entrada/alvos';
 import { COR } from '../src/cenas/paleta';
 import { insetsZerados } from '../src/plataforma/safeArea';
-import { EVIDENCIAS, RAIZ, SEED, abrir, esperarIguais, paraPagina, proximoFrame, tocarAcender } from './apoio';
+import { EVIDENCIAS, RAIZ, SEED, SEM_CINZAS, abrir, esperarIguais, paraPagina, proximoFrame, tocarAcender } from './apoio';
 
 const TRES_ARMAS = '&cenario=tres_armas&teto=300';
 const INSETS = insetsZerados();
@@ -188,7 +188,7 @@ test('F-004.5: com a opção desligada na pausa, nenhum número vivo enquanto os
 
 test.describe('F-004.6: botão, gesto e tela de pausa', () => {
   test('(a) botão: pausa com origem botao; passo, relógio e hash parados; a tela mostra a build sem o que é das F-006 e F-007', async ({ page }) => {
-    await abrir(page, '&teto=300');
+    await abrir(page, '&teto=300' + SEM_CINZAS);
     await tocarAcender(page);
     const toque = await dedos(page);
     // Começar no botão e soltar fora não pausa.
@@ -211,7 +211,7 @@ test.describe('F-004.6: botão, gesto e tela de pausa', () => {
   });
 
   test('(b) gesto: dois dedos parados na metade de cima por 1 s pausam; 300 ms, movidos 20 pt ou um deles no joystick, não', async ({ page }) => {
-    await abrir(page, '&teto=300');
+    await abrir(page, '&teto=300' + SEM_CINZAS);
     await tocarAcender(page);
     const toque = await dedos(page);
     const lerToques = await gravarToques(page);
@@ -241,7 +241,7 @@ test.describe('F-004.6: botão, gesto e tela de pausa', () => {
   });
 
   test('(c, d) Continuar: fora não retoma; nele retoma sem rajada; o joystick só volta com um toque novo', async ({ page }) => {
-    await abrir(page, '&teto=300');
+    await abrir(page, '&teto=300' + SEM_CINZAS);
     await tocarAcender(page);
     const dedo = dedosNoDom(page);
     // Um dedo no joystick, empurrando para a direita, e o outro toca o botão de pausa.
