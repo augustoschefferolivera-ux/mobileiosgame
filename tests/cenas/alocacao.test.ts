@@ -16,12 +16,14 @@ import { describe, expect, it } from 'vitest';
 import inimigos from '../../src/dados/inimigos.json';
 import { HordaPorGPU } from '../../src/cenas/render/escritores';
 import { MEMBROS_DAS_ARMAS, MEMBROS_DOS_DIGITOS, prepararArmas, prepararMortes, prepararNumeros, prepararStatus } from '../../src/cenas/render/armas';
+import { MEMBROS_DO_MUNDO, prepararMundo } from '../../src/cenas/render/pickups';
 import { CamadaPorGPU, criarSaidaDeSprites } from '../../src/cenas/render/camadas';
 import { CAPACIDADE_DE_MORTES, EfeitosDaVigilia } from '../../src/cenas/render/efeitos';
 import { criarSaidaDaHorda, criarTabelaDeDesenho, prepararHorda } from '../../src/cenas/render/horda';
-import { CAPACIDADE_DE_INIMIGOS, MUNDO, criarEstado } from '../../src/logica/nucleo/estado';
+import { CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, MUNDO, TIPO_DE_PICKUP, criarEstado } from '../../src/logica/nucleo/estado';
 import { avancar } from '../../src/logica/nucleo/passo';
-import { quantosAtivos } from '../../src/logica/nucleo/pool';
+import { ARMA } from '../../src/logica/armas/tabela';
+import { alocar, quantosAtivos } from '../../src/logica/nucleo/pool';
 import { parametrosDoCenario } from '../../src/plataforma/cenarios';
 import { DADOS_DA_CHARNECA as D, PARADO } from '../logica/apoio';
 
@@ -99,13 +101,16 @@ describe('alocação no caminho quente (E4)', () => {
     const escritor = new HordaPorGPU(cena, false);
     const tabela = criarTabelaDeDesenho(inimigos.inimigos, D.tipos.existe);
     const saida = criarSaidaDaHorda();
-    // O render das armas: o consumidor do anel, os preparos e os escritores GPU das 4 camadas novas.
+    // O render das armas: o mundo (obstáculos e pickups), o consumidor do anel, os preparos e os escritores GPU das 4 camadas novas.
     const ef = new EfeitosDaVigilia(D.tipos);
     const camada = (n: number) => ({ gpu: new CamadaPorGPU(cena, n, false), saida: criarSaidaDeSprites(n) });
+    const mundo = camada(MEMBROS_DO_MUNDO);
     const [mortes, status, armas, digitos] = [camada(CAPACIDADE_DE_MORTES), camada(CAPACIDADE_DE_INIMIGOS), camada(MEMBROS_DAS_ARMAS), camada(MEMBROS_DOS_DIGITOS)];
     const { porPasso, maiores } = await medir((n) => {
       for (let k = 0; k < n; k++) {
         avancar(e, D, PARADO, 1);
+        prepararMundo(e, D, 0.5, 585, 1266, mundo.saida);
+        mundo.gpu.escrever(mundo.saida);
         ef.consumir(e, true);
         prepararHorda(e, 0.5, 585, 1266, saida);
         escritor.escrever(saida, tabela);
@@ -124,4 +129,39 @@ describe('alocação no caminho quente (E4)', () => {
     expect(e.mundo[MUNDO.mortes]! / (AQUECIMENTO_COM_ARMAS + MEDIDOS)).toBeGreaterThan(0.02);
     expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
   }, 240_000);
+  // F-005 R1 e U6: o mundo com o pool de pickups cheio (Cinzas das 3 faixas e baús) e as ondas vivas, só o render.
+  it(`render do mundo com 512 pickups e 20 ondas vivas, ${MEDIDOS} quadros: ≤ ${LIMITE} B por quadro, sem lista branca`, async () => {
+    const e = criarEstado(1, D, { ...parametrosDoCenario('tres_armas'), linhaFixa: 19, teto: 300 });
+    for (let k = 0; k < CAPACIDADE_DE_PICKUPS; k++) {
+      const s = alocar(e.poolDePickups);
+      e.pickups.x[s] = e.pickups.xAnt[s] = 400 + (k % 64) * 7.25;
+      e.pickups.y[s] = e.pickups.yAnt[s] = 1000 + Math.floor(k / 64) * 41.5;
+      e.pickups.valor[s] = [1, 7, 30][k % 3]!;
+      e.pickups.tipo[s] = k % 100 === 0 ? TIPO_DE_PICKUP.bauDourado : k % 50 === 0 ? TIPO_DE_PICKUP.bauComum : TIPO_DE_PICKUP.cinza;
+    }
+    for (let k = 0; k < 20; k++) {
+      const o = alocar(e.poolDeEfeitos);
+      e.efeitos.x[o] = 585 + k;
+      e.efeitos.y[o] = 1266;
+      e.efeitos.dirX[o] = 1;
+      e.efeitos.idade[o] = 1 + (k % 14);
+      e.efeitos.arma[o] = ARMA.lamina_do_juramento_eterno;
+    }
+    const { cena } = criarCena();
+    const ef = new EfeitosDaVigilia(D.tipos);
+    const mundo = { gpu: new CamadaPorGPU(cena, MEMBROS_DO_MUNDO, false), saida: criarSaidaDeSprites(MEMBROS_DO_MUNDO) };
+    const armas = { gpu: new CamadaPorGPU(cena, MEMBROS_DAS_ARMAS, false), saida: criarSaidaDeSprites(MEMBROS_DAS_ARMAS) };
+    let alfa = 0;
+    const { porPasso, maiores } = await medir((n) => {
+      for (let k = 0; k < n; k++) {
+        alfa = (alfa + 0.37) % 1;
+        prepararMundo(e, D, alfa, 585, 1266, mundo.saida);
+        mundo.gpu.escrever(mundo.saida);
+        prepararArmas(e, D, ef, alfa, 585, 1266, 585, 1266, armas.saida);
+        armas.gpu.escrever(armas.saida);
+      }
+    });
+    expect(mundo.saida.visivel.reduce((a, v) => a + v, 0)).toBe(54 + CAPACIDADE_DE_PICKUPS);
+    expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
+  }, 120_000);
 });

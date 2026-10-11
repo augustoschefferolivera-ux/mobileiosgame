@@ -165,6 +165,86 @@ describe('cores dos inimigos (V1)', () => {
   });
 });
 
+describe('cores das Cinzas e dos baús (R3, design/decisoes-F-005.md)', () => {
+  const CINZAS = { azul: COR.cinzaAzul, verde: COR.cinzaVerde, vermelha: COR.cinzaVermelha };
+  const BAUS = { comum: COR.bauBronze, dourado: COR.bauOuro };
+  const INIMIGOS = COR_DO_INIMIGO;
+  /** As reservadas sem as próprias Cinzas e baús: contra as Cinzas entram as outras cores do doc 13 §1.3. */
+  const RESERVADAS = [COR.fundo, COR.cinzaFrio, COR.pedra, COR.brasa, COR.laranjaQueimado, 0x7a1f1f, 0xff2a2a, COR.osso, COR.sal, 0xffffff, 0xffd166];
+  const nomeDe = (c: number): string => c.toString(16).padStart(6, '0');
+  /** Bronze × ouro escuro (ΔE ≈ 8,5) não entra na regra: o dourado tem o contorno escuro como 2º canal. */
+  const contraBaus: number[] = Object.values(BAUS);
+  const cinzas = Object.values(CINZAS);
+  const todas = [...cinzas, ...contraBaus];
+
+  it('as Cinzas são as da Q-27 e os baús, bronze #b08d57 e ouro escuro #a8841f', () => {
+    expect([CINZAS.azul, CINZAS.verde, CINZAS.vermelha, BAUS.comum, BAUS.dourado]).toEqual([0x5aa9e6, 0x6cc57c, 0xc8324b, 0xb08d57, 0xa8841f]);
+  });
+
+  it('ΔE2000 ≥ 14 de cada Cinza e baú contra as reservadas e os inimigos, e de cada baú contra as Cinzas', () => {
+    for (const c of todas) {
+      for (const r of [...RESERVADAS, ...Object.values(INIMIGOS), ...(contraBaus.includes(c) ? cinzas : [])]) {
+        expect(de2000(rgb(c), rgb(r)), `${nomeDe(c)} × ${nomeDe(r)}`).toBeGreaterThanOrEqual(14);
+      }
+    }
+  });
+
+  it('as Cinzas: ΔE2000 ≥ 18 entre si e ≥ 17,5 em deuteranopia e protanopia', () => {
+    for (let i = 0; i < cinzas.length; i++) {
+      for (let j = i + 1; j < cinzas.length; j++) {
+        const [a, b] = [cinzas[i]!, cinzas[j]!];
+        expect(de2000(rgb(a), rgb(b)), `${nomeDe(a)} × ${nomeDe(b)}`).toBeGreaterThanOrEqual(18);
+        for (const m of [DEUTERANOPIA, PROTANOPIA]) expect(de2000(simular(a, m), simular(b, m))).toBeGreaterThanOrEqual(17.5);
+      }
+    }
+  });
+
+  it('contraste ≥ 3:1 contra o fundo #1a1f2b e contra os obstáculos #2b3340, com a vermelha × obstáculo aceita', () => {
+    for (const c of todas) {
+      expect(contraste(c, COR.fundo), `${nomeDe(c)} × fundo`).toBeGreaterThanOrEqual(3);
+      if (c === CINZAS.vermelha) continue;
+      expect(contraste(c, COR.cinzaFrio), `${nomeDe(c)} × obstáculo`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  /** Pares aceitos fora da regra (R3): a forma e o tamanho são o 2º canal. */
+  const ACEITOS = [
+    {
+      par: 'Cinza vermelha × obstáculo (contraste)',
+      medida: () => contraste(CINZAS.vermelha, COR.cinzaFrio),
+      valor: 2.43,
+      limite: 3,
+      motivo: 'contra o fundo o contraste é 3,15:1; a Cinza é pequena, fica acima do obstáculo plano, e #c8324b é da Q-27',
+    },
+    {
+      par: 'deuteranopia: Cinza vermelha × Oco (ΔE)',
+      medida: () => de2000(simular(CINZAS.vermelha, DEUTERANOPIA), simular(INIMIGOS['oco_das_lanternas']!, DEUTERANOPIA)),
+      valor: 3.7,
+      limite: 14,
+      motivo: 'a Cinza é um losango de 12 × 16 pt e o Oco, um círculo de 32 pt: a forma e o tamanho distinguem',
+    },
+    {
+      par: 'deuteranopia: Cinza verde × Oco (ΔE)',
+      medida: () => de2000(simular(CINZAS.verde, DEUTERANOPIA), simular(INIMIGOS['oco_das_lanternas']!, DEUTERANOPIA)),
+      valor: 14.8,
+      limite: 17.5,
+      motivo: 'losango pequeno contra círculo de 32 pt',
+    },
+    {
+      par: 'deuteranopia: Cinza verde × Oco Grande (ΔE)',
+      medida: () => de2000(simular(CINZAS.verde, DEUTERANOPIA), simular(INIMIGOS['oco_grande']!, DEUTERANOPIA)),
+      valor: 13.5,
+      limite: 14,
+      motivo: 'losango pequeno contra quadrado de 48 pt',
+    },
+  ];
+  it.each(ACEITOS)('$par ≈ $valor, aceito porque $motivo', ({ medida, valor, limite }) => {
+    const m = medida();
+    expect(m).toBeLessThan(limite);
+    expect(Math.abs(m - valor)).toBeLessThan(0.05);
+  });
+});
+
 describe('pares de cor aceitos abaixo de 14 (V6, design/decisoes-F-004.md §6)', () => {
   /** Cada par com o ΔE2000 medido e o motivo de ficar abaixo do mínimo da V1 da F-003. */
   const ACEITOS = [
