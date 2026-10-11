@@ -3,10 +3,11 @@
 // no início da Vigília, fora da grade dinâmica. A colisão é a mesma para o
 // jogador e para os inimigos (a F-003 a usa nos Ocos): um círculo de raio r é
 // empurrado para fora pela menor penetração, ao longo da normal centro a
-// centro, medida pelo delta toroidal. Nada é alocado por passo.
+// centro, medida pelo delta toroidal. Nada é alocado por passo, nem pelo
+// empacotamento de doubles do V8 (a entrada e a saída vão por COLISAO).
 import { FNV_BASE, fnv1aU32 } from '../nucleo/hash';
-import { CELULAS, COLUNAS, LADO_DA_CELULA, LINHAS, celulaDoPonto } from './grade';
-import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, deltaNoToro } from './toro';
+import { CELULAS, COLUNAS, LADO_DA_CELULA, LINHAS } from './grade';
+import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA, deltaNoToro } from './toro';
 
 /** Iterações por passo: a 2ª resolve o empurrão de um obstáculo para dentro de outro (junções). */
 export const ITERACOES_DE_COLISAO = 2;
@@ -75,10 +76,20 @@ export interface Ponto {
 }
 
 /**
- * Empurra o círculo de centro (x, y) e raio `raio` para fora de todos os
- * obstáculos, em ordem fixa de índice, com ITERACOES_DE_COLISAO passadas
- * (decisoes-F-002 §3, passo 3). Centros coincidentes empurram para +x. O resto
- * do movimento fica tangente, e o corpo desliza junto à borda.
+ * Entrada e saída da colisão, sem argumentos double: no V8, cada double
+ * passado a uma chamada não inlinada vira um HeapNumber, e a colisão roda uma
+ * vez por inimigo por passo (design/decisoes-F-003.md §2, laço quente). Quem
+ * chama escreve x, y, raio, movX e movY; a colisão escreve a posição resolvida
+ * em x e y, sem normalizar no toro (quem chama normaliza).
+ */
+export const COLISAO = new Float64Array(5);
+export const ES = { x: 0, y: 1, raio: 2, movX: 3, movY: 4 } as const;
+
+/**
+ * Empurra o círculo de COLISAO para fora de todos os obstáculos, em ordem fixa
+ * de índice, com ITERACOES_DE_COLISAO passadas (decisoes-F-002 §3, passo 3).
+ * Centros coincidentes empurram para +x. O resto do movimento fica tangente,
+ * e o corpo desliza junto à borda.
  *
  * `movX`/`movY` é o deslocamento do passo. Com `desempate` (inimigos), se a
  * componente tangente dele for nula (até TOLERANCIA_DO_DESEMPATE × |mov|) e ele
@@ -87,9 +98,13 @@ export interface Ponto {
  * comprimento da componente normal. O jogador não usa o desempate: andar de
  * frente para um obstáculo só para.
  *
- * Escreve a posição em `out`, sem normalizar no toro (quem chama normaliza) e
- * devolve quantos empurrões houve.
+ * Devolve quantos empurrões houve.
  */
+export function colidirComTodos(o: Obstaculos, desempate: boolean): number {
+  return resolver(o, null, 0, o.n, desempate);
+}
+
+/** Como colidirComTodos, com os argumentos e a saída num Ponto (testes e chamadas fora do laço quente). */
 export function colidirComObstaculos(
   o: Obstaculos,
   x: number,
@@ -100,7 +115,19 @@ export function colidirComObstaculos(
   desempate: boolean,
   out: Ponto,
 ): number {
-  return resolver(o, null, 0, o.n, x, y, raio, movX, movY, desempate, out);
+  escreverEntrada(x, y, raio, movX, movY);
+  const n = colidirComTodos(o, desempate);
+  out.x = COLISAO[ES.x]!;
+  out.y = COLISAO[ES.y]!;
+  return n;
+}
+
+function escreverEntrada(x: number, y: number, raio: number, movX: number, movY: number): void {
+  COLISAO[ES.x] = x;
+  COLISAO[ES.y] = y;
+  COLISAO[ES.raio] = raio;
+  COLISAO[ES.movX] = movX;
+  COLISAO[ES.movY] = movY;
 }
 
 /**
@@ -144,11 +171,22 @@ export function criarObstaculosPorCelula(o: Obstaculos, alcance: number): Obstac
 }
 
 /**
- * Como colidirComObstaculos, mas só contra os obstáculos da célula da posição
- * (x, y), levada ao toro. Com a folga mínima entre obstáculos maior que 2 × o
+ * Como colidirComTodos, mas só contra os obstáculos da célula da posição de
+ * COLISAO, levada ao toro. Com a folga mínima entre obstáculos maior que 2 × o
  * maior raio + o deslocamento do passo, nenhum corpo toca dois obstáculos de uma
  * vez, e o resultado é bit a bit o da lista inteira (teste de equivalência).
  */
+export function colidirNaCelula(o: Obstaculos, porCelula: ObstaculosPorCelula, desempate: boolean): number {
+  // A célula de celulaDoPonto, escrita aqui para não passar doubles.
+  let vx = COLISAO[ES.x]! % LARGURA_DO_MAPA;
+  if (vx < 0) vx += LARGURA_DO_MAPA;
+  let vy = COLISAO[ES.y]! % ALTURA_DO_MAPA;
+  if (vy < 0) vy += ALTURA_DO_MAPA;
+  const c = Math.floor(vy / LADO_DA_CELULA) * COLUNAS + Math.floor(vx / LADO_DA_CELULA);
+  return resolver(o, porCelula.indices, porCelula.inicio[c]!, porCelula.inicio[c + 1]!, desempate);
+}
+
+/** Como colidirNaCelula, com os argumentos e a saída num Ponto (testes). */
 export function colidirComObstaculosDaCelula(
   o: Obstaculos,
   porCelula: ObstaculosPorCelula,
@@ -160,32 +198,31 @@ export function colidirComObstaculosDaCelula(
   desempate: boolean,
   out: Ponto,
 ): number {
-  const c = celulaDoPonto(x, y);
-  return resolver(o, porCelula.indices, porCelula.inicio[c]!, porCelula.inicio[c + 1]!, x, y, raio, movX, movY, desempate, out);
+  escreverEntrada(x, y, raio, movX, movY);
+  const n = colidirNaCelula(o, porCelula, desempate);
+  out.x = COLISAO[ES.x]!;
+  out.y = COLISAO[ES.y]!;
+  return n;
 }
 
-function resolver(
-  o: Obstaculos,
-  indices: Int32Array | null,
-  ini: number,
-  fim: number,
-  x: number,
-  y: number,
-  raio: number,
-  movX: number,
-  movY: number,
-  desempate: boolean,
-  out: Ponto,
-): number {
-  let px = x;
-  let py = y;
+function resolver(o: Obstaculos, indices: Int32Array | null, ini: number, fim: number, desempate: boolean): number {
+  let px = COLISAO[ES.x]!;
+  let py = COLISAO[ES.y]!;
+  const raio = COLISAO[ES.raio]!;
+  const movX = COLISAO[ES.movX]!;
+  const movY = COLISAO[ES.movY]!;
   let empurroes = 0;
   const tangenteNula = desempate ? TOLERANCIA_DO_DESEMPATE * Math.sqrt(movX * movX + movY * movY) : 0;
   for (let it = 0; it < ITERACOES_DE_COLISAO; it++) {
     for (let k = ini; k < fim; k++) {
       const i = indices === null ? k : indices[k]!;
-      const dx = deltaNoToro(o.x[i]!, px, LARGURA_DO_MAPA);
-      const dy = deltaNoToro(o.y[i]!, py, ALTURA_DO_MAPA);
+      // O delta de deltaNoToro, em linha.
+      let dx = px - o.x[i]!;
+      if (dx > MEIA_LARGURA_DO_MAPA) dx -= LARGURA_DO_MAPA;
+      if (dx < -MEIA_LARGURA_DO_MAPA) dx += LARGURA_DO_MAPA;
+      let dy = py - o.y[i]!;
+      if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
+      if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
       const minimo = o.r[i]! + raio;
       const d2 = dx * dx + dy * dy;
       if (d2 >= minimo * minimo) continue;
@@ -211,7 +248,7 @@ function resolver(
       }
     }
   }
-  out.x = px;
-  out.y = py;
+  COLISAO[ES.x] = px;
+  COLISAO[ES.y] = py;
   return empurroes;
 }

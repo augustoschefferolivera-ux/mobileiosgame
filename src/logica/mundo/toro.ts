@@ -10,6 +10,13 @@ export const ALTURA_DA_TELA = 844;
 export const TELAS_POR_LADO = 3;
 export const LARGURA_DO_MAPA = LARGURA_DA_TELA * TELAS_POR_LADO;
 export const ALTURA_DO_MAPA = ALTURA_DA_TELA * TELAS_POR_LADO;
+/**
+ * Meias dimensões, para os laços por inimigo que escrevem o delta e a
+ * normalização em linha: no V8, uma chamada não inlinada que recebe ou devolve
+ * double aloca um HeapNumber (design/decisoes-F-003.md §2, laço quente).
+ */
+export const MEIA_LARGURA_DO_MAPA = LARGURA_DO_MAPA / 2;
+export const MEIA_ALTURA_DO_MAPA = ALTURA_DO_MAPA / 2;
 
 /**
  * Normaliza uma coordenada para [0, L) em Float32 (decisoes-F-002 §3, passo 4):

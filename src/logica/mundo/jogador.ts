@@ -9,15 +9,13 @@ import type { ComandosDoPasso } from '../nucleo/comandos';
 import { CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR, JOGADOR_U8, PROMPT, type Estado } from '../nucleo/estado';
 import { segundosEmPassos } from '../nucleo/passos';
 import type { DadosDaVigilia } from './dados';
-import { colidirComObstaculos, type Ponto } from './obstaculos';
-import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, deltaNoToro, normalizarNoToro } from './toro';
+import { COLISAO, ES, colidirComTodos } from './obstaculos';
+import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from './toro';
 
 /** Hitbox do jogador: círculo de 16 px de raio, centrado no incentro do triângulo (§3). */
 export const RAIO_DO_JOGADOR = 16;
 /** O prompt de mover aparece aos 0:10 de relógio (doc 11 §4): 600 passos. */
 export const PASSO_DO_PROMPT_DE_MOVER = segundosEmPassos(10);
-
-const ponto: Ponto = { x: 0, y: 0 };
 
 /**
  * Move o jogador um passo e devolve se havia intenção de movimento. A
@@ -48,12 +46,23 @@ export function moverJogador(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPa
     dx = mx * dados.velocidadePorPasso;
     dy = my * dados.velocidadePorPasso;
   }
-  ponto.x = x + dx;
-  ponto.y = y + dy;
-  bloquearPelosInimigos(e, dados, x, y, ponto);
-  colidirComObstaculos(dados.obstaculos, ponto.x, ponto.y, RAIO_DO_JOGADOR, dx, dy, false, ponto);
-  j[JOGADOR.x] = normalizarNoToro(ponto.x, LARGURA_DO_MAPA);
-  j[JOGADOR.y] = normalizarNoToro(ponto.y, ALTURA_DO_MAPA);
+  // A posição vai por COLISAO, sem passar doubles (design/decisoes-F-003.md §2, laço quente).
+  COLISAO[ES.x] = x + dx;
+  COLISAO[ES.y] = y + dy;
+  bloquearPelosInimigos(e, dados);
+  COLISAO[ES.raio] = RAIO_DO_JOGADOR;
+  COLISAO[ES.movX] = dx;
+  COLISAO[ES.movY] = dy;
+  colidirComTodos(dados.obstaculos, false);
+  // A normalização de normalizarNoToro, em linha.
+  let nx = Math.fround(COLISAO[ES.x]!);
+  if (nx < 0) nx = Math.fround(nx + LARGURA_DO_MAPA);
+  if (nx >= LARGURA_DO_MAPA) nx = Math.fround(nx - LARGURA_DO_MAPA);
+  let ny = Math.fround(COLISAO[ES.y]!);
+  if (ny < 0) ny = Math.fround(ny + ALTURA_DO_MAPA);
+  if (ny >= ALTURA_DO_MAPA) ny = Math.fround(ny - ALTURA_DO_MAPA);
+  j[JOGADOR.x] = nx;
+  j[JOGADOR.y] = ny;
   return temIntencao;
 }
 
@@ -63,26 +72,39 @@ const PASSADAS_DO_BLOQUEIO = 2;
 /**
  * Bloqueio pelos inimigos (decisoes-F-003 §2, S4), com cada inimigo parado na
  * posição do fim do passo anterior, em ordem de slot, 2 passadas e sem
- * desempate: o jogador é empurrado ao longo da normal só pelo que aumentaria a
- * sobreposição que tinha no início do passo (em (x0, y0)). Centros coincidentes
- * levam o jogador para −x.
+ * desempate: o jogador (em COLISAO) é empurrado ao longo da normal só pelo que
+ * aumentaria a sobreposição que tinha no início do passo (em xAnt, yAnt).
+ * Centros coincidentes levam o jogador para −x. Os deltas de deltaNoToro vão
+ * em linha.
  */
-function bloquearPelosInimigos(e: Estado, dados: DadosDaVigilia, x0: number, y0: number, p: Ponto): void {
+function bloquearPelosInimigos(e: Estado, dados: DadosDaVigilia): void {
   const ini = e.inimigos;
   const pos = e.pool.posicao;
   const raio = dados.tipos.raio;
+  const x0 = e.jogador[JOGADOR.xAnt]!;
+  const y0 = e.jogador[JOGADOR.yAnt]!;
+  let px = COLISAO[ES.x]!;
+  let py = COLISAO[ES.y]!;
   for (let it = 0; it < PASSADAS_DO_BLOQUEIO; it++) {
     for (let s = 0; s < CAPACIDADE_DE_INIMIGOS; s++) {
       if (pos[s]! < 0) continue;
       const ex = ini.x[s]!;
       const ey = ini.y[s]!;
       const soma = raio[ini.tipo[s]!]! + RAIO_DO_JOGADOR;
-      const dx = deltaNoToro(ex, p.x, LARGURA_DO_MAPA);
-      const dy = deltaNoToro(ey, p.y, ALTURA_DO_MAPA);
+      let dx = px - ex;
+      if (dx > MEIA_LARGURA_DO_MAPA) dx -= LARGURA_DO_MAPA;
+      if (dx < -MEIA_LARGURA_DO_MAPA) dx += LARGURA_DO_MAPA;
+      let dy = py - ey;
+      if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
+      if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
       const d2 = dx * dx + dy * dy;
       if (d2 >= soma * soma) continue;
-      const ix = deltaNoToro(ex, x0, LARGURA_DO_MAPA);
-      const iy = deltaNoToro(ey, y0, ALTURA_DO_MAPA);
+      let ix = x0 - ex;
+      if (ix > MEIA_LARGURA_DO_MAPA) ix -= LARGURA_DO_MAPA;
+      if (ix < -MEIA_LARGURA_DO_MAPA) ix += LARGURA_DO_MAPA;
+      let iy = y0 - ey;
+      if (iy > MEIA_ALTURA_DO_MAPA) iy -= ALTURA_DO_MAPA;
+      if (iy < -MEIA_ALTURA_DO_MAPA) iy += ALTURA_DO_MAPA;
       const penInicio = Math.max(0, soma - Math.sqrt(ix * ix + iy * iy));
       let nx = -1;
       let ny = 0;
@@ -94,11 +116,13 @@ function bloquearPelosInimigos(e: Estado, dados: DadosDaVigilia, x0: number, y0:
       }
       const empurrao = soma - d - penInicio;
       if (empurrao > 0) {
-        p.x += nx * empurrao;
-        p.y += ny * empurrao;
+        px += nx * empurrao;
+        py += ny * empurrao;
       }
     }
   }
+  COLISAO[ES.x] = px;
+  COLISAO[ES.y] = py;
 }
 
 /**

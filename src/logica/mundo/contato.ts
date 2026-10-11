@@ -6,7 +6,7 @@
 import { CAB, CAPACIDADE_DE_INIMIGOS, CENARIO, JOGADOR, JOGADOR_U8, type Estado } from '../nucleo/estado';
 import type { DadosDaVigilia } from './dados';
 import { RAIO_DO_JOGADOR } from './jogador';
-import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, deltaNoToro } from './toro';
+import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from './toro';
 
 /** Invulnerabilidade pós-acerto de contato: 0,3 s = 18 passos (B §3.3), contando o do acerto. */
 export const PASSOS_DE_INVULNERABILIDADE = 18;
@@ -50,8 +50,13 @@ export function aplicarContato(e: Estado, dados: DadosDaVigilia): number {
     const tipo = ini.tipo[s]!;
     if (t.contato[tipo] !== 1) continue;
     const alcance = RAIO_DO_JOGADOR + t.raio[tipo]! + FOLGA_DO_CONTATO;
-    const dx = deltaNoToro(jx, ini.x[s]!, LARGURA_DO_MAPA);
-    const dy = deltaNoToro(jy, ini.y[s]!, ALTURA_DO_MAPA);
+    // O delta de deltaNoToro, em linha (no V8, a chamada devolveria um HeapNumber).
+    let dx = ini.x[s]! - jx;
+    if (dx > MEIA_LARGURA_DO_MAPA) dx -= LARGURA_DO_MAPA;
+    if (dx < -MEIA_LARGURA_DO_MAPA) dx += LARGURA_DO_MAPA;
+    let dy = ini.y[s]! - jy;
+    if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
+    if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
     if (dx * dx + dy * dy > alcance * alcance) continue;
     if (ini.dano[s]! > maiorDano) {
       maiorDano = ini.dano[s]!;
