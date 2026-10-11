@@ -8,10 +8,11 @@ o código monta por rotação exata de 90 graus e por negação (src/logica/mund
 de modo que v[k + 64] = (-y, x) e v[k + 128] = -v[k] valem bit a bit.
 
   scripts/gerar-direcoes.py             imprime o bloco de literais do TypeScript
-  scripts/gerar-direcoes.py --conferir  compara com src/logica/mundo/direcoes.ts,
-                                        com tolerância de 1 ulp (sai com 1 se diferir)
+  scripts/gerar-direcoes.py --conferir  compara com src/logica/mundo/direcoes.ts por
+                                        igualdade exata (sai com 1 se diferir): a tabela é
+                                        a fonte bit a bit da simulação, e o gerador arredonda
+                                        corretamente a partir de 50 dígitos
 """
-import math
 import re
 import sys
 from decimal import Decimal, getcontext
@@ -82,11 +83,11 @@ def conferir(pares):
     if len(numeros) != len(esperados):
         print(f'conferir: {len(numeros)} números no arquivo, {len(esperados)} esperados', file=sys.stderr)
         return 1
-    ruins = [i for i, (a, b) in enumerate(zip(numeros, esperados)) if abs(a - b) > math.ulp(b)]
+    ruins = [i for i, (a, b) in enumerate(zip(numeros, esperados)) if a != b]
     if ruins:
-        print(f'conferir: {len(ruins)} valores a mais de 1 ulp (o 1º no índice {ruins[0]})', file=sys.stderr)
+        print(f'conferir: {len(ruins)} valores diferentes (o 1º no índice {ruins[0]})', file=sys.stderr)
         return 1
-    print(f'conferir: {len(esperados)} valores iguais, a até 1 ulp')
+    print(f'conferir: {len(esperados)} valores iguais, bit a bit')
     return 0
 
 

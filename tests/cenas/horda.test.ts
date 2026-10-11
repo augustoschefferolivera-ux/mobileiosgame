@@ -168,13 +168,14 @@ describe('SpriteGPULayer do Phaser 4.2.1 (F-003.11)', () => {
     const layer = (cena.add as unknown as { spriteGPULayer: (c: string, n: number) => Phaser.GameObjects.SpriteGPULayer }).spriteGPULayer('atlas', 4);
     expect(layer.getDataByteSize()).toBe(168);
     expect(FLOATS_POR_MEMBRO).toBe(42);
-    layer.addMember({ frame: 'quadrado', x: 10.5, y: 20.25, rotation: 0.75, scaleX: 0.5, scaleY: 0.375, alpha: 0.625, tintBlend: 0.125, tintTopLeft: 0x9fa39a } as never);
+    layer.addMember({ frame: 'quadrado', x: 10.5, y: 20.25, rotation: 0.75, scaleX: 0.5, scaleY: 0.375, alpha: 0.625, tintBlend: 0.125, tintMode: 2, tintTopLeft: 0x9fa39a } as never);
     const u32 = layer.getMemberData(0)!;
     const f32 = new Float32Array(u32.buffer, u32.byteOffset, FLOATS_POR_MEMBRO);
     expect([f32[OFFSET.x], f32[OFFSET.y], f32[OFFSET.rotacao], f32[OFFSET.escalaX], f32[OFFSET.escalaY], f32[OFFSET.alpha], f32[OFFSET.tintBlend]]).toEqual([
       10.5, 20.25, 0.75, 0.5, 0.375, 0.625, 0.125,
     ]);
     expect(f32[OFFSET.moldura]).toBe((layer.frameDataIndices as Record<string, number>)['quadrado']);
+    expect(f32[OFFSET.tintMode]).toBe(2);
     // Os 4 tints: 32 é o de baixo à esquerda, 33 o de cima à esquerda (o que o addMember recebeu aqui).
     expect(u32[OFFSET.tint + 1]).toBe(tintOpaco(0x9fa39a));
   });

@@ -59,7 +59,7 @@ export interface TiposDeInimigo {
   readonly comportamento: Uint8Array;
   /** Distância de comportamento em px, de centro a centro (decisoes-F-003 S7). */
   readonly distancia: Float64Array;
-  /** Maior raio entre os tipos que existem (R_MAX da separação e da lista de obstáculos). */
+  /** R_MAX da separação e da lista de obstáculos: aqui, o maior raio entre os tipos que existem; nos dados da Vigília, o dos que podem nascer. */
   readonly raioMaximo: number;
 }
 

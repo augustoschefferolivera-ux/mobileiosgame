@@ -100,8 +100,9 @@ export class Vigilia extends Phaser.Scene {
     if (sim.pausada) return;
     const t0 = performance.now();
     const n = rodarFrame(sim.estado, sim.dados, sim.acumulador, this.game.loop.rawDelta, sim.fonte);
-    if (this.ctx.debug && n > 0) verificarNaN(sim.estado);
     this.ctx.medidor.simulou(performance.now() - t0, n);
+    // Fora do tempo medido como simulação (o F-003.4 roda com ?debug=1).
+    if (this.ctx.debug && n > 0) verificarNaN(sim.estado, n);
   }
 
   private aoPreRender(): void {

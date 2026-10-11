@@ -13,7 +13,7 @@ import {
   type Obstaculos,
   type ObstaculosPorCelula,
 } from './obstaculos';
-import { criarTiposDeInimigo, type InimigoDoJson, type TiposDeInimigo } from './tipos';
+import { IDS_DE_TIPO, TIPO, criarTiposDeInimigo, type InimigoDoJson, type TiposDeInimigo } from './tipos';
 
 /** Corpo, a unidade de distância (B §3.2): 32 px lógicos. */
 export const CORPO_PX = 32;
@@ -57,7 +57,8 @@ export function criarDadosDaVigilia(
   inimigos: readonly InimigoDoJson[],
 ): DadosDaVigilia {
   const obstaculos = criarObstaculos(regiao.obstaculos);
-  const tipos = criarTiposDeInimigo(inimigos);
+  const timeline = compilarTimeline(regiao.linhas, regiao.sem_spawn_antes_do_marco_s);
+  const tipos = tiposQueNascem(criarTiposDeInimigo(inimigos), timeline);
   return {
     obstaculos,
     obstaculosPorCelula: criarObstaculosPorCelula(obstaculos, tipos.raioMaximo),
@@ -67,6 +68,22 @@ export function criarDadosDaVigilia(
     velocidadePorPasso: (vigilante.velocidade * CORPOS_POR_SEGUNDO_NA_VELOCIDADE_1 * CORPO_PX) / PASSOS_POR_SEGUNDO,
     hpInicial: Math.round((vigilante.hp * (100 + vigilante.passiva.hp_max_pct)) / 100),
     tipos,
-    timeline: compilarTimeline(regiao.linhas, regiao.sem_spawn_antes_do_marco_s),
+    timeline,
   };
+}
+
+/**
+ * Confere, no boot, os tipos que podem nascer nesta Vigília (design/decisoes-F-003.md §4):
+ * os do roster e dos garantidos de todas as linhas e o Oco Grande (o convertido). Cada um
+ * precisa de tamanho e comportamento de movimento; um número pendente (como o tamanho do
+ * Coroado, da F-008) é erro aqui, e não no meio de um passo. O R_MAX sai desse conjunto.
+ */
+function tiposQueNascem(t: TiposDeInimigo, tl: Timeline): TiposDeInimigo {
+  const codigos = new Set<number>([...tl.rosterTipo, ...tl.garantidoTipo, TIPO.oco_grande]);
+  let raioMaximo = 0;
+  for (const c of codigos) {
+    if (t.existe[c] !== 1) throw new Error(`tipo de inimigo sem tamanho ou sem comportamento de movimento: ${IDS_DE_TIPO[c]}`);
+    raioMaximo = Math.max(raioMaximo, t.raio[c]!);
+  }
+  return { ...t, raioMaximo };
 }

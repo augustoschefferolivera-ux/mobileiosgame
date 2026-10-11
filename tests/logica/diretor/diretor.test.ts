@@ -21,7 +21,7 @@ import { quantosAtivos } from '../../../src/logica/nucleo/pool';
 import { danoNoSpawn, hpNoSpawn, nascerInimigo, removerInimigo } from '../../../src/logica/mundo/inimigos';
 import { TIPO } from '../../../src/logica/mundo/tipos';
 import charneca from '../../../src/dados/regioes/charneca_das_lanternas.json';
-import { DADOS_DA_CHARNECA as D, PARADO } from '../apoio';
+import { DADOS_DA_CHARNECA as D, PARADO, dadosDe } from '../apoio';
 
 const SEED = 1;
 
@@ -80,6 +80,19 @@ describe('intervalo e alvo em inteiros (§1)', () => {
       expect(r(m)).toEqual(r(m - 1));
       expect(tl.minimo[m]).toBe(charneca.linhas[m]!.min_na_tela);
     }
+  });
+});
+
+describe('tipos que podem nascer (§4)', () => {
+  it('um tipo sem tamanho no roster ou nos garantidos é erro na montagem dos dados, não no passo', () => {
+    const comCoroado = charneca.linhas.map((l) => (l.minuto === 2 ? { ...l, roster: [...l.roster, { inimigo: 'oco_grande_coroado', peso: 1 }] } : l));
+    expect(() => dadosDe({ linhas: comCoroado })).toThrow(/oco_grande_coroado/);
+    const garantido = charneca.linhas.map((l) => (l.minuto === 4 ? { ...l, garantidos: [{ inimigo: 'oco_grande_coroado', quantidade: 1 }] } : l));
+    expect(() => dadosDe({ linhas: garantido })).toThrow(/oco_grande_coroado/);
+  });
+
+  it('o R_MAX sai dos tipos que nascem: 24 na Charneca', () => {
+    expect(D.tipos.raioMaximo).toBe(24);
   });
 });
 

@@ -23,6 +23,8 @@ export const OFFSET = {
   tintBlend: 28,
   /** Os 4 tints (Uint32: alpha nos 8 bits altos e a cor rgb), de 32 a 35. */
   tint: 32,
+  /** Modo do tint (não escrito na F-003; conferido para o telegrafo da F-006). */
+  tintMode: 38,
 } as const;
 
 export interface EscritorDaHorda {
