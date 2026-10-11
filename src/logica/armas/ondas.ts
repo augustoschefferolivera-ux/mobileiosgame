@@ -57,20 +57,26 @@ export function criarOnda(e: Estado, codigo: number): void {
     e.mundo2[MUNDO2.efeitosRecusados] = e.mundo2[MUNDO2.efeitosRecusados]! + 1;
     return;
   }
+  // Cada valor é lido uma vez (todos já são Float32): a função é fria (um golpe por vez) e, no interpretador,
+  // cada leitura de Float32Array vira um HeapNumber; lido 2 vezes, eram 9 por onda (≈ 10 B/passo na E6).
   const j = e.jogador;
   const f = e.efeitos;
-  f.x[o] = j[JOGADOR.x]!;
-  f.y[o] = j[JOGADOR.y]!;
-  f.dirX[o] = j[JOGADOR.dirX]!;
-  f.dirY[o] = j[JOGADOR.dirY]!;
+  const x = j[JOGADOR.x]!;
+  const y = j[JOGADOR.y]!;
+  const dx = j[JOGADOR.dirX]!;
+  const dy = j[JOGADOR.dirY]!;
+  f.x[o] = x;
+  f.y[o] = y;
+  f.dirX[o] = dx;
+  f.dirY[o] = dy;
   f.dano[o] = e.derivados.danoOnda[codigo]!;
   f.idade[o] = 0;
   f.arma[o] = codigo;
   f.bits.fill(0, o * PALAVRAS_DO_BITSET, (o + 1) * PALAVRAS_DO_BITSET);
-  FLOATS_DO_EVENTO[0] = f.x[o]!;
-  FLOATS_DO_EVENTO[1] = f.y[o]!;
-  FLOATS_DO_EVENTO[2] = f.dirX[o]!;
-  FLOATS_DO_EVENTO[3] = f.dirY[o]!;
+  FLOATS_DO_EVENTO[0] = x;
+  FLOATS_DO_EVENTO[1] = y;
+  FLOATS_DO_EVENTO[2] = dx;
+  FLOATS_DO_EVENTO[3] = dy;
   gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.onda, codigo, FORMA.onda, o, e.poolDeEfeitos.geracao[o]!, 0, 0, 0);
 }
 

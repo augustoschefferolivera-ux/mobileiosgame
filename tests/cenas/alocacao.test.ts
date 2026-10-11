@@ -20,7 +20,9 @@ import { MEMBROS_DO_MUNDO, prepararMundo } from '../../src/cenas/render/pickups'
 import { CamadaPorGPU, criarSaidaDeSprites } from '../../src/cenas/render/camadas';
 import { CAPACIDADE_DE_MORTES, EfeitosDaVigilia } from '../../src/cenas/render/efeitos';
 import { criarSaidaDaHorda, criarTabelaDeDesenho, prepararHorda } from '../../src/cenas/render/horda';
-import { CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, MUNDO, TIPO_DE_PICKUP, criarEstado } from '../../src/logica/nucleo/estado';
+import { CAB, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CENARIO, JOGADOR, MUNDO, MUNDO2, PROGRESSAO, TIPO_DE_PICKUP, criarEstado } from '../../src/logica/nucleo/estado';
+import { criarComandos, fonteConstante } from '../../src/logica/nucleo/comandos';
+import { PASSIVA } from '../../src/logica/progressao/tabela';
 import { avancar } from '../../src/logica/nucleo/passo';
 import { ARMA } from '../../src/logica/armas/tabela';
 import { alocar, quantosAtivos } from '../../src/logica/nucleo/pool';
@@ -31,6 +33,11 @@ import { DADOS_DA_CHARNECA as D, PARADO } from '../logica/apoio';
 const LIMITE = 16;
 const AQUECIMENTO = 3000;
 const AQUECIMENTO_COM_ARMAS = 9000;
+/**
+ * E6 da F-005: com a União matando mais, o caminho de nascer e a aura só ficam otimizados lá pelo passo 10.000 e
+ * a criarOnda (um golpe por vez) segue no interpretador; com 9.000 passos, 109 B/passo; com 18.000, ≈ 60.
+ */
+const AQUECIMENTO_DA_UNIAO = 27000;
 const MEDIDOS = 6000;
 
 interface No {
@@ -164,4 +171,58 @@ describe('alocação no caminho quente (E4)', () => {
     expect(mundo.saida.visivel.reduce((a, v) => a + v, 0)).toBe(54 + CAPACIDADE_DE_PICKUPS);
     expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
   }, 120_000);
+  // E6 da F-005: a simulação com Cinzas (pool cheio e junções), level up escolhido pela 1ª carta e a União
+  // (baú dourado aos 10:00 com a Espada nv8 e o Elmo), as ondas vivas. Só a simulação; o render está acima.
+  it(`simulação com Cinzas, level up e a União (E6 da F-005), ${MEDIDOS} passos: ≤ ${LIMITE} B por passo, sem lista branca`, async () => {
+    const base = parametrosDoCenario('tres_armas');
+    const e = criarEstado(1, D, {
+      ...base,
+      cenario: base.cenario & ~CENARIO.semCinzas,
+      linhaFixa: 19,
+      teto: 300,
+      passivas: [{ codigo: PASSIVA.elmo_sem_rosto, nivel: 1 }],
+      baus: [{ dx: 0, dy: 0, dourado: true }],
+      relogioInicial: 36000,
+    });
+    // Medido: 11,2 a 11,5 B/passo em 3 rodadas, metade na criarOnda (5 HeapNumbers por onda no interpretador).
+    // O pool de pickups quase cheio, longe do Ímã: as Cinzas novas juntam (X6).
+    const x0 = e.jogador[JOGADOR.x]!;
+    const y0 = e.jogador[JOGADOR.y]!;
+    const longe = new Int32Array(CAPACIDADE_DE_PICKUPS - 8);
+    for (let k = 0; k < longe.length; k++) {
+      const s = (longe[k] = alocar(e.poolDePickups));
+      e.pickups.x[s] = e.pickups.xAnt[s] = x0 + 600 + (k % 32) * 9;
+      e.pickups.y[s] = e.pickups.yAnt[s] = y0 + 600 + Math.floor(k / 32) * 9;
+      e.pickups.valor[s] = 1;
+      e.pickups.tipo[s] = TIPO_DE_PICKUP.cinza;
+    }
+    // Parado, como a E6 da F-004 (andando, os ramos frios que a subida de nível expõe desotimizam moverHorda e
+    // golpear em ciclos, 150 a 2.000 B/passo medidos com 9.000 a 30.000 passos de aquecimento: é o JIT, não o
+    // código). Parado, quase nenhuma Cinza cai no Ímã; a cada 200 passos, o teste traz uma das Cinzas de longe para
+    // 40 px do jogador, com 60 XP: ela voa e é coletada (coleta, voo, nível, modal e recálculo no trecho medido),
+    // e o pool continua cheio, com junções.
+    const fonte = fonteConstante(criarComandos(), 'primeira');
+    const pr = e.progresso;
+    let nivelAntes = -1;
+    let chamadas = 0;
+    const { porPasso, maiores } = await medir((n) => {
+      if (chamadas++ === 1) nivelAntes = pr[PROGRESSAO.nivel]!;
+      for (let k = 0; k < n; k++) {
+        const p = e.cab[CAB.passo]!;
+        const s = longe[(p / 200) % longe.length]!;
+        if (p % 200 === 0 && e.poolDePickups.posicao[s]! >= 0) {
+          e.pickups.x[s] = e.pickups.xAnt[s] = e.jogador[JOGADOR.x]! + 40;
+          e.pickups.y[s] = e.pickups.yAnt[s] = e.jogador[JOGADOR.y]!;
+          e.pickups.valor[s] = 60;
+          e.pickups.tipo[s] = TIPO_DE_PICKUP.cinza;
+        }
+        avancar(e, D, fonte, 1);
+      }
+    }, AQUECIMENTO_DA_UNIAO);
+    expect(e.cab[CAB.passo]).toBe(AQUECIMENTO_DA_UNIAO + MEDIDOS);
+    expect(e.build.codigo).toContain(ARMA.lamina_do_juramento_eterno);
+    expect(e.mundo2[MUNDO2.juncoes]).toBeGreaterThan(0);
+    expect(pr[PROGRESSAO.nivel]! - nivelAntes, 'ao menos um level up medido').toBeGreaterThan(0);
+    expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
+  }, 300_000);
 });
