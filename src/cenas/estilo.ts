@@ -21,6 +21,17 @@ export const COR = {
   sal: 0xdfe8ea,
 } as const;
 
+/**
+ * Cor de cada inimigo (design/decisoes-F-003.md §7, V1): a família vem do doc 13
+ * §1.3 pela facção (Ocos: verde-musgo e pele cinza; Sepultadoras: sal azulado);
+ * o hex é provisório, até a arte. O convertido usa a do Oco Grande.
+ */
+export const COR_DO_INIMIGO: Readonly<Record<string, number>> = {
+  oco_das_lanternas: 0x76884c,
+  oco_grande: 0x9fa39a,
+  novica_de_sal: 0x8796b4,
+};
+
 export const FONTE = 'system-ui, -apple-system, sans-serif';
 
 /** Hex CSS de uma cor da paleta. */

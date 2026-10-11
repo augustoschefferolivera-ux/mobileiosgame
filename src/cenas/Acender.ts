@@ -1,12 +1,16 @@
 // Tela de Acender (doc 11 §3.1; ADR-0002 §11.1 e §12): botão único "Toque
 // para acender a Chama", frase e aviso da chave de silêncio. O toque é tratado
-// pela camada DOM: o desbloqueio do áudio roda dentro do touchend.
+// pela camada DOM: o desbloqueio do áudio roda dentro do touchend. Também
+// aquece o programa do SpriteGPULayer da horda (ADR-0002 §11) e, se ele não
+// puder rodar neste aparelho, passa a horda para o plano B
+// (design/decisoes-F-003.md §7).
 import Phaser from 'phaser';
 import { acharAlvo, alvosDoAcender, type Alvo } from '../entrada/alvos';
 import { desbloquearAudio, type SomDesbloqueavel } from '../plataforma/audio';
 import { ALTURA_LOGICA, LARGURA_LOGICA, medirSafeArea } from '../plataforma/safeArea';
 import type { ContextoDoJogo } from './contexto';
 import { COR, cameraLogica, texto } from './estilo';
+import { criarLayerDaHorda, liberarLayer } from './render/escritores';
 
 interface NavegadorComSessao {
   audioSession?: { type: string };
@@ -19,6 +23,7 @@ export class Acender extends Phaser.Scene {
   private rotulo: Phaser.GameObjects.Text | null = null;
   private frase: Phaser.GameObjects.Text | null = null;
   private aviso: Phaser.GameObjects.Text | null = null;
+  private aquecimento: Phaser.GameObjects.SpriteGPULayer | null = null;
 
   constructor(private readonly ctx: ContextoDoJogo) {
     super({ key: 'Acender' });
@@ -38,9 +43,39 @@ export class Acender extends Phaser.Scene {
     const camada = this.ctx.camada;
     if (!camada) throw new Error('Acender: a camada de toque nasce no postBoot, antes desta cena');
     camada.aoSoltar(this.aoSoltar);
+    this.aquecer();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off(Phaser.Scale.Events.RESIZE, this.diagramar, this);
       camada.removerAoSoltar(this.aoSoltar);
+      if (this.aquecimento) liberarLayer(this.aquecimento);
+      this.aquecimento = null;
+    });
+  }
+
+  /**
+   * Desenha uma vez um SpriteGPULayer de 1 membro invisível (escala 0), para
+   * compilar o programa antes da Vigília (o cache de programas é do renderer).
+   * O vertex shader dele lê uma textura: sem unidade de textura no vértice, ou
+   * se a criação falhar, a horda vai para o plano B, também em produção.
+   */
+  private aquecer(): void {
+    const render = this.ctx.render;
+    const gl = (this.sys.renderer as Phaser.Renderer.WebGL.WebGLRenderer).gl;
+    if (Number(gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS)) === 0) {
+      render.modo = 'image';
+      render.origem = 'fallback';
+    }
+    if (render.modo !== 'gpu' || this.aquecimento) return;
+    try {
+      this.aquecimento = criarLayerDaHorda(this, 1, render.bufferDinamico);
+    } catch {
+      render.modo = 'image';
+      render.origem = 'fallback';
+      return;
+    }
+    this.game.events.once(Phaser.Core.Events.POST_RENDER, () => {
+      render.aquecido = true;
+      this.aquecimento?.setVisible(false);
     });
   }
 

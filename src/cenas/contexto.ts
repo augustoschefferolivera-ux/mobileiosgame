@@ -7,8 +7,13 @@ import type { DadosDaVigilia } from '../logica/mundo/dados';
 import type { CamadaDeToque } from '../entrada/camadaDeToque';
 import type { FilaDeToques } from '../entrada/filaDeToques';
 import type { TradutorDeGestos } from '../entrada/tradutorDeGestos';
+import type { ParametrosDaVigilia } from '../logica/nucleo/estado';
+import type { ModoDeRender } from '../plataforma/parametros';
 import type { Insets } from '../plataforma/safeArea';
 import type { RegistroDeTelemetria } from '../plataforma/telemetria';
+import type { Teto } from '../plataforma/teto';
+import type { MedidorDeQuadros } from './medidas';
+import type { EscritorDaHorda } from './render/escritores';
 
 export type Tela = 'BOOT' | 'ACENDER' | 'VIGILIA';
 
@@ -22,8 +27,20 @@ export interface Simulacao {
   fonte: FonteDeComandos;
   /** Centro da câmera do mundo no último frame, em px lógicos do toro. */
   readonly camera: { x: number; y: number };
-  /** Driver parado pelos ganchos de debug (avancar). */
+  /** Driver parado pelos ganchos de debug (avancar); pausada, o render desenha o estado atual (alfa = 1). */
   pausada: boolean;
+  /** O escritor da horda desta Vigília, para o debug. */
+  horda: EscritorDaHorda | null;
+}
+
+/** Modo do render da horda (design/decisoes-F-003.md §7). */
+export interface RenderDaHorda {
+  modo: ModoDeRender;
+  /** 'parametro' (o padrão gpu ou ?render) ou 'fallback' (o SpriteGPULayer não roda neste aparelho). */
+  origem: 'parametro' | 'fallback';
+  bufferDinamico: boolean;
+  /** O aquecimento da Acender já compilou o programa do SpriteGPULayer. */
+  aquecido: boolean;
 }
 
 export interface ContextoDoJogo {
@@ -47,4 +64,12 @@ export interface ContextoDoJogo {
   desbloqueioDoAudio: string | null;
   /** Roteiro imposto por __GAME_DEBUG__.entrada.roteiro (só no build de debug); vale desde o passo 0. */
   roteiro: Roteiro | null;
+  /** TETO desta sessão (ADR-0002 §13), fixo para cada Vigília. */
+  readonly teto: Teto;
+  /** ?cenario (só no build de debug): o id e os parâmetros da Vigília que ele impõe. */
+  readonly cenario: { readonly id: string; readonly parametros: Omit<ParametrosDaVigilia, 'teto'> } | null;
+  readonly render: RenderDaHorda;
+  /** ?debug=1 (só no build de debug): painel e verificação de NaN. */
+  readonly debug: boolean;
+  readonly medidor: MedidorDeQuadros;
 }

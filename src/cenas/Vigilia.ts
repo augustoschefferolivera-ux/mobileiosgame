@@ -2,23 +2,29 @@
 // Escuta Phaser.Core.Events.STEP (antes dos update() das cenas), traduz os
 // toques do frame, soma o delta bruto do rAF e roda no máximo 5 passos por
 // frame. No update(), centra a câmera no jogador interpolado e sincroniza o
-// render do mundo. A cena Hud roda por cima.
+// render do mundo, com a horda no SpriteGPULayer ou no plano B
+// (design/decisoes-F-003.md §7). A cena Hud roda por cima. Mede a CPU do
+// frame de PRE_STEP a POST_RENDER (ADR-0002 §14).
 import Phaser from 'phaser';
 import { alfa, criarAcumulador } from '../logica/nucleo/acumulador';
 import { criarComandos, fonteConstante, fonteDoRoteiro } from '../logica/nucleo/comandos';
 import { rodarFrame } from '../logica/nucleo/driver';
-import { TODOS_OS_TUTORIAIS, criarEstado } from '../logica/nucleo/estado';
+import { TODOS_OS_TUTORIAIS, criarEstado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
+import { verificarNaN } from '../logica/nucleo/nan';
 import { criarDadosDaVigilia } from '../logica/mundo/dados';
+import inimigos from '../dados/inimigos.json';
 import vigilantes from '../dados/vigilantes.json';
 import charneca from '../dados/regioes/charneca_das_lanternas.json';
 import type { ContextoDoJogo, Simulacao } from './contexto';
 import { COR, cameraLogica } from './estilo';
 import { centroDaCamera } from './render/camera';
-import { RenderPorImagem, type RenderDoMundo } from './render/mundo';
+import { HordaPorGPU, HordaPorImagem } from './render/escritores';
+import { criarTabelaDeDesenho } from './render/horda';
+import { RenderDaVigilia } from './render/mundo';
 
 export class Vigilia extends Phaser.Scene {
   private sim: Simulacao | null = null;
-  private render: RenderDoMundo | null = null;
+  private render: RenderDaVigilia | null = null;
 
   constructor(private readonly ctx: ContextoDoJogo) {
     super({ key: 'Vigilia' });
@@ -27,19 +33,29 @@ export class Vigilia extends Phaser.Scene {
   create(): void {
     cameraLogica(this);
     this.cameras.main.setBackgroundColor(COR.fundo);
-    const dados = criarDadosDaVigilia(charneca, vigilantes.vigilantes[0]!);
+    const dados = criarDadosDaVigilia(charneca, vigilantes.vigilantes[0]!, inimigos.inimigos);
     const comandosAoVivo = criarComandos();
+    // Os tutoriais vistos vêm do meta a partir da F-007; até lá, de ?tutorial=0 ou do cenário.
+    const params: Partial<ParametrosDaVigilia> = {
+      ...this.ctx.cenario?.parametros,
+      teto: this.ctx.teto.valor,
+      ...(this.ctx.pularTutoriais ? { tutoriaisVistos: TODOS_OS_TUTORIAIS } : {}),
+    };
+    const { modo, bufferDinamico } = this.ctx.render;
+    this.render = new RenderDaVigilia(this, dados, {
+      criar: (cena) => (modo === 'gpu' ? new HordaPorGPU(cena, bufferDinamico) : new HordaPorImagem(cena)),
+      tabela: criarTabelaDeDesenho(inimigos.inimigos, dados.tipos.existe),
+    });
     this.sim = {
-      // Os tutoriais vistos vêm do meta a partir da F-007; até lá, só de ?tutorial=0.
-      estado: criarEstado(this.ctx.seed, dados, { tutoriaisVistos: this.ctx.pularTutoriais ? TODOS_OS_TUTORIAIS : 0 }),
+      estado: criarEstado(this.ctx.seed, dados, params),
       dados,
       acumulador: criarAcumulador(),
       comandosAoVivo,
       fonte: this.ctx.roteiro ? fonteDoRoteiro(this.ctx.roteiro) : fonteConstante(comandosAoVivo),
       camera: { x: dados.inicioX, y: dados.inicioY },
       pausada: false,
+      horda: this.render.horda,
     };
-    this.render = new RenderPorImagem(this, dados);
     this.ctx.simulacao = this.sim;
     this.ctx.tela = 'VIGILIA';
     // Toques de antes da Vigília (o de Acender) ficam de fora: só um toque novo cria o joystick.
@@ -47,9 +63,17 @@ export class Vigilia extends Phaser.Scene {
     fila.reiniciar();
     tradutor.reiniciar();
     this.scene.launch('Hud');
-    this.game.events.on(Phaser.Core.Events.STEP, this.aoStep, this);
+    const eventos = this.game.events;
+    eventos.on(Phaser.Core.Events.PRE_STEP, this.aoPreStep, this);
+    eventos.on(Phaser.Core.Events.STEP, this.aoStep, this);
+    eventos.on(Phaser.Core.Events.PRE_RENDER, this.aoPreRender, this);
+    eventos.on(Phaser.Core.Events.POST_RENDER, this.aoPostRender, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.game.events.off(Phaser.Core.Events.STEP, this.aoStep, this);
+      eventos.off(Phaser.Core.Events.PRE_STEP, this.aoPreStep, this);
+      eventos.off(Phaser.Core.Events.STEP, this.aoStep, this);
+      eventos.off(Phaser.Core.Events.PRE_RENDER, this.aoPreRender, this);
+      eventos.off(Phaser.Core.Events.POST_RENDER, this.aoPostRender, this);
+      this.render?.liberar();
       fila.ativa = false;
       this.scene.stop('Hud');
     });
@@ -64,19 +88,35 @@ export class Vigilia extends Phaser.Scene {
     });
   }
 
+  private aoPreStep(): void {
+    this.ctx.medidor.inicio(performance.now());
+  }
+
   private aoStep(): void {
     const sim = this.sim;
     if (!sim) return;
     // Uma tradução por frame; ao vivo, o vetor vale para todos os passos do frame (design/decisoes-F-002.md §4).
     this.ctx.entrada.tradutor.traduzir(this.ctx.entrada.fila, sim.comandosAoVivo);
     if (sim.pausada) return;
-    rodarFrame(sim.estado, sim.dados, sim.acumulador, this.game.loop.rawDelta, sim.fonte);
+    const t0 = performance.now();
+    const n = rodarFrame(sim.estado, sim.dados, sim.acumulador, this.game.loop.rawDelta, sim.fonte);
+    if (this.ctx.debug && n > 0) verificarNaN(sim.estado);
+    this.ctx.medidor.simulou(performance.now() - t0, n);
+  }
+
+  private aoPreRender(): void {
+    this.ctx.medidor.antesDoRender(performance.now());
+  }
+
+  private aoPostRender(): void {
+    this.ctx.medidor.fim(performance.now());
   }
 
   override update(): void {
     const sim = this.sim;
     if (!sim || !this.render) return;
-    const a = alfa(sim.acumulador);
+    // Pausada pelo debug, desenha o estado atual: a imagem depende só da seed e do passo (decisoes-F-003 §8).
+    const a = sim.pausada ? 1 : alfa(sim.acumulador);
     centroDaCamera(sim.estado, a, sim.camera);
     this.render.sincronizar(sim.estado, a, sim.camera.x, sim.camera.y);
     this.cameras.main.centerOn(sim.camera.x, sim.camera.y);

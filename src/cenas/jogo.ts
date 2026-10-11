@@ -9,14 +9,18 @@ import { TradutorDeGestos } from '../entrada/tradutorDeGestos';
 import { criarAudioSilencioso } from '../plataforma/audio';
 import { bloquearGestos } from '../plataforma/bloqueioDeGestos';
 import { lerParametros, sortearSeed } from '../plataforma/parametros';
+import { parametrosDoCenario } from '../plataforma/cenarios';
 import { ALTURA_LOGICA, LARGURA_LOGICA, insetsZerados } from '../plataforma/safeArea';
+import { decidirTeto } from '../plataforma/teto';
 import { RegistroDeTelemetria } from '../plataforma/telemetria';
 import { suportaWebGL } from '../plataforma/webgl';
 import { Acender } from './Acender';
 import { Boot } from './Boot';
 import { Hud } from './Hud';
 import type { ContextoDoJogo } from './contexto';
-import { instalarDebug } from './debug';
+import { instalarDebug, instantaneoDoDebug } from './debug';
+import { MedidorDeQuadros } from './medidas';
+import { instalarPainelDeDebug } from '../plataforma/painelDeDebug';
 import { COR, ESCALA_DO_CANVAS } from './estilo';
 import { t } from './textos';
 import { Vigilia } from './Vigilia';
@@ -64,6 +68,17 @@ export function iniciarJogo(): Phaser.Game | null {
     audioSilencioso: criarAudioSilencioso(document),
     desbloqueioDoAudio: null,
     roteiro: null,
+    // A sonda e o cache vdc.teto entram com a 1ª feature com projéteis (design/decisoes-F-003.md §5, T1).
+    teto: decidirTeto({
+      override: params.teto,
+      cache: null,
+      tela: { dpr: window.devicePixelRatio, largura: window.screen.width, altura: window.screen.height },
+      sonda: null,
+    }),
+    cenario: params.cenario === null ? null : { id: params.cenario, parametros: parametrosDoCenario(params.cenario) },
+    render: { modo: params.render, origem: 'parametro', bufferDinamico: params.bufferDinamico, aquecido: false },
+    debug: params.debug,
+    medidor: new MedidorDeQuadros(),
   };
 
   const jogo = new Phaser.Game({
@@ -105,6 +120,7 @@ export function iniciarJogo(): Phaser.Game | null {
     },
     scene: [new Boot(ctx), new Acender(ctx), new Vigilia(ctx), new Hud(ctx)],
   });
-  instalarDebug(jogo, ctx);
+  const debug = instalarDebug(jogo, ctx);
+  if (ctx.debug) instalarPainelDeDebug(document, () => instantaneoDoDebug(debug));
   return jogo;
 }

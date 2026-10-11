@@ -2,7 +2,9 @@
 // CanvasTexture de 512 × 512 com as formas em branco, a 2× (1 pt = 2 px), para
 // a cor vir do tint. Tudo no mesmo atlas: no iPhone, autoMobileTextures limita
 // o batch a 1 textura. As formas da F-002 são círculo (obstáculos), triângulo
-// (jogador), disco e anel (joystick); as seguintes entram com as suas features.
+// (jogador), disco e anel (joystick); a F-003 traz a massa e o quadrado, no
+// tamanho exato, para a horda não sair serrilhada nem diferir entre os modos de
+// render; as seguintes entram com as suas features.
 import type Phaser from 'phaser';
 
 export const CHAVE_DO_ATLAS = 'atlas';
@@ -20,6 +22,10 @@ export const MOLDURA = {
   circulo: { x: 0, y: 240 + FOLGA, lado: 192 },
   /** Triângulo isósceles de 48 × 48 pt, ponta para cima: o jogador. */
   triangulo: { x: 192 + FOLGA, y: 240 + FOLGA, lado: 96 },
+  /** Círculo de 32 pt no tamanho exato (escala 0,5): a massa (design/decisoes-F-003.md §7). */
+  massa: { x: 292 + FOLGA, y: 240 + FOLGA, lado: 64 },
+  /** Quadrado de 48 pt no tamanho exato (escala 0,5): os médios. */
+  quadrado: { x: 360 + FOLGA, y: 240 + FOLGA, lado: 96 },
 } as const;
 export type NomeDaMoldura = keyof typeof MOLDURA;
 
@@ -46,6 +52,9 @@ export function gerarAtlas(texturas: Phaser.Textures.TextureManager): void {
   };
   circulo(MOLDURA.disco);
   circulo(MOLDURA.circulo);
+  circulo(MOLDURA.massa);
+  const q = MOLDURA.quadrado;
+  c.fillRect(q.x, q.y, q.lado, q.lado);
   const a = MOLDURA.anel;
   c.lineWidth = TRACO_DO_ANEL_PX;
   c.beginPath();
