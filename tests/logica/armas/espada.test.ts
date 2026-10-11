@@ -233,3 +233,15 @@ describe('área do nv5 (W7) e estocada (W8)', () => {
     expect(estocadaDireta(e)).toEqual(fila.sort((a, b) => a - b));
   });
 });
+
+describe('dano lido no passo do golpe (DN1; T11 e A4 da revisão)', () => {
+  it('Espada no nv5: o golpe 1 sai com 8,1; a vaga passa ao nv6 antes do golpe 2, que sai com 9,45', () => {
+    const e = estadoCom([[E, 5]]);
+    const s = por(e, TIPO.oco_grande, 0, -48);
+    avancar(e, D, PARADO, 1);
+    e.build.nivel[0] = 6;
+    avancar(e, D, PARADO, 12);
+    const valores = eventos(e).filter((v) => v.tipo === EVENTO.acerto && v.slot === s).map((v) => v.f[2]);
+    expect(valores).toEqual([Math.fround(8.1), Math.fround(9.45)]);
+  });
+});

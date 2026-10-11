@@ -22,10 +22,12 @@ import {
   MUNDO,
   TUTORIAL,
   VERSAO_LAYOUT,
+  baseDoFluxo,
   criarEstado,
   hashEstado,
   hashPorSecao,
   reiniciarEstado,
+  type ParametrosDaVigilia,
 } from '../../src/logica/nucleo/estado';
 import { avancar } from '../../src/logica/nucleo/passo';
 import { quantosAtivos } from '../../src/logica/nucleo/pool';
@@ -35,7 +37,7 @@ import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, deltaNoToro } from '../../src/logica/m
 import type { DadosDaVigilia } from '../../src/logica/mundo/dados';
 import charneca from '../../src/dados/regioes/charneca_das_lanternas.json';
 import { parametrosDoCenario } from '../../src/plataforma/cenarios';
-import { DADOS_DA_CHARNECA as D, PARADO, SEM_HORDA, dadosDe } from './apoio';
+import { DADOS_DA_CHARNECA as D, PARADO, SEM_ARMAS, SEM_HORDA, dadosDe } from './apoio';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SEED = Number(process.env['VDC_SEED'] ?? SEED_PADRAO);
@@ -86,26 +88,39 @@ describe('determinismo (F-001.1)', () => {
     expect(new Set(hashes).size).toBe(new Set([1, 2, 3, 42, 2026, SEED]).size);
   });
 
-  it('valores de referência fixos (mudar layout, semeadura, hash, roteiro, disposição, horda ou diretor exige atualizar aqui)', () => {
-    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('e91ed119');
-    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('6173ca75');
+  it('valores de referência fixos (mudar layout, semeadura, hash, roteiro, disposição, horda, diretor ou armas exige atualizar aqui)', () => {
+    // Desde a F-004 (estado v4, a Espada na Vigília normal); os da F-003 eram e91ed119 e 6173ca75.
+    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('901adb6d');
+    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('9cdc2c63');
   });
 
-  it('com a horda: vivos, spawns e o 1º acerto de contato ficam travados no passo 1.000', () => {
-    const fatos = (seed: number): number[] => {
-      const e = criarEstado(seed, D);
-      const fonte = fonteDoRoteiro(ROTEIRO_REFERENCIA);
-      let acerto = -1;
-      for (let k = 1; k <= PASSOS_REFERENCIA; k++) {
-        avancar(e, D, fonte, 1);
-        if (acerto < 0 && e.jogadorU8[JOGADOR_U8.invulContato]! > 0) acerto = k;
-      }
-      return [quantosAtivos(e.pool), e.mundo[MUNDO.spawns]!, acerto, e.jogador[JOGADOR.hp]!];
-    };
-    const [vivos, spawns, acerto, hp] = fatos(SEED);
-    if (SEED === SEED_PADRAO) expect([vivos, spawns, acerto, hp]).toEqual([15, 15, 146, 138]);
-    expect(fatos(424242)).toEqual([15, 15, 283, 102]);
-    log.push(`horda no passo ${PASSOS_REFERENCIA}: vivos=${vivos} spawns=${spawns} 1o_acerto=passo ${acerto} hp=${hp}`);
+  /** Vivos, spawns, mortes, passo da 1ª morte, passo do 1º acerto de contato, HP e o fluxo armas intocado, no passo 1.000. */
+  const fatos = (seed: number, params: Partial<ParametrosDaVigilia> = {}): (number | boolean)[] => {
+    const e = criarEstado(seed, D, params);
+    const b = baseDoFluxo('armas');
+    const rng0 = Array.from(e.rng.subarray(b, b + 4));
+    const fonte = fonteDoRoteiro(ROTEIRO_REFERENCIA);
+    let acerto = -1;
+    let morte = -1;
+    for (let k = 1; k <= PASSOS_REFERENCIA; k++) {
+      avancar(e, D, fonte, 1);
+      if (acerto < 0 && e.jogadorU8[JOGADOR_U8.invulContato]! > 0) acerto = k;
+      if (morte < 0 && e.mundo[MUNDO.mortes]! > 0) morte = k;
+    }
+    const intocado = Array.from(e.rng.subarray(b, b + 4)).every((v, i) => v === rng0[i]);
+    return [quantosAtivos(e.pool), e.mundo[MUNDO.spawns]!, e.mundo[MUNDO.mortes]!, morte, acerto, e.jogador[JOGADOR.hp]!, intocado];
+  };
+
+  it('com a horda e a Espada: vivos, spawns, mortes, a 1ª morte, o 1º acerto de contato e o HP ficam travados no passo 1.000', () => {
+    const f = fatos(SEED);
+    if (SEED === SEED_PADRAO) expect(f).toEqual([15, 15, 0, -1, 146, 138, true]);
+    expect(fatos(424242)).toEqual([15, 19, 4, 505, 283, 135, true]);
+    log.push(`horda no passo ${PASSOS_REFERENCIA}: vivos=${f[0]} spawns=${f[1]} mortes=${f[2]} 1a_morte=passo ${f[3]} 1o_acerto=passo ${f[4]} hp=${f[5]}`);
+  });
+
+  it('sem armas, os fatos da F-003 continuam os mesmos (regressão; o hash dos campos v3 está em armas/regressao-v3.test.ts)', () => {
+    if (SEED === SEED_PADRAO) expect(fatos(SEED, SEM_ARMAS)).toEqual([15, 15, 0, -1, 146, 138, true]);
+    expect(fatos(424242, SEM_ARMAS)).toEqual([15, 15, 0, -1, 283, 102, true]);
   });
 
   it('copiar o buffer no passo 500 para um estado novo e seguir os dois até o 1.000 dá o mesmo hash (nada fica fora do buffer)', () => {
