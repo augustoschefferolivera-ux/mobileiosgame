@@ -59,7 +59,7 @@ const LER_ANEL = [
 ];
 
 export default defineConfig(
-  { ignores: ['dist/', 'dist-debug/', 'node_modules/', 'coverage/', 'test-results/', 'playwright-report/', '.verify/', 'design/', 'docs/', 'production/'] },
+  { ignores: ['dist/', 'dist-debug/', 'node_modules/', 'coverage/', 'test-results/', 'playwright-report/', '.verify/', 'design/', 'docs/', 'production/', '.claude/'] },
   js.configs.recommended,
   tseslint.configs.recommended,
   {
