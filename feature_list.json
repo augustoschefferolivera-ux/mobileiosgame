@@ -288,7 +288,7 @@
           "id": "F-003.7",
           "descricao": "Heap sem crescimento em 60 s.",
           "verificacao": "playwright",
-          "como": "?cenario=horda_rotativa&teto=300 (10 removidos e repostos a cada 60 passos), 300 vivos, 30 s de aquecimento; HeapProfiler.collectGarbage + takeHeapSnapshot, 60 s, outro snapshot; aprovado com Δ dos bytes próprios ≤ 32.768 B no total e Δ ≤ 100 objetos em cada construtor, fora da lista fechada de exclusões ((code), PerformanceLongTaskTiming, TaskAttributionTiming); limites provisórios até 3 rodadas de calibração (ADR-0002 §11; design/decisoes-F-003.md §8, E2).",
+          "como": "?cenario=horda_rotativa&teto=300 (10 removidos e repostos a cada 60 passos), 300 vivos, 90 s de aquecimento; HeapProfiler.collectGarbage + takeHeapSnapshot, 60 s, outro snapshot; aprovado com Δ dos bytes próprios ≤ 32.768 B no total e Δ ≤ 100 objetos em cada construtor, fora da lista fechada de exclusões ((code), PerformanceLongTaskTiming, TaskAttributionTiming); limites confirmados em 3 rodadas de calibração (ADR-0005 §7) (ADR-0002 §11; design/decisoes-F-003.md §8, E2).",
           "origem": "B §4 (evidência)"
         },
         {
