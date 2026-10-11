@@ -10,8 +10,10 @@
 - **Mais dois fatos:**
   - o `page.evaluate` da Playwright roda com `userGesture: true`, e a ativação de usuário fica para a página;
   - o `WebAudioSoundManager` agenda no BOOT um unlock próprio, com listeners de `touchstart`, `touchend`, `mousedown`, `mouseup` e `keydown` no `body`, que chamam `context.resume()` em qualquer toque.
-- **Decisão:** o `callbacks.preBoot` tira esse unlock automático (`game.events.off(BOOT, sound.unlock, sound)`), e o nosso desbloqueio no `touchend` do botão de Acender passa a ser o único caminho, como diz o ADR-0002 §12.
+- **Decisão:** o `callbacks.preBoot` tira esse unlock automático (`game.events.off(BOOT, sound.unlock, sound)`). Com isso, o nosso desbloqueio no `touchend` do botão de Acender passa a ser o único caminho por toque, como diz o ADR-0002 §12.
+- **O que fica do Phaser, de propósito:** o `onGameVisible` do `WebAudioSoundManager` faz `suspend()` e `resume()` 100 ms depois de a página voltar a ficar visível; é a correção do Phaser para o iOS 17/18 (issue 6829). Num navegador em que a página já tem ativação de usuário, isso pode deixar o contexto `running` antes do toque, ainda com `locked` verdadeiro. Fica para a pausa automática da F-010, que trata da visibilidade.
 - **Teste:**
+  - só o `touchStart` no botão não desbloqueia nem acende; o `touchEnd` sim;
   - depois de um toque fora do botão, `audio()` continua `'suspended'` e `somTravado` continua `true`;
   - depois do toque em Acender, `desbloqueioDoAudio === 'running'` e `somTravado === false`. Isso prova também que o campo privado `unlocked` funciona com o `BaseSoundManager` real (F-001.14).
 - **Mutação conferida:** sem a chamada ao nosso desbloqueio, o teste falha.
@@ -77,4 +79,10 @@
 
 - **Fato:** sem bloco `render`, o Phaser 4.2.1 pede `antialias: true` (`antialiasGL`), `stencil: true` e `depth: true` (Config.js e WebGLRenderer.js). No WebKit, isso cria buffers de cor e de depth/stencil multiamostrados (até 4×) além do drawing buffer. A 780 × 1688, cada buffer simples tem ≈ 5 MiB e cada buffer 4× tem ≈ 20 MiB: o MSAA custaria ≈ 40 MiB do orçamento de < 150 MB (B §3.13), mais o blit de resolução a cada frame.
 - **Decisão:** `render: { antialiasGL: false }`. O filtro das texturas (`antialias`) não muda. As bordas das formas geométricas provisórias ficam serrilhadas; a arte final (depois da F-010) decide se o MSAA volta.
+
+## 10. Onde fica o driver (diverge da letra do ADR-0002 §3)
+
+- **ADR-0002 §3:** "Driver (em `src/cenas/Vigilia`, nunca em `src/logica`)".
+- **Implementado:** o que toca o Phaser fica na cena Vigilia: o ouvinte de `Core.Events.STEP`, a leitura de `game.loop.rawDelta` e a pausa de debug. O acumulador (`src/logica/nucleo/acumulador.ts`) e o `rodarFrame` (`src/logica/nucleo/driver.ts`) são funções puras que só recebem o delta em ms, e por isso ficam em `src/logica`, onde o Vitest os testa e o lint garante que não leem relógio. A revisão pediu essa extração: antes, o driver real não tinha teste.
+- **O espírito do ADR fica:** a simulação nunca lê o tempo; quem o lê é a cena.
 

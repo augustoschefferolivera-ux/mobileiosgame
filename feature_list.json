@@ -17,7 +17,7 @@
     {
       "id": "F-001",
       "nome": "Esqueleto e loop",
-      "status": "pendente",
+      "status": "pronta",
       "escopo_b": "Phaser em retrato, resolução lógica 390×844 @2×, canvas fixo, safe-area, simulação pura em `src/logica/` com passo fixo 60 Hz, acumulador, RNG com seed, `window.__GAME_DEBUG__` (fps, passo, entidades vivas, passos perdidos), tela \"Toque para acender a Chama\", bloqueio de pull-to-refresh e zoom",
       "criterio_b": "Teste: mesma seed + 1.000 passos = estado idêntico (hash). Playwright: screenshot 390×844 sem barras de rolagem; `__GAME_DEBUG__.passo` avança; áudio em estado `running` após o toque simulado",
       "evidencia_b": "Screenshot; log do teste de determinismo",

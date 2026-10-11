@@ -16,12 +16,15 @@
   - `scripts/verify.sh --feature F-001 --seed 1 --taps-game` verde, com estas etapas:
     - typecheck do projeto e de `src/logica` sem DOM nem Node;
     - lint;
-    - Vitest (193 testes);
+    - Vitest (198 testes);
     - builds de produção e de debug;
-    - Playwright no projeto taps-game (9 testes);
+    - Playwright no projeto taps-game (10 testes);
     - conferência do conteúdo das evidências.
   - Evidências em `production/evidencias/F-001/`: `screenshot-390x844.png` e `determinismo.log`. A seed 1 dá o hash `faad4a1f` no passo 1.000, no Node e no Chromium.
-  - Crítico independente (subagente, Q-33): nota **7,5**. Revisão adversarial: 4 lentes, cada uma com um verificador cético; 28 achados confirmados e 16 refutados. Os confirmados foram aplicados em 8 commits pequenos, entre eles:
+  - Crítico independente (subagente, Q-33):
+    - 1ª rodada: nota **7,5**, com revisão adversarial (4 lentes, cada uma com um verificador cético; 28 achados confirmados e 16 refutados);
+    - 2ª rodada, sobre o estado corrigido: nota **8,2**, sem bloqueante. Os ajustes que ela apontou também foram aplicados (touchend, teto de 6 passos, import dinâmico, `100dvh`, `bitmapText`, caixa do toque);
+    - os achados confirmados da 1ª rodada foram aplicados em 8 commits pequenos, entre eles:
     - o nosso desbloqueio de áudio passou a ser o único caminho;
     - lint de textos mais forte;
     - `tsconfig.logica.json`;
@@ -41,7 +44,11 @@
   - `audioSession = 'playback'` interrompe a música de outros apps e ignora a chave de silêncio; é o comportamento que o doc 12 §2.3 busca, mas vale confirmar;
   - o fallback do `<audio>` silencioso não roda no iOS 17+;
   - o efeito do MSAA desligado na arte final;
-  - o desbloqueio dentro do `touchend` com `preventDefault`.
+  - o desbloqueio dentro do `touchend` com `preventDefault`;
+  - o desbloqueio roda uma vez só: se o `resume()` falhar, a Vigília começa sem som até recarregar (pesa a partir dos sons da F-006);
+  - o `onGameVisible` do Phaser ao voltar do segundo plano (ADR-0003 §1);
+  - os 72 pt são lógicos: na aba do Safari o FIT encolhe o botão (≈ 57 pt físicos em 390 × 664);
+  - o determinismo só foi medido no V8; o JavaScriptCore será conferido no aparelho.
 
 ### Como rodar
 - `npm install`.

@@ -62,8 +62,9 @@ export function iniciarJogo(): Phaser.Game {
     render: { antialiasGL: false },
     input: { touch: false, mouse: false, keyboard: false, gamepad: false, windowEvents: false },
     callbacks: {
-      // O nosso desbloqueio, no touchend do botão de Acender, é o único caminho (ADR-0002 §12):
+      // O nosso desbloqueio, no touchend do botão de Acender, é o único caminho por toque (ADR-0002 §12):
       // tira o unlock automático que o WebAudioSoundManager agenda para o BOOT (listeners no body).
+      // O onGameVisible do Phaser (suspend/resume ao voltar a ficar visível) fica; ver ADR-0003 §1.
       preBoot: (game) => {
         if (game.sound instanceof Phaser.Sound.WebAudioSoundManager) {
           game.events.off(Phaser.Core.Events.BOOT, game.sound.unlock, game.sound);
