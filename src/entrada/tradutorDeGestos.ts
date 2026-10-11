@@ -5,10 +5,13 @@
 // ComandosDoPasso, já com a zona morta, a curva e o limite. Na F-004 também
 // entrega, numa saída própria (fora dos ComandosDoPasso, P4), o pedido de
 // pausa pelo botão ou pelo gesto de dois dedos parados por 0,5 s, e, no modo
-// da tela de pausa, o toque nos alvos dela. Swipe e toque duplo (esquiva)
-// ficam para a F-006. Não aloca.
+// da tela de pausa, o toque nos alvos dela. Na F-005, o modo `modal` (cartas
+// do level up ou o Continuar do baú; design/decisoes-F-005.md M4 e M5): sem
+// joystick, botão de pausa nem gesto; cada toque que começa e solta no mesmo
+// alvo entra, em ordem, numa lista de até 8 por quadro. Swipe e toque duplo
+// (esquiva) ficam para a F-006. Não aloca.
 import type { ComandosDoPasso } from '../logica/nucleo/comandos';
-import { alvoDaPausa, alvosDaTelaDePausa, areaDoJoystick, contem, type Alvo } from './alvos';
+import { alvoDaPausa, alvosDaTelaDePausa, alvosDasCartas, alvosDoBau, areaDoJoystick, contem, type Alvo } from './alvos';
 import { CAMPOS_POR_EVENTO, TIPO_DE_TOQUE, type FilaDeToques } from './filaDeToques';
 import { pinoDoJoystick, vetorDoJoystick, type Vetor } from './joystick';
 import type { Insets } from '../plataforma/safeArea';
@@ -27,7 +30,10 @@ export const GESTO_DE_PAUSA = { movimentoMaximoPt: 10, duracaoMs: 500, dedos: 2 
 const RELOGIO_SUSPEITO_MS = 60_000;
 
 export type OrigemDaPausa = 'botao' | 'gesto';
-export type ModoDoTradutor = 'vigilia' | 'pausa';
+export type ModoDoTradutor = 'vigilia' | 'pausa' | 'modal';
+export type TipoDeModal = 'cartas' | 'bau';
+/** Toques em alvo do modal guardados por quadro (M4): a 8 fps, um toque duplo entre dois quadros conta como 2. */
+export const MAX_TOQUES_NO_MODAL = 8;
 
 /** Estado do joystick, em pt lógicos; a cena Hud o desenha e o __GAME_DEBUG__ o lê. */
 export interface EstadoDoJoystick {
@@ -53,8 +59,13 @@ export class TradutorDeGestos {
   pedidoDePausa: OrigemDaPausa | null = null;
   /** No modo pausa: o alvo da tela de pausa acionado neste frame (começou e soltou dentro). */
   toqueNaPausa: string | null = null;
-  /** 'vigilia': joystick, botão e gesto; 'pausa': só os alvos da tela de pausa (P8). */
+  /** 'vigilia': joystick, botão e gesto; 'pausa': só os alvos da tela de pausa (P8); 'modal': só os do modal (M5). */
   modo: ModoDoTradutor = 'vigilia';
+  /** No modo modal: os alvos tocados neste quadro (índice da carta, ou 0 = Continuar do baú), em ordem. */
+  readonly toquesNoModal = new Int8Array(MAX_TOQUES_NO_MODAL);
+  nToquesNoModal = 0;
+  /** Qual modal recebe os toques. */
+  tipoDeModal: TipoDeModal = 'cartas';
   private readonly ids = new Float64Array(MAX_DEDOS);
   private readonly papel = new Uint8Array(MAX_DEDOS);
   private readonly inicioX = new Float64Array(MAX_DEDOS);
@@ -66,6 +77,8 @@ export class TradutorDeGestos {
   private gestoTravado = false;
   private readonly botao: Alvo = { id: 'pausa', x: 0, y: 0, largura: 0, altura: 0 };
   private readonly alvosDaPausa: Alvo[] = [];
+  private readonly alvosDasCartas: Alvo[] = [];
+  private readonly alvosDoBau: Alvo[] = [];
   private dono = -1;
   private atualX = 0;
   private atualY = 0;
@@ -86,6 +99,7 @@ export class TradutorDeGestos {
     this.modo = 'vigilia';
     this.pedidoDePausa = null;
     this.toqueNaPausa = null;
+    this.nToquesNoModal = 0;
     this.gestoTravado = false;
   }
 
@@ -94,6 +108,8 @@ export class TradutorDeGestos {
     areaDoJoystick(insets, this.area);
     alvoDaPausa(insets, this.botao);
     alvosDaTelaDePausa(insets, this.alvosDaPausa);
+    alvosDasCartas(insets, this.alvosDasCartas);
+    alvosDoBau(insets, this.alvosDoBau);
   }
 
   /**
@@ -101,10 +117,18 @@ export class TradutorDeGestos {
    * soltos; depois do Continuar, só um toque novo cria o joystick, e um toque
    * que começou antes da abertura nunca aciona um alvo da pausa.
    */
-  mudarModo(modo: ModoDoTradutor): void {
+  mudarModo(modo: ModoDoTradutor, tipoDeModal: TipoDeModal = 'cartas'): void {
     for (let s = 0; s < MAX_DEDOS; s++) this.soltar(s);
     this.modo = modo;
+    this.tipoDeModal = tipoDeModal;
+    this.nToquesNoModal = 0;
     this.gestoTravado = false;
+  }
+
+  /** Esquece os toques de modal que sobraram no quadro e solta os dedos (M4: a oferta seguinte só recebe toques novos). */
+  descartarToquesDoModal(): void {
+    this.nToquesNoModal = 0;
+    for (let s = 0; s < MAX_DEDOS; s++) this.soltar(s);
   }
 
   /**
@@ -115,6 +139,7 @@ export class TradutorDeGestos {
   traduzir(fila: FilaDeToques, out: ComandosDoPasso, agora = Number.NaN): void {
     this.pedidoDePausa = null;
     this.toqueNaPausa = null;
+    this.nToquesNoModal = 0;
     if (fila.soltarTodos) {
       for (let s = 0; s < MAX_DEDOS; s++) this.soltar(s);
       fila.soltarTodos = false;
@@ -166,8 +191,8 @@ export class TradutorDeGestos {
       j.vx = this.v.x;
       j.vy = this.v.y;
     }
-    // O toque tem prioridade sobre o teclado (§4); na pausa, nada move.
-    const pausa = this.modo === 'pausa';
+    // O toque tem prioridade sobre o teclado (§4); na pausa e no modal, nada move.
+    const pausa = this.modo !== 'vigilia';
     out.movimento[0] = pausa ? 0 : j.ativo ? j.vx : this.teclado.x;
     out.movimento[1] = pausa ? 0 : j.ativo ? j.vy : this.teclado.y;
   }
@@ -214,9 +239,10 @@ export class TradutorDeGestos {
     this.inicioT[s] = t;
     this.parado[s] = 1;
     this.alvoInicial[s] = -1;
-    if (this.modo === 'pausa') {
+    if (this.modo !== 'vigilia') {
       this.papel[s] = PAPEL.outro;
-      for (let k = 0; k < this.alvosDaPausa.length; k++) if (contem(this.alvosDaPausa[k]!, x, y)) this.alvoInicial[s] = k;
+      const alvos = this.alvosDoModo();
+      for (let k = 0; k < alvos.length; k++) if (contem(alvos[k]!, x, y)) this.alvoInicial[s] = k;
       return;
     }
     if (contem(this.botao, x, y)) {
@@ -242,7 +268,15 @@ export class TradutorDeGestos {
       return;
     }
     const k = this.alvoInicial[s]!;
-    if (k >= 0 && contem(this.alvosDaPausa[k]!, x, y)) this.toqueNaPausa = this.alvosDaPausa[k]!.id;
+    const alvos = this.alvosDoModo();
+    if (k < 0 || !contem(alvos[k]!, x, y)) return;
+    if (this.modo === 'pausa') this.toqueNaPausa = alvos[k]!.id;
+    else if (this.nToquesNoModal < MAX_TOQUES_NO_MODAL) this.toquesNoModal[this.nToquesNoModal++] = k;
+  }
+
+  private alvosDoModo(): Alvo[] {
+    if (this.modo === 'pausa') return this.alvosDaPausa;
+    return this.tipoDeModal === 'bau' ? this.alvosDoBau : this.alvosDasCartas;
   }
 
   /**

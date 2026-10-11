@@ -129,9 +129,39 @@ export function caixaDaOpcao(opcao: Alvo): { x: number; y: number } {
   };
 }
 
+/**
+ * Cartas do level up (design/decisoes-F-005.md R6): coluna de 3 cartas de
+ * mín(342, largura útil − 48) × 152 pt, 12 pt entre elas, centradas, com o
+ * fundo da última a 24 pt do inset de baixo (como o Continuar da pausa).
+ */
+export const CARTA_DO_MODAL = { largura: 342, altura: 152, entre: 12, margemLateral: 24, margemBaixo: 24 } as const;
+
+export function alvosDasCartas(insets: Insets, out: Alvo[]): Alvo[] {
+  const c = CARTA_DO_MODAL;
+  const larguraUtil = LARGURA_LOGICA - insets.esquerda - insets.direita;
+  const largura = Math.max(ALVO_MINIMO_PT, Math.min(c.largura, larguraUtil - 2 * c.margemLateral));
+  const x = insets.esquerda + (larguraUtil - largura) / 2;
+  const fundo = ALTURA_LOGICA - insets.baixo - c.margemBaixo;
+  out.length = 0;
+  for (let k = 0; k < 3; k++) {
+    out.push({ id: `carta${k}`, x, y: fundo - (3 - k) * c.altura - (2 - k) * c.entre, largura, altura: c.altura });
+  }
+  return out;
+}
+
+/** Modal do baú (B4): só o Continuar, no mesmo lugar do da pausa. */
+export function alvosDoBau(insets: Insets, out: Alvo[]): Alvo[] {
+  const pausa = alvosDaTelaDePausa(insets, []);
+  out.length = 0;
+  out.push({ ...pausa[1]!, id: 'continuar' });
+  return out;
+}
+
 /** Todas as telas com alvos; o teste de safe-area (F-001.13 e F-002.7) percorre esta tabela. */
 export const ALVOS_POR_TELA: Record<string, (insets: Insets, out: Alvo[]) => Alvo[]> = {
   acender: alvosDoAcender,
   vigilia: alvosDaVigilia,
   pausa: alvosDaTelaDePausa,
+  cartas: alvosDasCartas,
+  bau: alvosDoBau,
 };

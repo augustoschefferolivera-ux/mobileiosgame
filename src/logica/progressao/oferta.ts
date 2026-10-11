@@ -196,6 +196,23 @@ export function aplicarCarta(e: Estado, dados: DadosDaVigilia, k: number): void 
   recalcularDano(e, dados);
 }
 
+/**
+ * A carta completa uma União? (L8): o Elmo novo com a arma da União no nível
+ * dela na build, ou a arma da União para o nível dela com a passiva na build;
+ * sem a União formada. Função pura, fora do estado.
+ */
+export function completaUniao(e: Estado, dados: DadosDaVigilia, tipo: number, item: number): number {
+  const t = dados.progressao;
+  for (let u = 0; u < t.uniaoArma.length; u++) {
+    if (vagaDaArma(e, t.uniaoResultado[u]!) >= 0) continue;
+    const va = vagaDaArma(e, t.uniaoArma[u]!);
+    const temPassiva = vagaDaPassiva(e, t.uniaoPassiva[u]!) >= 0;
+    if (tipo === TIPO_DE_CARTA.passivaNova && item === t.uniaoPassiva[u] && va >= 0 && e.build.nivel[va]! >= t.uniaoArmaNivel[u]!) return t.uniaoResultado[u]!;
+    if (tipo === TIPO_DE_CARTA.melhoriaDeArma && item === t.uniaoArma[u] && temPassiva && va >= 0 && e.build.nivel[va]! + 1 === t.uniaoArmaNivel[u]) return t.uniaoResultado[u]!;
+  }
+  return 0;
+}
+
 /** Fecha a oferta (os 3 tipos em 0). */
 export function limparOferta(e: Estado): void {
   e.oferta.tipo.fill(0);
