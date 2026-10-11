@@ -101,7 +101,8 @@ export async function diferenca(page: Page, a: Buffer, b: Buffer): Promise<{ dif
  * Iguais byte a byte com WebGL por software; com GPU de hardware, ≤ 1 por canal em ≤ 0,1% dos pixels
  * (design/decisoes-F-003.md §7). Com membros translúcidos (`translucidos`: as camadas das armas), a mistura de
  * alpha arredonda diferente no SpriteGPULayer e no Image, também por software: ≤ 1 por canal em ≤ 1% dos pixels
- * (medido: 0,5% no tres_armas, só nos dígitos, na estocada e nas facas; ADR-0006).
+ * (medido: 0,5% no tres_armas, só nos dígitos, na estocada e nas facas, ADR-0006; e a borda dos obstáculos na camada
+ * mundo da F-005, ADR-0007).
  */
 export async function esperarIguais(page: Page, a: Buffer, b: Buffer, rotulo: string, translucidos = false): Promise<void> {
   if (a.equals(b)) return;

@@ -216,8 +216,11 @@ test('a horda desenhada corresponde à simulação nos dois modos, e o slot que 
     removidos.forEach((a, i) => expect(perto(fundo[i]!, rgb(COR.fundo)), `${modo}: slot ${a.slot} removido = ${fundo[i]}`).toBe(true));
     imagens[modo] = [antes, depois];
   }
-  await esperarIguais(page, imagens['gpu']![0]!, imagens['image']![0]!, 'gpu × image no passo 600');
-  await esperarIguais(page, imagens['gpu']![1]!, imagens['image']![1]!, 'gpu × image depois das remoções');
+  // Desde a F-005, os obstáculos vão pela camada "mundo" (SpriteGPULayer × Image): a borda suavizada da textura é
+  // translúcida e arredonda diferente nos dois (medido: 23 pixels de 2,96 milhões, ±1 num canal, todos na borda
+  // dos obstáculos; ADR-0007 §8). A horda continua opaca.
+  await esperarIguais(page, imagens['gpu']![0]!, imagens['image']![0]!, 'gpu × image no passo 600', true);
+  await esperarIguais(page, imagens['gpu']![1]!, imagens['image']![1]!, 'gpu × image depois das remoções', true);
 });
 
 test('com ?buffer=dinamico (DYNAMIC_DRAW), a imagem é a mesma do buffer padrão no mesmo passo (§7)', async ({ page }) => {
