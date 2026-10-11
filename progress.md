@@ -36,10 +36,9 @@
 - **F-003.4 neste contêiner:** o WebGL é o SwiftShader; o teste confere sempre a CPU (p95 de um passo + p95 do resto até `PRE_RENDER` < 10 ms, com 300 vivos e CPU 4×) e registra "fps não conferido". O F-003.4 literal (fps ≥ 55) fica pendente de um desktop com GPU ou do build de teste do iPhone (F-006, Q-29).
 - **Teste de contorno:** os 52 casos chegam; o campo de fluxo não foi implementado.
 
-### Para o usuário revisar
-- As decisões delegadas da §0 de D3 (veto rápido).
-- O F-003.4 literal (fps ≥ 55) não foi medido: o contêiner só tem WebGL por software.
-- As 11 divergências do ADR-0002 (ADR-0005 §8).
+### Ratificado pelo usuário (2026-10-11: "Por mim, concordo com tudo que decidi até agora")
+- As decisões delegadas da §0 de D3 e as 11 divergências do ADR-0002 (ADR-0005 §8).
+- O F-003.4 literal (fps ≥ 55) fica como medida pendente do build de teste no aparelho (F-006, Q-29); o usuário espera que o iPhone seja mais fluido que o contêiner, que só tem WebGL por software. A parte de CPU que dá para medir aqui usa ≈ 4 de 10 ms por quadro com CPU 4×.
 
 ## Sessão 2 — F-002 "Movimento e mapa"
 
