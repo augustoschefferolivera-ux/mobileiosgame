@@ -1,20 +1,22 @@
 # F-001 — log do teste de determinismo (Vitest, Node); desde a F-002, com o roteiro de ComandosDoPasso
-# gerado em 2026-10-11T14:01:01.297Z com Node v22.22.0
-# referencia: seed=1 passos=1000 hash=e91ed119 (comparado pela Playwright, F-001.11)
-seed=1 passos=1000 execucao1=e91ed119 execucao2=e91ed119 iguais=true
-horda no passo 1000: vivos=15 spawns=15 1o_acerto=passo 146 hp=138
-cenario horda: seed=1 passos=1800 hash=4f58b748 (comparado pela Playwright no E3)
-trilha passo=100 hash=50c41cb0 cabecalho=b62546d4 rng=6a3ca424 jogador=106fb098 mundo=4ac52c85 inimigos=f5188ee5
-trilha passo=200 hash=6122204d cabecalho=d08eed14 rng=6a3ca424 jogador=3179335a mundo=983af639 inimigos=a3e55ede
-trilha passo=300 hash=3772a51b cabecalho=9868baf4 rng=6a3ca424 jogador=15546364 mundo=e5b0bfed inimigos=50d9f712
-trilha passo=400 hash=f0307331 cabecalho=750fc1c4 rng=6a3ca424 jogador=be4814d8 mundo=6fa11801 inimigos=be52ad44
-trilha passo=500 hash=ba148a34 cabecalho=bd4a8bc4 rng=6a3ca424 jogador=66c7d217 mundo=bd16e1b5 inimigos=9638cb6a
-trilha passo=600 hash=e1972889 cabecalho=35222b44 rng=6a3ca424 jogador=06d2aedf mundo=fd4f62d1 inimigos=907f616f
-trilha passo=700 hash=eaaf4a91 cabecalho=13dcf404 rng=6a3ca424 jogador=2b3be88c mundo=4ac52c85 inimigos=1a5894b0
-trilha passo=800 hash=52ae34e6 cabecalho=f4a8cae4 rng=6a3ca424 jogador=23e33ead mundo=983af639 inimigos=fd0d6346
-trilha passo=900 hash=a19f6a18 cabecalho=d027abbc rng=6a3ca424 jogador=d3288c21 mundo=e5b0bfed inimigos=8e190660
-trilha passo=1000 hash=e91ed119 cabecalho=78793ee4 rng=6a3ca424 jogador=3f2966fb mundo=6fa11801 inimigos=aa1e2943
+# gerado em 2026-10-11T17:47:23.115Z com Node v22.22.0
+# referencia: seed=1 passos=1000 hash=901adb6d (comparado pela Playwright, F-001.11)
+seed=1 passos=1000 execucao1=901adb6d execucao2=901adb6d iguais=true
+horda no passo 1000: vivos=15 spawns=15 mortes=0 1a_morte=passo -1 1o_acerto=passo 146 hp=138
+cenario horda: seed=1 passos=1800 hash=6767ce88 (comparado pela Playwright no E3)
+trilha passo=100 hash=b2838a8b cabecalho=bb658507 rng=6a3ca424 jogador=bdf13cdf mundo=fe551825 inimigos=c4bd4415 projeteis=df8aa6aa
+trilha passo=200 hash=7a6c2625 cabecalho=3c0f55c7 rng=6a3ca424 jogador=b6d11f35 mundo=8191e459 inimigos=bc0431c9 projeteis=df8aa6aa
+trilha passo=300 hash=c2726cf3 cabecalho=59b17107 rng=6a3ca424 jogador=51fb8203 mundo=04ceb08d inimigos=60d2ee0d projeteis=df8aa6aa
+trilha passo=400 hash=13d3a7a9 cabecalho=d829a397 rng=6a3ca424 jogador=3f0317a3 mundo=a10d7721 inimigos=f142b21f projeteis=df8aa6aa
+trilha passo=500 hash=1d396318 cabecalho=69ae08d7 rng=6a3ca424 jogador=c080d748 mundo=244a4355 inimigos=66643a95 projeteis=df8aa6aa
+trilha passo=600 hash=7ecaca01 cabecalho=19ec3c07 rng=6a3ca424 jogador=f00e51a4 mundo=7b184bf1 inimigos=809f0974 projeteis=df8aa6aa
+trilha passo=700 hash=7a84df95 cabecalho=5c0b3eff rng=6a3ca424 jogador=d7860f43 mundo=fe551825 inimigos=b2d7f1cb projeteis=df8aa6aa
+trilha passo=800 hash=00b30d76 cabecalho=ef130f77 rng=6a3ca424 jogador=de31da62 mundo=8191e459 inimigos=03fa2941 projeteis=df8aa6aa
+trilha passo=900 hash=6c77fee4 cabecalho=1cb54177 rng=6a3ca424 jogador=b1c29e7a mundo=04ceb08d inimigos=a6d02a7b projeteis=df8aa6aa
+trilha passo=1000 hash=901adb6d cabecalho=98cbb7f7 rng=6a3ca424 jogador=2cae1828 mundo=a10d7721 inimigos=95fd98b8 projeteis=df8aa6aa
 roteiro: costura x no passo 258, costura y no passo 962, 91 passos de deslize
-1 passo/frame: 1000 frames hash=e91ed119; 5 passos/frame: 200 frames hash=e91ed119; iguais=true
-chromium (Playwright): seed=1 passos=1000 (12 pelo driver real + 988 por avancar) hash=e91ed119 iguais=true
-chromium (Playwright), cenário horda: seed=1 passos=1800 hash=4f58b748 iguais=true
+1 passo/frame: 1000 frames hash=901adb6d; 5 passos/frame: 200 frames hash=901adb6d; iguais=true
+chromium (Playwright): seed=1 passos=1000 (19 pelo driver real + 981 por avancar) hash=901adb6d iguais=true
+chromium (Playwright), cenário horda: seed=1 passos=1800 hash=6767ce88 iguais=true
+chromium (Playwright), 1ª morte da Vigília normal: seed=1 passo=433 hash=86aa5388 iguais=true
+chromium (Playwright), tres_armas: seed=1 passo=601 hash=5628633f iguais=true
