@@ -11,7 +11,14 @@ import { bloquearGestos } from '../plataforma/bloqueioDeGestos';
 import { lerParametros, sortearSeed } from '../plataforma/parametros';
 import { parametrosDoCenario } from '../plataforma/cenarios';
 import { ALTURA_LOGICA, LARGURA_LOGICA, insetsZerados } from '../plataforma/safeArea';
-import { decidirTeto } from '../plataforma/teto';
+import { SondaDoTeto, armazenamentoLocal, classeDaTela, lerCacheDoTeto, versaoDoSafari } from '../plataforma/sonda';
+import { decidirTeto, type EntradasDoTeto } from '../plataforma/teto';
+import { montarEstadoDaSonda } from '../logica/nucleo/sonda';
+import { criarDadosDaVigilia } from '../logica/mundo/dados';
+import armas from '../dados/armas.json';
+import inimigos from '../dados/inimigos.json';
+import vigilantes from '../dados/vigilantes.json';
+import charneca from '../dados/regioes/charneca_das_lanternas.json';
 import { RegistroDeTelemetria } from '../plataforma/telemetria';
 import { suportaWebGL } from '../plataforma/webgl';
 import { Acender } from './Acender';
@@ -54,6 +61,18 @@ export function iniciarJogo(): Phaser.Game | null {
     return null;
   }
 
+  // TETO (ADR-0002 §13): override, cache, classe de tela, sonda e fallback, nessa ordem. A sonda só roda se as três
+  // primeiras camadas não decidirem e ?sonda=0 não a desligar (decisoes-F-004 §5); ela termina na Tela de Acender.
+  const tela = { dpr: window.devicePixelRatio, largura: window.screen.width, altura: window.screen.height };
+  const identidade = { build: __VDC_BUILD__, versaoDoSafari: versaoDoSafari(navigator.userAgent), tela: classeDaTela(tela) };
+  const entradas: EntradasDoTeto = { override: params.teto, cache: lerCacheDoTeto(armazenamentoLocal(), identidade), tela, sonda: null };
+  const teto = decidirTeto(entradas);
+  let sondaDoTeto = null;
+  if (teto.origem === 'fallback' && params.sonda) {
+    const dados = criarDadosDaVigilia(charneca, vigilantes.vigilantes[0]!, inimigos.inimigos, armas.armas);
+    sondaDoTeto = { sonda: new SondaDoTeto(montarEstadoDaSonda(dados), dados, () => performance.now()), entradas, identidade };
+  }
+
   const ctx: ContextoDoJogo = {
     seed: params.seed ?? sortearSeed(),
     ehBuildDeDebug,
@@ -69,13 +88,8 @@ export function iniciarJogo(): Phaser.Game | null {
     audioSilencioso: criarAudioSilencioso(document),
     desbloqueioDoAudio: null,
     roteiro: null,
-    // A sonda e o cache vdc.teto entram com a 1ª feature com projéteis (design/decisoes-F-003.md §5, T1).
-    teto: decidirTeto({
-      override: params.teto,
-      cache: null,
-      tela: { dpr: window.devicePixelRatio, largura: window.screen.width, altura: window.screen.height },
-      sonda: null,
-    }),
+    teto,
+    sondaDoTeto,
     cenario: params.cenario === null ? null : { id: params.cenario, parametros: parametrosDoCenario(params.cenario) },
     render: { modo: params.render, origem: 'parametro', bufferDinamico: params.bufferDinamico, aquecido: false },
     opcoes: { numerosDeDano: true },

@@ -7,6 +7,8 @@
 import Phaser from 'phaser';
 import { acharAlvo, alvosDoAcender, type Alvo } from '../entrada/alvos';
 import { desbloquearAudio, type SomDesbloqueavel } from '../plataforma/audio';
+import { FPS_MINIMO_PARA_O_CACHE, armazenamentoLocal, gravarCacheDoTeto } from '../plataforma/sonda';
+import { decidirTeto } from '../plataforma/teto';
 import { ALTURA_LOGICA, LARGURA_LOGICA, medirSafeArea } from '../plataforma/safeArea';
 import type { ContextoDoJogo } from './contexto';
 import { COR, cameraLogica, texto } from './estilo';
@@ -114,6 +116,24 @@ export class Acender extends Phaser.Scene {
     }).then((estado) => {
       this.ctx.desbloqueioDoAudio = estado;
     });
+    // Toque antes do fim da sonda: a Vigília fica com o fallback (300) e nada vai para o cache (decisoes-F-004 §5).
+    this.ctx.sondaDoTeto = null;
     this.scene.start('Vigilia');
   };
+
+  /**
+   * Uma etapa da sonda do TETO por quadro, depois do aquecimento do layer
+   * (ou já, no plano B): no fim, decide o TETO e grava o cache, exceto com o
+   * rAF a 30 fps (ADR-0002 §13).
+   */
+  override update(): void {
+    const p = this.ctx.sondaDoTeto;
+    if (!p || this.acendeu) return;
+    if (!this.ctx.render.aquecido && this.ctx.render.modo === 'gpu') return;
+    const r = p.sonda.etapa();
+    if (!r) return;
+    this.ctx.sondaDoTeto = null;
+    this.ctx.teto = decidirTeto({ ...p.entradas, sonda: r });
+    if (this.game.loop.actualFps >= FPS_MINIMO_PARA_O_CACHE) gravarCacheDoTeto(armazenamentoLocal(), p.identidade, this.ctx.teto.valor);
+  }
 }

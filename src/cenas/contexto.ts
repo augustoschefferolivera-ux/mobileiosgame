@@ -11,7 +11,15 @@ import type { ParametrosDaVigilia } from '../logica/nucleo/estado';
 import type { ModoDeRender } from '../plataforma/parametros';
 import type { Insets } from '../plataforma/safeArea';
 import type { RegistroDeTelemetria } from '../plataforma/telemetria';
-import type { Teto } from '../plataforma/teto';
+import type { IdentidadeDoCache, SondaDoTeto } from '../plataforma/sonda';
+import type { EntradasDoTeto, Teto } from '../plataforma/teto';
+
+/** A sonda e o que falta para decidir o TETO e gravar o cache quando ela terminar. */
+export interface SondaPendente {
+  readonly sonda: SondaDoTeto;
+  readonly entradas: EntradasDoTeto;
+  readonly identidade: IdentidadeDoCache;
+}
 import type { MedidorDeQuadros } from './medidas';
 import type { EscritorDaHorda } from './render/escritores';
 
@@ -70,8 +78,10 @@ export interface ContextoDoJogo {
   desbloqueioDoAudio: string | null;
   /** Roteiro imposto por __GAME_DEBUG__.entrada.roteiro (só no build de debug); vale desde o passo 0. */
   roteiro: Roteiro | null;
-  /** TETO desta sessão (ADR-0002 §13), fixo para cada Vigília. */
-  readonly teto: Teto;
+  /** TETO desta sessão (ADR-0002 §13), fixo para cada Vigília; a sonda o decide na Tela de Acender. */
+  teto: Teto;
+  /** A sonda do TETO em andamento (null sem sonda ou depois dela); o toque em Acender a cancela (decisoes-F-004 §5). */
+  sondaDoTeto: SondaPendente | null;
   /** ?cenario (só no build de debug): o id e os parâmetros da Vigília que ele impõe. */
   readonly cenario: { readonly id: string; readonly parametros: Omit<ParametrosDaVigilia, 'teto'> } | null;
   readonly render: RenderDaHorda;

@@ -27,9 +27,13 @@ declare global {
   }
 }
 
-/** Abre o build de debug com a seed do verify e espera a Tela de Acender. `extra` vai na URL (ex.: '&tutorial=0'). */
-export async function abrir(page: Page, extra = ''): Promise<void> {
-  await page.goto(`/?seed=${SEED}${extra}`);
+/**
+ * Abre o build de debug com a seed do verify e espera a Tela de Acender. `extra` vai na URL (ex.: '&tutorial=0').
+ * A sonda do TETO fica desligada (`&sonda=0`): o TETO não depende da máquina e nenhum spec grava `vdc.teto`
+ * (design/decisoes-F-004.md §5); só o spec da sonda a liga, com `sonda = true`.
+ */
+export async function abrir(page: Page, extra = '', sonda = false): Promise<void> {
+  await page.goto(`/?seed=${SEED}${sonda ? '' : '&sonda=0'}${extra}`);
   await page.waitForFunction(() => window.__GAME_DEBUG__?.estado === 'ACENDER');
 }
 

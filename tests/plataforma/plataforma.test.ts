@@ -184,8 +184,8 @@ describe('telemetria local (F-001.15; Q-30)', () => {
 });
 
 describe('parâmetros de URL (ADR-0002 §14)', () => {
-  it('o build de produção ignora ?seed, ?tutorial e os parâmetros da F-003', () => {
-    expect(lerParametros('?seed=5&tutorial=0&teto=500&render=image&buffer=dinamico&cenario=horda&debug=1', false)).toEqual({
+  it('o build de produção ignora ?seed, ?tutorial e os parâmetros das F-003 e F-004 (a sonda do TETO fica ligada)', () => {
+    expect(lerParametros('?seed=5&tutorial=0&teto=500&render=image&buffer=dinamico&cenario=horda&debug=1&sonda=0', false)).toEqual({
       seed: null,
       pularTutoriais: false,
       teto: null,
@@ -193,7 +193,14 @@ describe('parâmetros de URL (ADR-0002 §14)', () => {
       bufferDinamico: false,
       cenario: null,
       debug: false,
+      sonda: true,
     });
+  });
+
+  it('build de debug: ?sonda=0 desliga a sonda do TETO; qualquer outro valor a deixa ligada (decisoes-F-004 §5)', () => {
+    expect(lerParametros('?sonda=0', true).sonda).toBe(false);
+    expect(lerParametros('?sonda=1', true).sonda).toBe(true);
+    expect(lerParametros('', true).sonda).toBe(true);
   });
 
   it.each([
