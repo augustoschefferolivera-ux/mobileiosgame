@@ -28,10 +28,10 @@ export const COMPORTAMENTO = {
   manterDistancia: 2,
 } as const;
 
-/** Corpo em px lógicos (B §3.2). */
-const CORPO_PX = 32;
-/** Velocidade 1,0 = 4,5 corpos/s (B §3.3). */
-const CORPOS_POR_SEGUNDO = 4.5;
+/** Corpo, a unidade de distância (B §3.2): 32 px lógicos. */
+export const CORPO_PX = 32;
+/** Velocidade 1,0 = 4,5 corpos/s = 144 px/s (B §3.3), para o jogador e os inimigos. */
+export const CORPOS_POR_SEGUNDO_NA_VELOCIDADE_1 = 4.5;
 
 /** O que se lê de cada inimigo de inimigos.json (inimigo.schema.json). */
 export interface InimigoDoJson {
@@ -100,7 +100,7 @@ export function criarTiposDeInimigo(inimigos: readonly InimigoDoJson[]): TiposDe
     if (i.tamanho_px === null || comp === null) continue;
     t.existe[codigo] = 1;
     t.raio[codigo] = i.tamanho_px / 2;
-    t.velocidade[codigo] = (i.velocidade * CORPOS_POR_SEGUNDO * CORPO_PX) / PASSOS_POR_SEGUNDO;
+    t.velocidade[codigo] = (i.velocidade * CORPOS_POR_SEGUNDO_NA_VELOCIDADE_1 * CORPO_PX) / PASSOS_POR_SEGUNDO;
     t.hpBase[codigo] = i.hp_base;
     t.danoBase[codigo] = i.dano_base;
     t.contato[codigo] = i.dano_tipo === 'contato_por_s' ? 1 : 0;

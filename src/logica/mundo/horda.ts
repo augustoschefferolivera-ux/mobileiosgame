@@ -75,11 +75,22 @@ export function separarHorda(
     const ay = ini.y[a]!;
     // As células que cobrem o disco de raio ra + R_MAX (o intervaloDeCelulas da grade, em linha),
     // com os pares (a, b) de b > a sobrepostos.
+    // Cada extremo levado ao toro e à sua coluna ou linha (coluna(voltaNoToro(v)) da grade).
     const r = ra + rMax;
-    const c0 = colunaNoToro(ax - r);
-    const nc = 2 * r >= LARGURA_DO_MAPA - LADO_DA_CELULA ? COLUNAS : ((colunaNoToro(ax + r) - c0 + COLUNAS) % COLUNAS) + 1;
-    let l = linhaNoToro(ay - r);
-    const nl = 2 * r >= ALTURA_DO_MAPA - LADO_DA_CELULA ? LINHAS : ((linhaNoToro(ay + r) - l + LINHAS) % LINHAS) + 1;
+    let m = (ax - r) % LARGURA_DO_MAPA;
+    if (m < 0) m += LARGURA_DO_MAPA;
+    const c0 = Math.floor(m / LADO_DA_CELULA);
+    m = (ax + r) % LARGURA_DO_MAPA;
+    if (m < 0) m += LARGURA_DO_MAPA;
+    const c1 = Math.floor(m / LADO_DA_CELULA);
+    m = (ay - r) % ALTURA_DO_MAPA;
+    if (m < 0) m += ALTURA_DO_MAPA;
+    let l = Math.floor(m / LADO_DA_CELULA);
+    m = (ay + r) % ALTURA_DO_MAPA;
+    if (m < 0) m += ALTURA_DO_MAPA;
+    const l1 = Math.floor(m / LADO_DA_CELULA);
+    const nc = 2 * r >= LARGURA_DO_MAPA - LADO_DA_CELULA ? COLUNAS : ((c1 - c0 + COLUNAS) % COLUNAS) + 1;
+    const nl = 2 * r >= ALTURA_DO_MAPA - LADO_DA_CELULA ? LINHAS : ((l1 - l + LINHAS) % LINHAS) + 1;
     for (let i = 0; i < nl; i++) {
       let c = c0;
       for (let q = 0; q < nc; q++) {
@@ -131,19 +142,6 @@ export function separarHorda(
   }
 }
 
-/** Coluna e linha da grade de um valor qualquer levado ao toro (o coluna(voltaNoToro(v)) da grade); devolvem inteiros. */
-function colunaNoToro(v: number): number {
-  let m = v % LARGURA_DO_MAPA;
-  if (m < 0) m += LARGURA_DO_MAPA;
-  return Math.floor(m / LADO_DA_CELULA);
-}
-
-function linhaNoToro(v: number): number {
-  let m = v % ALTURA_DO_MAPA;
-  if (m < 0) m += ALTURA_DO_MAPA;
-  return Math.floor(m / LADO_DA_CELULA);
-}
-
 export function moverHorda(e: Estado, dados: DadosDaVigilia): void {
   const ini = e.inimigos;
   const t = dados.tipos;
@@ -186,14 +184,14 @@ export function moverHorda(e: Estado, dados: DadosDaVigilia): void {
     movX[s] = mx;
     movY[s] = my;
     // A normalização de normalizarNoToro, em linha.
-    let nx = Math.fround(x + mx);
-    if (nx < 0) nx = Math.fround(nx + LARGURA_DO_MAPA);
-    if (nx >= LARGURA_DO_MAPA) nx = Math.fround(nx - LARGURA_DO_MAPA);
-    let ny = Math.fround(y + my);
-    if (ny < 0) ny = Math.fround(ny + ALTURA_DO_MAPA);
-    if (ny >= ALTURA_DO_MAPA) ny = Math.fround(ny - ALTURA_DO_MAPA);
-    ini.x[s] = nx;
-    ini.y[s] = ny;
+    let xf = Math.fround(x + mx);
+    if (xf < 0) xf = Math.fround(xf + LARGURA_DO_MAPA);
+    if (xf >= LARGURA_DO_MAPA) xf = Math.fround(xf - LARGURA_DO_MAPA);
+    let yf = Math.fround(y + my);
+    if (yf < 0) yf = Math.fround(yf + ALTURA_DO_MAPA);
+    if (yf >= ALTURA_DO_MAPA) yf = Math.fround(yf - ALTURA_DO_MAPA);
+    ini.x[s] = xf;
+    ini.y[s] = yf;
   }
 
   // 4 e 5. Grade e separação, com as posições depois do comportamento.
@@ -262,18 +260,18 @@ export function moverHorda(e: Estado, dados: DadosDaVigilia): void {
     const ox = cx - px;
     const oy = cy - py;
     obstaculo2 = Math.max(obstaculo2, ox * ox + oy * oy);
-    let nx = Math.fround(cx);
-    if (nx < 0) nx = Math.fround(nx + LARGURA_DO_MAPA);
-    if (nx >= LARGURA_DO_MAPA) nx = Math.fround(nx - LARGURA_DO_MAPA);
-    let ny = Math.fround(cy);
-    if (ny < 0) ny = Math.fround(ny + ALTURA_DO_MAPA);
-    if (ny >= ALTURA_DO_MAPA) ny = Math.fround(ny - ALTURA_DO_MAPA);
-    ini.x[s] = nx;
-    ini.y[s] = ny;
-    let tx = nx - x0;
+    let xf = Math.fround(cx);
+    if (xf < 0) xf = Math.fround(xf + LARGURA_DO_MAPA);
+    if (xf >= LARGURA_DO_MAPA) xf = Math.fround(xf - LARGURA_DO_MAPA);
+    let yf = Math.fround(cy);
+    if (yf < 0) yf = Math.fround(yf + ALTURA_DO_MAPA);
+    if (yf >= ALTURA_DO_MAPA) yf = Math.fround(yf - ALTURA_DO_MAPA);
+    ini.x[s] = xf;
+    ini.y[s] = yf;
+    let tx = xf - x0;
     if (tx > MEIA_LARGURA_DO_MAPA) tx -= LARGURA_DO_MAPA;
     if (tx < -MEIA_LARGURA_DO_MAPA) tx += LARGURA_DO_MAPA;
-    let ty = ny - y0;
+    let ty = yf - y0;
     if (ty > MEIA_ALTURA_DO_MAPA) ty -= ALTURA_DO_MAPA;
     if (ty < -MEIA_ALTURA_DO_MAPA) ty += ALTURA_DO_MAPA;
     total2 = Math.max(total2, tx * tx + ty * ty);

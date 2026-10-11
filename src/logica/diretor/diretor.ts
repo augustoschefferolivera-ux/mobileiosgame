@@ -11,7 +11,7 @@ import { quantosAtivos } from '../nucleo/pool';
 import { proximoU32, proximoUnitario } from '../nucleo/rng';
 import type { DadosDaVigilia } from '../mundo/dados';
 import { DIRECAO_X, DIRECAO_Y, DIRECOES } from '../mundo/direcoes';
-import { MASSA_POR_CONVERTIDO, nascerInimigo } from '../mundo/inimigos';
+import { MASSA_POR_CONVERTIDO, minutoDaEscala, nascerInimigo } from '../mundo/inimigos';
 import { TIPO } from '../mundo/tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, LARGURA_DA_TELA, deltaNoToro, normalizarNoToro } from '../mundo/toro';
 import { PASSOS_POR_MINUTO } from './timeline';
@@ -24,11 +24,9 @@ export const LIMIAR_DO_LADO_OPOSTO = 2576980378;
 /** 2³², exato em double. */
 const DOIS_A_32 = 4294967296;
 
-/** Linha corrente: a fixa do cenário, ou ⌊relógio / 3.600⌋ até a última (Q-10). */
+/** Linha corrente: a fixa do cenário, ou ⌊relógio / 3.600⌋ até a última (Q-10); é o minuto da escala no spawn. */
 export function linhaCorrente(e: Estado, dados: DadosDaVigilia): number {
-  const fixa = e.cab[CAB.linhaFixa]!;
-  if (fixa !== LINHA_LIVRE) return fixa;
-  return Math.min(Math.floor(e.cab[CAB.relogio]! / PASSOS_POR_MINUTO), dados.timeline.linhas - 1);
+  return minutoDaEscala(e, dados);
 }
 
 /** Intervalo efetivo em passos: round(passosBase × 10 / I10) (B §3.7; ADR-0002 §3). */
@@ -48,6 +46,11 @@ export function convertidosVivos(e: Estado): number {
   const conv = e.inimigos.convertido;
   for (let s = 0; s < pos.length; s++) if (pos[s]! >= 0 && conv[s] === 1) n++;
   return n;
+}
+
+/** vivosEq = slots + 9 × convertidos (ADR-0002 §8, passo 4): cada convertido vale 10 massas. */
+export function vivosEquivalentes(e: Estado): number {
+  return quantosAtivos(e.pool) + (MASSA_POR_CONVERTIDO - 1) * convertidosVivos(e);
 }
 
 /** Na janela de 30 s antes de uma linha de marco (3.600·M − 1.800 ≤ r < 3.600·M). */
@@ -168,8 +171,7 @@ function nascerNoAnel(e: Estado, dados: DadosDaVigilia, codigo: number, converti
 function repor(e: Estado, dados: DadosDaVigilia, linha: number, temIntencao: boolean): void {
   const i10 = e.mundo[MUNDO.intensidade10]!;
   const slots = quantosAtivos(e.pool);
-  const vivosEq = slots + (MASSA_POR_CONVERTIDO - 1) * convertidosVivos(e);
-  const falta = alvoDaLinha(dados.timeline.minimo[linha]!, i10) - vivosEq;
+  const falta = alvoDaLinha(dados.timeline.minimo[linha]!, i10) - vivosEquivalentes(e);
   const livres = e.cab[CAB.teto]! - slots;
   if (falta <= 0 || livres <= 0) return;
   const entram = Math.min(falta, livres);

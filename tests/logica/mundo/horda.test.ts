@@ -94,6 +94,61 @@ describe('separação (S1, S5)', () => {
     }
   });
 
+  it('F-003.1 na separação: 1.000 configurações aleatórias (inclusive nas costuras) dão o mesmo que a força bruta', () => {
+    // A separação visita a grade em linha (laço quente); aqui ela é comparada com todos os pares, um a um.
+    const rng = new Uint32Array(4);
+    semear(rng, 0, 31, 'diretor');
+    const u = (): number => proximoUnitario(rng, 0);
+    const tipos = [TIPO.oco_das_lanternas, TIPO.oco_grande, TIPO.novica_de_sal];
+    const t = VAZIO.tipos;
+    const rx = new Float64Array(500);
+    const ry = new Float64Array(500);
+    let pares = 0;
+    for (let caso = 0; caso < 1000; caso++) {
+      const e = estadoCom(VAZIO, 585, 1266);
+      const n = 2 + Math.floor(u() * 60);
+      // Um aglomerado em volta de um centro qualquer; 1 caso em 4 sobre a costura em x, 1 em 4 sobre a de y.
+      const cx = caso % 4 === 1 ? (u() < 0.5 ? u() * 20 : W - u() * 20) : u() * W;
+      const cy = caso % 4 === 2 ? (u() < 0.5 ? u() * 20 : H - u() * 20) : u() * H;
+      const raio = 20 + u() * 120;
+      for (let k = 0; k < n; k++) {
+        nascerInimigo(e, VAZIO, tipos[Math.floor(u() * 3)]!, normalizarNoToro(cx + (u() - 0.5) * 2 * raio, W), normalizarNoToro(cy + (u() - 0.5) * 2 * raio, H), false);
+      }
+      const ids = vivos(e);
+      separarHorda(e, VAZIO, ids, ids.length, sx, sy);
+      const ini = e.inimigos;
+      for (const a of ids) {
+        rx[a] = 0;
+        ry[a] = 0;
+      }
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+          const [a, b] = [ids[i]!, ids[j]!];
+          const soma = t.raio[ini.tipo[a]!]! + t.raio[ini.tipo[b]!]!;
+          const dx = deltaNoToro(ini.x[a]!, ini.x[b]!, W);
+          const dy = deltaNoToro(ini.y[a]!, ini.y[b]!, H);
+          const d = Math.hypot(dx, dy);
+          if (d >= soma) continue;
+          pares++;
+          const [nx, ny] = d > 0 ? [dx / d, dy / d] : [1, 0];
+          const meia = (soma - d) / 2;
+          rx[a] = rx[a]! - nx * meia;
+          ry[a] = ry[a]! - ny * meia;
+          rx[b] = rx[b]! + nx * meia;
+          ry[b] = ry[b]! + ny * meia;
+        }
+      }
+      for (const a of ids) {
+        const v = t.velocidade[ini.tipo[a]!]!;
+        const m = Math.hypot(rx[a]!, ry[a]!);
+        const f = m > v ? v / m : 1;
+        expect(Math.abs(sx[a]! - rx[a]! * f), `caso ${caso}, slot ${a}`).toBeLessThan(1e-9);
+        expect(Math.abs(sy[a]! - ry[a]! * f), `caso ${caso}, slot ${a}`).toBeLessThan(1e-9);
+      }
+    }
+    expect(pares).toBeGreaterThan(5000);
+  }, 60_000);
+
   it('centros coincidentes: o slot menor vai para −x e o maior para +x, sem NaN', () => {
     const e = estadoCom(VAZIO, 300, 1800);
     const a = nascerInimigo(e, VAZIO, TIPO.oco_das_lanternas, 500, 500, false);

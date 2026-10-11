@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { criarComandos, fonteConstante, fonteDoRoteiro } from '../../../src/logica/nucleo/comandos';
 import { CAB, JOGADOR as J, JOGADOR_U8, PROMPT, TUTORIAL, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
 import { avancar, passo } from '../../../src/logica/nucleo/passo';
-import { CORPO_PX } from '../../../src/logica/mundo/dados';
+import { CORPO_PX } from '../../../src/logica/mundo/tipos';
 import { PASSO_DO_PROMPT_DE_MOVER, RAIO_DO_JOGADOR } from '../../../src/logica/mundo/jogador';
 import { LARGURA_DO_MAPA as W, deltaNoToro } from '../../../src/logica/mundo/toro';
 import charneca from '../../../src/dados/regioes/charneca_das_lanternas.json';

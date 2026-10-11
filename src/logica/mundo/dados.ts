@@ -13,12 +13,16 @@ import {
   type Obstaculos,
   type ObstaculosPorCelula,
 } from './obstaculos';
-import { IDS_DE_TIPO, TIPO, criarTiposDeInimigo, type InimigoDoJson, type TiposDeInimigo } from './tipos';
+import {
+  CORPO_PX,
+  CORPOS_POR_SEGUNDO_NA_VELOCIDADE_1,
+  IDS_DE_TIPO,
+  TIPO,
+  criarTiposDeInimigo,
+  type InimigoDoJson,
+  type TiposDeInimigo,
+} from './tipos';
 
-/** Corpo, a unidade de distância (B §3.2): 32 px lógicos. */
-export const CORPO_PX = 32;
-/** Velocidade 1,0 = 4,5 corpos/s = 144 px/s (B §3.3). */
-export const CORPOS_POR_SEGUNDO_NA_VELOCIDADE_1 = 4.5;
 
 export interface DadosDaVigilia {
   readonly obstaculos: Obstaculos;
@@ -80,10 +84,13 @@ export function criarDadosDaVigilia(
  */
 function tiposQueNascem(t: TiposDeInimigo, tl: Timeline): TiposDeInimigo {
   const codigos = new Set<number>([...tl.rosterTipo, ...tl.garantidoTipo, TIPO.oco_grande]);
+  const existe = new Uint8Array(t.existe.length);
   let raioMaximo = 0;
   for (const c of codigos) {
     if (t.existe[c] !== 1) throw new Error(`tipo de inimigo sem tamanho ou sem comportamento de movimento: ${IDS_DE_TIPO[c]}`);
+    existe[c] = 1;
     raioMaximo = Math.max(raioMaximo, t.raio[c]!);
   }
-  return { ...t, raioMaximo };
+  // Fora do conjunto, existe = 0: nascerInimigo recusa o tipo, e nenhum corpo passa do R_MAX da separação e dos obstáculos.
+  return { ...t, existe, raioMaximo };
 }

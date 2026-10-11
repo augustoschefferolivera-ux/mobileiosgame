@@ -177,7 +177,7 @@ export function criarObstaculosPorCelula(o: Obstaculos, alcance: number): Obstac
  * vez, e o resultado é bit a bit o da lista inteira (teste de equivalência).
  */
 export function colidirNaCelula(o: Obstaculos, porCelula: ObstaculosPorCelula, desempate: boolean): number {
-  // A célula de celulaDoPonto, escrita aqui para não passar doubles.
+  // A célula do ponto levado ao toro (voltaNoToro e coluna/linha da grade), escrita aqui para não passar doubles.
   let vx = COLISAO[ES.x]! % LARGURA_DO_MAPA;
   if (vx < 0) vx += LARGURA_DO_MAPA;
   let vy = COLISAO[ES.y]! % ALTURA_DO_MAPA;

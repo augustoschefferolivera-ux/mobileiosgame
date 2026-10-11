@@ -49,11 +49,6 @@ function voltaNoToro(v: number, L: number): number {
   return m < 0 ? m + L : m;
 }
 
-/** Célula de um ponto qualquer, levado ao toro (a posição pode ter saído de [0, W) × [0, H) no meio do passo). */
-export function celulaDoPonto(x: number, y: number): number {
-  return linha(voltaNoToro(y, ALTURA_DO_MAPA)) * COLUNAS + coluna(voltaNoToro(x, LARGURA_DO_MAPA));
-}
-
 /**
  * Refaz a grade com os itens `ids[0..n)`, nas posições `xs[id]`, `ys[id]`
  * (normalizadas no toro). Dentro de cada célula, os ids ficam na ordem dada.
@@ -94,12 +89,6 @@ function celulasNoEixo(c0: number, c1: number, r: number, L: number, n: number):
 }
 
 /**
- * Escreve em `out` os ids a distância no toro ≤ `r` de (x, y), e devolve
- * quantos. A ordem é a das células visitadas (colunas e linhas a partir da
- * borda de menor coordenada do intervalo, com wrap) e, dentro de cada célula,
- * a da reconstrução. Quem chama exclui o próprio item, se precisar.
- */
-/**
  * Intervalo de células que cobre o disco de raio r em volta de (x, y), pelas
  * coordenadas em px (ADR-0002 §6): escreve em `out` a 1ª coluna, quantas
  * colunas, a 1ª linha e quantas linhas, avançando com wrap de índice.
@@ -117,6 +106,14 @@ export function intervaloDeCelulas(x: number, y: number, r: number, out: Int32Ar
 
 const intervalo = new Int32Array(4);
 
+/**
+ * Escreve em `out` os ids a distância no toro ≤ `r` de (x, y), e devolve
+ * quantos. A ordem é a das células visitadas (colunas e linhas a partir da
+ * borda de menor coordenada do intervalo, com wrap) e, dentro de cada célula,
+ * a da reconstrução. Quem chama exclui o próprio item, se precisar. A
+ * separação da horda (horda.ts) faz a mesma visita em linha, e um teste a
+ * compara com a força bruta.
+ */
 export function consultarGrade(
   g: Grade,
   xs: Float32Array,

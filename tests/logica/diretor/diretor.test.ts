@@ -1,5 +1,5 @@
 // Diretor de spawn (B §3.7; ADR-0002 §8; design/decisoes-F-003.md §1 e §4):
-// intervalo e alvo em inteiros, timeline compilada, 1ª reposição no passo 0,
+// intervalo e alvo em inteiros, timeline compilada, 1ª reposição no 1º passo (r = 1),
 // reposição até o mínimo (F-003.2), conversão de excedente (F-003.3), escala
 // no spawn (F-003.6), janela antes dos marcos (F-003.8) e garantidos. Na F-003
 // ninguém morre: os testes removem inimigos com removerInimigo.
@@ -12,6 +12,7 @@ import {
   naJanelaDoMarco,
   rodarDiretor,
   sortearTipo,
+  vivosEquivalentes,
 } from '../../../src/logica/diretor/diretor';
 import { PASSOS_POR_MINUTO } from '../../../src/logica/diretor/timeline';
 import { CAB, CENARIO, MUNDO, baseDoFluxo, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
@@ -121,7 +122,7 @@ describe('linha corrente e janela (Q-10, Q-11)', () => {
 });
 
 describe('reposição (F-003.2; Q-07; ADR-0002 §8.7)', () => {
-  it('a 1ª reposição é no passo 0: 15 Ocos (doc 02 §11: "0:00 | 15 Ocos lentos")', () => {
+  it('a 1ª reposição é no 1º passo (r = 1): 15 Ocos (doc 02 §11: "0:00 | 15 Ocos lentos")', () => {
     const e = criarEstado(SEED, D);
     passoDoDiretor(e);
     expect(vivosPorTipo(e)).toEqual({ [TIPO.oco_das_lanternas]: 15 });
@@ -204,6 +205,23 @@ describe('conversão de excedente (F-003.3; Q-08; ADR-0002 §8.7)', () => {
     while (e.mundo[MUNDO.espera] !== 0) passoDoDiretor(e);
     passoDoDiretor(e);
     expect(e.mundo[MUNDO.spawns]).toBe(antes);
+  });
+
+  it('os convertidos contam 10 em vivosEq: com 3 vivos, removidos 10 comuns, voltam 10 comuns e nenhum convertido', () => {
+    // vivosEq = 287 + 9 × 3 = 314; falta 16, livres 10: entram 10, g = ⌊6/10⌋ = 0. Contando só os slots (290),
+    // faltariam 40 e entrariam 7 comuns + 3 convertidos (6 no total).
+    const e = linha19ComI11(300);
+    let n = 0;
+    for (let s = 0; s < 500 && n < 10; s++) {
+      if (e.pool.posicao[s]! >= 0 && e.inimigos.convertido[s] === 0) {
+        removerInimigo(e, s);
+        n++;
+      }
+    }
+    expect(vivosEquivalentes(e)).toBe(290 + 9 * 3);
+    while (e.mundo[MUNDO.espera] !== 0) passoDoDiretor(e);
+    passoDoDiretor(e);
+    expect([quantosAtivos(e.pool), convertidosVivos(e), vivosEquivalentes(e)]).toEqual([300, 3, 327]);
   });
 
   it('com TETO 500 não há conversão: 330 do roster', () => {
