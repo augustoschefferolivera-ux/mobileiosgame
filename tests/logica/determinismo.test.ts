@@ -89,9 +89,10 @@ describe('determinismo (F-001.1)', () => {
   });
 
   it('valores de referência fixos (mudar layout, semeadura, hash, roteiro, disposição, horda, diretor ou armas exige atualizar aqui)', () => {
-    // Desde a F-004 (estado v4, a Espada na Vigília normal); os da F-003 eram e91ed119 e 6173ca75.
-    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('901adb6d');
-    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('9cdc2c63');
+    // Desde a F-005 (estado v5: Cinzas, progressão e pickups; a regressão v4 prova que os campos
+    // antigos não mudaram). F-004: 901adb6d e 9cdc2c63; F-003: e91ed119 e 6173ca75.
+    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('f39dd6b4');
+    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('7c1b6c0c');
   });
 
   /** Vivos, spawns, mortes, passo da 1ª morte, passo do 1º acerto de contato, HP e o fluxo armas intocado, no passo 1.000. */
@@ -148,7 +149,7 @@ describe('determinismo (F-001.1)', () => {
     for (let k = 100; k <= PASSOS_REFERENCIA; k += 100) {
       avancar(e, D, fonte, 100);
       const s = hashPorSecao(e);
-      expect(Object.keys(s)).toEqual(['cabecalho', 'rng', 'jogador', 'mundo', 'inimigos', 'projeteis']);
+      expect(Object.keys(s)).toEqual(['cabecalho', 'rng', 'jogador', 'mundo', 'inimigos', 'projeteis', 'progressao', 'pickups', 'efeitos']);
       const secoes = Object.entries(s).map(([nome, h]) => `${nome}=${hex8(h)}`).join(' ');
       log.push(`trilha passo=${k} hash=${hex8(hashEstado(e))} ${secoes}`);
     }
@@ -164,7 +165,7 @@ describe('determinismo (F-001.1)', () => {
       expect(hashEstado(e), `byte ${i}`).not.toBe(base);
       e.bytes[i] = e.bytes[i]! ^ 1;
     }
-  });
+  }, 30_000);
 
   it('o cabeçalho guarda versão, seed, passo, relógio, tutoriais e disposição; reiniciar limpa um estado sujo', () => {
     const e = criarEstado(SEED, D, { tutoriaisVistos: TUTORIAL.mover });

@@ -3,11 +3,12 @@
 // os campos que já existiam no v3 (cabeçalho sem a versão, RNG, jogador,
 // as 8 palavras do mundo da F-003, o pool de inimigos e os campos x, y, xAnt,
 // yAnt, hp, dano, tipo e convertido), na mesma ordem. Os valores foram
-// gravados com o código do commit aad3094 (F-003 ratificada).
+// gravados com o código do commit aad3094 (F-003 ratificada). Desde a F-005, o
+// bit semCinzas do cabeçalho fica de fora (os cenários antigos o ligam).
 import { describe, expect, it } from 'vitest';
 import { fonteDoRoteiro } from '../../../src/logica/nucleo/comandos';
 import { FNV_BASE, fnv1aBytes, hex8 } from '../../../src/logica/nucleo/hash';
-import { criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
+import { CAB, CENARIO, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { PASSOS_REFERENCIA, ROTEIRO_REFERENCIA } from '../../../src/logica/nucleo/referencia';
 import { parametrosDoCenario } from '../../../src/plataforma/cenarios';
@@ -15,7 +16,10 @@ import { DADOS_DA_CHARNECA as D, PARADO, SEM_ARMAS } from '../apoio';
 
 function hashDosCamposV3(e: Estado): string {
   const b = (ini: number, fim: number): Uint8Array => new Uint8Array(e.buffer, ini, fim - ini);
-  let h = fnv1aBytes(FNV_BASE, b(4, 64));
+  // O bit semCinzas da F-005 (decisoes-F-005 §5) não existia no v3: mascarado na palavra 7 do cabeçalho.
+  const cab = new Uint32Array(e.cab.slice(1));
+  cab[CAB.cenario - 1] = cab[CAB.cenario - 1]! & ~CENARIO.semCinzas;
+  let h = fnv1aBytes(FNV_BASE, new Uint8Array(cab.buffer));
   h = fnv1aBytes(h, b(e.rng.byteOffset, e.rng.byteOffset + e.rng.byteLength));
   h = fnv1aBytes(h, b(e.jogador.byteOffset, e.jogador.byteOffset + 32));
   h = fnv1aBytes(h, b(e.mundo.byteOffset, e.mundo.byteOffset + 32));
