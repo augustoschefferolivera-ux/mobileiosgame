@@ -169,6 +169,22 @@ describe('integridade referencial', () => {
     expect(problemas).toEqual([]);
   });
 
+  it('as armas das receitas de cenário existem, com nível ≤ nivel_max, sem repetir e sem União (decisoes-F-004 §5)', () => {
+    const problemas: string[] = [];
+    for (const { arquivo } of ARQUIVOS.filter((a) => a.arquivo.startsWith('cenarios/'))) {
+      const vistas = new Set<unknown>();
+      for (const item of lista(d(arquivo), 'armas')) {
+        const a = armas.find((x) => x['id'] === item['arma']);
+        if (!a) problemas.push(`${arquivo}: arma ${String(item['arma'])} não existe`);
+        else if (a['uniao'] !== false) problemas.push(`${arquivo}: ${String(item['arma'])} é União (F-005)`);
+        else if (Number(item['nivel']) > Number(a['nivel_max'])) problemas.push(`${arquivo}: ${String(item['arma'])} nv${String(item['nivel'])} > nivel_max`);
+        if (vistas.has(item['arma'])) problemas.push(`${arquivo}: ${String(item['arma'])} repetida`);
+        vistas.add(item['arma']);
+      }
+    }
+    expect(problemas).toEqual([]);
+  });
+
   it('a timeline de cada região só cita inimigos e chefes existentes', () => {
     const idsInimigos = new Set(inimigos.map((i) => i['id']));
     const idsChefes = new Set(chefes.map((c) => c['id']));
@@ -415,9 +431,10 @@ describe('números do briefing técnico (design/gdd/18 §3)', () => {
 
   it('efeitos por nível das armas batem com B §3.8 (marcos nos níveis 4 e 7, doc 04)', () => {
     const efeitos = (id: string) => lista(porId(armas, id), 'niveis').map((n) => n['efeitos']);
-    expect(efeitos('espada_longa_do_juramento')).toEqual([[], [{ tipo: 'dano_pct', valor: 20 }], [{ tipo: 'golpes_extra', valor: 1 }], [{ tipo: 'dano_pct_vs_postura_quebrada', valor: 50 }], [{ tipo: 'area_pct', valor: 20 }], [{ tipo: 'dano_pct', valor: 20 }], [{ tipo: 'estocada_perfurante' }], [{ tipo: 'golpes_extra', valor: 1 }]]);
-    expect(efeitos('facas_de_sal')).toEqual([[], [{ tipo: 'projeteis_extra', valor: 1 }], [{ tipo: 'dano_pct', valor: 20 }], [{ tipo: 'aplica_sal' }], [{ tipo: 'projeteis_extra', valor: 1 }], [{ tipo: 'velocidade_projetil_pct', valor: 20 }], [{ tipo: 'perfura', valor: 1 }], [{ tipo: 'projeteis_extra', valor: 1 }]]);
-    expect(efeitos('circulo_de_sal')).toEqual([[], [{ tipo: 'raio_pct', valor: 15 }], [{ tipo: 'dano_pct', valor: 20 }], [{ tipo: 'sal_fator_pct', valor: 60 }], [{ tipo: 'raio_pct', valor: 15 }], [{ tipo: 'dano_pct', valor: 20 }], [{ tipo: 'pulso_knockback', intervalo_s: 5, forca_corpos: null }], [{ tipo: 'raio_pct', valor: 20 }]]);
+    // As formas dos golpes extras, o bloco aplica do Sal das Facas, a redução do nv4 e o pulso são da F-004 (design/decisoes-F-004.md §10).
+    expect(efeitos('espada_longa_do_juramento')).toEqual([[], [{ tipo: 'dano_pct', valor: 20 }], [{ tipo: 'golpes_extra', valor: 1, forma: 'volta' }], [{ tipo: 'dano_pct_vs_postura_quebrada', valor: 50 }], [{ tipo: 'area_pct', valor: 20 }], [{ tipo: 'dano_pct', valor: 20 }], [{ tipo: 'golpes_extra', valor: 1, forma: 'estocada' }], [{ tipo: 'golpes_extra', valor: 1, forma: 'ida' }]]);
+    expect(efeitos('facas_de_sal')).toEqual([[], [{ tipo: 'projeteis_extra', valor: 1 }], [{ tipo: 'dano_pct', valor: 20 }], [{ tipo: 'aplica_sal', aplica: { status: 'sal', fator_pct: 50, duracao_s: 3 } }], [{ tipo: 'projeteis_extra', valor: 1 }], [{ tipo: 'velocidade_projetil_pct', valor: 20 }], [{ tipo: 'perfura', valor: 1 }], [{ tipo: 'projeteis_extra', valor: 1 }]]);
+    expect(efeitos('circulo_de_sal')).toEqual([[], [{ tipo: 'raio_pct', valor: 15 }], [{ tipo: 'dano_pct', valor: 20 }], [{ tipo: 'sal_reducao_pct', valor: 60 }], [{ tipo: 'raio_pct', valor: 15 }], [{ tipo: 'dano_pct', valor: 20 }], [{ tipo: 'pulso_knockback', intervalo_s: 5, velocidade_corpos_s: 15, duracao_max_s: 0.2 }], [{ tipo: 'raio_pct', valor: 20 }]]);
     for (const id of ['espada_longa_do_juramento', 'facas_de_sal', 'circulo_de_sal']) {
       expect(lista(porId(armas, id), 'niveis').filter((n) => n['marco'] === true).map((n) => n['nivel']), id).toEqual([4, 7]);
     }

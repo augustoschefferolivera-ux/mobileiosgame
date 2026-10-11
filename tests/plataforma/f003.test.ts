@@ -71,12 +71,13 @@ describe('parâmetros de URL da F-003 (build de debug)', () => {
 });
 
 describe('receitas de cenário (T2 e T3)', () => {
-  it('horda: linha 19 fixa, jogador invulnerável, diretor ligado, tutoriais vistos, sem rotação', () => {
+  it('horda: linha 19 fixa, jogador invulnerável, diretor ligado, tutoriais vistos, sem rotação e sem armas (F-004)', () => {
     expect(parametrosDoCenario('horda')).toEqual({
       tutoriaisVistos: TODOS_OS_TUTORIAIS,
       cenario: CENARIO.jogadorInvulneravel,
       linhaFixa: 19,
       rotacao: 0,
+      armas: [],
     });
   });
 
@@ -84,12 +85,27 @@ describe('receitas de cenário (T2 e T3)', () => {
     expect(parametrosDoCenario('horda_rotativa')).toEqual({ ...parametrosDoCenario('horda'), rotacao: 10 });
   });
 
-  it('sem_horda: só o bit do diretor desligado, sem linha fixa e com os tutoriais por ver (o prompt de mover da F-002)', () => {
+  it('sem_horda: só o bit do diretor desligado, sem linha fixa, com os tutoriais por ver (o prompt de mover da F-002) e sem armas', () => {
     expect(parametrosDoCenario('sem_horda')).toEqual({
       tutoriaisVistos: 0,
       cenario: CENARIO.diretorDesligado,
       linhaFixa: LINHA_LIVRE,
       rotacao: 0,
+      armas: [],
+    });
+  });
+
+  it('tres_armas (F-004 E1): linha 6 fixa, invulnerável, diretor ligado, Espada, Facas e Círculo no nv8 nas vagas 0, 1 e 2', () => {
+    expect(parametrosDoCenario('tres_armas')).toEqual({
+      tutoriaisVistos: TODOS_OS_TUTORIAIS,
+      cenario: CENARIO.jogadorInvulneravel,
+      linhaFixa: 6,
+      rotacao: 0,
+      armas: [
+        { codigo: 1, nivel: 8 },
+        { codigo: 2, nivel: 8 },
+        { codigo: 3, nivel: 8 },
+      ],
     });
   });
 
