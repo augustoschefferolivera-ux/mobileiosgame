@@ -7,7 +7,7 @@ import { expect, test, type CDPSession, type Page } from '@playwright/test';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { ALTURA_DA_TELA, ALTURA_DO_MAPA as H, LARGURA_DA_TELA, LARGURA_DO_MAPA as W } from '../src/logica/mundo/toro';
-import { EVIDENCIAS, RAIZ, SEED, abrir, paraPagina, proximoFrame, tocarAcender } from './apoio';
+import { EVIDENCIAS, RAIZ, SEED, SEM_HORDA, abrir, paraPagina, proximoFrame, tocarAcender } from './apoio';
 
 const DIR = join(RAIZ, 'production', 'evidencias', 'F-002');
 // Lido do disco: o ESM do Node exige atributo de importação para JSON.
@@ -42,7 +42,7 @@ test('evidência: vídeo de 390 × 844 e 3 screenshots sequenciais (roteiro do �
   const cdp = await contexto.newCDPSession(page);
   const foto = (n: number) => page.screenshot({ path: destino(`movimento-${n}-390x844.png`, (a) => info.outputPath(a)), scale: 'css' });
 
-  await abrir(page);
+  await abrir(page, SEM_HORDA);
   await page.waitForTimeout(1200);
   await tocarAcender(page);
   expect(await page.evaluate(() => window.__GAME_DEBUG__.seed)).toBe(SEED);

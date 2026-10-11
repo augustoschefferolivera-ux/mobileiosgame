@@ -1,7 +1,7 @@
 // window.__GAME_DEBUG__ (B §3.13; ADR-0002 §14; ADR-0004 §7; design/decisoes-F-003.md §8).
 // Sempre presente e só de leitura; os ganchos de escrita (pausar, retomar,
-// avancar, entrada.injetar e entrada.roteiro) e as leituras pesadas (quadros,
-// inimigos, hashPorSecao) só existem no build de debug. Os campos dos sistemas
+// avancar, entrada.injetar, entrada.roteiro e removerInimigo) e as leituras
+// pesadas (quadros, inimigos, hashPorSecao) só existem no build de debug. Os campos dos sistemas
 // que ainda não existem entram com as suas features (stamina, chefe, save,
 // degradacao, build...).
 import type Phaser from 'phaser';
@@ -9,6 +9,7 @@ import { fonteConstante, fonteDoRoteiro, validarRoteiro, type Roteiro } from '..
 import { BYTES_ESTADO, CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR, JOGADOR_U8, MUNDO, hashEstado, hashPorSecao, type Estado } from '../logica/nucleo/estado';
 import { quantosAtivos } from '../logica/nucleo/pool';
 import { alvoDaLinha, convertidosVivos, linhaCorrente } from '../logica/diretor/diretor';
+import { removerInimigo } from '../logica/mundo/inimigos';
 import { IDS_DE_TIPO } from '../logica/mundo/tipos';
 import type { DadosDaVigilia } from '../logica/mundo/dados';
 import type { Teto } from '../plataforma/teto';
@@ -153,6 +154,8 @@ export interface GameDebug {
   readonly webgl: { renderer: string; software: boolean };
   /** p50 e p95 da CPU do frame (PRE_STEP → POST_RENDER) nos últimos 60 quadros, em ms. */
   readonly cpuFrameMs: { p50: number; p95: number };
+  /** Quadros medidos desde o boot (para recortar o anel de quadros() numa janela, F-003.4). */
+  readonly quadrosContados: number;
   readonly passos_perdidos: number;
   readonly recusados: { inimigos: number; projeteis: number; efeitos: number; pickups: number };
   readonly memoriaEstimadaMB: number;
@@ -184,6 +187,8 @@ export interface GameDebug {
   inimigos?: () => { slot: number; tipo: string; x: number; y: number; convertido: boolean }[];
   /** Hash de cada seção do estado, em hexadecimal. Só no build de debug. */
   hashPorSecao?: () => Record<string, string> | null;
+  /** Remove um inimigo vivo pelo caminho comum (o teste do slot morto, decisoes-F-003 §8). Só no build de debug. */
+  removerInimigo?: (slot: number) => void;
 }
 
 function textosVisiveis(jogo: Phaser.Game): string[] {
@@ -249,6 +254,9 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     },
     get cpuFrameMs() {
       return ctx.medidor.cpuFrameMs();
+    },
+    get quadrosContados() {
+      return ctx.medidor.contados;
     },
     get passos_perdidos() {
       return ctx.simulacao?.acumulador.passosPerdidos ?? 0;
@@ -351,6 +359,13 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
         lista.push({ slot: s, tipo: IDS_DE_TIPO[ini.tipo[s]!]!, x: ini.x[s]!, y: ini.y[s]!, convertido: ini.convertido[s] === 1 });
       }
       return lista;
+    };
+    debug.removerInimigo = (slot: number) => {
+      const e = ctx.simulacao?.estado;
+      if (!e || !(slot >= 0 && slot < CAPACIDADE_DE_INIMIGOS) || e.pool.posicao[slot]! < 0) {
+        throw new Error(`removerInimigo: o slot ${slot} não está vivo`);
+      }
+      removerInimigo(e, slot);
     };
     debug.hashPorSecao = () => {
       const e = ctx.simulacao?.estado;

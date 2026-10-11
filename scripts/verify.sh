@@ -12,7 +12,8 @@
 #   3. build de produção (dist/) e build de debug (dist-debug/);
 #   4. Playwright no projeto taps-game, com a mesma seed;
 #   5. confere as evidências da feature listadas em feature_list.json: geradas
-#      nesta execução, PNG com as dimensões do nome, logs com iguais=true.
+#      nesta execução, PNG com as dimensões do nome, logs com iguais=true e
+#      relatórios .json com aprovado: true (avisa se o fps não foi conferido).
 # O crítico independente (nota ≥ 7) e o commit ficam fora do script.
 set -euo pipefail
 
@@ -75,6 +76,7 @@ node -e '
   const [id, inicio] = [process.argv[1], Number(process.argv[2])];
   const f = require("./feature_list.json").features.find((x) => x.id === id);
   let ok = true;
+  const avisos = [];
   const conteudo = (arquivo) => {
     const dims = arquivo.match(/-(\d+)x(\d+)\.png$/);
     if (dims) {
@@ -87,6 +89,11 @@ node -e '
       if (/iguais=false/.test(t)) return "há iguais=false";
       if (!/iguais=true/.test(t)) return "sem nenhum iguais=true";
     }
+    if (arquivo.endsWith(".json")) {
+      const j = JSON.parse(fs.readFileSync(arquivo, "utf-8"));
+      if (j.aprovado !== true) return "aprovado não é true";
+      if (j.fps_conferido === false) avisos.push(`${arquivo}: ${j.aviso ?? "fps não conferido"}`);
+    }
     return "";
   };
   for (const ev of f.evidencias) {
@@ -97,6 +104,7 @@ node -e '
     console.log(`${erro ? "FALTA" : "ok  "} ${ev.arquivo} — ${ev.descricao}${erro ? ` (${erro})` : ""}`);
     ok = ok && !erro;
   }
+  for (const a of avisos) console.log(`AVISO ${a}`);
   if (!ok) { console.error("verify: evidência com problema (veja acima)"); process.exit(1); }
 ' "$FEATURE" "$INICIO"
 

@@ -7,7 +7,7 @@ import { alvosDoAcender } from '../src/entrada/alvos';
 import { BYTES_ESTADO } from '../src/logica/nucleo/estado';
 import { PASSOS_REFERENCIA, ROTEIRO_REFERENCIA } from '../src/logica/nucleo/referencia';
 import { insetsZerados, type Insets } from '../src/plataforma/safeArea';
-import { EVIDENCIAS, RAIZ, SEED, abrir, paraPagina, proximoFrame, tocarAcender } from './apoio';
+import { EVIDENCIAS, RAIZ, SEED, SEM_HORDA, abrir, paraPagina, proximoFrame, tocarAcender } from './apoio';
 
 test('F-001.2 e F-001.7: 390 × 844 sem barras de rolagem, viewport-fit=cover e screenshot', async ({ page }, info) => {
   await abrir(page);
@@ -169,7 +169,8 @@ test('F-001.11: mesmo hash da seed no passo 1.000 no Vitest (Node) e no Chromium
   const ref = JSON.parse(readFileSync(arquivo, 'utf-8')) as { seed: number; passos: number; hash: string };
   expect(ref.seed).toBe(SEED);
   expect(ref.passos).toBe(PASSOS_REFERENCIA);
-  await abrir(page);
+  // A Vigília completa, com a horda; o TETO explícito, como no Node (design/decisoes-F-003.md §6).
+  await abrir(page, '&teto=300');
   // O mesmo roteiro de ComandosDoPasso do Vitest, desde o passo 0 (design/decisoes-F-002.md §6).
   await page.evaluate((roteiro) => window.__GAME_DEBUG__.entrada.roteiro(roteiro), ROTEIRO_REFERENCIA);
   await tocarAcender(page);
@@ -216,7 +217,7 @@ test('F-001.15: telemetria local em __GAME_DEBUG__.eventos, sem rede', async ({ 
 });
 
 test('__GAME_DEBUG__: fps, vivos por tipo, passos perdidos e memória (B §4 F-001)', async ({ page }) => {
-  await abrir(page);
+  await abrir(page, SEM_HORDA);
   await tocarAcender(page);
   await page.waitForFunction(() => window.__GAME_DEBUG__.fps > 0 && window.__GAME_DEBUG__.passo > 0);
   const d = await page.evaluate(() => {
@@ -238,8 +239,9 @@ test('__GAME_DEBUG__: fps, vivos por tipo, passos perdidos e memória (B §4 F-0
   expect(d.recusados).toEqual({ inimigos: 0, projeteis: 0, efeitos: 0, pickups: 0 });
   expect(Number.isInteger(d.passos_perdidos) && d.passos_perdidos >= 0).toBe(true);
   expect(d.relogioIgualPasso).toBe(true);
-  // Sem MSAA (ADR-0003 §9): cor em dobro + depth/stencil a 780 × 1688.
-  expect(d.memoria).toBeCloseTo((BYTES_ESTADO + 780 * 1688 * 4 * 3) / (1024 * 1024), 3);
+  // Sem MSAA (ADR-0003 §9): cor em dobro + depth/stencil a 780 × 1688; mais o atlas (512² RGBA) e o buffer
+  // de instâncias da horda, na CPU e na GPU (500 × 168 B × 2; design/decisoes-F-003.md §8).
+  expect(d.memoria).toBeCloseTo((BYTES_ESTADO + 780 * 1688 * 4 * 3 + 512 * 512 * 4 + 2 * 500 * 168) / (1024 * 1024), 3);
 });
 
 test('driver real: ≈ 60 passos por segundo e pausa observada entre frames', async ({ page }) => {

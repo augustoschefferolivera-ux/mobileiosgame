@@ -8,7 +8,7 @@ import { CAPACIDADE_DE_INIMIGOS, type Estado } from '../../logica/nucleo/estado'
 import { IDS_DE_TIPO } from '../../logica/mundo/tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../../logica/mundo/toro';
 import { ESCALA_DO_CANVAS } from '../escala';
-import { COR_DO_INIMIGO } from '../estilo';
+import { COR_DO_INIMIGO } from '../paleta';
 import { escalaPara, type NomeDaMoldura } from './atlas';
 
 /** Como desenhar um tipo: moldura do atlas, escala e cor (tint). */

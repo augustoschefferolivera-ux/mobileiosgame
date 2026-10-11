@@ -6,43 +6,21 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { alvosDoAcender } from '../src/entrada/alvos';
+import type { EntradaDebug, GameDebug } from '../src/cenas/debug';
 import { SEED_PADRAO } from '../src/logica/nucleo/referencia';
 import { insetsZerados, type Insets } from '../src/plataforma/safeArea';
 
 export const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const SEED = Number(process.env['VDC_SEED'] ?? SEED_PADRAO);
 export const EVIDENCIAS = process.env['VDC_EVIDENCIAS'] === '1';
+/** Vigília sem diretor (design/decisoes-F-003.md §5, T3): os testes de movimento das F-001 e F-002. */
+export const SEM_HORDA = '&cenario=sem_horda';
 
-export interface Debug {
-  fps: number;
-  passo: number;
-  relogio: number;
-  estado: string;
-  vivos: Record<string, number>;
-  passos_perdidos: number;
-  recusados: Record<string, number>;
-  memoriaEstimadaMB: number;
-  safeArea: { topo: number; direita: number; baixo: number; esquerda: number };
-  seed: number;
-  textoAtivo: string[];
-  eventos: { evento: string; passo: number; campos: Record<string, unknown> }[];
-  desbloqueioDoAudio: string | null;
-  somTravado: boolean;
-  jogador: { x: number; y: number; dirX: number; dirY: number } | null;
-  camera: { x: number; y: number } | null;
-  entrada: {
-    maxToques: number;
-    joystick: { ativo: boolean; origemX: number; origemY: number; vx: number; vy: number };
-    injetar(tipo: 'inicio' | 'move' | 'fim' | 'cancela', id: number, x: number, y: number, t: number): void;
-    roteiro(lista: unknown): void;
+/** O contrato do __GAME_DEBUG__ (src/cenas/debug.ts), com os ganchos do build de debug, que é o que a Playwright serve. */
+export type Debug = Omit<GameDebug, 'entrada'> &
+  Required<Pick<GameDebug, 'pausar' | 'retomar' | 'avancar' | 'quadros' | 'inimigos' | 'hashPorSecao' | 'removerInimigo'>> & {
+    entrada: Required<EntradaDebug>;
   };
-  toquesPerdidos: number;
-  hash(): string | null;
-  audio(): string;
-  pausar(): void;
-  retomar(): void;
-  avancar(n: number): void;
-}
 declare global {
   interface Window {
     __GAME_DEBUG__: Debug;

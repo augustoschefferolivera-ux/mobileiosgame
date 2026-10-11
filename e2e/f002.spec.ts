@@ -5,7 +5,7 @@
 import { expect, test, type CDPSession, type Page } from '@playwright/test';
 import { insetsZerados } from '../src/plataforma/safeArea';
 import { ALTURA_DO_MAPA as H, LARGURA_DO_MAPA as W, deltaNoToro } from '../src/logica/mundo/toro';
-import { SEED, abrir, paraPagina, proximoFrame, tocarAcender, textoDe } from './apoio';
+import { SEED, SEM_HORDA, abrir, paraPagina, proximoFrame, tocarAcender, textoDe } from './apoio';
 
 const PROMPT = 'A2.TUTORIAL.01';
 
@@ -43,7 +43,7 @@ async function relogioEm(page: Page, alvo: number): Promise<void> {
 }
 
 test('F-002.3: o arrasto move o jogador na direção do arrasto, e soltar para', async ({ page }) => {
-  await abrir(page, '&tutorial=0');
+  await abrir(page, SEM_HORDA + '&tutorial=0');
   await tocarAcender(page);
   const d = await dedo(page);
   const j0 = await jogador(page);
@@ -78,7 +78,7 @@ test('F-002.3: o arrasto move o jogador na direção do arrasto, e soltar para',
 });
 
 test('F-002.3 por entrada.injetar: o mesmo arrasto pela fila da camada de toque', async ({ page }) => {
-  await abrir(page, '&tutorial=0');
+  await abrir(page, SEM_HORDA + '&tutorial=0');
   await tocarAcender(page);
   const x0 = (await jogador(page)).x;
   await page.evaluate(() => {
@@ -93,7 +93,7 @@ test('F-002.3 por entrada.injetar: o mesmo arrasto pela fila da camada de toque'
 });
 
 test('F-002.4: dois toques em lugares diferentes criam o joystick em lugares diferentes', async ({ page }) => {
-  await abrir(page, '&tutorial=0');
+  await abrir(page, SEM_HORDA + '&tutorial=0');
   await tocarAcender(page);
   const origens: { x: number; y: number }[] = [];
   for (const [x, y] of [
@@ -115,7 +115,7 @@ test('F-002.4: dois toques em lugares diferentes criam o joystick em lugares dif
 test('o joystick só nasce na área: metade de baixo, 60% da esquerda, fora da safe-area', async ({ page }) => {
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets: { top: 59, right: 0, bottom: 34, left: 0 } });
-  await abrir(page, '&tutorial=0');
+  await abrir(page, SEM_HORDA + '&tutorial=0');
   await tocarAcender(page, { ...insetsZerados(), topo: 59, baixo: 34 });
   for (const [x, y, nasce] of [
     [100, 400, false], // acima da metade
@@ -133,7 +133,7 @@ test('o joystick só nasce na área: metade de baixo, 60% da esquerda, fora da s
 });
 
 test('depois de um resize, o toque continua caindo no ponto certo em pt', async ({ page }) => {
-  await abrir(page, '&tutorial=0');
+  await abrir(page, SEM_HORDA + '&tutorial=0');
   await tocarAcender(page);
   await page.setViewportSize({ width: 430, height: 932 });
   await page.waitForFunction(() => document.querySelector<HTMLCanvasElement>('#jogo canvas')!.getBoundingClientRect().width > 400);
@@ -147,7 +147,7 @@ test('depois de um resize, o toque continua caindo no ponto certo em pt', async 
 });
 
 test('F-002.8: o prompt de mover aparece no passo 600 e some ao mover', async ({ page }) => {
-  await abrir(page);
+  await abrir(page, SEM_HORDA);
   await tocarAcender(page);
   await relogioEm(page, 599);
   expect(await textos(page)).not.toContain(PROMPT);
@@ -166,7 +166,7 @@ test('F-002.8: o prompt de mover aparece no passo 600 e some ao mover', async ({
 });
 
 test('F-002.8: quem se move antes de 0:10 não vê o prompt', async ({ page }) => {
-  await abrir(page);
+  await abrir(page, SEM_HORDA);
   await tocarAcender(page);
   const d = await dedo(page);
   await d.comecar(100, 650);
@@ -179,7 +179,7 @@ test('F-002.8: quem se move antes de 0:10 não vê o prompt', async ({ page }) =
 });
 
 test('F-002.8: com ?tutorial=0 o prompt não aparece', async ({ page }) => {
-  await abrir(page, '&tutorial=0');
+  await abrir(page, SEM_HORDA + '&tutorial=0');
   await tocarAcender(page);
   await relogioEm(page, 700);
   await page.waitForTimeout(300);
@@ -209,7 +209,7 @@ test('sem WebGL, o jogo mostra o aviso no lugar do canvas, em vez de abrir em br
 });
 
 test('o debug informa os toques simultâneos do aparelho (navigator.maxTouchPoints, Q-29)', async ({ page }) => {
-  await abrir(page);
+  await abrir(page, SEM_HORDA);
   const [debug, navegador] = await page.evaluate(() => [window.__GAME_DEBUG__.entrada.maxToques, navigator.maxTouchPoints]);
   expect(debug).toBe(navegador);
   expect(debug).toBeGreaterThan(0);
