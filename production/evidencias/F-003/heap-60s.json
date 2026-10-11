@@ -1,0 +1,133 @@
+{
+  "criterio": "F-003.7 (design/decisoes-F-003.md §8, E2)",
+  "identificacao": {
+    "seed": 1,
+    "url": "?seed=1&cenario=horda_rotativa&teto=300",
+    "teto": 300,
+    "render": "gpu",
+    "navegador": "chromium",
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+  },
+  "snapshots": {
+    "a": {
+      "passo": 5048,
+      "vivos": 300,
+      "liberacoes": 840,
+      "spawns": 1140,
+      "bytes": 13876426,
+      "nos": 86322
+    },
+    "b": {
+      "passo": 8495,
+      "vivos": 300,
+      "liberacoes": 1410,
+      "spawns": 1710,
+      "bytes": 13879279,
+      "nos": 86361
+    },
+    "intervalo_s": 63
+  },
+  "liberacoes_no_intervalo": 570,
+  "excluidos": {
+    "(code)": "código do JIT, que cresce com a otimização",
+    "PerformanceLongTaskTiming": "entradas de desempenho do navegador, que crescem com tarefas longas",
+    "TaskAttributionTiming": "entradas de desempenho do navegador, que crescem com tarefas longas"
+  },
+  "aquecimento_s": 90,
+  "limites": {
+    "delta_bytes": 32768,
+    "delta_por_grupo": 100,
+    "calibracao": "ADR-0005"
+  },
+  "delta_bytes": 2853,
+  "delta_nos": 39,
+  "maior_delta_de_grupo": {
+    "grupo": "(string)",
+    "delta_n": 13,
+    "delta_bytes": 396
+  },
+  "grupos_que_mudaram": [
+    {
+      "grupo": "(hidden)",
+      "delta_n": 12,
+      "delta_bytes": 1696
+    },
+    {
+      "grupo": "(string)",
+      "delta_n": 13,
+      "delta_bytes": 396
+    },
+    {
+      "grupo": "(object shape)",
+      "delta_n": 8,
+      "delta_bytes": 332
+    },
+    {
+      "grupo": "(array)",
+      "delta_n": 2,
+      "delta_bytes": 144
+    },
+    {
+      "grupo": "PerformanceLongAnimationFrameTiming",
+      "delta_n": 1,
+      "delta_bytes": 144
+    },
+    {
+      "grupo": "system / ExternalStringData",
+      "delta_n": 2,
+      "delta_bytes": 141
+    },
+    {
+      "grupo": "WebGLDebugRendererInfo",
+      "delta_n": 5,
+      "delta_bytes": 124
+    },
+    {
+      "grupo": "Event",
+      "delta_n": -1,
+      "delta_bytes": -120
+    },
+    {
+      "grupo": "(concatenated string)",
+      "delta_n": -1,
+      "delta_bytes": -20
+    },
+    {
+      "grupo": "Array",
+      "delta_n": 1,
+      "delta_bytes": 16
+    },
+    {
+      "grupo": "InternalNode",
+      "delta_n": -3,
+      "delta_bytes": 0
+    }
+  ],
+  "heap_usado_a_cada_10s": [
+    {
+      "s": 10,
+      "usadoKB": 6892
+    },
+    {
+      "s": 20,
+      "usadoKB": 6892
+    },
+    {
+      "s": 30,
+      "usadoKB": 6893
+    },
+    {
+      "s": 40,
+      "usadoKB": 6899
+    },
+    {
+      "s": 50,
+      "usadoKB": 6899
+    },
+    {
+      "s": 60,
+      "usadoKB": 6906
+    }
+  ],
+  "aprovado": true
+}
