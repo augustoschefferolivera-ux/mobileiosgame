@@ -21,6 +21,7 @@ export interface SondaPendente {
   readonly identidade: IdentidadeDoCache;
 }
 import type { MedidorDeQuadros } from './medidas';
+import type { EfeitosDaVigilia } from './render/efeitos';
 import type { EscritorDaHorda } from './render/escritores';
 
 export type Tela = 'BOOT' | 'ACENDER' | 'VIGILIA';
@@ -45,6 +46,8 @@ export interface Simulacao {
   readonly pausa: { ativa: boolean; origem: OrigemDaPausa | null; alfa: number };
   /** O escritor da horda desta Vigília, para o debug. */
   horda: EscritorDaHorda | null;
+  /** Consumidor do anel de eventos e pools do render (números, mortes, efeitos), para o debug. */
+  efeitos: EfeitosDaVigilia | null;
 }
 
 /** Modo do render da horda (design/decisoes-F-003.md §7). */

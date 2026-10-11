@@ -20,6 +20,7 @@ import type { ContextoDoJogo, Simulacao } from './contexto';
 import type { Pausa } from './Pausa';
 import { COR, cameraLogica } from './estilo';
 import { centroDaCamera } from './render/camera';
+import { criarCamada } from './render/camadas';
 import { HordaPorGPU, HordaPorImagem } from './render/escritores';
 import { criarTabelaDeDesenho } from './render/horda';
 import { RenderDaVigilia } from './render/mundo';
@@ -44,10 +45,16 @@ export class Vigilia extends Phaser.Scene {
       ...(this.ctx.pularTutoriais ? { tutoriaisVistos: TODOS_OS_TUTORIAIS } : {}),
     };
     const { modo, bufferDinamico } = this.ctx.render;
-    this.render = new RenderDaVigilia(this, dados, {
-      criar: (cena) => (modo === 'gpu' ? new HordaPorGPU(cena, bufferDinamico) : new HordaPorImagem(cena)),
-      tabela: criarTabelaDeDesenho(inimigos.inimigos, dados.tipos.existe),
-    });
+    this.render = new RenderDaVigilia(
+      this,
+      dados,
+      {
+        criar: (cena) => (modo === 'gpu' ? new HordaPorGPU(cena, bufferDinamico) : new HordaPorImagem(cena)),
+        tabela: criarTabelaDeDesenho(inimigos.inimigos, dados.tipos.existe),
+      },
+      // As camadas das armas trocam de modo junto com a horda (decisoes-F-004 §6).
+      { criar: (cena, capacidade) => criarCamada(cena, modo, capacidade, bufferDinamico), opcoes: this.ctx.opcoes },
+    );
     this.sim = {
       estado: criarEstado(this.ctx.seed, dados, params),
       dados,
@@ -58,6 +65,7 @@ export class Vigilia extends Phaser.Scene {
       pausada: false,
       pausa: { ativa: false, origem: null, alfa: 0 },
       horda: this.render.horda,
+      efeitos: this.render.efeitos,
     };
     this.ctx.simulacao = this.sim;
     this.ctx.tela = 'VIGILIA';
