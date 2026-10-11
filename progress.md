@@ -207,6 +207,7 @@
 - Não existem: `CLAUDE.md`, `playbook/` e os comandos `/brief-do-jogo`, `/checkpoint-e-retomada`, `/ciclo-de-feature` e `/critico-independente`. O crítico é um subagente (Q-33). `scripts/` e o ADR-0001 foram criados nesta sessão.
 - Playwright 1.56.1 usa o Chromium 1194 já instalado em `/opt/pw-browsers` (sem download). O site dos autores do xoshiro está bloqueado pelo proxy; os vetores vieram do crate `rand_xoshiro` (ADR-0003 §2).
 - Há um Stop hook do ambiente que exige commit e push; não há o hook de verify/evidência/crítico do doc 19.
+- **Agentes (preferência do usuário, Sessão 5):** todo subagente roda em Sonnet com esforço médio. O modelo vem de `.claude/settings.json` (`CLAUDE_CODE_SUBAGENT_MODEL`); o esforço não tem configuração própria e é passado em cada chamada (`effort: 'medium'`).
 - Versões conferidas no npm em 2026-10-10: phaser 4.2.1, vite 8.x, typescript 5.9.x; Node 22.22.
 - As skills oficiais do Phaser existem (`node_modules/phaser/skills/`, 28 assuntos). Para a etapa 2 foram lidas: game-setup-and-config, scale-and-responsive, scenes, time-and-timers, v4-new-features, v3-to-v4-migration, sprites-and-images, graphics-and-shapes, groups-and-containers, render-textures, particles, game-object-components, text-and-bitmaptext, cameras, input-keyboard-mouse-touch, audio-and-sound, geometry-and-math.
 
