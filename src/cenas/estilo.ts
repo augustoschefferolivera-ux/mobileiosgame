@@ -29,7 +29,7 @@ export const COR = {
 export const COR_DO_INIMIGO: Readonly<Record<string, number>> = {
   oco_das_lanternas: 0x76884c,
   oco_grande: 0x9fa39a,
-  novica_de_sal: 0x8796b4,
+  novica_de_sal: 0x8994b4,
 };
 
 export const FONTE = 'system-ui, -apple-system, sans-serif';
