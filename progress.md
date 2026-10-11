@@ -1,8 +1,60 @@
 # progress.md
 
+## Sessão 2 — F-002 "Movimento e mapa"
+
+### Estado: F-002 pronta (aguarda a revisão do usuário); F-003 não começada
+
+- [x] Leitura: este arquivo, ADR-0003, `design/decisoes-F-002.md` (D) e a entrada da F-002 no `feature_list.json`. Antes de começar, `scripts/verify.sh --feature F-001 --taps-game` verde.
+- [x] Implementação, em 26 commits (`1b93b8d..HEAD`):
+  - **dados:** schema da região (só círculo, 64/80/96, centro no toro, `inicio_jogador`), 54 obstáculos na Charneca (6/7/5, 8/4/6, 5/7/6; a tela do início com 4), início em (585, 1.266); saíram as pendências "se os obstáculos bloqueiam" de `armas.json` e `inimigos.json`;
+  - **simulação** (`src/logica`): toro (normalização Float32, delta, interpolação, cópia mais próxima), colisão de um círculo contra os obstáculos com deslize e desempate, estado v2 (registro do jogador, tutoriais vistos e impressão da disposição no cabeçalho), `ComandosDoPasso` com fonte ao vivo e roteiro por passo absoluto, movimento a 2,4 px por passo e o prompt de mover;
+  - **entrada** (`src/entrada`): vetor do joystick (zona morta radial 0,15, raio 60 pt, curva linear), área do joystick na tabela de alvos, fila de toques em Float64Array, TradutorDeGestos (5 dedos, dono até soltar, reconciliação por `e.touches`), caixa do canvas em cache, mouse e teclado só no debug;
+  - **cenas** (`src/cenas`): atlas no Boot, render do mundo por `Image` atrás da interface do `SpriteGPULayer` (F-003), câmera no jogador arredondada a 0,5 pt, cena Hud com o joystick e o prompt "Deslize para mover", `?tutorial=0`, só WebGL;
+  - **`__GAME_DEBUG__`:** `jogador`, `camera`, `entrada.joystick`, `toquesPerdidos` e, só no debug, `entrada.injetar` e `entrada.roteiro`;
+  - **decisões técnicas** em `docs/decisoes/ADR-0004-implementacao-da-f002.md`; o gerador da disposição em `scripts/gerar-disposicao.py` (`--conferir` reproduz o JSON).
+- [x] `scripts/verify.sh --feature F-002 --taps-game --seed 1` verde:
+  - typecheck, lint, Vitest (362 testes), builds de produção e de debug;
+  - Playwright `taps-game` (20 testes: 10 da F-001 e 10 da F-002);
+  - evidências conferidas.
+- [x] Evidências em `production/evidencias/F-002/`:
+  - `movimento.webm` (≈ 18 s, 390 × 844, roteiro de D §8);
+  - `movimento-1/2/3-390x844.png`;
+  - `mapa-585x1266.png`, o mapa 3 × 3 para revisão, que entrou na lista de evidências da F-002.
+- [x] Determinismo: o teste passa a rodar o roteiro `ROTEIRO_REFERENCIA` (movimento, deslize e as duas costuras). A seed 1 dá `3510977e` no passo 1.000, no Node e no Chromium; a evidência da F-001 foi regenerada com esse hash.
+- [x] Revisão independente (Q-33):
+  - 1ª rodada, 3 lentes: simulação **8**, entrada e render **8**, fidelidade e cobertura **9**. Os achados foram conferidos e aplicados:
+    - desempate com tolerância (corpos presos numa reta 2:1);
+    - colisão também parado, infinito como parada;
+    - testes da costura em y e do passo 0;
+    - reconciliação no `touchstart`;
+    - jogador no pixel da câmera, só WebGL;
+    - mouse de debug pela janela;
+    - gerador versionado e documentação;
+  - crítico final, sobre o estado corrigido: nota **8,5**, sem bloqueante. Os achados dele também foram aplicados: testes que travam a zona morta radial, o arredondamento da câmera, a cópia mais próxima no render e os números T1, mais a reconciliação exata no `touchstart`.
+
+### Decidido nesta sessão (técnico; detalhes no ADR-0004)
+- **Leituras de D que precisaram de detalhe:**
+  - a tangente "nula" do desempate vale até 1e-3 × |mov|;
+  - o corredor da regra 6 é a faixa varrida pelo corpo do jogador;
+  - restrição a mais na disposição: o 1º obstáculo depois da costura é o do deslize, em (230, 1.278);
+  - o "anel de 64 eventos" é uma fila linear esvaziada a cada frame.
+- **O mapa 3 × 3 virou a 5ª evidência da F-002:** assim o `verify.sh` confere que ele é regenerado.
+- **`?render=gpu|image` fica para a F-003,** junto com a 2ª implementação do render.
+
+### Para ratificar
+- **Commit acima de ~300 linhas:** `0b4cc0b` (TradutorDeGestos) tem 317 linhas: 145 de código e 172 de teste. O histórico fica como está; os demais commits têm até 296.
+- **`type: Phaser.WEBGL`:** sem WebGL, o jogo não abre. O motivo é que o tint é só WebGL, e no Canvas tudo sairia branco. Conferir no iPhone (F-010).
+
+### Riscos para o iPhone real (somam-se aos da Sessão 1)
+- 5 dedos simultâneos (Q-29).
+- O joystick perto da borda: a base fica onde o dedo tocou.
+- A zona morta não tem histerese.
+- Um touchend engolido pelo sistema sem touchcancel deixa o joystick ativo até o próximo toque (D §4: sem tempo limite).
+- O FIT na aba do Safari, se a caixa mudar no meio de um arrasto.
+
 ## Sessão 1 — brief, arquitetura e lista de features
 
-### Estado: F-001 pronta (aguarda a revisão do usuário); F-002 não começada
+### Estado: F-001 pronta
 
 - [x] GDD copiado de `docs/` (branch `claude/ecstatic-sagan-g9k3x6`, commit `62872cc`) para `design/gdd/`, sem alterações.
 - [x] Leitura na ordem pedida: 18, 00, 02, 03, 04, 05, 06, 07, 08, 10, 11, 12, 13 §1.2; 01, 14 e 17 §4 para nomes e IDs. Os docs 09, 15 e 16 não foram lidos.
@@ -62,9 +114,10 @@
 
 ### Como rodar
 - `npm install`.
-- `scripts/verify.sh --feature F-001 [--seed N] [--taps-game]` (o Pronto).
+- `scripts/verify.sh --feature F-00N [--seed N] [--taps-game]` (o Pronto; F-001 e F-002 verdes).
 - Avulsos: `npm test` (Vitest), `npm run typecheck`, `npm run lint`, `npm run build:debug` e depois `npm run e2e`, `npm run dev`.
 - Módulo novo: `scripts/novo-modulo.sh <area>/<nome> [--cena NomeDaCena]`.
+- Disposição dos obstáculos: `scripts/gerar-disposicao.py --conferir` (Python 3).
 
 ### Ambiente
 - Não existem: `CLAUDE.md`, `playbook/` e os comandos `/brief-do-jogo`, `/checkpoint-e-retomada`, `/ciclo-de-feature` e `/critico-independente`. O crítico é um subagente (Q-33). `scripts/` e o ADR-0001 foram criados nesta sessão.
@@ -74,9 +127,9 @@
 - As skills oficiais do Phaser existem (`node_modules/phaser/skills/`, 28 assuntos). Para a etapa 2 foram lidas: game-setup-and-config, scale-and-responsive, scenes, time-and-timers, v4-new-features, v3-to-v4-migration, sprites-and-images, graphics-and-shapes, groups-and-containers, render-textures, particles, game-object-components, text-and-bitmaptext, cameras, input-keyboard-mouse-touch, audio-and-sound, geometry-and-math.
 
 ### Retomada
-- **Sessão 1:** fecha na F-001, que aguarda a revisão do usuário. Não começar a F-002 nesta sessão.
-- **Próxima sessão (F-002):**
-  - ler este arquivo, o ADR-0003, `design/decisoes-F-002.md` e a entrada da F-002 no `feature_list.json`; as pendências dela já estão resolvidas;
-  - rodar `scripts/verify.sh --feature F-001 --taps-game` para conferir que o esqueleto continua verde;
-  - implementar só a F-002, em commits de até ~300 linhas, e aplicar a §10 do documento de decisões (schema, dados, ADR-0004);
-  - não começar a F-003.
+- **Sessão 1:** fechou na F-001.
+- **Sessão 2:** fecha na F-002, que aguarda a revisão do usuário. A F-003 não foi começada.
+- **Próxima sessão (F-003 "Horda"):**
+  - ler este arquivo, o ADR-0004 e a entrada da F-003 no `feature_list.json`;
+  - antes de implementar, fechar as pendências da F-003, inclusive as recomendações de `design/decisoes-F-002.md` §9 (inimigos sólidos, spawn sobre obstáculo, contorno com N corpos, cores);
+  - rodar `scripts/verify.sh --feature F-002 --taps-game` para conferir que o movimento continua verde.

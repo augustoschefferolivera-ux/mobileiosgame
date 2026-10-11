@@ -146,7 +146,7 @@
     {
       "id": "F-002",
       "nome": "Movimento e mapa",
-      "status": "pendente",
+      "status": "pronta",
       "escopo_b": "joystick flutuante (zona morta 0,15, raio 60 pt, reposiciona por toque), jogador a 4,5 corpos/s, mapa 3×3 telas com wrap, 4 a 8 obstáculos por tela com colisão, câmera",
       "criterio_b": "Teste: vetor do joystick com zona morta; wrap de posição. Playwright `--taps-game`: arrasto move o jogador; dois toques em lugares diferentes criam o joystick em lugares diferentes",
       "evidencia_b": "Vídeo curto ou 3 screenshots sequenciais",
