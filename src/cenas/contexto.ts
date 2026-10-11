@@ -29,6 +29,8 @@ export interface Simulacao {
 export interface ContextoDoJogo {
   readonly seed: number;
   readonly ehBuildDeDebug: boolean;
+  /** ?tutorial=0 (só no build de debug): a Vigília começa com os tutoriais vistos. */
+  readonly pularTutoriais: boolean;
   readonly telemetria: RegistroDeTelemetria;
   readonly sonda: HTMLElement;
   readonly container: HTMLElement;

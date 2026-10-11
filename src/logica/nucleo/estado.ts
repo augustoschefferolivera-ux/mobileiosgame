@@ -25,6 +25,8 @@ const PALAVRAS_CAB = 8;
 
 /** Bits de `CAB.tutoriaisVistos`; esquiva e aparo entram na F-006. */
 export const TUTORIAL = { mover: 1 } as const;
+/** Todos os bits de TUTORIAL (?tutorial=0). */
+export const TODOS_OS_TUTORIAIS = TUTORIAL.mover;
 
 /** Registro do jogador, Float32 (design/decisoes-F-002.md §6). (x, y) é o incentro do triângulo. */
 export const JOGADOR = { x: 0, y: 1, xAnt: 2, yAnt: 3, dirX: 4, dirY: 5 } as const;

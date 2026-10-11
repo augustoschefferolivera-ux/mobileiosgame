@@ -38,6 +38,7 @@ export function iniciarJogo(): Phaser.Game {
   const ctx: ContextoDoJogo = {
     seed: params.seed ?? sortearSeed(),
     ehBuildDeDebug,
+    pularTutoriais: params.pularTutoriais,
     telemetria: new RegistroDeTelemetria(),
     sonda: elemento('sonda-safe-area'),
     container: elemento('jogo'),

@@ -7,7 +7,7 @@ import Phaser from 'phaser';
 import { alfa, criarAcumulador } from '../logica/nucleo/acumulador';
 import { criarComandos, fonteConstante, fonteDoRoteiro } from '../logica/nucleo/comandos';
 import { rodarFrame } from '../logica/nucleo/driver';
-import { criarEstado } from '../logica/nucleo/estado';
+import { TODOS_OS_TUTORIAIS, criarEstado } from '../logica/nucleo/estado';
 import { criarDadosDaVigilia } from '../logica/mundo/dados';
 import vigilantes from '../dados/vigilantes.json';
 import charneca from '../dados/regioes/charneca_das_lanternas.json';
@@ -30,7 +30,8 @@ export class Vigilia extends Phaser.Scene {
     const dados = criarDadosDaVigilia(charneca, vigilantes.vigilantes[0]!);
     const comandosAoVivo = criarComandos();
     this.sim = {
-      estado: criarEstado(this.ctx.seed, dados),
+      // Os tutoriais vistos vêm do meta a partir da F-007; até lá, só de ?tutorial=0.
+      estado: criarEstado(this.ctx.seed, dados, { tutoriaisVistos: this.ctx.pularTutoriais ? TODOS_OS_TUTORIAIS : 0 }),
       dados,
       acumulador: criarAcumulador(),
       comandosAoVivo,
