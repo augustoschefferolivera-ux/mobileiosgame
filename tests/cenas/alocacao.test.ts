@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest';
 import inimigos from '../../src/dados/inimigos.json';
 import { HordaPorGPU } from '../../src/cenas/render/escritores';
 import { criarSaidaDaHorda, criarTabelaDeDesenho, prepararHorda } from '../../src/cenas/render/horda';
-import { criarEstado } from '../../src/logica/nucleo/estado';
+import { MUNDO, criarEstado } from '../../src/logica/nucleo/estado';
 import { avancar } from '../../src/logica/nucleo/passo';
 import { quantosAtivos } from '../../src/logica/nucleo/pool';
 import { parametrosDoCenario } from '../../src/plataforma/cenarios';
@@ -25,12 +25,45 @@ import { DADOS_DA_CHARNECA as D, PARADO } from '../logica/apoio';
 /** Limite, em bytes por passo + quadro (ADR-0005). */
 const LIMITE = 16;
 const AQUECIMENTO = 3000;
+const AQUECIMENTO_COM_ARMAS = 9000;
 const MEDIDOS = 6000;
 
 interface No {
   callFrame: { functionName: string; url: string; lineNumber: number };
   selfSize: number;
   children: No[];
+}
+
+/** Roda `rodar(n)` com o HeapProfiler amostrando e devolve os bytes em funções de src/ por passo e as 5 maiores. */
+async function medir(rodar: (n: number) => void, aquecimento = AQUECIMENTO): Promise<{ porPasso: number; maiores: string[] }> {
+  rodar(aquecimento);
+  const sessao = new Session();
+  sessao.connect();
+  await sessao.post('HeapProfiler.startSampling', {
+    samplingInterval: 64,
+    includeObjectsCollectedByMajorGC: true,
+    includeObjectsCollectedByMinorGC: true,
+  } as never);
+  rodar(MEDIDOS);
+  const { profile } = (await sessao.post('HeapProfiler.stopSampling')) as unknown as { profile: { head: No } };
+  sessao.disconnect();
+  const porFuncao = new Map<string, number>();
+  let nossos = 0;
+  const visitar = (n: No): void => {
+    const url = n.callFrame.url;
+    if (n.selfSize > 0 && url.includes('/src/')) {
+      nossos += n.selfSize;
+      const chave = `${n.callFrame.functionName || '(anônima)'} ${url.slice(url.indexOf('/src/'))}:${n.callFrame.lineNumber + 1}`;
+      porFuncao.set(chave, (porFuncao.get(chave) ?? 0) + n.selfSize);
+    }
+    n.children.forEach(visitar);
+  };
+  visitar(profile.head);
+  const maiores = [...porFuncao.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([f, b]) => `${f}: ${(b / MEDIDOS).toFixed(1)} B/passo`);
+  return { porPasso: nossos / MEDIDOS, maiores };
 }
 
 describe('alocação no caminho quente (E4)', () => {
@@ -40,44 +73,37 @@ describe('alocação no caminho quente (E4)', () => {
     const escritor = new HordaPorGPU(cena, false);
     const tabela = criarTabelaDeDesenho(inimigos.inimigos, D.tipos.existe);
     const saida = criarSaidaDaHorda();
-    const rodar = (n: number): void => {
+    const { porPasso, maiores } = await medir((n) => {
       for (let k = 0; k < n; k++) {
         avancar(e, D, PARADO, 1);
         prepararHorda(e, 0.5, 585, 1266, saida);
         escritor.escrever(saida, tabela);
       }
-    };
-    rodar(AQUECIMENTO);
+    });
     expect(quantosAtivos(e.pool)).toBe(300);
-
-    const sessao = new Session();
-    sessao.connect();
-    await sessao.post('HeapProfiler.startSampling', {
-      samplingInterval: 64,
-      includeObjectsCollectedByMajorGC: true,
-      includeObjectsCollectedByMinorGC: true,
-    } as never);
-    rodar(MEDIDOS);
-    const { profile } = (await sessao.post('HeapProfiler.stopSampling')) as unknown as { profile: { head: No } };
-    sessao.disconnect();
-
-    const porFuncao = new Map<string, number>();
-    let nossos = 0;
-    const visitar = (n: No): void => {
-      const url = n.callFrame.url;
-      if (n.selfSize > 0 && url.includes('/src/')) {
-        nossos += n.selfSize;
-        const chave = `${n.callFrame.functionName || '(anônima)'} ${url.slice(url.indexOf('/src/'))}:${n.callFrame.lineNumber + 1}`;
-        porFuncao.set(chave, (porFuncao.get(chave) ?? 0) + n.selfSize);
-      }
-      n.children.forEach(visitar);
-    };
-    visitar(profile.head);
-    const porPasso = nossos / MEDIDOS;
-    const maiores = [...porFuncao.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([f, b]) => `${f}: ${(b / MEDIDOS).toFixed(1)} B/passo`);
     expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
   }, 120_000);
+
+  // E6 (design/decisoes-F-004.md §8): com as armas matando, o diretor repõe o tempo todo e o caminho de nascer
+  // fica morno. Aquecimento de 9.000 passos (2,5 min de jogo): com 3.000, as funções da aura e da salva, que
+  // retornam cedo na maioria dos passos, ainda não foram otimizadas pelo TurboFan e o interpretador guarda cada
+  // double como objeto (≈ 215 B/passo medidos); com 9.000, 12 a 13 B/passo em 3 rodadas, quase tudo no caminho de
+  // nascer (funções chamadas a cada reposição, que ficam no interpretador).
+  it(`com as 3 armas no nv8 matando na linha 19 (E6), ${MEDIDOS} passos e quadros: ≤ ${LIMITE} B por passo, sem lista branca`, async () => {
+    const e = criarEstado(1, D, { ...parametrosDoCenario('tres_armas'), linhaFixa: 19, teto: 300 });
+    const { cena } = criarCena();
+    const escritor = new HordaPorGPU(cena, false);
+    const tabela = criarTabelaDeDesenho(inimigos.inimigos, D.tipos.existe);
+    const saida = criarSaidaDaHorda();
+    const { porPasso, maiores } = await medir((n) => {
+      for (let k = 0; k < n; k++) {
+        avancar(e, D, PARADO, 1);
+        prepararHorda(e, 0.5, 585, 1266, saida);
+        escritor.escrever(saida, tabela);
+      }
+    }, AQUECIMENTO_COM_ARMAS);
+    // As armas matam o tempo todo (≈ 0,03 por passo medido): o caminho de nascer e de morrer é exercitado.
+    expect(e.mundo[MUNDO.mortes]! / (AQUECIMENTO_COM_ARMAS + MEDIDOS)).toBeGreaterThan(0.02);
+    expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
+  }, 180_000);
 });
