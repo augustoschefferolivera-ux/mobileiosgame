@@ -7,7 +7,7 @@ import { CAB, CENARIO, JOGADOR, criarEstado, type Estado, type ParametrosDaVigil
 import { criarComandos, fonteConstante, type ComandosDoPasso } from '../../../src/logica/nucleo/comandos';
 import { avancar, passo } from '../../../src/logica/nucleo/passo';
 import { semear, proximoUnitario } from '../../../src/logica/nucleo/rng';
-import { empurroesDoPasso, separarHorda } from '../../../src/logica/mundo/horda';
+import { EMPURRAO, empurroesDoPasso, separarHorda } from '../../../src/logica/mundo/horda';
 import { nascerInimigo } from '../../../src/logica/mundo/inimigos';
 import { colidirComObstaculos, colidirComObstaculosDaCelula } from '../../../src/logica/mundo/obstaculos';
 import { TIPO } from '../../../src/logica/mundo/tipos';
@@ -202,7 +202,7 @@ describe('inimigos sólidos para o jogador (S4)', () => {
         for (let k = 0; k < 600; k++) {
           passo(e, dados, criarComandos());
           expect([e.jogador[JOGADOR.x], e.jogador[JOGADOR.y]]).toEqual([jx, 1266]);
-          expect(Math.sqrt(empurroesDoPasso.jogador2)).toBeLessThanOrEqual(2 * V.oco + 2.4 + 1e-6);
+          expect(Math.sqrt(empurroesDoPasso[EMPURRAO.jogador2]!)).toBeLessThanOrEqual(2 * V.oco + 2.4 + 1e-6);
         }
       }
     }
@@ -246,10 +246,10 @@ describe('invariante de 32 px por passo (D §2)', () => {
     for (let k = 0; k < 1500; k++) {
       const [mx, my] = rumos[Math.floor(k / 120) % 4]!;
       passo(e, D, intencao(mx, my));
-      const maior = Math.max(empurroesDoPasso.separacao2, empurroesDoPasso.jogador2, empurroesDoPasso.obstaculo2, empurroesDoPasso.total2);
+      const maior = Math.max(empurroesDoPasso[EMPURRAO.separacao2]!, empurroesDoPasso[EMPURRAO.jogador2]!, empurroesDoPasso[EMPURRAO.obstaculo2]!, empurroesDoPasso[EMPURRAO.total2]!);
       expect(Math.sqrt(maior), `passo ${k}`).toBeLessThanOrEqual(32);
-      expect(Math.sqrt(empurroesDoPasso.separacao2)).toBeLessThanOrEqual(V.novica + 1e-9);
-      expect(Math.sqrt(empurroesDoPasso.jogador2)).toBeLessThanOrEqual(2 * V.novica + 2.4 + 1e-6);
+      expect(Math.sqrt(empurroesDoPasso[EMPURRAO.separacao2]!)).toBeLessThanOrEqual(V.novica + 1e-9);
+      expect(Math.sqrt(empurroesDoPasso[EMPURRAO.jogador2]!)).toBeLessThanOrEqual(2 * V.novica + 2.4 + 1e-6);
     }
     expect(e.cab[CAB.passo]).toBe(1500);
   }, 60_000);

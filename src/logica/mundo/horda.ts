@@ -7,32 +7,33 @@
 //  6. cada inimigo: soma a separação; não aumenta a sobreposição com o jogador
 //     (regra simétrica); obstáculos da célula, com desempate; normaliza.
 // Os rascunhos (grade, somas da separação) ficam fora do estado e são refeitos
-// a cada passo; nada é alocado por passo.
+// a cada passo; nada é alocado por passo. Nos laços por inimigo, nenhuma
+// chamada recebe ou devolve double: no V8, cada uma alocaria um HeapNumber
+// (≈ 48 KB por passo com 300 vivos, medido). O delta toroidal, a
+// normalização no toro, o passo de comportamento e o intervalo de células vão
+// em linha, como em consultarGrade, e a colisão lê e escreve COLISAO.
 import { CAPACIDADE_DE_INIMIGOS, JOGADOR, type Estado } from '../nucleo/estado';
 import type { DadosDaVigilia } from './dados';
-import { COLUNAS, LINHAS, criarGrade, intervaloDeCelulas, reconstruirGrade } from './grade';
+import { COLUNAS, LADO_DA_CELULA, LINHAS, criarGrade, reconstruirGrade } from './grade';
 import { RAIO_DO_JOGADOR } from './jogador';
-import { colidirComObstaculosDaCelula, type Ponto } from './obstaculos';
+import { COLISAO, ES, colidirNaCelula } from './obstaculos';
 import { COMPORTAMENTO } from './tipos';
-import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, deltaNoToro, normalizarNoToro } from './toro';
+import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from './toro';
 
 const N = CAPACIDADE_DE_INIMIGOS;
 
 /** Rascunhos do passo, alocados uma vez. */
 const grade = criarGrade(N);
 const vivos = new Int32Array(N);
-const intervalo = new Int32Array(4);
 const sepX = new Float64Array(N);
 const sepY = new Float64Array(N);
 /** Deslocamento de comportamento do passo, que vai ao desempate dos obstáculos. */
 const movX = new Float64Array(N);
 const movY = new Float64Array(N);
-const ponto: Ponto = { x: 0, y: 0 };
-/** Referência local: no laço quente, a chamada direta é mais barata que pelo módulo. */
-const delta = deltaNoToro;
 
 /** Instrumentação para os testes: o maior empurrão (ao quadrado) do último passo, de cada fonte. */
-export const empurroesDoPasso = { separacao2: 0, jogador2: 0, obstaculo2: 0, total2: 0 };
+export const EMPURRAO = { separacao2: 0, jogador2: 1, obstaculo2: 2, total2: 3 } as const;
+export const empurroesDoPasso = new Float64Array(4);
 
 /** Lista os slots vivos em ordem crescente em `vivos` e devolve quantos. */
 function listarVivos(e: Estado): number {
@@ -40,18 +41,6 @@ function listarVivos(e: Estado): number {
   const pos = e.pool.posicao;
   for (let s = 0; s < N; s++) if (pos[s]! >= 0) vivos[n++] = s;
   return n;
-}
-
-/**
- * Passo de comportamento ao longo da direção do jogador, com sinal (negativo =
- * recua), sem passar do alvo. Medido na linha 19: com o recuo da Noviça, a horda
- * assenta em ≈ 2 min; sem ele, a Noviça parada é arrastada pelos que passam e a
- * horda nunca assenta (decisoes-F-003 §2).
- */
-function passoDeComportamento(comportamento: number, v: number, d: number, distancia: number): number {
-  if (comportamento === COMPORTAMENTO.perseguir) return Math.min(v, d);
-  if (comportamento === COMPORTAMENTO.pararADistancia) return Math.min(v, Math.max(0, d - distancia));
-  return Math.min(v, Math.max(-v, d - distancia));
 }
 
 /**
@@ -84,13 +73,15 @@ export function separarHorda(
     const ra = t.raio[ini.tipo[a]!]!;
     const ax = ini.x[a]!;
     const ay = ini.y[a]!;
-    // As células que cobrem o disco de raio ra + R_MAX, com os pares (a, b) de b > a sobrepostos.
-    intervaloDeCelulas(ax, ay, ra + rMax, intervalo);
-    const nc = intervalo[1]!;
-    const nl = intervalo[3]!;
-    let l = intervalo[2]!;
+    // As células que cobrem o disco de raio ra + R_MAX (o intervaloDeCelulas da grade, em linha),
+    // com os pares (a, b) de b > a sobrepostos.
+    const r = ra + rMax;
+    const c0 = colunaNoToro(ax - r);
+    const nc = 2 * r >= LARGURA_DO_MAPA - LADO_DA_CELULA ? COLUNAS : ((colunaNoToro(ax + r) - c0 + COLUNAS) % COLUNAS) + 1;
+    let l = linhaNoToro(ay - r);
+    const nl = 2 * r >= ALTURA_DO_MAPA - LADO_DA_CELULA ? LINHAS : ((linhaNoToro(ay + r) - l + LINHAS) % LINHAS) + 1;
     for (let i = 0; i < nl; i++) {
-      let c = intervalo[0]!;
+      let c = c0;
       for (let q = 0; q < nc; q++) {
         const cel = l * COLUNAS + c;
         const fim = inicio[cel + 1]!;
@@ -98,8 +89,12 @@ export function separarHorda(
           const b = indices[p]!;
           if (b <= a) continue;
           const soma = ra + t.raio[ini.tipo[b]!]!;
-          const dx = delta(ax, ini.x[b]!, LARGURA_DO_MAPA);
-          const dy = delta(ay, ini.y[b]!, ALTURA_DO_MAPA);
+          let dx = ini.x[b]! - ax;
+          if (dx > MEIA_LARGURA_DO_MAPA) dx -= LARGURA_DO_MAPA;
+          if (dx < -MEIA_LARGURA_DO_MAPA) dx += LARGURA_DO_MAPA;
+          let dy = ini.y[b]! - ay;
+          if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
+          if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
           const d2 = dx * dx + dy * dy;
           if (d2 >= soma * soma) continue;
           let nx = 1;
@@ -136,6 +131,19 @@ export function separarHorda(
   }
 }
 
+/** Coluna e linha da grade de um valor qualquer levado ao toro (o coluna(voltaNoToro(v)) da grade); devolvem inteiros. */
+function colunaNoToro(v: number): number {
+  let m = v % LARGURA_DO_MAPA;
+  if (m < 0) m += LARGURA_DO_MAPA;
+  return Math.floor(m / LADO_DA_CELULA);
+}
+
+function linhaNoToro(v: number): number {
+  let m = v % ALTURA_DO_MAPA;
+  if (m < 0) m += ALTURA_DO_MAPA;
+  return Math.floor(m / LADO_DA_CELULA);
+}
+
 export function moverHorda(e: Estado, dados: DadosDaVigilia): void {
   const ini = e.inimigos;
   const t = dados.tipos;
@@ -143,9 +151,10 @@ export function moverHorda(e: Estado, dados: DadosDaVigilia): void {
   const jx = j[JOGADOR.x]!;
   const jy = j[JOGADOR.y]!;
   const n = listarVivos(e);
-  empurroesDoPasso.separacao2 = empurroesDoPasso.jogador2 = empurroesDoPasso.obstaculo2 = empurroesDoPasso.total2 = 0;
 
-  // 3. Comportamento.
+  // 3. Comportamento: passo com sinal (negativo = recua) ao longo da direção do jogador, sem passar do alvo.
+  // Medido na linha 19: com o recuo da Noviça, a horda assenta em ≈ 2 min; sem ele, a Noviça parada é
+  // arrastada pelos que passam e a horda nunca assenta (decisoes-F-003 §2).
   for (let k = 0; k < n; k++) {
     const s = vivos[k]!;
     const x = ini.x[s]!;
@@ -153,20 +162,38 @@ export function moverHorda(e: Estado, dados: DadosDaVigilia): void {
     ini.xAnt[s] = x;
     ini.yAnt[s] = y;
     const tipo = ini.tipo[s]!;
-    const dx = delta(x, jx, LARGURA_DO_MAPA);
-    const dy = delta(y, jy, ALTURA_DO_MAPA);
+    let dx = jx - x;
+    if (dx > MEIA_LARGURA_DO_MAPA) dx -= LARGURA_DO_MAPA;
+    if (dx < -MEIA_LARGURA_DO_MAPA) dx += LARGURA_DO_MAPA;
+    let dy = jy - y;
+    if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
+    if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
     const d = Math.sqrt(dx * dx + dy * dy);
     let mx = 0;
     let my = 0;
     if (d > 0) {
-      const p = passoDeComportamento(t.comportamento[tipo]!, t.velocidade[tipo]!, d, t.distancia[tipo]!);
+      const v = t.velocidade[tipo]!;
+      const comportamento = t.comportamento[tipo]!;
+      const p =
+        comportamento === COMPORTAMENTO.perseguir
+          ? Math.min(v, d)
+          : comportamento === COMPORTAMENTO.pararADistancia
+            ? Math.min(v, Math.max(0, d - t.distancia[tipo]!))
+            : Math.min(v, Math.max(-v, d - t.distancia[tipo]!));
       mx = (dx / d) * p;
       my = (dy / d) * p;
     }
     movX[s] = mx;
     movY[s] = my;
-    ini.x[s] = normalizarNoToro(x + mx, LARGURA_DO_MAPA);
-    ini.y[s] = normalizarNoToro(y + my, ALTURA_DO_MAPA);
+    // A normalização de normalizarNoToro, em linha.
+    let nx = Math.fround(x + mx);
+    if (nx < 0) nx = Math.fround(nx + LARGURA_DO_MAPA);
+    if (nx >= LARGURA_DO_MAPA) nx = Math.fround(nx - LARGURA_DO_MAPA);
+    let ny = Math.fround(y + my);
+    if (ny < 0) ny = Math.fround(ny + ALTURA_DO_MAPA);
+    if (ny >= ALTURA_DO_MAPA) ny = Math.fround(ny - ALTURA_DO_MAPA);
+    ini.x[s] = nx;
+    ini.y[s] = ny;
   }
 
   // 4 e 5. Grade e separação, com as posições depois do comportamento.
@@ -175,12 +202,16 @@ export function moverHorda(e: Estado, dados: DadosDaVigilia): void {
   // 6. Separação, bloqueio pelo jogador e obstáculos.
   const jxAnt = j[JOGADOR.xAnt]!;
   const jyAnt = j[JOGADOR.yAnt]!;
+  let separacao2 = 0;
+  let jogador2 = 0;
+  let obstaculo2 = 0;
+  let total2 = 0;
   for (let k = 0; k < n; k++) {
     const s = vivos[k]!;
     const tipo = ini.tipo[s]!;
     const sx = sepX[s]!;
     const sy = sepY[s]!;
-    empurroesDoPasso.separacao2 = Math.max(empurroesDoPasso.separacao2, sx * sx + sy * sy);
+    separacao2 = Math.max(separacao2, sx * sx + sy * sy);
     const x0 = ini.xAnt[s]!;
     const y0 = ini.yAnt[s]!;
     let px = ini.x[s]! + sx;
@@ -188,11 +219,19 @@ export function moverHorda(e: Estado, dados: DadosDaVigilia): void {
 
     // Regra simétrica (S4): o inimigo não aumenta a sobreposição que tinha com o jogador no início do passo.
     const soma = t.raio[tipo]! + RAIO_DO_JOGADOR;
-    const dxi = delta(jxAnt, x0, LARGURA_DO_MAPA);
-    const dyi = delta(jyAnt, y0, ALTURA_DO_MAPA);
+    let dxi = x0 - jxAnt;
+    if (dxi > MEIA_LARGURA_DO_MAPA) dxi -= LARGURA_DO_MAPA;
+    if (dxi < -MEIA_LARGURA_DO_MAPA) dxi += LARGURA_DO_MAPA;
+    let dyi = y0 - jyAnt;
+    if (dyi > MEIA_ALTURA_DO_MAPA) dyi -= ALTURA_DO_MAPA;
+    if (dyi < -MEIA_ALTURA_DO_MAPA) dyi += ALTURA_DO_MAPA;
     const penInicio = Math.max(0, soma - Math.sqrt(dxi * dxi + dyi * dyi));
-    const dx = delta(jx, px, LARGURA_DO_MAPA);
-    const dy = delta(jy, py, ALTURA_DO_MAPA);
+    let dx = px - jx;
+    if (dx > MEIA_LARGURA_DO_MAPA) dx -= LARGURA_DO_MAPA;
+    if (dx < -MEIA_LARGURA_DO_MAPA) dx += LARGURA_DO_MAPA;
+    let dy = py - jy;
+    if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
+    if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
     const d2 = dx * dx + dy * dy;
     if (d2 < soma * soma) {
       let nx = 1;
@@ -207,19 +246,40 @@ export function moverHorda(e: Estado, dados: DadosDaVigilia): void {
       if (empurrao > 0) {
         px += nx * empurrao;
         py += ny * empurrao;
-        empurroesDoPasso.jogador2 = Math.max(empurroesDoPasso.jogador2, empurrao * empurrao);
+        jogador2 = Math.max(jogador2, empurrao * empurrao);
       }
     }
 
     // Obstáculos por último: nenhum corpo termina o passo dentro de um.
-    colidirComObstaculosDaCelula(dados.obstaculos, dados.obstaculosPorCelula, px, py, t.raio[tipo]!, movX[s]!, movY[s]!, true, ponto);
-    const ox = ponto.x - px;
-    const oy = ponto.y - py;
-    empurroesDoPasso.obstaculo2 = Math.max(empurroesDoPasso.obstaculo2, ox * ox + oy * oy);
-    ini.x[s] = normalizarNoToro(ponto.x, LARGURA_DO_MAPA);
-    ini.y[s] = normalizarNoToro(ponto.y, ALTURA_DO_MAPA);
-    const tx = delta(x0, ini.x[s]!, LARGURA_DO_MAPA);
-    const ty = delta(y0, ini.y[s]!, ALTURA_DO_MAPA);
-    empurroesDoPasso.total2 = Math.max(empurroesDoPasso.total2, tx * tx + ty * ty);
+    COLISAO[ES.x] = px;
+    COLISAO[ES.y] = py;
+    COLISAO[ES.raio] = t.raio[tipo]!;
+    COLISAO[ES.movX] = movX[s]!;
+    COLISAO[ES.movY] = movY[s]!;
+    colidirNaCelula(dados.obstaculos, dados.obstaculosPorCelula, true);
+    const cx = COLISAO[ES.x]!;
+    const cy = COLISAO[ES.y]!;
+    const ox = cx - px;
+    const oy = cy - py;
+    obstaculo2 = Math.max(obstaculo2, ox * ox + oy * oy);
+    let nx = Math.fround(cx);
+    if (nx < 0) nx = Math.fround(nx + LARGURA_DO_MAPA);
+    if (nx >= LARGURA_DO_MAPA) nx = Math.fround(nx - LARGURA_DO_MAPA);
+    let ny = Math.fround(cy);
+    if (ny < 0) ny = Math.fround(ny + ALTURA_DO_MAPA);
+    if (ny >= ALTURA_DO_MAPA) ny = Math.fround(ny - ALTURA_DO_MAPA);
+    ini.x[s] = nx;
+    ini.y[s] = ny;
+    let tx = nx - x0;
+    if (tx > MEIA_LARGURA_DO_MAPA) tx -= LARGURA_DO_MAPA;
+    if (tx < -MEIA_LARGURA_DO_MAPA) tx += LARGURA_DO_MAPA;
+    let ty = ny - y0;
+    if (ty > MEIA_ALTURA_DO_MAPA) ty -= ALTURA_DO_MAPA;
+    if (ty < -MEIA_ALTURA_DO_MAPA) ty += ALTURA_DO_MAPA;
+    total2 = Math.max(total2, tx * tx + ty * ty);
   }
+  empurroesDoPasso[EMPURRAO.separacao2] = separacao2;
+  empurroesDoPasso[EMPURRAO.jogador2] = jogador2;
+  empurroesDoPasso[EMPURRAO.obstaculo2] = obstaculo2;
+  empurroesDoPasso[EMPURRAO.total2] = total2;
 }

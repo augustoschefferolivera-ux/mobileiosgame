@@ -6,10 +6,10 @@
 // por frame.
 import { CAPACIDADE_DE_INIMIGOS, type Estado } from '../../logica/nucleo/estado';
 import { IDS_DE_TIPO } from '../../logica/mundo/tipos';
-import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, copiaMaisProxima, interpolarNoToro } from '../../logica/mundo/toro';
+import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../../logica/mundo/toro';
+import { ESCALA_DO_CANVAS } from '../escala';
 import { COR_DO_INIMIGO } from '../estilo';
 import { escalaPara, type NomeDaMoldura } from './atlas';
-import { arredondarParaOPixel } from './camera';
 
 /** Como desenhar um tipo: moldura do atlas, escala e cor (tint). */
 export interface DesenhoDoTipo {
@@ -64,6 +64,13 @@ export function criarSaidaDaHorda(): SaidaDaHorda {
   };
 }
 
+/**
+ * Posição de desenho de cada slot. O laço roda 500 vezes por quadro, então as
+ * contas de interpolarNoToro, arredondarParaOPixel e copiaMaisProxima vão em
+ * linha: no V8, cada double passado a uma chamada não inlinada alocaria um
+ * HeapNumber (design/decisoes-F-003.md §7). Os testes conferem a igualdade com
+ * as funções.
+ */
 export function prepararHorda(e: Estado, alfa: number, camX: number, camY: number, out: SaidaDaHorda): void {
   const ini = e.inimigos;
   const pos = e.pool.posicao;
@@ -73,9 +80,21 @@ export function prepararHorda(e: Estado, alfa: number, camX: number, camY: numbe
       continue;
     }
     out.tipo[s] = ini.tipo[s]!;
-    const x = arredondarParaOPixel(interpolarNoToro(ini.xAnt[s]!, ini.x[s]!, alfa, LARGURA_DO_MAPA));
-    const y = arredondarParaOPixel(interpolarNoToro(ini.yAnt[s]!, ini.y[s]!, alfa, ALTURA_DO_MAPA));
-    out.x[s] = copiaMaisProxima(x, camX, LARGURA_DO_MAPA);
-    out.y[s] = copiaMaisProxima(y, camY, ALTURA_DO_MAPA);
+    const xAnt = ini.xAnt[s]!;
+    const yAnt = ini.yAnt[s]!;
+    let dx = ini.x[s]! - xAnt;
+    if (dx > MEIA_LARGURA_DO_MAPA) dx -= LARGURA_DO_MAPA;
+    if (dx < -MEIA_LARGURA_DO_MAPA) dx += LARGURA_DO_MAPA;
+    let dy = ini.y[s]! - yAnt;
+    if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
+    if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
+    const x = Math.round((xAnt + dx * alfa) * ESCALA_DO_CANVAS) / ESCALA_DO_CANVAS;
+    const y = Math.round((yAnt + dy * alfa) * ESCALA_DO_CANVAS) / ESCALA_DO_CANVAS;
+    let mx = (x - camX + MEIA_LARGURA_DO_MAPA) % LARGURA_DO_MAPA;
+    if (mx < 0) mx += LARGURA_DO_MAPA;
+    let my = (y - camY + MEIA_ALTURA_DO_MAPA) % ALTURA_DO_MAPA;
+    if (my < 0) my += ALTURA_DO_MAPA;
+    out.x[s] = camX + mx - MEIA_LARGURA_DO_MAPA;
+    out.y[s] = camY + my - MEIA_ALTURA_DO_MAPA;
   }
 }
