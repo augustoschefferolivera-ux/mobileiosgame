@@ -2,6 +2,7 @@
 // __GAME_DEBUG__, a abertura com a seed de VDC_SEED (o --seed do
 // scripts/verify.sh), a conversão de pt para a página e o toque em Acender.
 import type { Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { alvosDoAcender } from '../src/entrada/alvos';
@@ -30,6 +31,7 @@ export interface Debug {
   jogador: { x: number; y: number; dirX: number; dirY: number } | null;
   camera: { x: number; y: number } | null;
   entrada: {
+    maxToques: number;
     joystick: { ativo: boolean; origemX: number; origemY: number; vx: number; vy: number };
     injetar(tipo: 'inicio' | 'move' | 'fim' | 'cancela', id: number, x: number, y: number, t: number): void;
     roteiro(lista: unknown): void;
@@ -69,3 +71,13 @@ export async function tocarAcender(page: Page, insets: Insets = insetsZerados())
 
 export const proximoFrame = (page: Page): Promise<void> =>
   page.evaluate(() => new Promise<void>((ok) => requestAnimationFrame(() => requestAnimationFrame(() => ok()))));
+
+/** Texto de um id do pt-BR.json, lido do disco (o ESM do Node exige atributo de importação para JSON). */
+export function textoDe(id: string): string {
+  const tabela = JSON.parse(readFileSync(join(RAIZ, 'src', 'dados', 'textos', 'pt-BR.json'), 'utf-8')) as {
+    textos: { id: string; texto: string }[];
+  };
+  const achado = tabela.textos.find((x) => x.id === id);
+  if (!achado) throw new Error(`textoDe: ${id} não está no pt-BR.json`);
+  return achado.texto;
+}

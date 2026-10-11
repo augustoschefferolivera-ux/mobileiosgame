@@ -5,7 +5,7 @@
 import { expect, test, type CDPSession, type Page } from '@playwright/test';
 import { insetsZerados } from '../src/plataforma/safeArea';
 import { ALTURA_DO_MAPA as H, LARGURA_DO_MAPA as W, deltaNoToro } from '../src/logica/mundo/toro';
-import { abrir, paraPagina, proximoFrame, tocarAcender } from './apoio';
+import { SEED, abrir, paraPagina, proximoFrame, tocarAcender, textoDe } from './apoio';
 
 const PROMPT = 'A2.TUTORIAL.01';
 
@@ -184,4 +184,33 @@ test('F-002.8: com ?tutorial=0 o prompt não aparece', async ({ page }) => {
   await relogioEm(page, 700);
   await page.waitForTimeout(300);
   expect(await textos(page)).not.toContain(PROMPT);
+});
+
+test('sem WebGL, o jogo mostra o aviso no lugar do canvas, em vez de abrir em branco (ADR-0004 §6)', async ({ playwright }, info) => {
+  const navegador = await playwright.chromium.launch({ args: ['--disable-webgl', '--disable-webgl2'] });
+  try {
+    const contexto = await navegador.newContext({
+      baseURL: info.project.use.baseURL,
+      viewport: { width: 390, height: 844 },
+      hasTouch: true,
+      isMobile: true,
+    });
+    const page = await contexto.newPage();
+    const erros: string[] = [];
+    page.on('pageerror', (e) => erros.push(e.message));
+    await page.goto(`/?seed=${SEED}`);
+    await expect(page.locator('#jogo .sem-webgl')).toHaveText(textoDe('A8.SISTEMA.SEM_WEBGL'));
+    expect(await page.locator('#jogo canvas').count()).toBe(0);
+    expect(await page.title()).toBe(textoDe('A8.SISTEMA.TITULO'));
+    expect(erros).toEqual([]);
+  } finally {
+    await navegador.close();
+  }
+});
+
+test('o debug informa os toques simultâneos do aparelho (navigator.maxTouchPoints, Q-29)', async ({ page }) => {
+  await abrir(page);
+  const [debug, navegador] = await page.evaluate(() => [window.__GAME_DEBUG__.entrada.maxToques, navigator.maxTouchPoints]);
+  expect(debug).toBe(navegador);
+  expect(debug).toBeGreaterThan(0);
 });

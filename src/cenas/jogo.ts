@@ -11,6 +11,7 @@ import { bloquearGestos } from '../plataforma/bloqueioDeGestos';
 import { lerParametros, sortearSeed } from '../plataforma/parametros';
 import { ALTURA_LOGICA, LARGURA_LOGICA, insetsZerados } from '../plataforma/safeArea';
 import { RegistroDeTelemetria } from '../plataforma/telemetria';
+import { suportaWebGL } from '../plataforma/webgl';
 import { Acender } from './Acender';
 import { Boot } from './Boot';
 import { Hud } from './Hud';
@@ -29,11 +30,24 @@ function elemento(id: string): HTMLElement {
   return el;
 }
 
-export function iniciarJogo(): Phaser.Game {
+/** Sem WebGL, um aviso no lugar do canvas (ADR-0004 §6). */
+function mostrarSemWebGL(container: HTMLElement): void {
+  const aviso = document.createElement('p');
+  aviso.className = 'sem-webgl';
+  aviso.textContent = t('A8.SISTEMA.SEM_WEBGL');
+  container.appendChild(aviso);
+}
+
+/** Cria o jogo; sem WebGL, mostra o aviso e devolve null. */
+export function iniciarJogo(): Phaser.Game | null {
   const ehBuildDeDebug = import.meta.env.DEV || import.meta.env.MODE === 'debug';
   const params = lerParametros(location.search, ehBuildDeDebug);
   bloquearGestos(document);
   document.title = t('A8.SISTEMA.TITULO');
+  if (!suportaWebGL(document)) {
+    mostrarSemWebGL(elemento('jogo'));
+    return null;
+  }
 
   const ctx: ContextoDoJogo = {
     seed: params.seed ?? sortearSeed(),
@@ -54,7 +68,8 @@ export function iniciarJogo(): Phaser.Game {
 
   const jogo = new Phaser.Game({
     // Só WebGL: o render da F-002 em diante depende do tint (WebGL only no Phaser 4) e, na F-003, do
-    // SpriteGPULayer. No renderer Canvas tudo sairia em branco, a cor do aparo (ADR-0004 §6).
+    // SpriteGPULayer. No renderer Canvas tudo sairia em branco, a cor do aparo (ADR-0004 §6). Sem
+    // WebGL, iniciarJogo já mostrou o aviso acima e não chega aqui.
     type: Phaser.WEBGL,
     backgroundColor: COR.fundo,
     banner: false,

@@ -249,6 +249,12 @@
       "limite_palavras": null
     },
     {
+      "id": "A8.SISTEMA.SEM_WEBGL",
+      "texto": "Não foi possível acender a Chama: este navegador não abriu o WebGL. Feche outras abas, atualize o iOS e recarregue a página.",
+      "contexto": "Aviso no lugar do jogo quando não há contexto WebGL; o render depende dele (ADR-0004 §6)",
+      "limite_palavras": null
+    },
+    {
       "id": "A9.SANTUARIO.VIGILIA",
       "texto": "Vigília",
       "contexto": "Santuário: botão grande que inicia a Vigília (doc 11 §3.2)",

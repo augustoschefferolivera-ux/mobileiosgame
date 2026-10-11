@@ -31,6 +31,8 @@ function bytesDoCanvas(jogo: Phaser.Game): number {
 export type TipoInjetado = keyof typeof TIPO_DE_TOQUE;
 
 export interface EntradaDebug {
+  /** navigator.maxTouchPoints: toques simultâneos que o aparelho informa (5 no iPhone; conferir no aparelho, Q-29). */
+  readonly maxToques: number;
   /** Joystick em pt lógicos; a origem fica com ativo = false depois de soltar (F-002.4). */
   readonly joystick: { ativo: boolean; origemX: number; origemY: number; vx: number; vy: number };
   /**
@@ -148,6 +150,9 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
       return c ? { x: c.x, y: c.y } : null;
     },
     entrada: {
+      get maxToques() {
+        return navigator.maxTouchPoints;
+      },
       get joystick() {
         const { ativo, origemX, origemY, vx, vy } = ctx.entrada.tradutor.joystick;
         return { ativo, origemX, origemY, vx, vy };
