@@ -1,10 +1,12 @@
 // Render do mundo da Vigília (ADR-0002 §3 e §11; design/decisoes-F-002.md §5;
 // design/decisoes-F-003.md §7; design/decisoes-F-004.md §6). Camadas, nesta
-// ordem de desenho: chão (vazio no MVP), obstáculos, mortes, horda, status
-// (Sal), armas (facas, aura, golpes e pulsos), jogador e dígitos dos números de
-// dano. Os 54 obstáculos e o jogador são Image nos dois modos; a horda e as
-// camadas das armas vão para os escritores injetados (SpriteGPULayer ou o pool
-// de Image do plano B), que só escrevem o que as funções de preparo calculam.
+// ordem de desenho: chão (vazio no MVP), mundo (54 obstáculos e 512 pickups,
+// F-005 R1), mortes, horda, status (Sal), armas (facas, aura, golpes, pulsos e
+// ondas da União), jogador e dígitos dos números de dano. O jogador é Image nos
+// dois modos; a horda e as camadas vão para os escritores injetados
+// (SpriteGPULayer ou o pool de Image do plano B), que só escrevem o que as
+// funções de preparo calculam. Sem as camadas (testes do render de obstáculos e
+// jogador), os obstáculos continuam Image.
 // O anel de eventos é lido uma vez por quadro, antes de desenhar. Cada objeto é
 // desenhado na cópia mais próxima da câmera; o jogador, na posição interpolada
 // pelo delta toroidal, arredondada para o pixel do canvas como a câmera. Nada é
@@ -20,6 +22,7 @@ import { MEMBROS_DAS_ARMAS, MEMBROS_DOS_DIGITOS, prepararArmas, prepararMortes, 
 import { criarSaidaDeSprites, type EscritorDeSprites, type SaidaDeSprites } from './camadas';
 import { CAPACIDADE_DE_MORTES, EfeitosDaVigilia } from './efeitos';
 import type { EscritorDaHorda } from './escritores';
+import { membrosDoMundo, prepararMundo } from './pickups';
 import { criarSaidaDaHorda, prepararHorda, type DesenhoDoTipo } from './horda';
 import { CAPACIDADE_DE_INIMIGOS } from '../../logica/nucleo/estado';
 
@@ -63,6 +66,7 @@ export function anguloDoJogador(dirX: number, dirY: number): number {
 
 export class RenderDaVigilia implements RenderDoMundo {
   private readonly obstaculos: Phaser.GameObjects.Image[] = [];
+  private readonly mundo: Camada | null = null;
   private readonly jogador: Phaser.GameObjects.Image;
   /** O escritor da horda (null nos testes do render de obstáculos e jogador). */
   readonly horda: EscritorDaHorda | null;
@@ -82,17 +86,22 @@ export class RenderDaVigilia implements RenderDoMundo {
     private readonly armas: ArmasDoRender | null = null,
   ) {
     cena.add.layer(); // chão: vazio até a arte (§5, C1)
-    const camadaDosObstaculos = cena.add.layer();
-    const o = dados.obstaculos;
-    for (let i = 0; i < o.n; i++) {
-      const img = cena.add
-        .image(o.x[i]!, o.y[i]!, CHAVE_DO_ATLAS, 'circulo')
-        .setTint(COR.cinzaFrio)
-        .setScale(escalaPara('circulo', o.r[i]! * 2));
-      camadaDosObstaculos.add(img);
-      this.obstaculos.push(img);
-    }
     const camada = (capacidade: number): Camada => ({ escritor: armas!.criar(cena, capacidade), saida: criarSaidaDeSprites(capacidade) });
+    const o = dados.obstaculos;
+    if (armas) {
+      // Camada "mundo" (R1): obstáculos e pickups, abaixo de tudo o mais.
+      this.mundo = camada(membrosDoMundo(o.n));
+    } else {
+      const camadaDosObstaculos = cena.add.layer();
+      for (let i = 0; i < o.n; i++) {
+        const img = cena.add
+          .image(o.x[i]!, o.y[i]!, CHAVE_DO_ATLAS, 'circulo')
+          .setTint(COR.cinzaFrio)
+          .setScale(escalaPara('circulo', o.r[i]! * 2));
+        camadaDosObstaculos.add(img);
+        this.obstaculos.push(img);
+      }
+    }
     this.efeitos = armas ? new EfeitosDaVigilia(dados.tipos) : null;
     if (armas) this.mortes = camada(CAPACIDADE_DE_MORTES);
     this.horda = horda ? horda.criar(cena) : null;
@@ -112,7 +121,7 @@ export class RenderDaVigilia implements RenderDoMundo {
 
   sincronizar(e: Estado, alfa: number, camX: number, camY: number): void {
     const o = this.dados.obstaculos;
-    for (let i = 0; i < o.n; i++) {
+    for (let i = 0; i < this.obstaculos.length; i++) {
       this.obstaculos[i]!.setPosition(copiaMaisProxima(o.x[i]!, camX, LARGURA_DO_MAPA), copiaMaisProxima(o.y[i]!, camY, ALTURA_DO_MAPA));
     }
     const j = e.jogador;
@@ -121,6 +130,10 @@ export class RenderDaVigilia implements RenderDoMundo {
     const y = arredondarParaOPixel(interpolarNoToro(j[JOGADOR.yAnt]!, j[JOGADOR.y]!, alfa, ALTURA_DO_MAPA));
     const jx = copiaMaisProxima(x, camX, LARGURA_DO_MAPA);
     const jy = copiaMaisProxima(y, camY, ALTURA_DO_MAPA);
+    if (this.mundo) {
+      prepararMundo(e, this.dados, alfa, camX, camY, this.mundo.saida);
+      this.mundo.escritor.escrever(this.mundo.saida);
+    }
     if (this.efeitos && this.armas) this.efeitos.consumir(e, this.armas.opcoes.numerosDeDano);
     if (this.horda) {
       prepararHorda(e, alfa, camX, camY, this.saida);
@@ -142,6 +155,7 @@ export class RenderDaVigilia implements RenderDoMundo {
   }
 
   liberar(): void {
+    this.mundo?.escritor.liberar();
     this.horda?.liberar();
     this.mortes?.escritor.liberar();
     this.status?.escritor.liberar();

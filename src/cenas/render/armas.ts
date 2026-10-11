@@ -6,7 +6,7 @@
 // em passos do evento, então a imagem pausada depende só da seed e do passo.
 // Nada é alocado por frame; nos laços por membro, as contas vão em linha.
 import { ARQUETIPO, indiceDoNivel } from '../../logica/armas/tabela';
-import { CAB, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PROJETEIS, VAGAS_DE_ARMA, type Estado } from '../../logica/nucleo/estado';
+import { CAB, CAPACIDADE_DE_EFEITOS as CAPACIDADE_DE_ONDAS, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PROJETEIS, VAGAS_DE_ARMA, type Estado } from '../../logica/nucleo/estado';
 import { FORMA } from '../../logica/nucleo/eventos';
 import type { DadosDaVigilia } from '../../logica/mundo/dados';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../../logica/mundo/toro';
@@ -30,11 +30,16 @@ const IDADE_DO_FADE = 24;
 const AVANCO_DO_DIGITO_PT = 8.5;
 const ESCALA_DO_DIGITO = 0.5;
 const ESCALA_DO_CRITICO = 1.5;
+/** Onda da União (U6): brasa a 0,4 até a idade 8 e reta até 0 na vida da onda (15). */
+const ALFA_DA_ONDA = 0.4;
+const IDADE_DO_FADE_DA_ONDA = 8;
 /** Morte: escala de 1 a 0,6 e alpha de 1 a 0 em 12 passos (V5). */
 const ESCALA_FINAL_DA_MORTE = 0.6;
 
-/** Membros da camada das armas: as facas por slot, depois 5 anéis de aura (um por vaga) e os 16 efeitos. */
-export const MEMBROS_DAS_ARMAS = CAPACIDADE_DE_PROJETEIS + VAGAS_DE_ARMA + CAPACIDADE_DE_EFEITOS;
+/** Membros da camada das armas: as facas por slot, 5 anéis de aura (um por vaga), os 16 efeitos e as 64 ondas da União (um por slot do pool, U6): 485. */
+export const MEMBROS_DAS_ARMAS = CAPACIDADE_DE_PROJETEIS + VAGAS_DE_ARMA + CAPACIDADE_DE_EFEITOS + CAPACIDADE_DE_ONDAS;
+/** Primeiro membro das ondas na camada das armas. */
+export const INICIO_DAS_ONDAS = CAPACIDADE_DE_PROJETEIS + VAGAS_DE_ARMA + CAPACIDADE_DE_EFEITOS;
 /** Membros da camada dos dígitos: 4 por número. */
 export const DIGITOS_POR_NUMERO = 4;
 export const MEMBROS_DOS_DIGITOS = CAPACIDADE_DE_NUMEROS * DIGITOS_POR_NUMERO;
@@ -48,6 +53,7 @@ const M_D0 = indiceDaMoldura('d0');
 const M_MASSA = indiceDaMoldura('massa');
 const LARGURA_DO_ANEL_PT = MOLDURA.anel.largura / 2;
 const LADO_DO_QUADRADO_PT = MOLDURA.quadrado.largura / 2;
+const LARGURA_DO_QUADRADO_PX = MOLDURA.quadrado.largura;
 
 const DIGITOS = new Uint8Array(4);
 
@@ -211,6 +217,42 @@ export function prepararArmas(
       out.moldura[k] = M_CUNHA;
       out.escalaX[k] = out.escalaY[k] = efs.c[j]! / RAIO_DA_CUNHA_PT / 2;
     }
+  }
+  // Ondas da União (U6): um quadrado de 2 × ondaMeia no centro do acerto, origem + mira × px/60 × (idade − 1 + alfa),
+  // girado pela mira, no chão (não segue o jogador). Com alfa = 1 a imagem só depende do estado.
+  const f = e.efeitos;
+  const posOnda = e.poolDeEfeitos.posicao;
+  const t = dados.armas;
+  for (let o = 0; o < CAPACIDADE_DE_ONDAS; o++) {
+    const k = INICIO_DAS_ONDAS + o;
+    if (posOnda[o]! < 0) {
+      out.visivel[k] = 0;
+      continue;
+    }
+    const codigo = f.arma[o]!;
+    const vida = t.ondaVida[codigo]!;
+    let ti = f.idade[o]! - 1 + alfa;
+    if (ti < 0) ti = 0;
+    if (ti >= vida) {
+      out.visivel[k] = 0;
+      continue;
+    }
+    const d = (t.ondaPxPor60[codigo]! * ti) / 60;
+    const x = Math.round((f.x[o]! + f.dirX[o]! * d) * ESCALA_DO_CANVAS) / ESCALA_DO_CANVAS;
+    const y = Math.round((f.y[o]! + f.dirY[o]! * d) * ESCALA_DO_CANVAS) / ESCALA_DO_CANVAS;
+    let mx = (x - camX + MEIA_LARGURA_DO_MAPA) % LARGURA_DO_MAPA;
+    if (mx < 0) mx += LARGURA_DO_MAPA;
+    let my = (y - camY + MEIA_ALTURA_DO_MAPA) % ALTURA_DO_MAPA;
+    if (my < 0) my += ALTURA_DO_MAPA;
+    out.visivel[k] = 1;
+    out.x[k] = camX + mx - MEIA_LARGURA_DO_MAPA;
+    out.y[k] = camY + my - MEIA_ALTURA_DO_MAPA;
+    out.rotacao[k] = Math.atan2(f.dirY[o]!, f.dirX[o]!) + Math.PI / 2;
+    out.escalaX[k] = out.escalaY[k] = (2 * t.ondaMeia[codigo]!) / LARGURA_DO_QUADRADO_PX;
+    out.alpha[k] = ti <= IDADE_DO_FADE_DA_ONDA ? ALFA_DA_ONDA : (ALFA_DA_ONDA * (vida - ti)) / (vida - IDADE_DO_FADE_DA_ONDA);
+    out.origemX[k] = out.origemY[k] = 0.5;
+    out.moldura[k] = M_QUADRADO;
+    out.cor[k] = COR.brasa;
   }
 }
 

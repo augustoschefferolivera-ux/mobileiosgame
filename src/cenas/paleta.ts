@@ -13,6 +13,13 @@ export const COR = {
   laranjaQueimado: 0xe2652b,
   osso: 0xe8dcc4,
   sal: 0xdfe8ea,
+  /** Cinzas por faixa de valor (Q-27; design/decisoes-F-005.md R2): azul abaixo de 5 (também a barra de XP, R4), verde de 5 a 24, vermelha a partir de 25. */
+  cinzaAzul: 0x5aa9e6,
+  cinzaVerde: 0x6cc57c,
+  cinzaVermelha: 0xc8324b,
+  /** Baús (R2): comum em bronze, dourado em ouro escuro (com contorno na moldura). */
+  bauBronze: 0xb08d57,
+  bauOuro: 0xa8841f,
 } as const;
 
 /**

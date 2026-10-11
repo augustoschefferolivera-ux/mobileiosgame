@@ -32,6 +32,10 @@ export const MOLDURA = {
   faca: { x: 364, y: 344, largura: 8, altura: 32 },
   /** Losango de 8 × 8 pt: o marcador do Sal (V4). */
   losango: { x: 376, y: 344, largura: 16, altura: 16 },
+  /** Losango de 12 × 16 pt, ponta para cima: a Cinza (R2), em 3 escalas. */
+  cinza: { x: 396, y: 344, largura: 24, altura: 32 },
+  /** Quadrado de 32 pt com contorno de 2 pt em #0b0e14 já desenhado: o baú dourado (R2). */
+  bau_ouro: { x: 424, y: 344, largura: 64, altura: 64 },
   /** Setor de 120° com raio de 46 pt, vértice embaixo no centro e o arco para cima: o golpe (V1). */
   cunha: { x: 200, y: 344, largura: 160, altura: 92 },
   /** Dígitos da fonte pixel 5 × 7 (N4): molduras de 20 × 26 px, a 24 px uma da outra, na faixa y 440. */
@@ -75,6 +79,9 @@ const CELULA_PX = 3;
 const CONTORNO_PX = 2;
 /** Cor do contorno dos dígitos (#0b0e14): o tint multiplica o branco e deixa o escuro escuro. */
 const COR_DO_CONTORNO = '#0b0e14';
+
+/** Contorno do baú dourado: 2 pt = 4 px. */
+const CONTORNO_DO_BAU_PX = 4;
 
 /** Escala de uma moldura para uma largura em pt (a moldura está a 2×). */
 export function escalaPara(moldura: NomeDaMoldura, tamanhoPt: number): number {
@@ -122,6 +129,13 @@ export function gerarAtlas(texturas: Phaser.Textures.TextureManager): void {
   };
   losango(MOLDURA.faca);
   losango(MOLDURA.losango);
+  losango(MOLDURA.cinza);
+  // Baú dourado: o contorno escuro primeiro e o miolo branco (o tint colore só o miolo).
+  const b = MOLDURA.bau_ouro;
+  c.fillStyle = COR_DO_CONTORNO;
+  c.fillRect(b.x, b.y, b.largura, b.altura);
+  c.fillStyle = '#ffffff';
+  c.fillRect(b.x + CONTORNO_DO_BAU_PX, b.y + CONTORNO_DO_BAU_PX, b.largura - 2 * CONTORNO_DO_BAU_PX, b.altura - 2 * CONTORNO_DO_BAU_PX);
   // Cunha: vértice no meio da borda de baixo, arco de 120° para cima.
   const w = MOLDURA.cunha;
   const vx = w.x + w.largura / 2;
