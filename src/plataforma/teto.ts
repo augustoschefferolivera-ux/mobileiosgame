@@ -1,8 +1,8 @@
 // TETO de inimigos vivos: 300 ou 500 (B §3.7 e §3.13; ADR-0002 §13;
 // design/decisoes-F-003.md §5, T1). decidirTeto é pura e tem as 5 camadas do
 // ADR, na ordem: override (?teto, só no debug), cache (vdc.teto), classe de
-// tela, sonda e fallback 300. Na F-003 só existem os produtores de override e de
-// tela; o cache e a sonda chegam como null até a 1ª feature com projéteis.
+// tela, sonda e fallback 300. Os produtores do cache e da sonda chegam na F-004,
+// a 1ª feature com projéteis (src/plataforma/sonda.ts; design/decisoes-F-004.md §5).
 
 export type ValorDoTeto = 300 | 500;
 export type OrigemDoTeto = 'override' | 'cache' | 'tela' | 'sonda' | 'fallback';
