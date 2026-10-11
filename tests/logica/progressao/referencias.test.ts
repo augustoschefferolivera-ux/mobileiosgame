@@ -112,6 +112,19 @@ describe('referências da F-005 (Node × Chromium)', () => {
     expect(referenciaDoNivelTres(SEED)).toEqual(r);
   });
 
+  it('seed 1 (literal, A5): o nivel_tres abre com hash 2aa5a85f e Espada melhoria / Luvas nova / Círculo nova; a 2ª oferta traz Facas no lugar do Círculo; depois das cartas 0, hash e776db53', () => {
+    const r = referenciaDoNivelTres(1);
+    expect(r.abertura.hash).toBe('2aa5a85f');
+    expect(r.abertura.cartas).toEqual([
+      { tipo: 'melhoriaDeArma', item: 'espada_longa_do_juramento' },
+      { tipo: 'passivaNova', item: 'luvas_de_fole' },
+      { tipo: 'armaNova', item: 'circulo_de_sal' },
+    ]);
+    expect(r.segunda.cartas[2]).toEqual({ tipo: 'armaNova', item: 'facas_de_sal' });
+    expect(r.fim.hash).toBe('e776db53');
+    expect(r.fim.build.armas).toEqual([{ id: 'espada_longa_do_juramento', nivel: 3 }]);
+  });
+
   it(`seed ${SEED}: no bau_uniao, o baú abre andando para cima, com bau e uniao; a Lâmina golpeia e há captura até o baú + 600`, () => {
     const r = referenciaDaUniao(SEED);
     expect(r.bau).toBeGreaterThan(0);
