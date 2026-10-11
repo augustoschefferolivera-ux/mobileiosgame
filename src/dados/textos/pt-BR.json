@@ -243,6 +243,12 @@
       "limite_palavras": null
     },
     {
+      "id": "A8.SISTEMA.TITULO",
+      "texto": "Vigília das Cinzas",
+      "contexto": "Título da página (document.title) e, na F-010, nome do app instalado (doc 00)",
+      "limite_palavras": null
+    },
+    {
       "id": "A9.SANTUARIO.VIGILIA",
       "texto": "Vigília",
       "contexto": "Santuário: botão grande que inicia a Vigília (doc 11 §3.2)",

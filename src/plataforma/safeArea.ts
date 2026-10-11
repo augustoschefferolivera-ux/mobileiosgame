@@ -44,6 +44,18 @@ export function insetsEmPontos(css: Insets, canvas: Caixa, larguraViewport: numb
   return out;
 }
 
+/**
+ * Mede os insets em pt: lê a sonda e desconta o letterbox do canvas dentro do
+ * container (#jogo, que ocupa o viewport inteiro).
+ */
+export function medirSafeArea(sonda: HTMLElement, canvas: HTMLElement, container: HTMLElement, out: Insets): Insets {
+  const css = lerInsetsCss(sonda, insetsZerados());
+  const c = canvas.getBoundingClientRect();
+  const v = container.getBoundingClientRect();
+  const caixa = { left: c.left - v.left, top: c.top - v.top, width: c.width, height: c.height };
+  return insetsEmPontos(css, caixa, v.width, v.height, out);
+}
+
 /** Lê os insets em px CSS do elemento sonda (padding = env(safe-area-inset-*)). */
 export function lerInsetsCss(sonda: HTMLElement, out: Insets): Insets {
   const estilo = getComputedStyle(sonda);
