@@ -2,7 +2,7 @@
 
 ## Sessão 1 — brief, arquitetura e lista de features
 
-### Estado: etapa 3 escrita, **aguardando aprovação**
+### Estado: etapa 3 aprovada; F-001 em andamento
 
 - [x] GDD copiado de `docs/` (branch `claude/ecstatic-sagan-g9k3x6`, commit `62872cc`) para `design/gdd/`, sem alterações.
 - [x] Leitura na ordem pedida: 18, 00, 02, 03, 04, 05, 06, 07, 08, 10, 11, 12, 13 §1.2; 01, 14 e 17 §4 para nomes e IDs. Os docs 09, 15 e 16 não foram lidos.
@@ -11,7 +11,7 @@
 - [x] Etapa 2: `docs/decisoes/ADR-0001-stack.md` (registra a decisão já tomada) e `docs/decisoes/ADR-0002-arquitetura-da-simulacao.md` (v2). Antes, pesquisa técnica (4 investigações: render da horda, loop e escala, input e áudio, Worker/TETO/determinismo) e revisão adversarial (3 lentes + verificadores; 48 achados confirmados e aplicados).
 - [x] ADR-0002 aprovado pelo usuário em 2026-10-10, com todas as recomendações da §15 (item 10: opção A).
 - [x] Etapa 3: `feature_list.json` (escopo, critério e evidência literais de B §4 + 99 critérios verificáveis), `src/dados/schemas/` (10 schemas), dados do MVP em `src/dados/` (com `pendentes`/`pendencias` para cada número em aberto), `src/dados/textos/pt-BR.json` (147 textos) e `tests/dados.test.ts` (40 testes; verificado por mutação). Antes, revisão adversarial (3 lentes + verificadores; 39 achados confirmados e aplicados).
-- [ ] **Aprovação da etapa 3.** Itens marcados como [proposta de teste] ou [proposta a aprovar] no feature_list.
+- [x] Etapa 3 aprovada pelo usuário em 2026-10-11, inclusive as [proposta de teste] e [proposta a aprovar] do feature_list.
 - [ ] Etapa 4: F-001 (cria também `scripts/verify.sh` e `scripts/novo-modulo.sh`).
 
 ### Como rodar
@@ -24,4 +24,4 @@
 - As skills oficiais do Phaser existem (`node_modules/phaser/skills/`, 37 assuntos). Para a etapa 2 foram lidas: game-setup-and-config, scale-and-responsive, scenes, time-and-timers, v4-new-features, v3-to-v4-migration, sprites-and-images, graphics-and-shapes, groups-and-containers, render-textures, particles, game-object-components, text-and-bitmaptext, cameras, input-keyboard-mouse-touch, audio-and-sound, geometry-and-math.
 
 ### Retomada
-Ler este arquivo, depois `design/game-brief.md` §11 (questões) e a resposta do usuário. Não começar a F-001 sem a aprovação da etapa 3.
+Ler este arquivo, depois `design/game-brief.md` §11 (questões) e a resposta do usuário. Não começar a F-002 nesta sessão (instrução da Sessão 1).
