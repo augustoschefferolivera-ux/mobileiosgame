@@ -14,13 +14,22 @@ set -euo pipefail
 
 ALVO="${1:-}"
 CENA=""
-if [[ "${2:-}" == "--cena" ]]; then CENA="${3:-}"; fi
+if [[ "${2:-}" == "--cena" ]]; then
+  CENA="${3:-}"
+  [[ -n "$CENA" ]] || { echo "novo-modulo: --cena precisa do nome da cena" >&2; exit 2; }
+elif [[ -n "${2:-}" ]]; then
+  echo "novo-modulo: argumento desconhecido: $2" >&2
+  exit 2
+fi
 [[ "$ALVO" =~ ^([a-z][a-zA-Z0-9]*)/([a-z][a-zA-Z0-9]*)$ ]] || {
   echo "uso: scripts/novo-modulo.sh <area>/<nome> [--cena NomeDaCena]  (camelCase, sem acento)" >&2
   exit 2
 }
 AREA="${BASH_REMATCH[1]}"
 NOME="${BASH_REMATCH[2]}"
+case "$AREA" in
+  cenas|entrada|plataforma|dados) echo "novo-modulo: '$AREA' não é área de src/logica (ADR-0002 §2)" >&2; exit 2 ;;
+esac
 if [[ -n "$CENA" && ! "$CENA" =~ ^[A-Z][a-zA-Z0-9]*$ ]]; then
   echo "novo-modulo: a cena precisa ser PascalCase sem acento (ex.: Vigilia)" >&2
   exit 2
