@@ -41,6 +41,8 @@ export interface InimigoDoJson {
   readonly dano_base: number;
   readonly dano_tipo: string;
   readonly velocidade: number;
+  /** XP da Cinza que o inimigo solta (B §3.6). */
+  readonly xp: number;
   readonly comportamento: { readonly tipo: string; readonly para_a_corpos?: number; readonly distancia_corpos?: number };
 }
 
@@ -54,6 +56,8 @@ export interface TiposDeInimigo {
   readonly velocidade: Float64Array;
   readonly hpBase: Float64Array;
   readonly danoBase: Float64Array;
+  /** XP da Cinza (B §3.6); o convertido solta 10 × a do Oco das Lanternas (Q-08). */
+  readonly xp: Uint16Array;
   /** 1 se causa dano de contato (dano_tipo "contato_por_s"). */
   readonly contato: Uint8Array;
   readonly comportamento: Uint8Array;
@@ -88,6 +92,7 @@ export function criarTiposDeInimigo(inimigos: readonly InimigoDoJson[]): TiposDe
     velocidade: new Float64Array(CODIGOS),
     hpBase: new Float64Array(CODIGOS),
     danoBase: new Float64Array(CODIGOS),
+    xp: new Uint16Array(CODIGOS),
     contato: new Uint8Array(CODIGOS),
     comportamento: new Uint8Array(CODIGOS),
     distancia: new Float64Array(CODIGOS),
@@ -103,6 +108,7 @@ export function criarTiposDeInimigo(inimigos: readonly InimigoDoJson[]): TiposDe
     t.velocidade[codigo] = (i.velocidade * CORPOS_POR_SEGUNDO_NA_VELOCIDADE_1 * CORPO_PX) / PASSOS_POR_SEGUNDO;
     t.hpBase[codigo] = i.hp_base;
     t.danoBase[codigo] = i.dano_base;
+    t.xp[codigo] = i.xp;
     t.contato[codigo] = i.dano_tipo === 'contato_por_s' ? 1 : 0;
     t.comportamento[codigo] = comp.codigo;
     t.distancia[codigo] = comp.distancia;

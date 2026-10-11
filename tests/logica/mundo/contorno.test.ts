@@ -17,7 +17,7 @@ import { nascerInimigo } from '../../../src/logica/mundo/inimigos';
 import { RAIO_DO_JOGADOR } from '../../../src/logica/mundo/jogador';
 import { TIPO } from '../../../src/logica/mundo/tipos';
 import { ALTURA_DO_MAPA as H, LARGURA_DO_MAPA as W, deltaNoToro } from '../../../src/logica/mundo/toro';
-import { PARADO, SEM_HORDA } from '../apoio';
+import { FONTES_DA_PROGRESSAO, PARADO, SEM_HORDA } from '../apoio';
 
 const T = 1800;
 const DESLOCAMENTOS = [0, 0.001, 7, 23];
@@ -84,7 +84,7 @@ describe('C1: um corpo atrás de um obstáculo de 96 px', () => {
     for (const [nome, tipo, sintetico, chegou] of corpos) {
       it.each(DESLOCAMENTOS)(`obstáculo ${nomeDoCaso}; ${nome}; deslocamento %s px`, (desloc) => {
         const obstaculos = [{ x: JX, y: oy }];
-        const dados = criarDadosDaVigilia(regiao(obstaculos), aldric, sintetico ? SINTETICO : inimigos.inimigos, armas.armas);
+        const dados = criarDadosDaVigilia(regiao(obstaculos), aldric, sintetico ? SINTETICO : inimigos.inimigos, armas.armas, FONTES_DA_PROGRESSAO);
         const { e, slots } = rodar(dados, [{ tipo, x: JX + desloc, y: JY - 400 }], obstaculos);
         expect(chegou(dist(e, slots[0]!)), `d = ${dist(e, slots[0]!)}`).toBe(true);
       });
@@ -109,7 +109,7 @@ describe('C2 e C3: grupos atrás de um obstáculo e por uma fenda de 64 px', () 
   ] as const;
   for (const [nome, obstaculos, corpos] of grupos) {
     it.each(DESLOCAMENTOS)(`${nome}; deslocamento %s px: todos a d ≤ R_emp + 64`, (desloc) => {
-      const dados = criarDadosDaVigilia(regiao([...obstaculos]), aldric, inimigos.inimigos, armas.armas);
+      const dados = criarDadosDaVigilia(regiao([...obstaculos]), aldric, inimigos.inimigos, armas.armas, FONTES_DA_PROGRESSAO);
       const { e, slots } = rodar(dados, corpos.map((c) => ({ ...c, x: c.x + desloc })), [...obstaculos]);
       const limite = raioEmpacotado(dados, corpos.map((c) => c.tipo)) + 64;
       const pior = Math.max(...slots.map((s) => dist(e, s)));

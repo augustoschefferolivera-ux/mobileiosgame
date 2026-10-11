@@ -8,12 +8,15 @@ import vigilantes from '../../src/dados/vigilantes.json';
 import { criarComandos, fonteConstante } from '../../src/logica/nucleo/comandos';
 import { CENARIO, type ParametrosDaVigilia } from '../../src/logica/nucleo/estado';
 import { criarDadosDaVigilia, type DadosDaVigilia, type RegiaoDoJson } from '../../src/logica/mundo/dados';
+import { FONTES_DA_PROGRESSAO } from '../../src/plataforma/dadosDaVigilia';
+
+export { FONTES_DA_PROGRESSAO };
 
 const aldric = vigilantes.vigilantes[0]!;
 
 /** Dados da Vigília com a Charneca, Aldric e os inimigos, trocando as partes dadas da região. */
 export function dadosDe(regiao: Partial<RegiaoDoJson> = {}): DadosDaVigilia {
-  return criarDadosDaVigilia({ ...charneca, ...regiao }, aldric, inimigos.inimigos, armas.armas);
+  return criarDadosDaVigilia({ ...charneca, ...regiao }, aldric, inimigos.inimigos, armas.armas, FONTES_DA_PROGRESSAO);
 }
 
 export const DADOS_DA_CHARNECA = dadosDe();

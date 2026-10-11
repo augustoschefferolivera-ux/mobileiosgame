@@ -14,11 +14,7 @@ import { ALTURA_LOGICA, LARGURA_LOGICA, insetsZerados } from '../plataforma/safe
 import { SondaDoTeto, armazenamentoLocal, classeDaTela, lerCacheDoTeto, versaoDoSafari } from '../plataforma/sonda';
 import { decidirTeto, type EntradasDoTeto } from '../plataforma/teto';
 import { montarEstadoDaSonda } from '../logica/nucleo/sonda';
-import { criarDadosDaVigilia } from '../logica/mundo/dados';
-import armas from '../dados/armas.json';
-import inimigos from '../dados/inimigos.json';
-import vigilantes from '../dados/vigilantes.json';
-import charneca from '../dados/regioes/charneca_das_lanternas.json';
+import { criarDadosDaCharneca } from '../plataforma/dadosDaVigilia';
 import { RegistroDeTelemetria } from '../plataforma/telemetria';
 import { suportaWebGL } from '../plataforma/webgl';
 import { Acender } from './Acender';
@@ -69,7 +65,7 @@ export function iniciarJogo(): Phaser.Game | null {
   const teto = decidirTeto(entradas);
   let sondaDoTeto = null;
   if (teto.origem === 'fallback' && params.sonda) {
-    const dados = criarDadosDaVigilia(charneca, vigilantes.vigilantes[0]!, inimigos.inimigos, armas.armas);
+    const dados = criarDadosDaCharneca();
     sondaDoTeto = { sonda: new SondaDoTeto(montarEstadoDaSonda(dados), dados, () => performance.now()), entradas, identidade };
   }
 

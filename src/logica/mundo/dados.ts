@@ -5,6 +5,13 @@
 // Não mudam durante a Vigília e não ficam no estado; o estado guarda só a
 // impressão da disposição (design/decisoes-F-002.md §2), que entra no hash.
 import { criarTabelaDeArmas, type ArmaDoJson, type TabelaDeArmas } from '../armas/tabela';
+import {
+  criarTabelaDeProgressao,
+  hpMaximo,
+  type FontesDaProgressao,
+  type TabelaDeProgressao,
+  type VigilanteDaProgressao,
+} from '../progressao/tabela';
 import { compilarTimeline, type LinhaDoJson, type Timeline } from '../diretor/timeline';
 import { PASSOS_POR_SEGUNDO } from '../nucleo/passos';
 import {
@@ -36,11 +43,13 @@ export interface DadosDaVigilia {
   readonly inicioY: number;
   /** Deslocamento por passo com |v| = 1: 144 px/s ÷ 60 = 2,4 px com velocidade 1,0. */
   readonly velocidadePorPasso: number;
-  /** HP inicial: hp × (1 + passiva), arredondado (B §3.3: 130 × 1,15 → 150). */
+  /** HP inicial: hp × (1 + passiva), com o meio para cima (B §3.3: 130 × 1,15 → 150; decisoes-F-005 P3). */
   readonly hpInicial: number;
   readonly tipos: TiposDeInimigo;
   /** Armas por código e por nível, com a escala do Vigilante (design/decisoes-F-004.md §2). */
   readonly armas: TabelaDeArmas;
+  /** XP, Cinzas, level up, baús, passivas e Uniões (design/decisoes-F-005.md). */
+  readonly progressao: TabelaDeProgressao;
   readonly timeline: Timeline;
 }
 
@@ -53,11 +62,8 @@ export interface RegiaoDoJson {
 }
 
 /** O que se lê do Vigilante (vigilante.schema.json). */
-export interface VigilanteDoJson {
+export interface VigilanteDoJson extends VigilanteDaProgressao {
   readonly velocidade: number;
-  readonly hp: number;
-  readonly passiva: { readonly hp_max_pct: number };
-  readonly atributos: Readonly<Record<string, number>>;
   readonly arma_inicial: string;
 }
 
@@ -66,10 +72,12 @@ export function criarDadosDaVigilia(
   vigilante: VigilanteDoJson,
   inimigos: readonly InimigoDoJson[],
   armas: readonly ArmaDoJson[],
+  progressao: FontesDaProgressao,
 ): DadosDaVigilia {
   const obstaculos = criarObstaculos(regiao.obstaculos);
   const timeline = compilarTimeline(regiao.linhas, regiao.sem_spawn_antes_do_marco_s);
   const tipos = tiposQueNascem(criarTiposDeInimigo(inimigos), timeline);
+  const tabelaDeArmas = criarTabelaDeArmas(armas, vigilante.atributos, vigilante.arma_inicial);
   return {
     obstaculos,
     obstaculosPorCelula: criarObstaculosPorCelula(obstaculos, tipos.raioMaximo),
@@ -77,9 +85,10 @@ export function criarDadosDaVigilia(
     inicioX: regiao.inicio_jogador.x,
     inicioY: regiao.inicio_jogador.y,
     velocidadePorPasso: (vigilante.velocidade * CORPOS_POR_SEGUNDO_NA_VELOCIDADE_1 * CORPO_PX) / PASSOS_POR_SEGUNDO,
-    hpInicial: Math.round((vigilante.hp * (100 + vigilante.passiva.hp_max_pct)) / 100),
+    hpInicial: hpMaximo(vigilante.hp, vigilante.passiva.hp_max_pct),
     tipos,
-    armas: criarTabelaDeArmas(armas, vigilante.atributos, vigilante.arma_inicial),
+    armas: tabelaDeArmas,
+    progressao: criarTabelaDeProgressao(progressao, vigilante, tabelaDeArmas),
     timeline,
   };
 }
