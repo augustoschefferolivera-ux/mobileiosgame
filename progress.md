@@ -21,7 +21,7 @@
 - Não existem: `CLAUDE.md`, `playbook/`, os comandos `/brief-do-jogo`, `/checkpoint-e-retomada`, `/ciclo-de-feature`, `/critico-independente`, `scripts/` e ADR-0001.
 - Há um Stop hook do ambiente que exige commit e push; não há o hook de verify/evidência/crítico do doc 19.
 - Versões conferidas no npm em 2026-10-10: phaser 4.2.1, vite 8.x, typescript 5.9.x; Node 22.22.
-- As skills oficiais do Phaser existem (`node_modules/phaser/skills/`, 37 assuntos). Para a etapa 2 foram lidas: game-setup-and-config, scale-and-responsive, scenes, time-and-timers, v4-new-features, v3-to-v4-migration, sprites-and-images, graphics-and-shapes, groups-and-containers, render-textures, particles, game-object-components, text-and-bitmaptext, cameras, input-keyboard-mouse-touch, audio-and-sound, geometry-and-math.
+- As skills oficiais do Phaser existem (`node_modules/phaser/skills/`, 28 assuntos). Para a etapa 2 foram lidas: game-setup-and-config, scale-and-responsive, scenes, time-and-timers, v4-new-features, v3-to-v4-migration, sprites-and-images, graphics-and-shapes, groups-and-containers, render-textures, particles, game-object-components, text-and-bitmaptext, cameras, input-keyboard-mouse-touch, audio-and-sound, geometry-and-math.
 
 ### Retomada
 Ler este arquivo, depois `design/game-brief.md` §11 (questões) e a resposta do usuário. Não começar a F-002 nesta sessão (instrução da Sessão 1).

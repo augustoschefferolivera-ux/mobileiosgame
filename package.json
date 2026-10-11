@@ -12,7 +12,12 @@
     "test:dados": "vitest run tests/dados.test.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test:lint": "vitest run tests/lint.test.ts"
+    "test:lint": "vitest run tests/lint.test.ts",
+    "dev": "vite",
+    "build": "vite build",
+    "build:debug": "vite build --mode debug --outDir dist-debug",
+    "e2e": "playwright test --project=taps-game",
+    "verify": "scripts/verify.sh"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

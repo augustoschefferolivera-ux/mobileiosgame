@@ -74,6 +74,8 @@ export class Acender extends Phaser.Scene {
       tocarSilencio: () => {
         this.ctx.audioSilencioso.play().catch(() => undefined);
       },
+    }).then((estado) => {
+      this.ctx.desbloqueioDoAudio = estado;
     });
     this.scene.start('Vigilia');
   };

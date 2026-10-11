@@ -346,7 +346,7 @@ ACENDER (passo 0; grava o vigilia de retomada da Hora I)
   - teste: com insets não nulos, nenhum alvo cai dentro deles.
 - **Áudio:**
   - *Desbloqueio:* dentro do próprio handler de `touchend` da Tela de Acender, de forma síncrona: `navigator.audioSession.type = 'playback'` quando existir, senão o `<audio>` silencioso em loop (doc 12 §2.3); depois `sound.context.resume()`. Se o Phaser continuar `locked`, marca-se o campo `unlocked`, que é privado e coberto por teste.
-  - *Teste da F-001:* `__GAME_DEBUG__.audio()` deve devolver `'running'`. O Chromium do Playwright roda com `--autoplay-policy=user-gesture-required`, para o teste não passar sem o toque.
+  - *Teste da F-001:* `__GAME_DEBUG__.audio()` deve devolver `'running'`. O Chromium do Playwright roda com `--autoplay-policy=document-user-activation-required`, para o teste não passar sem o toque. **Corrigido na F-001** (antes: `user-gesture-required`): medido no Chromium 141, um `AudioContext` criado na carga da página nasce `'running'` com `user-gesture-required` e `'suspended'` com `document-user-activation-required` ou sem a flag. Como o Phaser também retoma o contexto pelos seus próprios listeners no `body`, `__GAME_DEBUG__.desbloqueioDoAudio` guarda o estado devolvido pelo nosso desbloqueio.
   - *SFX placeholder:* 3 `AudioBuffer` sintetizados no boot por funções TS puras, testáveis por hash. Cada disparo cria 1 `AudioBufferSourceNode` → barramento pré-alocado → `sound.destination`, com limite de vozes e intervalo mínimo por SFX. É a única alocação, e fica fora do caminho quente da simulação.
   - *Ícone de áudio visível* e aviso da chave de silêncio na Tela de Acender (doc 12 §8; doc 11 §3.1).
 - **Visibilidade e interrupção:**

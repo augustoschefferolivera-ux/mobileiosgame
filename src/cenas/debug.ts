@@ -31,6 +31,8 @@ export interface GameDebug {
   /** Ids de t() visíveis nas cenas ativas. */
   readonly textoAtivo: string[];
   readonly eventos: ReturnType<ContextoDoJogo['telemetria']['eventos']>;
+  /** Estado devolvido pelo nosso desbloqueio no toque de Acender (null antes). */
+  readonly desbloqueioDoAudio: string | null;
   hash(): string | null;
   audio(): string;
   pausar?: () => void;
@@ -84,6 +86,9 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     },
     get eventos() {
       return ctx.telemetria.eventos();
+    },
+    get desbloqueioDoAudio() {
+      return ctx.desbloqueioDoAudio;
     },
     hash() {
       return ctx.simulacao ? hex8(hashEstado(ctx.simulacao.estado)) : null;

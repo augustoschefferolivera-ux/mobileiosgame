@@ -23,7 +23,7 @@ const GLOBAIS_DO_AMBIENTE = [
 ].map((name) => ({ name, message: `src/logica é pura: sem ${name} (ADR-0002 §2).` }));
 
 export default defineConfig(
-  { ignores: ['dist/', 'node_modules/', 'coverage/', 'test-results/', 'playwright-report/', '.verify/', 'design/', 'docs/', 'production/'] },
+  { ignores: ['dist/', 'dist-debug/', 'node_modules/', 'coverage/', 'test-results/', 'playwright-report/', '.verify/', 'design/', 'docs/', 'production/'] },
   js.configs.recommended,
   tseslint.configs.recommended,
   {

@@ -28,4 +28,6 @@ export interface ContextoDoJogo {
   tela: Tela;
   simulacao: Simulacao | null;
   audioSilencioso: HTMLAudioElement;
+  /** Estado do AudioContext devolvido pelo nosso desbloqueio (null antes do toque). */
+  desbloqueioDoAudio: string | null;
 }
