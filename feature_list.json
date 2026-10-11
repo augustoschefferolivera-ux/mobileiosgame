@@ -224,6 +224,10 @@
         {
           "arquivo": "production/evidencias/F-002/movimento-3-390x844.png",
           "descricao": "Screenshot sequencial 3 de 3 (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-002/mapa-585x1266.png",
+          "descricao": "Mapa 3 × 3 com os obstáculos, o início, a zona livre e o corredor, para revisão (design/decisoes-F-002.md §2), a 1/2"
         }
       ],
       "pendencias_antes_de_comecar": [
