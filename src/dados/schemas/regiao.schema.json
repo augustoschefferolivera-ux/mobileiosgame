@@ -22,7 +22,7 @@
       }
     },
     "obstaculos": {
-      "description": "Disposição fixa por mapa (Q-04), 4 a 8 por tela (B F-002). Só círculos; (x, y) é o centro e tamanho_px o diâmetro (design/decisoes-F-002.md §2). As regras da disposição ficam em tests/dados/obstaculos.test.ts.",
+      "description": "Disposição fixa por mapa (Q-04), 4 a 8 por tela (B F-002). Só círculos; (x, y) é o centro e tamanho_px o diâmetro (design/decisoes-F-002.md §2). As regras da disposição ficam em tests/disposicao.test.ts; ela foi gerada por scripts/gerar-disposicao.py.",
       "type": "array",
       "items": {
         "type": "object",
