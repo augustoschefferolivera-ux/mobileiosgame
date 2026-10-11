@@ -1,0 +1,33 @@
+{
+  "versao": 1,
+  "curva_xp": { "base": 10, "linear": 8, "quadratico_decimos": 6 },
+  "nivel_maximo_tecnico": 255,
+  "cinzas": {
+    "faixas": [
+      { "a_partir_de": 1, "cor": "azul" },
+      { "a_partir_de": 5, "cor": "verde" },
+      { "a_partir_de": 25, "cor": "vermelha" }
+    ],
+    "ima_corpos": 1.5,
+    "velocidade_corpos_s": 15,
+    "coleta_corpos": 0.5
+  },
+  "pool_pickups": 512,
+  "level_up": {
+    "cartas": 3,
+    "melhoria_pct": 60,
+    "passiva_uniao_pct": 35,
+    "passiva_uniao_a_partir_do_min": 12,
+    "bolsa_almas": 50
+  },
+  "baus": {
+    "itens": [
+      { "quantidade": 1, "pct": 70 },
+      { "quantidade": 3, "pct": 25 },
+      { "quantidade": 5, "pct": 5 }
+    ],
+    "uniao_a_partir_do_min": 10,
+    "abertura_corpos": 1,
+    "fila": 4
+  }
+}

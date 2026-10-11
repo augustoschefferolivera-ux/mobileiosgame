@@ -10,5 +10,10 @@
     { "arma": "espada_longa_do_juramento", "nivel": 8 },
     { "arma": "facas_de_sal", "nivel": 8 },
     { "arma": "circulo_de_sal", "nivel": 8 }
-  ]
+  ],
+  "cinzas": false,
+  "passivas": [],
+  "baus": [],
+  "xp_inicial": 0,
+  "relogio_inicial_s": 0
 }

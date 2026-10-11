@@ -1,0 +1,21 @@
+{
+  "id": "bau_uniao",
+  "versao": 1,
+  "linha_fixa": 6,
+  "jogador": { "invulneravel": true },
+  "diretor_desligado": false,
+  "tutoriais_vistos": true,
+  "rotacao": 0,
+  "armas": [
+    { "arma": "espada_longa_do_juramento", "nivel": 8 }
+  ],
+  "cinzas": false,
+  "passivas": [
+    { "passiva": "elmo_sem_rosto", "nivel": 2 }
+  ],
+  "baus": [
+    { "dx": 0, "dy": -96, "dourado": true }
+  ],
+  "xp_inicial": 0,
+  "relogio_inicial_s": 600
+}

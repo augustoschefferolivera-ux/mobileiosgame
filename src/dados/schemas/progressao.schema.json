@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressao.schema.json",
+  "title": "Números da progressão da Vigília: XP, Cinzas, level up e baús (design/decisoes-F-005.md §7)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["versao", "curva_xp", "nivel_maximo_tecnico", "cinzas", "pool_pickups", "level_up", "baus"],
+  "properties": {
+    "versao": { "type": "integer", "minimum": 1 },
+    "curva_xp": {
+      "description": "XP(n) = base + linear·(n−1) + (quadratico_decimos/10)·(n−1)², custo do nível n ao n+1 (B §3.9; Q-22); o custo usado é ⌈XP(n)⌉ (decisoes-F-005 X1).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base", "linear", "quadratico_decimos"],
+      "properties": {
+        "base": { "type": "integer", "minimum": 1 },
+        "linear": { "type": "integer", "minimum": 0 },
+        "quadratico_decimos": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "nivel_maximo_tecnico": { "type": "integer", "minimum": 2, "maximum": 255 },
+    "cinzas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["faixas", "ima_corpos", "velocidade_corpos_s", "coleta_corpos"],
+      "properties": {
+        "faixas": {
+          "description": "Cor da Cinza pelo valor de XP (Q-27), em ordem crescente.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["a_partir_de", "cor"],
+            "properties": {
+              "a_partir_de": { "type": "integer", "minimum": 1 },
+              "cor": { "enum": ["azul", "verde", "vermelha"] }
+            }
+          }
+        },
+        "ima_corpos": { "type": "number", "exclusiveMinimum": 0 },
+        "velocidade_corpos_s": { "type": "number", "exclusiveMinimum": 0 },
+        "coleta_corpos": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "pool_pickups": { "type": "integer", "minimum": 1 },
+    "level_up": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cartas", "melhoria_pct", "passiva_uniao_pct", "passiva_uniao_a_partir_do_min", "bolsa_almas"],
+      "properties": {
+        "cartas": { "const": 3 },
+        "melhoria_pct": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "passiva_uniao_pct": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "passiva_uniao_a_partir_do_min": { "type": "integer", "minimum": 0 },
+        "bolsa_almas": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "baus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["itens", "uniao_a_partir_do_min", "abertura_corpos", "fila"],
+      "properties": {
+        "itens": {
+          "description": "Quantidade de itens e a chance de cada uma (somam 100).",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["quantidade", "pct"],
+            "properties": {
+              "quantidade": { "type": "integer", "minimum": 1, "maximum": 5 },
+              "pct": { "type": "integer", "minimum": 1, "maximum": 100 }
+            }
+          }
+        },
+        "uniao_a_partir_do_min": { "type": "integer", "minimum": 0 },
+        "abertura_corpos": { "type": "number", "exclusiveMinimum": 0 },
+        "fila": { "type": "integer", "minimum": 1, "maximum": 8 }
+      }
+    }
+  }
+}

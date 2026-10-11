@@ -327,6 +327,18 @@
       "limite_palavras": null
     },
     {
+      "id": "A10.BAU.TITULO",
+      "texto": "Baú",
+      "contexto": "Modal do baú: título, acima dos itens que ele deu",
+      "limite_palavras": 1
+    },
+    {
+      "id": "A10.BAU.UNIAO",
+      "texto": "{uniao} se forma.",
+      "contexto": "Modal do baú: a União formada ({uniao} = nome da União)",
+      "limite_palavras": 8
+    },
+    {
       "id": "A10.LEVELUP.NOVO",
       "texto": "Novo",
       "contexto": "Level up: item que o jogador ainda não tem",

@@ -5,25 +5,56 @@
   "description": "Só no build de debug (?cenario=<id>; ADR-0002 §14). Desde a F-003 o cenário é uma receita de parâmetros da Vigília, não um save vigilia, que só nasce na F-008 (design/decisoes-F-003.md §5).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "versao", "linha_fixa", "jogador", "diretor_desligado", "tutoriais_vistos", "rotacao", "armas"],
+  "required": [
+    "id",
+    "versao",
+    "linha_fixa",
+    "jogador",
+    "diretor_desligado",
+    "tutoriais_vistos",
+    "rotacao",
+    "armas",
+    "cinzas",
+    "passivas",
+    "baus",
+    "xp_inicial",
+    "relogio_inicial_s"
+  ],
   "properties": {
-    "id": { "$ref": "comum.schema.json#/$defs/idConteudo" },
-    "versao": { "type": "integer", "minimum": 1 },
+    "id": {
+      "$ref": "comum.schema.json#/$defs/idConteudo"
+    },
+    "versao": {
+      "type": "integer",
+      "minimum": 1
+    },
     "linha_fixa": {
       "description": "Linha do diretor usada para roster, mínimo, intervalo e escala, ignorando o relógio (null = segue o relógio).",
-      "type": ["integer", "null"],
+      "type": [
+        "integer",
+        "null"
+      ],
       "minimum": 0
     },
     "jogador": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["invulneravel"],
+      "required": [
+        "invulneravel"
+      ],
       "properties": {
-        "invulneravel": { "description": "O contato é detectado e o timer corre, mas o HP não muda.", "type": "boolean" }
+        "invulneravel": {
+          "description": "O contato é detectado e o timer corre, mas o HP não muda.",
+          "type": "boolean"
+        }
       }
     },
-    "diretor_desligado": { "type": "boolean" },
-    "tutoriais_vistos": { "type": "boolean" },
+    "diretor_desligado": {
+      "type": "boolean"
+    },
+    "tutoriais_vistos": {
+      "type": "boolean"
+    },
     "rotacao": {
       "description": "Inimigos de menor slot removidos a cada 60 passos (0 = nenhum); só para o teste de heap.",
       "type": "integer",
@@ -39,12 +70,88 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["arma", "nivel"],
+        "required": [
+          "arma",
+          "nivel"
+        ],
         "properties": {
-          "arma": { "$ref": "comum.schema.json#/$defs/idConteudo" },
-          "nivel": { "type": "integer", "minimum": 1, "maximum": 8 }
+          "arma": {
+            "$ref": "comum.schema.json#/$defs/idConteudo"
+          },
+          "nivel": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          }
         }
       }
+    },
+    "cinzas": {
+      "description": "false liga CENARIO.semCinzas: as mortes não soltam Cinza, sem XP nem level up (design/decisoes-F-005.md §5).",
+      "type": "boolean"
+    },
+    "passivas": {
+      "description": "Passivas iniciais, na ordem das vagas (design/decisoes-F-005.md §8).",
+      "type": "array",
+      "maxItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "passiva",
+          "nivel"
+        ],
+        "properties": {
+          "passiva": {
+            "$ref": "comum.schema.json#/$defs/idConteudo"
+          },
+          "nivel": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          }
+        }
+      }
+    },
+    "baus": {
+      "description": "Baús no chão no início, em px relativos ao início do jogador; o índice de queda é a ordem da lista (1, 2…).",
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "dx",
+          "dy",
+          "dourado"
+        ],
+        "properties": {
+          "dx": {
+            "type": "number",
+            "minimum": -500,
+            "maximum": 500
+          },
+          "dy": {
+            "type": "number",
+            "minimum": -500,
+            "maximum": 500
+          },
+          "dourado": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "xp_inicial": {
+      "description": "XP dada no início; os níveis que ela cruza abrem no passo 1 (cenário nivel_tres).",
+      "type": "integer",
+      "minimum": 0
+    },
+    "relogio_inicial_s": {
+      "description": "Relógio da Vigília no início, em segundos; > 0 exige linha_fixa (a escala por minuto não salta).",
+      "type": "integer",
+      "minimum": 0
     }
   }
 }

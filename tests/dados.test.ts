@@ -48,6 +48,7 @@ const ARQUIVOS: { arquivo: string; schema: string }[] = [
   { arquivo: 'armas.json', schema: 'arma.schema.json' },
   { arquivo: 'passivas.json', schema: 'passiva.schema.json' },
   { arquivo: 'unioes.json', schema: 'uniao.schema.json' },
+  { arquivo: 'progressao.json', schema: 'progressao.schema.json' },
   { arquivo: 'inimigos.json', schema: 'inimigo.schema.json' },
   { arquivo: 'chefes.json', schema: 'chefe.schema.json' },
   { arquivo: 'arvore.json', schema: 'no-arvore.schema.json' },
@@ -183,6 +184,33 @@ describe('integridade referencial', () => {
       }
     }
     expect(problemas).toEqual([]);
+  });
+
+  it('as passivas, os baús e o relógio das receitas de cenário são válidos (decisoes-F-005 §7)', () => {
+    const passivas = lista(d('passivas.json'), 'passivas');
+    const problemas: string[] = [];
+    for (const { arquivo } of ARQUIVOS.filter((a) => a.arquivo.startsWith('cenarios/'))) {
+      const c = d(arquivo);
+      const vistas = new Set<unknown>();
+      for (const item of lista(c, 'passivas')) {
+        const p = passivas.find((x) => x['id'] === item['passiva']);
+        if (!p) problemas.push(`${arquivo}: passiva ${String(item['passiva'])} não existe`);
+        else if (Number(item['nivel']) > Number(p['nivel_max'])) problemas.push(`${arquivo}: ${String(item['passiva'])} acima do nivel_max`);
+        if (vistas.has(item['passiva'])) problemas.push(`${arquivo}: ${String(item['passiva'])} repetida`);
+        vistas.add(item['passiva']);
+      }
+      if (Number(c['relogio_inicial_s']) > 0 && c['linha_fixa'] === null) problemas.push(`${arquivo}: relogio_inicial_s > 0 sem linha_fixa`);
+    }
+    expect(problemas).toEqual([]);
+  });
+
+  it('a soma das chances de quantidade do baú é 100 e as faixas das Cinzas crescem (decisoes-F-005 §7)', () => {
+    const p = d('progressao.json');
+    const itens = lista(obj(p, 'baus'), 'itens');
+    expect(itens.reduce((s, i) => s + Number(i['pct']), 0)).toBe(100);
+    const faixas = lista(obj(p, 'cinzas'), 'faixas').map((f) => Number(f['a_partir_de']));
+    expect(faixas[0]).toBe(1);
+    for (let i = 1; i < faixas.length; i++) expect(faixas[i]!).toBeGreaterThan(faixas[i - 1]!);
   });
 
   it('a timeline de cada região só cita inimigos e chefes existentes', () => {

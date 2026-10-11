@@ -6,5 +6,10 @@
   "diretor_desligado": true,
   "tutoriais_vistos": false,
   "rotacao": 0,
-  "armas": []
+  "armas": [],
+  "cinzas": false,
+  "passivas": [],
+  "baus": [],
+  "xp_inicial": 0,
+  "relogio_inicial_s": 0
 }
