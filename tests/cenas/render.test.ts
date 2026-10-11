@@ -4,12 +4,11 @@
 import { describe, expect, it } from 'vitest';
 import { MOLDURA, escalaPara, type NomeDaMoldura } from '../../src/cenas/render/atlas';
 import { arredondarParaOPixel, centroDaCamera } from '../../src/cenas/render/camera';
-import { ORIGEM_Y_DO_JOGADOR, RenderPorImagem, anguloDoJogador } from '../../src/cenas/render/mundo';
+import { ORIGEM_Y_DO_JOGADOR, RenderDaVigilia, anguloDoJogador } from '../../src/cenas/render/mundo';
 import type Phaser from 'phaser';
-import { criarDadosDaVigilia } from '../../src/logica/mundo/dados';
 import { JOGADOR as J, criarEstado } from '../../src/logica/nucleo/estado';
 import { LARGURA_DO_MAPA as W, deltaNoToro } from '../../src/logica/mundo/toro';
-import { DADOS_SEM_OBSTACULOS as D } from '../logica/apoio';
+import { DADOS_SEM_OBSTACULOS as D, dadosDe } from '../logica/apoio';
 
 describe('triângulo do jogador', () => {
   it('a origem é o incentro: (0,5; ≈ 0,691), ≈ 14,83 px acima da base', () => {
@@ -80,8 +79,8 @@ describe('câmera (§5)', () => {
   });
 });
 
-describe('render por Image (cópia mais próxima da câmera)', () => {
-  /** Cena falsa: só o que o RenderPorImagem usa (add.image, add.layer e os setters). */
+describe('render do mundo: obstáculos e jogador (cópia mais próxima da câmera)', () => {
+  /** Cena falsa: só o que o RenderDaVigilia usa (add.image, add.layer e os setters). */
   function cenaFalsa(): { cena: Phaser.Scene; imagens: { x: number; y: number }[] } {
     const imagens: { x: number; y: number }[] = [];
     const add = {
@@ -104,12 +103,9 @@ describe('render por Image (cópia mais próxima da câmera)', () => {
   }
 
   it('um obstáculo em x = 40 com a câmera em 1.150 é desenhado em 1.210; o jogador, no pixel da câmera', () => {
-    const dados = criarDadosDaVigilia(
-      { inicio_jogador: { x: 1150, y: 2520 }, obstaculos: [{ x: 40, y: 10, tamanho_px: 64 }] },
-      { velocidade: 1 },
-    );
+    const dados = dadosDe({ inicio_jogador: { x: 1150, y: 2520 }, obstaculos: [{ x: 40, y: 10, tamanho_px: 64 }] });
     const { cena, imagens } = cenaFalsa();
-    const render = new RenderPorImagem(cena, dados);
+    const render = new RenderDaVigilia(cena, dados, null);
     const e = criarEstado(1, dados);
     e.jogador[J.x] = e.jogador[J.xAnt] = 1150.2;
     render.sincronizar(e, 0, 1150, 2520);
