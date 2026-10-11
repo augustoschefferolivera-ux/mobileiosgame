@@ -5,6 +5,7 @@
 // empurrado para fora pela menor penetração, ao longo da normal centro a
 // centro, medida pelo delta toroidal. Nada é alocado por passo.
 import { FNV_BASE, fnv1aU32 } from '../nucleo/hash';
+import { CELULAS, COLUNAS, LADO_DA_CELULA, LINHAS, celulaDoPonto } from './grade';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, deltaNoToro } from './toro';
 
 /** Iterações por passo: a 2ª resolve o empurrão de um obstáculo para dentro de outro (junções). */
@@ -99,12 +100,90 @@ export function colidirComObstaculos(
   desempate: boolean,
   out: Ponto,
 ): number {
+  return resolver(o, null, 0, o.n, x, y, raio, movX, movY, desempate, out);
+}
+
+/**
+ * Lista estática de obstáculos por célula da grade de 64 px (design/decisoes-F-003.md §2):
+ * cada célula lista, em ordem crescente de índice, os obstáculos cuja distância no
+ * toro ao retângulo da célula é menor que r + `alcance` + 1 px. Montada uma vez.
+ */
+export interface ObstaculosPorCelula {
+  /** [inicio[c], inicio[c + 1]) em `indices` são os obstáculos da célula c. */
+  readonly inicio: Int32Array;
+  readonly indices: Int32Array;
+}
+
+/** Distância no toro de um ponto a um intervalo [a, b] de um eixo de comprimento L. */
+function distanciaAoIntervalo(v: number, a: number, b: number, L: number): number {
+  const centro = (a + b) / 2;
+  const d = Math.abs(deltaNoToro(centro, v, L));
+  return Math.max(0, d - (b - a) / 2);
+}
+
+export function criarObstaculosPorCelula(o: Obstaculos, alcance: number): ObstaculosPorCelula {
+  const inicio = new Int32Array(CELULAS + 1);
+  const lista: number[] = [];
+  for (let l = 0; l < LINHAS; l++) {
+    for (let c = 0; c < COLUNAS; c++) {
+      inicio[l * COLUNAS + c] = lista.length;
+      const x0 = c * LADO_DA_CELULA;
+      const y0 = l * LADO_DA_CELULA;
+      const x1 = Math.min(x0 + LADO_DA_CELULA, LARGURA_DO_MAPA);
+      const y1 = Math.min(y0 + LADO_DA_CELULA, ALTURA_DO_MAPA);
+      for (let i = 0; i < o.n; i++) {
+        const dx = distanciaAoIntervalo(o.x[i]!, x0, x1, LARGURA_DO_MAPA);
+        const dy = distanciaAoIntervalo(o.y[i]!, y0, y1, ALTURA_DO_MAPA);
+        const limite = o.r[i]! + alcance + 1;
+        if (dx * dx + dy * dy < limite * limite) lista.push(i);
+      }
+    }
+  }
+  inicio[CELULAS] = lista.length;
+  return { inicio, indices: Int32Array.from(lista) };
+}
+
+/**
+ * Como colidirComObstaculos, mas só contra os obstáculos da célula da posição
+ * (x, y), levada ao toro. Com a folga mínima entre obstáculos maior que 2 × o
+ * maior raio + o deslocamento do passo, nenhum corpo toca dois obstáculos de uma
+ * vez, e o resultado é bit a bit o da lista inteira (teste de equivalência).
+ */
+export function colidirComObstaculosDaCelula(
+  o: Obstaculos,
+  porCelula: ObstaculosPorCelula,
+  x: number,
+  y: number,
+  raio: number,
+  movX: number,
+  movY: number,
+  desempate: boolean,
+  out: Ponto,
+): number {
+  const c = celulaDoPonto(x, y);
+  return resolver(o, porCelula.indices, porCelula.inicio[c]!, porCelula.inicio[c + 1]!, x, y, raio, movX, movY, desempate, out);
+}
+
+function resolver(
+  o: Obstaculos,
+  indices: Int32Array | null,
+  ini: number,
+  fim: number,
+  x: number,
+  y: number,
+  raio: number,
+  movX: number,
+  movY: number,
+  desempate: boolean,
+  out: Ponto,
+): number {
   let px = x;
   let py = y;
   let empurroes = 0;
   const tangenteNula = desempate ? TOLERANCIA_DO_DESEMPATE * Math.sqrt(movX * movX + movY * movY) : 0;
   for (let it = 0; it < ITERACOES_DE_COLISAO; it++) {
-    for (let i = 0; i < o.n; i++) {
+    for (let k = ini; k < fim; k++) {
+      const i = indices === null ? k : indices[k]!;
       const dx = deltaNoToro(o.x[i]!, px, LARGURA_DO_MAPA);
       const dy = deltaNoToro(o.y[i]!, py, ALTURA_DO_MAPA);
       const minimo = o.r[i]! + raio;
