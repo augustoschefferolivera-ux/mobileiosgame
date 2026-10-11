@@ -14,14 +14,21 @@ export type Fluxo = (typeof FLUXOS)[number];
 export const PALAVRAS_POR_FLUXO = 4;
 
 /** 2^-32, exato em double. */
-const DOIS_A_MENOS_32 = 2.3283064365386963e-10;
+export const DOIS_A_MENOS_32 = 2.3283064365386963e-10;
 
 function rotl(x: number, k: number): number {
   return ((x << k) | (x >>> (32 - k))) >>> 0;
 }
 
-/** Próximo valor de 32 bits sem sinal do estado em `s[base .. base+3]`. */
-export function proximoU32(s: Uint32Array, base: number): number {
+/**
+ * Saída de `sortear`: o próximo valor de 32 bits sem sinal, lido pelo chamador
+ * sem passar por retorno. No V8, um u32 ≥ 2³⁰ devolvido por uma chamada não
+ * inlinada viraria um HeapNumber (design/decisoes-F-004.md §8, E6).
+ */
+export const SORTEADO = new Uint32Array(1);
+
+/** Avança o estado em `s[base .. base+3]` e escreve o próximo valor de 32 bits em SORTEADO[0]. */
+export function sortear(s: Uint32Array, base: number): void {
   const s0 = s[base]!;
   const s1 = s[base + 1]!;
   const s2 = s[base + 2]!;
@@ -34,7 +41,13 @@ export function proximoU32(s: Uint32Array, base: number): number {
   s[base] = s0 ^ n3;
   s[base + 2] = n2 ^ t;
   s[base + 3] = rotl(n3, 11);
-  return resultado;
+  SORTEADO[0] = resultado;
+}
+
+/** Próximo valor de 32 bits sem sinal do estado em `s[base .. base+3]`. */
+export function proximoU32(s: Uint32Array, base: number): number {
+  sortear(s, base);
+  return SORTEADO[0]!;
 }
 
 /** Número em [0, 1) com 32 bits de resolução. */

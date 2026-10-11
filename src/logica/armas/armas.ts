@@ -100,7 +100,7 @@ function golpear(e: Estado, dados: DadosDaVigilia, v: number, forma: number): vo
   const t = dados.armas;
   const codigo = e.build.codigo[v]!;
   const i = indiceDoNivel(codigo, e.build.nivel[v]!);
-  calcularDano(dados, v, codigo, i);
+  calcularDano(dados, v, i);
   ACERTO[0] = DANO[v]!;
   const j = e.jogador;
   const jx = j[JOGADOR.x]!;
@@ -208,7 +208,7 @@ function rodarAura(e: Estado, dados: DadosDaVigilia, v: number): void {
   const ini = e.inimigos;
   const raio = dados.tipos.raio;
   if (tick) {
-    calcularDano(dados, v, codigo, i);
+    calcularDano(dados, v, i);
     ACERTO[0] = DANO[v]!;
     const salPct = t.salPct[i]!;
     const salPassos = t.salPassos[i]!;

@@ -7,6 +7,7 @@
 // aqui, no boot, nunca no meio de um passo. A União fica fora até a F-005.
 import { PASSOS_POR_SEGUNDO, segundosEmPassos } from '../nucleo/passos';
 import { FORMA } from '../nucleo/eventos';
+import { MULT_NEUTRO_PCT, PODER_PCT, danoPorAcerto } from './dano';
 import { CORPO_PX } from '../mundo/tipos';
 
 /** Códigos de arma; 0 = vaga vazia. */
@@ -82,6 +83,12 @@ export interface TabelaDeArmas {
   readonly periodoPulso: Uint16Array;
   /** Por (arma, nível), em indiceDoNivel. */
   readonly somaDanoPct: Int16Array;
+  /**
+   * Dano de um acerto (golpe, faca ou tick) pela fórmula de dano.ts, com o
+   * Poder e os multiplicadores neutros e os atributos do Vigilante, que não
+   * mudam durante a Vigília até a F-005 (que recalcula no level up).
+   */
+  readonly danoDoNivel: Float64Array;
   readonly golpes: Uint8Array;
   /** Forma de cada golpe da sequência: [indiceDoNivel × GOLPES_MAXIMOS + k]. */
   readonly formaDoGolpe: Uint8Array;
@@ -142,6 +149,7 @@ export function criarTabelaDeArmas(armas: readonly ArmaDoJson[], atributos: Atri
     espacamento: new Float64Array(CODIGOS),
     periodoPulso: new Uint16Array(CODIGOS),
     somaDanoPct: new Int16Array(POR_NIVEL),
+    danoDoNivel: new Float64Array(POR_NIVEL),
     golpes: new Uint8Array(POR_NIVEL),
     formaDoGolpe: new Uint8Array(POR_NIVEL * GOLPES_MAXIMOS),
     alcance: new Float64Array(POR_NIVEL),
@@ -175,7 +183,7 @@ export function criarTabelaDeArmas(armas: readonly ArmaDoJson[], atributos: Atri
     t.escalaMil[c] = escala;
     const b = a.base;
     const aura = arquetipo === ARQUETIPO.aura;
-    t.danoBase[c] = numero(b, aura ? 'dano_por_s' : 'dano', a.id);
+    t.danoBase[c] = inteiro(numero(b, aura ? 'dano_por_s' : 'dano', a.id), `${a.id} dano base`);
     t.periodo[c] = segundosEmPassos(numero(b, aura ? 'intervalo_tick_s' : 'cooldown_s', a.id));
     t.numDano[c] = aura ? t.periodo[c] : 1;
     t.denDano[c] = aura ? PASSOS_POR_SEGUNDO : 1;
@@ -264,6 +272,7 @@ export function criarTabelaDeArmas(armas: readonly ArmaDoJson[], atributos: Atri
       if (golpes > GOLPES_MAXIMOS) throw new Error(`armas.json: ${a.id} nv${nivel}: ${golpes} golpes`);
       const i = indiceDoNivel(c, nivel);
       t.somaDanoPct[i] = somaDano;
+      t.danoDoNivel[i] = danoPorAcerto(t.danoBase[c]!, t.numDano[c]!, t.denDano[c]!, somaDano, PODER_PCT, escala, MULT_NEUTRO_PCT, MULT_NEUTRO_PCT);
       t.golpes[i] = golpes;
       for (let k = 0; k < golpes; k++) t.formaDoGolpe[i * GOLPES_MAXIMOS + k] = formas[k]!;
       // Tamanhos em inteiros e uma divisão: somar 0,15 + 0,15 + 0,2 em double daria 95,99999999999999 (W15).

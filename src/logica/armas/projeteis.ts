@@ -73,7 +73,7 @@ export function rodarMaisProximo(e: Estado, dados: DadosDaVigilia, v: number): v
     if (M < limite) M++;
   }
   if (M === 0) return;
-  calcularDano(dados, v, codigo, i);
+  calcularDano(dados, v, i);
   const dano = Math.fround(DANO[v]!);
   const vel = t.velocidade[i]!;
   const vida = t.vida[i]!;

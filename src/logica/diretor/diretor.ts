@@ -8,12 +8,12 @@
 //  - posição no anel de 468 a 624 px, com 60% no semicírculo oposto à intenção.
 import { baseDoFluxo, CAB, CENARIO, JOGADOR, LINHA_LIVRE, MUNDO, type Estado } from '../nucleo/estado';
 import { quantosAtivos } from '../nucleo/pool';
-import { proximoU32, proximoUnitario } from '../nucleo/rng';
+import { DOIS_A_MENOS_32, SORTEADO, sortear } from '../nucleo/rng';
 import type { DadosDaVigilia } from '../mundo/dados';
 import { DIRECAO_X, DIRECAO_Y, DIRECOES } from '../mundo/direcoes';
-import { MASSA_POR_CONVERTIDO, minutoDaEscala, nascerInimigo } from '../mundo/inimigos';
+import { MASSA_POR_CONVERTIDO, NASCIMENTO, minutoDaEscala, nascerInimigoDoRascunho } from '../mundo/inimigos';
 import { TIPO } from '../mundo/tipos';
-import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, LARGURA_DA_TELA, deltaNoToro, normalizarNoToro } from '../mundo/toro';
+import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, LARGURA_DA_TELA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../mundo/toro';
 import { PASSOS_POR_MINUTO } from './timeline';
 
 /** Anel de spawn: 1,2 a 1,6 larguras de tela (Q-06): 468 a 624 px, medidos no centro. */
@@ -68,7 +68,8 @@ export function sortearTipo(rng: Uint32Array, base: number, dados: DadosDaVigili
   const ini = tl.inicioDoRoster[linha]!;
   const fim = tl.inicioDoRoster[linha + 1]!;
   const total = tl.rosterAcumulado[fim - 1]!;
-  const alvo = Math.floor((proximoU32(rng, base) * total) / DOIS_A_32);
+  sortear(rng, base);
+  const alvo = Math.floor((SORTEADO[0]! * total) / DOIS_A_32);
   for (let k = ini; k < fim; k++) if (alvo < tl.rosterAcumulado[k]!) return tl.rosterTipo[k]!;
   return tl.rosterTipo[fim - 1]!;
 }
@@ -83,17 +84,6 @@ export interface PontoDeSpawn {
   raio: number;
   /** false se nenhuma das 256 direções estava livre de obstáculo. */
   livre: boolean;
-}
-
-function livreDeObstaculos(dados: DadosDaVigilia, x: number, y: number, raio: number): boolean {
-  const o = dados.obstaculos;
-  for (let i = 0; i < o.n; i++) {
-    const dx = deltaNoToro(o.x[i]!, x, LARGURA_DO_MAPA);
-    const dy = deltaNoToro(o.y[i]!, y, ALTURA_DO_MAPA);
-    const minimo = o.r[i]! + raio;
-    if (dx * dx + dy * dy < minimo * minimo) return false;
-  }
-  return true;
 }
 
 /**
@@ -115,9 +105,37 @@ export function sortearPontoDeSpawn(
   raioDoCorpo: number,
   out: PontoDeSpawn,
 ): void {
-  const uLado = proximoU32(rng, base);
-  let k = proximoU32(rng, base) >>> 24;
-  const r = ANEL_INTERNO + (ANEL_EXTERNO - ANEL_INTERNO) * proximoUnitario(rng, base);
+  ENTRADA_DO_SPAWN[0] = jx;
+  ENTRADA_DO_SPAWN[1] = jy;
+  ENTRADA_DO_SPAWN[2] = dx;
+  ENTRADA_DO_SPAWN[3] = dy;
+  ENTRADA_DO_SPAWN[4] = raioDoCorpo;
+  sortearPontoDoRascunho(rng, base, dados, temIntencao, out);
+}
+
+/** Entradas de sortearPontoDoRascunho: jx, jy, dx, dy e o raio do corpo. */
+const ENTRADA_DO_SPAWN = new Float64Array(5);
+
+/**
+ * sortearPontoDeSpawn com as entradas em ENTRADA_DO_SPAWN: o caminho de nascer
+ * roda a cada morte, e no V8 cada double passado ou devolvido por uma chamada
+ * não inlinada alocaria um HeapNumber (design/decisoes-F-004.md §8, E6). Os
+ * sorteios (sortear e SORTEADO), a normalização no toro e o teste de obstáculo
+ * vão em linha, com as mesmas contas de proximoUnitario, normalizarNoToro e
+ * deltaNoToro.
+ */
+function sortearPontoDoRascunho(rng: Uint32Array, base: number, dados: DadosDaVigilia, temIntencao: boolean, out: PontoDeSpawn): void {
+  const jx = ENTRADA_DO_SPAWN[0]!;
+  const jy = ENTRADA_DO_SPAWN[1]!;
+  const dx = ENTRADA_DO_SPAWN[2]!;
+  const dy = ENTRADA_DO_SPAWN[3]!;
+  const raioDoCorpo = ENTRADA_DO_SPAWN[4]!;
+  sortear(rng, base);
+  const uLado = SORTEADO[0]!;
+  sortear(rng, base);
+  let k = SORTEADO[0]! >>> 24;
+  sortear(rng, base);
+  const r = ANEL_INTERNO + (ANEL_EXTERNO - ANEL_INTERNO) * (SORTEADO[0]! * DOIS_A_MENOS_32);
   if (temIntencao) {
     const s = DIRECAO_X[k]! * dx + DIRECAO_Y[k]! * dy;
     const opostoPedido = uLado < LIMIAR_DO_LADO_OPOSTO;
@@ -128,9 +146,26 @@ export function sortearPontoDeSpawn(
   for (let t = 0; t < DIRECOES; t++) {
     const desvio = t === 0 ? 0 : t % 2 === 1 ? (t + 1) / 2 : -t / 2;
     const kk = (k + desvio + DIRECOES) & (DIRECOES - 1);
-    const x = normalizarNoToro(jx + r * DIRECAO_X[kk]!, LARGURA_DO_MAPA);
-    const y = normalizarNoToro(jy + r * DIRECAO_Y[kk]!, ALTURA_DO_MAPA);
-    if (livreDeObstaculos(dados, x, y, raioDoCorpo)) {
+    let x = Math.fround(jx + r * DIRECAO_X[kk]!);
+    if (x < 0) x = Math.fround(x + LARGURA_DO_MAPA);
+    if (x >= LARGURA_DO_MAPA) x = Math.fround(x - LARGURA_DO_MAPA);
+    let y = Math.fround(jy + r * DIRECAO_Y[kk]!);
+    if (y < 0) y = Math.fround(y + ALTURA_DO_MAPA);
+    if (y >= ALTURA_DO_MAPA) y = Math.fround(y - ALTURA_DO_MAPA);
+    // Livre de obstáculo: nenhum a menos de r_obstáculo + raio do corpo, pelo delta toroidal.
+    const o = dados.obstaculos;
+    let livre = true;
+    for (let i = 0; i < o.n && livre; i++) {
+      let ox = x - o.x[i]!;
+      if (ox > MEIA_LARGURA_DO_MAPA) ox -= LARGURA_DO_MAPA;
+      if (ox < -MEIA_LARGURA_DO_MAPA) ox += LARGURA_DO_MAPA;
+      let oy = y - o.y[i]!;
+      if (oy > MEIA_ALTURA_DO_MAPA) oy -= ALTURA_DO_MAPA;
+      if (oy < -MEIA_ALTURA_DO_MAPA) oy += ALTURA_DO_MAPA;
+      const minimo = o.r[i]! + raioDoCorpo;
+      if (ox * ox + oy * oy < minimo * minimo) livre = false;
+    }
+    if (livre) {
       out.x = x;
       out.y = y;
       out.livre = true;
@@ -146,10 +181,12 @@ const ponto: PontoDeSpawn = { x: 0, y: 0, direcaoSorteada: 0, raio: 0, livre: fa
 function nascerNoAnel(e: Estado, dados: DadosDaVigilia, codigo: number, convertido: boolean, temIntencao: boolean): void {
   const base = baseDoFluxo('diretor');
   const j = e.jogador;
-  sortearPontoDeSpawn(
-    e.rng, base, dados, j[JOGADOR.x]!, j[JOGADOR.y]!, temIntencao, j[JOGADOR.dirX]!, j[JOGADOR.dirY]!,
-    dados.tipos.raio[codigo]!, ponto,
-  );
+  ENTRADA_DO_SPAWN[0] = j[JOGADOR.x]!;
+  ENTRADA_DO_SPAWN[1] = j[JOGADOR.y]!;
+  ENTRADA_DO_SPAWN[2] = j[JOGADOR.dirX]!;
+  ENTRADA_DO_SPAWN[3] = j[JOGADOR.dirY]!;
+  ENTRADA_DO_SPAWN[4] = dados.tipos.raio[codigo]!;
+  sortearPontoDoRascunho(e.rng, base, dados, temIntencao, ponto);
   const m = e.mundo;
   if (!ponto.livre) {
     m[MUNDO.semPontoLivre] = m[MUNDO.semPontoLivre]! + 1;
@@ -160,7 +197,9 @@ function nascerNoAnel(e: Estado, dados: DadosDaVigilia, codigo: number, converti
     m[MUNDO.garantidosPerdidos] = m[MUNDO.garantidosPerdidos]! + 1;
     return;
   }
-  if (nascerInimigo(e, dados, codigo, ponto.x, ponto.y, convertido) < 0) {
+  NASCIMENTO[0] = ponto.x;
+  NASCIMENTO[1] = ponto.y;
+  if (nascerInimigoDoRascunho(e, dados, codigo, convertido) < 0) {
     m[MUNDO.recusados] = m[MUNDO.recusados]! + 1;
     return;
   }

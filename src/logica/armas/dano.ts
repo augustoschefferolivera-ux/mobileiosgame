@@ -12,10 +12,30 @@ export const PODER_PCT = 0;
 export const MULT_NEUTRO_PCT = 100;
 
 /**
- * Dano de um acerto. `base` é o dano do nv1 (inteiro); `num`/`den`, a fração
+ * Dano de um acerto, escrito em `out[i]` (a simulação grava direto no rascunho
+ * do passo: um double devolvido por uma chamada não inlinada viraria um
+ * HeapNumber no V8). `base` é o dano do nv1 (inteiro); `num`/`den`, a fração
  * por disparo (30/60 no tick da aura); `somaDanoPct`, os bônus de dano do
  * nível somados (D2); `escalaMil`, Σ grau em centésimos × atributo.
  */
+export function gravarDanoPorAcerto(
+  out: Float64Array,
+  i: number,
+  base: number,
+  num: number,
+  den: number,
+  somaDanoPct: number,
+  poderPct: number,
+  escalaMil: number,
+  multStatusPct: number,
+  multStaminaPct: number,
+): void {
+  out[i] = (base * num * (100 + somaDanoPct) * (100 + poderPct) * escalaMil * multStatusPct * multStaminaPct) / (den * 1e11);
+}
+
+const RESULTADO = new Float64Array(1);
+
+/** O mesmo valor de gravarDanoPorAcerto, devolvido (testes e boot). */
 export function danoPorAcerto(
   base: number,
   num: number,
@@ -26,5 +46,6 @@ export function danoPorAcerto(
   multStatusPct: number,
   multStaminaPct: number,
 ): number {
-  return (base * num * (100 + somaDanoPct) * (100 + poderPct) * escalaMil * multStatusPct * multStaminaPct) / (den * 1e11);
+  gravarDanoPorAcerto(RESULTADO, 0, base, num, den, somaDanoPct, poderPct, escalaMil, multStatusPct, multStaminaPct);
+  return RESULTADO[0]!;
 }

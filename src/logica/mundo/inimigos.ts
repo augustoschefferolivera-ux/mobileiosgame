@@ -19,15 +19,36 @@ export function minutoDaEscala(e: Estado, dados: DadosDaVigilia): number {
   return Math.min(Math.floor(e.cab[CAB.relogio]! / PASSOS_POR_MINUTO), dados.timeline.linhas - 1);
 }
 
-/** HP no spawn: fround(hp_base × (100 + 12·min) × I10 / 1.000) (B §3.6; decisoes-F-003 §1). */
-export function hpNoSpawn(hpBase: number, minuto: number, intensidade10: number): number {
-  return Math.fround((hpBase * (100 + 12 * minuto) * intensidade10) / 1000);
+/**
+ * HP no spawn: fround(hp_base × (100 + 12·min) × I10 / 1.000) (B §3.6;
+ * decisoes-F-003 §1), escrito em `out[i]` (no V8, um double devolvido alocaria
+ * um HeapNumber a cada nascimento; decisoes-F-004 E6).
+ */
+export function gravarHpNoSpawn(out: Float32Array, i: number, hpBase: number, minuto: number, intensidade10: number): void {
+  out[i] = (hpBase * (100 + 12 * minuto) * intensidade10) / 1000;
 }
 
-/** Dano no spawn: fround(dano_base × (100 + 5·min) / 100) (B §3.6). */
-export function danoNoSpawn(danoBase: number, minuto: number): number {
-  return Math.fround((danoBase * (100 + 5 * minuto)) / 100);
+/** Dano no spawn: fround(dano_base × (100 + 5·min) / 100) (B §3.6), escrito em `out[i]`. */
+export function gravarDanoNoSpawn(out: Float32Array, i: number, danoBase: number, minuto: number): void {
+  out[i] = (danoBase * (100 + 5 * minuto)) / 100;
 }
+
+const RESULTADO = new Float32Array(1);
+
+/** O HP de gravarHpNoSpawn, devolvido (testes). */
+export function hpNoSpawn(hpBase: number, minuto: number, intensidade10: number): number {
+  gravarHpNoSpawn(RESULTADO, 0, hpBase, minuto, intensidade10);
+  return RESULTADO[0]!;
+}
+
+/** O dano de gravarDanoNoSpawn, devolvido (testes). */
+export function danoNoSpawn(danoBase: number, minuto: number): number {
+  gravarDanoNoSpawn(RESULTADO, 0, danoBase, minuto);
+  return RESULTADO[0]!;
+}
+
+/** Posição de nascerInimigoDoRascunho: x e y, já no toro. */
+export const NASCIMENTO = new Float64Array(2);
 
 /** Inimigos de massa que um convertido substitui (B §3.7: "a cada 10 massa"). */
 export const MASSA_POR_CONVERTIDO = 10;
@@ -39,6 +60,15 @@ export const MASSA_POR_CONVERTIDO = 10;
  * e o dano de Oco Grande (ADR-0002 §8.7).
  */
 export function nascerInimigo(e: Estado, dados: DadosDaVigilia, codigo: number, x: number, y: number, convertido: boolean): number {
+  NASCIMENTO[0] = x;
+  NASCIMENTO[1] = y;
+  return nascerInimigoDoRascunho(e, dados, codigo, convertido);
+}
+
+/** nascerInimigo com a posição em NASCIMENTO (o caminho do diretor, sem double atravessando a chamada). */
+export function nascerInimigoDoRascunho(e: Estado, dados: DadosDaVigilia, codigo: number, convertido: boolean): number {
+  const x = NASCIMENTO[0]!;
+  const y = NASCIMENTO[1]!;
   const t = dados.tipos;
   if (t.existe[codigo] !== 1) throw new Error(`nascerInimigo: o tipo ${codigo} não nasce nesta feature`);
   const slot = alocar(e.pool);
@@ -51,10 +81,9 @@ export function nascerInimigo(e: Estado, dados: DadosDaVigilia, codigo: number, 
   ini.tipo[slot] = codigo;
   ini.convertido[slot] = convertido ? 1 : 0;
   ini.salPct[slot] = ini.salPassos[slot] = ini.kbPassos[slot] = 0;
-  ini.hp[slot] = convertido
-    ? hpNoSpawn(MASSA_POR_CONVERTIDO * t.hpBase[TIPO.oco_das_lanternas]!, min, i10)
-    : hpNoSpawn(t.hpBase[codigo]!, min, i10);
-  ini.dano[slot] = danoNoSpawn(t.danoBase[codigo]!, min);
+  if (convertido) gravarHpNoSpawn(ini.hp, slot, MASSA_POR_CONVERTIDO * t.hpBase[TIPO.oco_das_lanternas]!, min, i10);
+  else gravarHpNoSpawn(ini.hp, slot, t.hpBase[codigo]!, min, i10);
+  gravarDanoNoSpawn(ini.dano, slot, t.danoBase[codigo]!, min);
   return slot;
 }
 
