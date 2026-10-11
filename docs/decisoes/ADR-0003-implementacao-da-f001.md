@@ -67,7 +67,8 @@
   - `no-restricted-properties`: `Math.random` e as funções aproximadas, incluindo as hiperbólicas;
   - `no-restricted-syntax`: `**`, `**=` e `sort()` sem comparador (ADR-0002 §5).
 - **`vdc/textos`** (plugin próprio, `eslint/vdc.js`):
-  - o id de `t()` precisa casar com a Q-32 e existir no `pt-BR.json`;
-  - nenhum literal pode chegar aos pontos que desenham texto (`add.text`, `setText`, `textContent` etc.);
-  - strings com forma de prosa (duas palavras ou letra acentuada) são barradas fora de `t()`, de logs e de `Error`.
+  - todo literal com forma de id (`/^[A-K][0-9]+\./`) precisa casar com a Q-32 e existir no `pt-BR.json`, onde quer que esteja. O id passado a `t()` (posição 0) e ao helper `texto()` (posição 3) só pode ser um id válido;
+  - nenhum literal chega aos pontos que desenham texto (`add.text`, `setText`, `textContent` etc.), nem por constante do arquivo, concatenação, lista ou argumento de chamada como `String('...')`;
+  - strings com forma de texto para pessoas são barradas fora de `t()`, de logs e de `Error`: duas palavras, letra acentuada ou uma palavra com inicial maiúscula (a forma dos rótulos, como "Pausa"). A exceção são as chaves de cena (`{ key: 'Boot' }`, `scene.start('Vigilia')`);
+  - limite conhecido: a regra é sintática. Um texto montado em tempo de execução a partir de dados que não vêm do `pt-BR.json` escapa; o teste de dados cobre os JSON.
 - **`vdc/glossario`:** cobre identificadores, strings e comentários de `src/`. O detector (`eslint/glossario.js` + `eslint/glossario.json`) é o mesmo do `tests/dados.test.ts`.

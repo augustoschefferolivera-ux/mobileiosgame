@@ -65,7 +65,13 @@ describe('phaser só em src/cenas', () => {
 });
 
 describe('textos visíveis só por t(id) (ADR-0002 §11; Q-32)', () => {
-  const decl = 'declare function t(id: string): string;\ndeclare const el: { textContent: string; setText(s: string): void };\n';
+  const decl = [
+    'declare function t(id: string): string;',
+    'declare function texto(c: unknown, x: number, y: number, id: string, tam: number, cor: number): void;',
+    'declare const cena: { scene: { start(k: string): void } };',
+    'declare const el: { textContent: string; setText(s: string): void };',
+    '',
+  ].join('\n');
   it.each([
     ["export const a = t('A1.ACENDER');", 'idForaDoPadrao'],
     ["export const a = t('A1.ACENDER.NAO_EXISTE');", 'idAusente'],
@@ -74,6 +80,15 @@ describe('textos visíveis só por t(id) (ADR-0002 §11; Q-32)', () => {
     ["declare const cena: { add: { text(x: number, y: number, s: string): void } };\ncena.add.text(0, 0, 'oi');", 'literalNaTela'],
     ["export const s = 'Toque para acender a Chama';", 'prosa'],
     ["export const s = 'Nível';", 'prosa'],
+    ["export const rotulo = 'Pausa';", 'prosa'],
+    ["const rotulo = 'pausa';\nel.setText(rotulo);", 'literalNaTela'],
+    ["el.setText(String('pausa'));", 'literalNaTela'],
+    ["el.setText(['pausa'].join(''));", 'literalNaTela'],
+    ["el.textContent = 'x' + t('A1.ACENDER.BOTAO');", 'literalNaTela'],
+    ["texto(cena, 0, 0, 'A1.ACENDER.NAO_EXISTE', 18, 0);", 'idAusente'],
+    ["texto(cena, 0, 0, 'pausa', 18, 0);", 'idForaDoPadrao'],
+    ["export const ids = ['A1.ACENDER.NAO_EXISTE'];", 'idAusente'],
+    ["export const id = 'A1.acender.botao';", 'idForaDoPadrao'],
   ])('%s → %s', async (codigo, mensagem) => {
     const [r] = await eslint.lintText(decl + codigo, { filePath: join(RAIZ, CENAS) });
     expect(r?.messages.map((m) => m.messageId)).toContain(mensagem);
@@ -88,6 +103,11 @@ describe('textos visíveis só por t(id) (ADR-0002 §11; Q-32)', () => {
       "export const evento = 'touchstart';",
       "export const id = 'oco_das_lanternas';",
       "console.warn('aviso para quem desenvolve');",
+      "texto(cena, 0, 0, 'A1.ACENDER.BOTAO', 18, 0);",
+      "cena.scene.start('Vigilia');",
+      "export const cfg = { key: 'Acender' };",
+      "const rotulo = t('A6.PAUSA.CONTINUAR');\nel.setText(rotulo);",
+      "export const estado = 'ACENDER';",
       "export function f(): never { throw new Error('estado inconsistente da cena'); }",
     ].join('\n');
     const [r] = await eslint.lintText(decl + ok, { filePath: join(RAIZ, CENAS) });
