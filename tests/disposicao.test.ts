@@ -120,11 +120,14 @@ describe('disposição da Charneca (design/decisoes-F-002.md §2)', () => {
     expect(noCorredor(obstaculos, inicio)).toEqual([]);
   });
 
-  it('há um obstáculo no caminho logo depois da costura, para o deslize do vídeo e do roteiro (§8)', () => {
-    const noCaminho = obstaculos.filter(
-      (o) => o.x < inicio.x - RAIO_DO_JOGADOR && Math.abs(o.y - inicio.y) < raio(o) + RAIO_DO_JOGADOR && o.y !== inicio.y,
-    );
+  it('do outro lado da costura, o 1º obstáculo no caminho é tocado de raspão (o deslize do vídeo e do roteiro, §8)', () => {
+    const noCaminho = obstaculos
+      .filter((o) => o.x < inicio.x && Math.abs(o.y - inicio.y) < raio(o) + RAIO_DO_JOGADOR)
+      .sort((a, b) => a.x - b.x);
     expect(noCaminho.length).toBeGreaterThan(0);
+    const primeiro = noCaminho[0]!;
+    expect(primeiro).toMatchObject({ x: 230, y: 1278 });
+    expect(primeiro.y).not.toBe(inicio.y);
   });
 });
 
