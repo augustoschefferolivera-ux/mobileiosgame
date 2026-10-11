@@ -153,6 +153,12 @@
       "limite_palavras": null
     },
     {
+      "id": "A6.PAUSA.NIVEL",
+      "texto": "Nível {nivel}",
+      "contexto": "Tela de pausa: nível de cada arma da build (design/decisoes-F-004.md P5)",
+      "limite_palavras": null
+    },
+    {
       "id": "A6.PAUSA.ABANDONAR",
       "texto": "Abandonar Vigília",
       "contexto": "Tela de pausa: abandonar (doc 02 §3.2)",
@@ -467,7 +473,7 @@
     {
       "id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV7",
       "texto": "3º golpe: estocada perfurante.",
-      "contexto": "Arma: linha funcional do nível 7 na carta (B §3.8); revisar quando a F-004 decidir se o nv7 acrescenta ou transforma o 3º golpe (brief §11.3)",
+      "contexto": "Arma: linha funcional do nível 7 na carta (B §3.8); o nv7 acrescenta a estocada como 3º golpe da sequência (design/decisoes-F-004.md W5)",
       "limite_palavras": null
     },
     {
@@ -491,7 +497,7 @@
     {
       "id": "F1.FACAS_DE_SAL.NV1",
       "texto": "2 facas por salva.",
-      "contexto": "Arma: linha funcional do nível 1 na carta (B §3.8; doc 04 §3); alvo de uma salva com várias facas pendente na F-004 (ADR-0002 §7)",
+      "contexto": "Arma: linha funcional do nível 1 na carta (B §3.8; doc 04 §3); com mais facas que alvos, as facas se revezam entre os alvos (design/decisoes-F-004.md W10)",
       "limite_palavras": null
     },
     {

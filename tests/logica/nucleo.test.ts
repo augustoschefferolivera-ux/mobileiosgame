@@ -8,8 +8,10 @@ import {
   segundosEmPassos,
 } from '../../src/logica/nucleo/passos';
 import { alfa, avancarAcumulador, criarAcumulador } from '../../src/logica/nucleo/acumulador';
-import { rodarFrame } from '../../src/logica/nucleo/driver';
-import { CAB, criarEstado } from '../../src/logica/nucleo/estado';
+import { fonteDoRoteiro } from '../../src/logica/nucleo/comandos';
+import { rodarFrame, rodarFrameComPausas } from '../../src/logica/nucleo/driver';
+import { CAB, criarEstado, hashEstado } from '../../src/logica/nucleo/estado';
+import { ROTEIRO_REFERENCIA } from '../../src/logica/nucleo/referencia';
 import { DADOS_DA_CHARNECA as D, PARADO } from './apoio';
 
 const bytes = (s: string): Uint8Array => new TextEncoder().encode(s);
@@ -133,5 +135,24 @@ describe('driver de produção (rodarFrame)', () => {
       for (let i = 0; i < fps; i++) rodarFrame(e, D, acc, 1000 / fps, PARADO);
       expect(e.cab[CAB.passo], `${fps} fps`).toBe(60);
     }
+  });
+});
+
+describe('portão das pausas do driver (design/decisoes-F-004.md P4)', () => {
+  it('N quadros com K pausados no meio dão o mesmo passo e o mesmo hash que N − K sem pausa, sem passos perdidos', () => {
+    const fonte = fonteDoRoteiro(ROTEIRO_REFERENCIA);
+    const a = criarEstado(1, D);
+    const accA = criarAcumulador();
+    for (let q = 0; q < 300; q++) rodarFrameComPausas(a, D, accA, 1000 / 60, fonte, false, false);
+    const b = criarEstado(1, D);
+    const accB = criarAcumulador();
+    for (let q = 0; q < 500; q++) {
+      const pausada = q >= 100 && q < 300;
+      // Quadros longos na pausa (a 8 fps): sem portão no acumulador, virariam passos perdidos ou rajada.
+      rodarFrameComPausas(b, D, accB, pausada ? 125 : 1000 / 60, fonte, pausada && q % 2 === 0, pausada && q % 2 === 1);
+    }
+    expect(b.cab[CAB.passo]).toBe(a.cab[CAB.passo]);
+    expect(hashEstado(b)).toBe(hashEstado(a));
+    expect(accB.passosPerdidos).toBe(0);
   });
 });

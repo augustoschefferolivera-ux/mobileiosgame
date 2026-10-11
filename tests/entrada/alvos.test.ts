@@ -7,6 +7,7 @@ import {
   ALVOS_POR_TELA,
   acharAlvo,
   alvoInvadeInsets,
+  alvosDaTelaDePausa,
   alvosDaVigilia,
   alvosDoAcender,
   areaDoJoystick,
@@ -37,7 +38,7 @@ describe.each(Object.entries(ALVOS_POR_TELA))('tela %s', (_tela, gerar) => {
 
 describe('área do joystick (F-002.7)', () => {
   it('em retrato sem insets: x de 0 a 234 pt e y de 422 pt até a borda de baixo', () => {
-    expect(alvosDaVigilia(insetsZerados(), [])).toEqual([{ id: 'joystick', x: 0, y: 422, largura: 234, altura: 422 }]);
+    expect(alvosDaVigilia(insetsZerados(), [])[1]).toEqual({ id: 'joystick', x: 0, y: 422, largura: 234, altura: 422 });
   });
 
   it('ancorada na safe-area: começa no inset esquerdo, termina acima do inset de baixo, 60% da largura útil', () => {
@@ -51,6 +52,29 @@ describe('área do joystick (F-002.7)', () => {
   it.each(CASOS)('%s: os 40% da direita da largura útil ficam livres para os botões futuros', (_nome, insets) => {
     const limite = insets.esquerda + 0.6 * (390 - insets.esquerda - insets.direita);
     for (const a of alvosDaVigilia(insets, [])) expect(a.x + a.largura).toBeLessThanOrEqual(limite + 1e-9);
+  });
+});
+
+describe('pausa (design/decisoes-F-004.md P1, P6)', () => {
+  it.each(CASOS)('%s: o botão de pausa tem 72 × 72 pt no canto superior esquerdo da área segura e não toca a área do joystick', (_nome, insets) => {
+    const [pausa, joystick] = alvosDaVigilia(insets, []);
+    expect(pausa).toEqual({ id: 'pausa', x: insets.esquerda, y: insets.topo, largura: 72, altura: 72 });
+    expect(pausa!.y + pausa!.altura).toBeLessThanOrEqual(joystick!.y);
+  });
+
+  it('com inset de 34 pt embaixo: Continuar em y 714 e a opção em y 626, os dois com 288 × 72 pt, centrados', () => {
+    const ins: Insets = { topo: 59, direita: 0, baixo: 34, esquerda: 0 };
+    expect(alvosDaTelaDePausa(ins, [])).toEqual([
+      { id: 'numeros', x: 51, y: 626, largura: 288, altura: 72 },
+      { id: 'continuar', x: 51, y: 714, largura: 288, altura: 72 },
+    ]);
+  });
+
+  it.each(CASOS)('%s: os alvos da pausa ficam na zona de controles (y ≥ 0,65 da altura útil), sem sobreposição', (_nome, insets) => {
+    const [numeros, continuar] = alvosDaTelaDePausa(insets, []);
+    const util = 844 - insets.topo - insets.baixo;
+    expect(numeros!.y - insets.topo).toBeGreaterThanOrEqual(0.65 * util);
+    expect(numeros!.y + numeros!.altura).toBeLessThanOrEqual(continuar!.y);
   });
 });
 

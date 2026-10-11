@@ -206,3 +206,137 @@ describe('teclado de debug', () => {
     expect(frame()).toEqual([-1, 0]);
   });
 });
+
+describe('pausa: botão, gesto e modo da tela de pausa (design/decisoes-F-004.md P1, P3, P7, P8)', () => {
+  /** Toque com timeStamp (ms). */
+  function em(t: number, tipo: (typeof T)[keyof typeof T], id: number, x: number, y: number): void {
+    if (tipo === T.inicio) naTela.push(id);
+    else if (tipo !== T.move) naTela = naTela.filter((i) => i !== id);
+    fila.empurrar(tipo, id, x, y, t);
+    fila.gravarRetrato(naTela.map((identifier) => ({ identifier })));
+  }
+  const quadro = (agora: number): void => trad.traduzir(fila, cmd, agora);
+
+  it('tap no botão (canto superior esquerdo) pede a pausa ao soltar; touchstart nele e touchend fora não pede', () => {
+    em(1000, T.inicio, 1, 36, 36);
+    quadro(1000);
+    expect(trad.pedidoDePausa).toBeNull();
+    em(1080, T.fim, 1, 40, 30);
+    quadro(1080);
+    expect(trad.pedidoDePausa).toBe('botao');
+    em(2000, T.inicio, 2, 36, 36);
+    em(2100, T.fim, 2, 200, 300);
+    quadro(2100);
+    expect(trad.pedidoDePausa).toBeNull();
+    // O dedo do botão não cria joystick.
+    expect(trad.joystickCriados).toBe(0);
+  });
+
+  it('dois dedos parados na metade de cima: 499 ms não dispara, 500 dispara, uma vez só enquanto ficam', () => {
+    em(1000, T.inicio, 1, 150, 200);
+    em(1000, T.inicio, 2, 250, 220);
+    quadro(1499);
+    expect(trad.pedidoDePausa).toBeNull();
+    quadro(1500);
+    expect(trad.pedidoDePausa).toBe('gesto');
+    quadro(1600);
+    expect(trad.pedidoDePausa).toBeNull();
+    // Rearma quando um deles solta.
+    em(1700, T.fim, 2, 250, 220);
+    quadro(1700);
+    em(1800, T.inicio, 3, 300, 100);
+    quadro(2299);
+    expect(trad.pedidoDePausa).toBeNull();
+    quadro(2300);
+    expect(trad.pedidoDePausa).toBe('gesto');
+  });
+
+  it('o gesto completo entre dois quadros (8 fps) conta no fim do dedo, pelo timeStamp do evento', () => {
+    em(1000, T.inicio, 1, 150, 200);
+    em(1000, T.inicio, 2, 250, 220);
+    quadro(1450);
+    em(1560, T.fim, 1, 150, 200);
+    em(1560, T.fim, 2, 250, 220);
+    quadro(1575);
+    expect(trad.pedidoDePausa).toBe('gesto');
+  });
+
+  it('"parado" = até 10 pt do toque: 10 pt dispara, 10,1 não; 3 dedos com 2 parados dispara', () => {
+    em(0, T.inicio, 1, 150, 200);
+    em(0, T.inicio, 2, 250, 220);
+    em(100, T.move, 1, 160, 200);
+    em(100, T.move, 2, 250, 230.1);
+    quadro(600);
+    expect(trad.pedidoDePausa).toBeNull();
+    trad.reiniciar();
+    naTela = [];
+    em(0, T.inicio, 4, 150, 200);
+    em(0, T.inicio, 5, 250, 220);
+    em(0, T.inicio, 6, 300, 100);
+    em(100, T.move, 6, 340, 100);
+    quadro(600);
+    expect(trad.pedidoDePausa).toBe('gesto');
+  });
+
+  it('o dono do joystick e o dedo do botão não contam (Q-25): dono + 1 dedo não dispara; botão + 1 não', () => {
+    em(0, T.inicio, 1, 100, 600);
+    em(0, T.inicio, 2, 250, 220);
+    quadro(800);
+    expect(trad.joystick.ativo).toBe(true);
+    expect(trad.pedidoDePausa).toBeNull();
+    trad.reiniciar();
+    naTela = [];
+    em(0, T.inicio, 3, 36, 36);
+    em(0, T.inicio, 4, 250, 220);
+    quadro(800);
+    expect(trad.pedidoDePausa).toBeNull();
+  });
+
+  it('um timeStamp a mais de 60 s do agora (outro relógio) vira o agora do quadro', () => {
+    em(1e12, T.inicio, 1, 150, 200);
+    em(1e12, T.inicio, 2, 250, 220);
+    quadro(1000);
+    quadro(1499);
+    expect(trad.pedidoDePausa).toBeNull();
+    quadro(1500);
+    expect(trad.pedidoDePausa).toBe('gesto');
+  });
+
+  it('no modo pausa: sem joystick nem gesto; o alvo aciona só se o toque começou e soltou nele, e não com um toque de antes', () => {
+    trad.definirArea({ topo: 59, direita: 0, baixo: 34, esquerda: 0 });
+    em(0, T.inicio, 1, 100, 600);
+    quadro(0);
+    expect(trad.joystick.ativo).toBe(true);
+    fila.pedirSoltarTodos();
+    trad.mudarModo('pausa');
+    // O dedo de antes solta sobre o Continuar: nada.
+    em(100, T.fim, 1, 195, 750);
+    quadro(100);
+    expect([trad.toqueNaPausa, trad.joystick.ativo]).toEqual([null, false]);
+    // Um toque novo no Continuar, que sai fora: nada; outro que começa e solta nele: continuar.
+    em(200, T.inicio, 2, 195, 750);
+    em(250, T.fim, 2, 195, 400);
+    quadro(250);
+    expect(trad.toqueNaPausa).toBeNull();
+    em(300, T.inicio, 3, 195, 750);
+    em(350, T.fim, 3, 196, 751);
+    quadro(350);
+    expect(trad.toqueNaPausa).toBe('continuar');
+    em(400, T.inicio, 4, 195, 660);
+    em(450, T.fim, 4, 195, 660);
+    quadro(450);
+    expect(trad.toqueNaPausa).toBe('numeros');
+    // Nada move na pausa, nem com dois dedos parados.
+    em(500, T.inicio, 5, 150, 200);
+    em(500, T.inicio, 6, 250, 220);
+    quadro(1500);
+    expect([trad.pedidoDePausa, cmd.movimento[0], cmd.movimento[1]]).toEqual([null, 0, 0]);
+    // Depois do Continuar, só um toque novo cria o joystick.
+    trad.mudarModo('vigilia');
+    quadro(1600);
+    expect(trad.joystick.ativo).toBe(false);
+    em(1700, T.inicio, 7, 100, 600);
+    quadro(1700);
+    expect(trad.joystick.ativo).toBe(true);
+  });
+});

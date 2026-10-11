@@ -13,3 +13,23 @@ export function rodarFrame(e: Estado, dados: DadosDaVigilia, acc: Acumulador, de
   avancar(e, dados, fonte, n);
   return n;
 }
+
+/**
+ * Um frame com o portão das duas pausas do driver (design/decisoes-F-004.md
+ * P4): a do jogador (botão ou gesto) e a dos ganchos de debug. Com qualquer
+ * uma, nenhum passo roda e o delta não entra no acumulador: o tempo pausado
+ * não vira rajada nem passos perdidos ao voltar. As pausas ficam fora do
+ * estado, do hash e do replay.
+ */
+export function rodarFrameComPausas(
+  e: Estado,
+  dados: DadosDaVigilia,
+  acc: Acumulador,
+  deltaMs: number,
+  fonte: FonteDeComandos,
+  pausaDoJogador: boolean,
+  pausaDoDebug: boolean,
+): number {
+  if (pausaDoJogador || pausaDoDebug) return 0;
+  return rodarFrame(e, dados, acc, deltaMs, fonte);
+}
