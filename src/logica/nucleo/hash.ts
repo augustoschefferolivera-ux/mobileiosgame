@@ -8,10 +8,10 @@ export function fnv1aByte(h: number, byte: number): number {
   return Math.imul((h ^ (byte & 0xff)) >>> 0, FNV_PRIMO) >>> 0;
 }
 
-/** Mistura os bytes de `bytes[inicio .. fim)`. */
-export function fnv1aBytes(h: number, bytes: Uint8Array, inicio = 0, fim = bytes.length): number {
+/** Mistura todos os bytes de `bytes`. */
+export function fnv1aBytes(h: number, bytes: Uint8Array): number {
   let x = h;
-  for (let i = inicio; i < fim; i++) {
+  for (let i = 0; i < bytes.length; i++) {
     x = Math.imul((x ^ bytes[i]!) >>> 0, FNV_PRIMO) >>> 0;
   }
   return x;

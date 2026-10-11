@@ -19,7 +19,7 @@
 ## 2. RNG
 
 - **Vetores de referência do xoshiro128\*\*:** vêm do teste `reference` do crate `rand_xoshiro`, gerado pelos autores com o `xoshiro128starstar.c` v1.1. O site dos autores está bloqueado pelo proxy desta sessão. Os vetores também foram conferidos com uma transcrição em C compilada com gcc.
-- **splitmix32:** soma a razão áurea (0x9e3779b9) e passa o resultado pelo finalizador "lowbias32" de Chris Wellons (0x21f0aaad, 0x735a2d97). Não existe um splitmix32 canônico; o teste fixa vetores gerados pela mesma transcrição em C.
+- **splitmix32:** soma a razão áurea (0x9e3779b9) e passa o resultado por um hash de duas rodadas do hash-prospector de Chris Wellons, `[16 21f0aaad 15 735a2d97 15]`. Não existe um splitmix32 canônico; o teste fixa vetores gerados pela mesma transcrição em C.
 - **Semente de um fluxo:** `fnv1a(seed u32 LE, id do fluxo em ASCII, índice u32 LE)`. O índice 0 é o fluxo principal; os subfluxos (por nível, por baú) usam índice > 0.
 
 ## 3. Estado e hash na F-001

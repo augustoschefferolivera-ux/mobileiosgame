@@ -6,18 +6,18 @@ import { CamadaDeToque } from '../entrada/camadaDeToque';
 import { criarAudioSilencioso } from '../plataforma/audio';
 import { bloquearGestos } from '../plataforma/bloqueioDeGestos';
 import { lerParametros, sortearSeed } from '../plataforma/parametros';
-import { insetsZerados } from '../plataforma/safeArea';
+import { ALTURA_LOGICA, LARGURA_LOGICA, insetsZerados } from '../plataforma/safeArea';
 import { RegistroDeTelemetria } from '../plataforma/telemetria';
 import { Acender } from './Acender';
 import { Boot } from './Boot';
 import type { ContextoDoJogo } from './contexto';
 import { instalarDebug } from './debug';
-import { COR } from './estilo';
+import { COR, ESCALA_DO_CANVAS } from './estilo';
 import { t } from './textos';
 import { Vigilia } from './Vigilia';
 
-export const LARGURA_CANVAS = 780;
-export const ALTURA_CANVAS = 1688;
+export const LARGURA_CANVAS = LARGURA_LOGICA * ESCALA_DO_CANVAS;
+export const ALTURA_CANVAS = ALTURA_LOGICA * ESCALA_DO_CANVAS;
 
 function elemento(id: string): HTMLElement {
   const el = document.getElementById(id);

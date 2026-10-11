@@ -16,7 +16,3 @@ export function t(id: string, params?: Parametros): string {
     return String(v);
   });
 }
-
-export function existeTexto(id: string): boolean {
-  return TEXTOS.has(id);
-}

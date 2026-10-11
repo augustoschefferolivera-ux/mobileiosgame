@@ -23,7 +23,7 @@ export interface ContextoDoJogo {
   readonly container: HTMLElement;
   /** Ligada no postBoot, quando o canvas existe. */
   camada: CamadaDeToque | null;
-  /** Insets da safe-area em pt lógicos, atualizados em resize/orientationchange. */
+  /** Insets da safe-area em pt lógicos, medidos pela cena ativa no create e no resize (na F-001, a de Acender). */
   readonly insets: Insets;
   tela: Tela;
   simulacao: Simulacao | null;

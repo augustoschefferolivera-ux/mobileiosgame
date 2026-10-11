@@ -43,8 +43,8 @@ export function proximoUnitario(s: Uint32Array, base: number): number {
 }
 
 /**
- * splitmix32: soma a razão áurea e passa o resultado pelo finalizador
- * "lowbias32" de Chris Wellons (constantes 0x21f0aaad e 0x735a2d97).
+ * splitmix32: soma a razão áurea e passa o resultado por um hash de duas
+ * rodadas do hash-prospector de Chris Wellons, [16 21f0aaad 15 735a2d97 15].
  * `estado[0]` é o contador; cada chamada o avança.
  */
 export function splitmix32(estado: Uint32Array): number {

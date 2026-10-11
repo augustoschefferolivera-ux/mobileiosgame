@@ -2,19 +2,17 @@
 // doc 13 §1.3 pela Q-27) e helpers de desenho das cenas. Formas geométricas
 // até a arte, depois da F-010.
 import Phaser from 'phaser';
+import { ALTURA_LOGICA, LARGURA_LOGICA } from '../plataforma/safeArea';
 import { t, type Parametros } from './textos';
 
+/** As cores em uso; as demais da base do doc 13 entram com o que as usar. */
 export const COR = {
   fundo: 0x1a1f2b,
-  fundoEscuro: 0x0b0e14,
   cinzaFrio: 0x2b3340,
   brasa: 0xffb347,
   laranjaQueimado: 0xe2652b,
-  vermelhoEscuro: 0x7a1f1f,
   osso: 0xe8dcc4,
   sal: 0xdfe8ea,
-  /** Só telegrafo vermelho usa esta cor (doc 13 §1.3). */
-  telegrafoVermelho: 0xff2a2a,
 } as const;
 
 export const FONTE = 'system-ui, -apple-system, sans-serif';
@@ -24,9 +22,12 @@ export function css(cor: number): string {
   return `#${cor.toString(16).padStart(6, '0')}`;
 }
 
-/** Câmera em pt lógicos: canvas de 780 × 1688 com zoom 2 mostrando 390 × 844 (ADR-0002 §11). */
+/** Pontos lógicos por pixel do canvas: 390 × 844 @2× (B §3.2; ADR-0002 §11). */
+export const ESCALA_DO_CANVAS = 2;
+
+/** Câmera em pt lógicos: o canvas de 780 × 1688 com zoom 2 mostra 390 × 844. */
 export function cameraLogica(cena: Phaser.Scene): void {
-  cena.cameras.main.setZoom(2).centerOn(195, 422);
+  cena.cameras.main.setZoom(ESCALA_DO_CANVAS).centerOn(LARGURA_LOGICA / 2, ALTURA_LOGICA / 2);
 }
 
 /**
