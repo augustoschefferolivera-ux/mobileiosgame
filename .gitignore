@@ -10,3 +10,4 @@ playwright-report/
 dist-debug/
 !production/evidencias/**/*.log
 __pycache__/
+.claude/worktrees/
