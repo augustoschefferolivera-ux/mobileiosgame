@@ -204,19 +204,30 @@
           "id": "F-002.8",
           "descricao": "Prompt de mover aos 0:10.",
           "verificacao": "playwright",
-          "como": "A2.TUTORIAL.01 aparece no passo de relógio 600 e some ao mover (doc 11 §4); não aparece com ?tutorial=0 nem depois de cumprido (Q-26).",
+          "como": "A2.TUTORIAL.01 aparece no passo de relógio 600 e some ao mover (doc 11 §4); não aparece com ?tutorial=0 nem depois de cumprido na mesma Vigília (Q-26); mover = 1º passo com vetor fora da zona morta, desde 0:00 (design/decisoes-F-002.md §7). A persistência entre Vigílias chega com o meta (F-007).",
           "origem": "brief §5.12; doc 11 §4"
         }
       ],
       "evidencias": [
         {
           "arquivo": "production/evidencias/F-002/movimento.webm",
-          "descricao": "Vídeo curto (B); em alternativa, movimento-1.png, movimento-2.png e movimento-3.png (3 screenshots sequenciais, B)"
+          "descricao": "Vídeo curto (B), 390 × 844, com o roteiro de design/decisoes-F-002.md §8"
+        },
+        {
+          "arquivo": "production/evidencias/F-002/movimento-1-390x844.png",
+          "descricao": "Screenshot sequencial 1 de 3 (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-002/movimento-2-390x844.png",
+          "descricao": "Screenshot sequencial 2 de 3 (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-002/movimento-3-390x844.png",
+          "descricao": "Screenshot sequencial 3 de 3 (B)"
         }
       ],
       "pendencias_antes_de_comecar": [
-        "brief §11.3 F-002: tamanho e forma dos obstáculos, hitboxes, contorno, bloqueio de projéteis",
-        "Cores extras da paleta (Q-27)"
+        "Resolvidas em design/decisoes-F-002.md (por delegação do usuário, 2026-10-11): tamanho e forma dos obstáculos, hitboxes, contorno e bloqueio de projéteis (§2 e §3); cores (Q-27 e §5)"
       ]
     },
     {
@@ -318,7 +329,8 @@
       "pendencias_antes_de_comecar": [
         "brief §11.3 F-003: força de separação entre Ocos",
         "Render da horda com SpriteGPULayer + plano B ?render=image (ADR-0002 §11)",
-        "Tolerância do teste de heap de 60 s e do viés de 60% do anel [proposta de teste a aprovar]"
+        "Tolerância do teste de heap de 60 s e do viés de 60% do anel [proposta de teste a aprovar]",
+        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): inimigos sólidos para o jogador; spawn sobre obstáculo; 'parado' no viés do anel; N, T e critério de falha do teste de contorno; cores dos inimigos fora de #2b3340"
       ]
     },
     {
@@ -386,7 +398,8 @@
         "brief §11.3 F-004 e armas.json pendencias: alcance, intervalo de golpes, '+20% área', nv7, facas, tick, knockback, onda, direção parado, ordem dos multiplicadores",
         "Os dois +20% de dano da Espada (nv2 e nv6) e do Círculo de Sal (nv3 e nv6) somam (×1,40) ou multiplicam (×1,44)? (muda o resultado em mais que ±1%)",
         "Sal reaplicado em alvo já salgado: renova a duração, é ignorado ou fica o maior fator (−60% do Círculo nv4 contra −50% das Facas e da Noviça)? Nenhuma fonte dá a regra: proposta a aprovar",
-        "Estender __GAME_DEBUG__ (ADR-0002 §14) com numerosDeDano, build (armas e passivas com nível) e textoAtivo (ids de t() visíveis) [proposta a aprovar]"
+        "Estender __GAME_DEBUG__ (ADR-0002 §14) com numerosDeDano, build (armas e passivas com nível) e textoAtivo (ids de t() visíveis) [proposta a aprovar]",
+        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): direção das armas com o jogador parado; distância de acerto até a hitbox; knockback nv7 com obstáculos e no máximo 32 px por passo"
       ]
     },
     {
@@ -451,7 +464,8 @@
         }
       ],
       "pendencias_antes_de_comecar": [
-        "brief §11.3 F-005: teto de FOR; HP por nível"
+        "brief §11.3 F-005: teto de FOR; HP por nível",
+        "Recomendação da F-002 a fechar (design/decisoes-F-002.md §9): level up libera os dedos e esconde o joystick"
       ]
     },
     {
@@ -560,7 +574,8 @@
       "pendencias_antes_de_comecar": [
         "brief §11.3 F-006: alcance do Oco Grande, projétil da Noviça, recuperação da esquiva, toque duplo, janela do swipe, câmera lenta do tutorial, centro do raio da Postura Quebrada, aparo falho, aparo de vermelho, stamina insuficiente; o que 'vulnerável' bloqueia no aparo falho (brief §11.3 F-006)",
         "Build de teste em iPhone depois da F-006 (Q-29)",
-        "Como a aura do Círculo de Sal participa do Contra-ataque (brief §11.3 F-004; armas.json circulo_de_sal)"
+        "Como a aura do Círculo de Sal participa do Contra-ataque (brief §11.3 F-004; armas.json circulo_de_sal)",
+        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): esquiva com obstáculos e no máximo 32 px por passo; aparo só no 1º passo do frame; swipe por timeStamp"
       ]
     },
     {
@@ -640,7 +655,8 @@
       ],
       "pendencias_antes_de_comecar": [
         "brief §11.3 F-007: câmera lenta do Apagar, carga do Frasco interrompido, 'segurar' cancela, ações durante o Frasco, ordem armadura × Brasa Firme, 15% antes ou depois da redução",
-        "Arredondamento de 0,3 × N Almas da mancha (nenhuma fonte dá)"
+        "Arredondamento de 0,3 × N Almas da mancha (nenhuma fonte dá)",
+        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): mancha no ponto livre mais próximo; gravar no meta o tutorial de mover cumprido (Q-26)"
       ]
     },
     {
@@ -748,7 +764,8 @@
       ],
       "pendencias_antes_de_comecar": [
         "brief §11.3 F-008: Patada, Grito, cadência e tamanho do Coroado; escurecimento",
-        "Raio, em volta do Coroado, em que nascem os convocados dentro da arena (ADR-0002 §9)"
+        "Raio, em volta do Coroado, em que nascem os convocados dentro da arena (ADR-0002 §9)",
+        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): obstáculos da arena (quais e até quando); Fogueira e baús sem colisão e direção da Fogueira; save com outra disposição; Grito com obstáculos e no máximo 32 px por passo"
       ]
     },
     {
@@ -853,7 +870,8 @@
       ],
       "pendencias_antes_de_comecar": [
         "brief §11.3 F-009 e chefes.json pendencias: danos, alcances, IA, convocação, telegrafos vermelhos, herança de ataques entre fases, Postura das outras armas, tamanho",
-        "brief §11.3 F-009: luz do jogador (5 corpos) e dos Ocos convocados (3 corpos) no MVP; raio de nascimento dos convocados (ADR-0002 §9); o que o HUD mostra entre 20:00 e 23:00 (não há Hora)"
+        "brief §11.3 F-009: luz do jogador (5 corpos) e dos Ocos convocados (3 corpos) no MVP; raio de nascimento dos convocados (ADR-0002 §9); o que o HUD mostra entre 20:00 e 23:00 (não há Hora)",
+        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): caixa do Lanterneiro; borda da arena contém o chefe; raio do Coroado"
       ]
     },
     {
@@ -956,7 +974,8 @@
       "pendencias_antes_de_comecar": [
         "brief §11.3 F-010: Bigorna no peito × armadura",
         "Hospedagem HTTPS de teste no GitHub Pages (Q-29)",
-        "Calibrar o limiar da sonda do TETO em iPhone 12 e 14 (ADR-0002 §13)"
+        "Calibrar o limiar da sonda do TETO em iPhone 12 e 14 (ADR-0002 §13)",
+        "Recomendação da F-002 a fechar (design/decisoes-F-002.md §9): pausa automática e overlay de paisagem liberam os dedos e escondem o joystick"
       ]
     }
   ]

@@ -38,7 +38,11 @@
 - **Commits acima de ~300 linhas:** o histórico fica como está, sem reescrita. O limite vale daqui em diante.
 - **Flag de autoplay:** fica `--autoplay-policy=document-user-activation-required`, como no ADR-0002 §12 e no F-001.4 corrigidos.
 - **`A8.SISTEMA.TITULO` e o layout provisório do botão de Acender (288 × 72 pt):** ficam até a arte, depois da F-010.
-- **As pendências da F-002:** decididas com base no GDD e no briefing; o registro vai para `design/decisoes-F-002.md`.
+- **As pendências da F-002:** decididas em `design/decisoes-F-002.md`.
+  - Antes, um levantamento: 4 pesquisadores, 4 verificadores e um crítico de completude; 71 perguntas, 17 já respondidas pelos documentos.
+  - Depois, uma revisão adversarial do documento: 29 achados confirmados e aplicados.
+  - A §0 do documento lista, para veto rápido, as decisões de design e de número tomadas por delegação ([delegada]).
+  - O que pertence a outras features ficou como recomendação (§9), registrada nas pendências de cada feature no `feature_list.json`.
 
 ### Itens que estavam para ratificar (F-001; decididos acima)
 - **Commits acima de ~300 linhas:** 5 dos primeiros commits da F-001 (bfbfddc, a390393, bb83f78, b3b4fc3, cc8f097) têm de 443 a 595 linhas, sem contar o lockfile. Os commits de correção ficaram dentro do limite. O histórico já foi enviado e não foi reescrito; das próximas features em diante, um commit por módulo + teste.
@@ -71,7 +75,8 @@
 
 ### Retomada
 - **Sessão 1:** fecha na F-001, que aguarda a revisão do usuário. Não começar a F-002 nesta sessão.
-- **Próxima sessão:**
-  - ler este arquivo, o ADR-0003, a entrada da F-002 no `feature_list.json` (critérios e `pendencias_antes_de_comecar`) e o brief §11.3 F-002;
-  - antes de qualquer código, resolver as pendências da F-002 com o usuário;
-  - rodar `scripts/verify.sh --feature F-001` para conferir que o esqueleto continua verde.
+- **Próxima sessão (F-002):**
+  - ler este arquivo, o ADR-0003, `design/decisoes-F-002.md` e a entrada da F-002 no `feature_list.json`; as pendências dela já estão resolvidas;
+  - rodar `scripts/verify.sh --feature F-001 --taps-game` para conferir que o esqueleto continua verde;
+  - implementar só a F-002, em commits de até ~300 linhas, e aplicar a §10 do documento de decisões (schema, dados, ADR-0004);
+  - não começar a F-003.
