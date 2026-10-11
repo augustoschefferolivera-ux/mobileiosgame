@@ -415,66 +415,64 @@
           "id": "F-005.1",
           "descricao": "XP(10) = 130 ±1, XP(20) = 380 ±2.",
           "verificacao": "vitest",
-          "como": "XP(n) = 10 + 8(n−1) + 0,6(n−1)², custo para ir do nível n ao n+1 (Q-22).",
+          "como": "Tabela literal do custo ⌈XP(n)⌉ de n = 1 a 30 (10, 19, 29, 40, 52, …, 131 no nv10, …, 379 no nv20), escrita no teste sem importar a fórmula; XP(n) = 10 + 8(n−1) + 0,6(n−1)², custo para ir do nível n ao n+1 (Q-22); XP inteira (design/decisoes-F-005.md §2, X1).",
           "origem": "B §4"
         },
         {
           "id": "F-005.2",
           "descricao": "Sorteio respeita vagas e 60%.",
           "verificacao": "vitest",
-          "como": "[proposta de teste: 10.000] ofertas com seed fixa, numa build em que sempre há melhoria e item novo disponíveis (para a troca da Q-22 (2) não atuar): arma nova só com vaga; fração de melhorias ≈ 60% e Elmo com 35% depois do minuto 12 com a União pendente, com tolerância [proposta de teste a aprovar]; nenhuma oferta repete item (Q-22 (1)).",
+          "como": "Seeds 1 a 10.000 numa build de 3 itens melhoráveis (Espada nv2, Facas nv1, Luvas nv1) e 2 novos (Círculo, Elmo), relógio 0 e 13:00: (a) melhorias em 0,60 ± 1,5 p.p. nas cartas 1 e 2 e 0,664 ± 2 p.p. na 3; (b) nenhuma oferta repete item (Q-22 (1)); (c) com dados de 2 vagas de arma cheias, nenhuma arma nova; (d) a 13:00 com a Espada nv8, Elmo na carta 1 em ≥ 35% (piso, L3), às 11:59 a oferta é a da regra desligada, sem vaga de passiva nunca forçado; (e) limiares exatos por valor injetado nas funções puras; (f) 7 u32 por oferta também com o Elmo forçado (design/decisoes-F-005.md §3 e §8).",
           "origem": "B §4"
         },
         {
           "id": "F-005.3",
           "descricao": "Baú após min 10 com Espada nv8 + Elmo contém a União em 100% dos casos.",
           "verificacao": "vitest",
-          "como": "[proposta de teste: 1.000] baús com seeds diferentes, relógio ≥ 10:00 (Q-23).",
+          "como": "1.000 baús com seeds diferentes, relógio ≥ 36.000 passos (10:00, Q-23), Espada nv8 e Elmo: União em 100%; a 35.999, nunca; um baú solto antes das 10:00 e aberto depois também dá a União (design/decisoes-F-005.md §4, B2).",
           "origem": "B §4"
         },
         {
           "id": "F-005.4",
           "descricao": "Subir a nível 3 e escolher carta via toques (Playwright).",
           "verificacao": "playwright",
-          "como": "toque na carta + segundo toque confirma (B §3.5); __GAME_DEBUG__.jogador.nivel = 3 e __GAME_DEBUG__.build contém o item da carta confirmada.",
+          "como": "Cenário nivel_tres (XP inicial 29: nível 3 e duas ofertas no passo 1): esperar levelUp.aberto e o hash/cartas de .verify/referencia-f005.json; passo parado e pausa/joystick sem efeito com o modal; toque na carta seleciona, toque em outra troca, fora não faz nada, 2º toque na selecionada confirma (B §3.5); a 2ª oferta confirmada com a pausa do debug; __GAME_DEBUG__.jogador.nivel = 3, build com os itens das duas cartas e o hash depois das escolhas igual ao da referência (design/decisoes-F-005.md §8).",
           "origem": "B §4"
         },
         {
           "id": "F-005.5",
           "descricao": "Cinzas com Ímã de 1,5 corpo; baú com 1 (70%), 3 (25%) ou 5 (5%) itens; carta Bolsa de Almas quando os itens se esgotam.",
           "verificacao": "vitest",
-          "como": "distribuição 70/25/5 dos baús em [proposta de teste: 10.000] sorteios, com tolerância [proposta de teste a aprovar]; Ímã a 48 px atrai e a 49 px não; com todos os itens no nível máximo, as cartas que faltam viram Bolsa de Almas (+50 Almas) (Q-22 (3); Q-23).",
+          "como": "Ímã a 48 px atrai e a 48 + 1/16 não, de centro a centro (o critério aprovado dizia 49 px; 48 + 1/16 prova o ≤ sem ε); limiares exatos dos baús (a = 69 → 1, 70 → 3, 94 → 3, 95 → 5) e a distribuição 70/25/5 em 10.000 sorteios com ±1,5/±1,5/±0,8 p.p.; com todos os itens no máximo, as cartas viram Bolsa de Almas (+50 Almas) em 1.000 seeds, e com um item restante, 1 carta e 2 Bolsas (Q-22 (3); Q-23; design/decisoes-F-005.md §2 e §4).",
           "origem": "B §3.9 (escopo)"
         },
         {
           "id": "F-005.6",
           "descricao": "Lâmina do Juramento Eterno bate com a tabela 3.8 e ocupa a vaga da Espada.",
           "verificacao": "vitest",
-          "como": "base da Lâmina = base da Espada nv8 × 1,5 (±1%), na fórmula de B §3.8 com escala FOR B / DES C; cooldown de 60 passos (1,0 s); cada golpe cria exatamente 1 onda de brasa no chão (W18 de design/decisoes-F-004.md: 1 corpo de largura, 12 corpos/s, 3 corpos de comprimento em 15 passos, acerta cada inimigo uma vez, dano 8 × (1 + Poder) × Escala da União, 6,6 com FOR 6); a União herda os 4 golpes e as formas do nv8 da Espada, com 12 passos entre golpes; ao receber a União, ela fica na vaga da Espada Longa e o Elmo Sem Rosto continua equipado.",
+          "como": "Base da Lâmina 21 = base da Espada nv8 (14) × 1,5 (±1%) e golpe de 17,325 com FOR 6 (escala FOR B / DES C; 1,83 vezes a Espada nv8); recarga de 60 passos; os 4 golpes e as formas do nv8 com 12 passos entre eles; exatamente 1 evento onda por golpe, com dano 6,6 (8 × escala da União, W18); arma sintética de 1 golpe com bloco onda: 1 acerto de onda por inimigo em 15 passos, a 128 px de centro leva e a 128 + 1/16 não; com a Lâmina real, nenhuma onda acerta o mesmo inimigo duas vezes; a 65ª onda com o pool cheio é recusada (efeitosRecusados); a União na vaga da Espada, com o Elmo equipado (design/decisoes-F-005.md §4 e §8).",
           "origem": "B §3.8 (escopo da F-005); brief §5.9"
+        },
+        {
+          "id": "F-005.7",
+          "descricao": "Baú e União no navegador: encostar no baú depois das 10:00 com a Espada nv8 e o Elmo forma a União na vaga da Espada.",
+          "verificacao": "playwright",
+          "como": "Cenário bau_uniao: andar até o baú pelo roteiro; ultimosEventos com bau e uniao; o modal com A10.BAU.TITULO; depois do Continuar, build.armas[0] é a Lâmina e build.passivas tem o Elmo; o passo e o hash do 1º golpe da Lâmina, lidos com a pausa do debug, são os da referência Node × Chromium (design/decisoes-F-005.md §8). [proposta de design/decisoes-F-005.md]",
+          "origem": "B §4 (evidência \"screenshot da União\"); design/decisoes-F-005.md"
         }
       ],
       "evidencias": [
         {
-          "arquivo": "production/evidencias/F-005/modal.png",
-          "descricao": "Screenshot do modal (B)"
+          "arquivo": "production/evidencias/F-005/modal-390x844.png",
+          "descricao": "Screenshot do modal (B): a 1ª oferta do cenário nivel_tres com a carta do meio selecionada, depois do fade (design/decisoes-F-005.md §8)"
         },
         {
-          "arquivo": "production/evidencias/F-005/uniao.png",
-          "descricao": "Screenshot da União (B)"
+          "arquivo": "production/evidencias/F-005/uniao-390x844.png",
+          "descricao": "Screenshot da União (B): cenário bau_uniao depois do Continuar, no passo da referência, com a Lâmina, a onda em brasa e os números (design/decisoes-F-005.md §8)"
         }
       ],
       "pendencias_antes_de_comecar": [
-        "brief §11.3 F-005: teto de FOR; HP por nível",
-        "Recomendação da F-002 a fechar (design/decisoes-F-002.md §9): level up libera os dedos e esconde o joystick",
-        "Recomendações da F-003 a fechar (design/decisoes-F-003.md §9): camada GPU 'mundo'; forma das Cinzas; hpMax e o arredondamento do HP com bônus",
-        "União com os números da W18: entra na vaga da Espada com recarga e golpe em 0; a onda é efeito de chão (pool de 64, na soma de 200/400) e lembra quem já acertou; visual na camada armas, em brasa com alpha ≤ 50%; números da onda pela N7 (design/decisoes-F-004.md §9)",
-        "Geometria da onda da União: origem, orientação e forma do acerto; os 4 golpes do nv8, inclusive a estocada, geram onda (design/decisoes-F-004.md §9)",
-        "Cinzas de XP saem de matarInimigo com causa arma, sem 2º caminho de morte (design/decisoes-F-004.md §9)",
-        "Atributos, nível, XP e Poder no registro do jogador ou derivados do nível; danoDoNivel recalculado no level up (a tabela ou a linha da vaga), com a FOR do estado; Luvas no (1 + Poder); teto de FOR (design/decisoes-F-004.md §9)",
-        "Simulação de 20 min do doc 10 §5.1 para os alvos de DPS (≈ 60 no minuto 5, ≈ 2.000 no 20); risco de Facas e Círculo não escalarem com DES e FÉ em 3 (design/decisoes-F-004.md §9)",
-        "Ícones das 5 vagas no HUD, passivas na build da pausa, e botão e gesto de pausa sem efeito com o level up aberto (design/decisoes-F-004.md §9)",
-        "HUD numérico (nível, e depois Almas e Hora): reusar os glifos da N4 e acrescentar \":\" e \".\" (design/decisoes-F-004.md §9)"
+        "Resolvidas em design/decisoes-F-005.md (aguardando o veto do usuário): teto de FOR e HP por nível (§2, P1 e P2); level up solta os dedos (§3, M5); camada GPU mundo e forma das Cinzas (§6, R1 e R2); hpMax (§2, P3); União com os números da W18 e a geometria da onda (§4, U1 a U7); Cinzas em matarInimigo (§2, X3); atributos, Poder e recálculo do dano (§2, P4 e P5); simulação de 20 min como medida (§2, P6); ícones das vagas, passivas na pausa e pausa sem efeito no modal (§6, R5; §3, M5); HUD numérico (§6, R4)"
       ]
     },
     {
@@ -594,7 +592,11 @@
         "Sal e pulso não mexem nos timers de ataque nem no telegrafo; a silhueta acompanha o corpo empurrado; a morte cancela o telegrafo e o golpe pendente; o projétil lançado continua (design/decisoes-F-004.md §9)",
         "Telegrafo branco como silhueta preenchida, nunca só um anel de traço (V6; design/decisoes-F-004.md §9)",
         "Pausa: toggles de Som e Flashes e setMute/pauseAll; flash de acerto, se vier, pelo tintBlend e respeitando \"desligar flashes\" (design/decisoes-F-004.md §9)",
-        "No build de iPhone: o TouchEvent.timeStamp do Safari no relógio de performance.now() (P3; design/decisoes-F-004.md §9)"
+        "No build de iPhone: o TouchEvent.timeStamp do Safari no relógio de performance.now() (P3; design/decisoes-F-004.md §9)",
+        "Aparo, Frasco, swipe e toque duplo não existem no modo modal do tradutor; esquiva ou aparo pendente não atravessa o modal; congelamento de 80 ms e modal no mesmo passo: o congelamento roda depois que o modal fecha (design/decisoes-F-005.md §9)",
+        "Poder temporário (+15%) como campo do registro, disparando o recálculo do dano (danoVivo) na entrada e na saída; facas e ondas no ar mantêm o dano fixado (design/decisoes-F-005.md §9)",
+        "Contra-ataque da União: a salva é a sequência de 4 golpes, cada um com sua onda, com o ×2 fixado na criação (design/decisoes-F-005.md §9)",
+        "Códigos de EVENTO e FORMA só crescem no fim (EVENTO 5 a 10 e FORMA 6 já usados pela F-005) (design/decisoes-F-005.md §9)"
       ]
     },
     {
@@ -680,7 +682,10 @@
         "O que \"mortes causadas\" conta (convertido 1 ou 10, massa da arena, Coroados que viram cinza): derivado de mortes e da flag do evento, ou outro contador (design/decisoes-F-004.md §9)",
         "Estatísticas e Abandonar na pausa; como o Abandonar chega a FIM(abandonar) com a pausa fora da máquina (design/decisoes-F-004.md §9)",
         "Gravar opcoes.numerosDeDano no meta (design/decisoes-F-004.md §9)",
-        "Com HP 0 (APAGANDO) e no A_FOME: nenhuma arma ativa, facas em voo somem e nenhuma morte nova soma em mortes, XP ou Almas (design/decisoes-F-004.md §9)"
+        "Com HP 0 (APAGANDO) e no A_FOME: nenhuma arma ativa, facas em voo somem e nenhuma morte nova soma em mortes, XP ou Almas (design/decisoes-F-004.md §9)",
+        "Redução A/(A+20) com a Armadura derivada do Elmo (4 por nível) e a ordem com a Brasa Firme; o hpMax da F-005 (⌊(base × (100 + Σ%) + 50)/100⌋) é a base da Brasa Firme e do Frasco (design/decisoes-F-005.md §9)",
+        "Almas dos inimigos e pickup de Alma no contador almas da F-005 e no pool de 512 com tipo próprio; junção por tipo (sem vizinho do mesmo tipo, a nova é descartada e conta); o baú nunca é descartado; HUD de Almas em topo + 116 com os glifos da N4 e \".\" (design/decisoes-F-005.md §9)",
+        "APAGANDO: nenhuma morte nova solta Cinza nem soma XP; morte do jogador e modal no mesmo passo: a morte vale primeiro e a fila de modais é descartada; o Resultado mostra o nível do estado (design/decisoes-F-005.md §9)"
       ]
     },
     {
@@ -794,7 +799,11 @@
         "Fogueira: armas sem dano nem knockback e timers parados, atrás de um teste único de \"armas ativas\"; o Sal corre ou congela (design/decisoes-F-004.md §9)",
         "Save da build (codigo, nivel, recarga, golpe, esperaGolpe, esperaPulso), dos projéteis vivos e dos metadados dos dois pools; o anel fica fora (design/decisoes-F-004.md §9)",
         "Coroado imune ao pulso, e se ele leva Sal; consultas das armas com o raio da forma + R_MAX ou a lista de corpos grandes (design/decisoes-F-004.md §9)",
-        "Massa morta pela arena e Coroados que viram cinza por matarInimigo com causa própria; se dão XP, Almas e contagem (design/decisoes-F-004.md §9)"
+        "Massa morta pela arena e Coroados que viram cinza por matarInimigo com causa própria; se dão XP, Almas e contagem (design/decisoes-F-004.md §9)",
+        "Coroado chama soltarBau na morte (dourado às 10:00) e solta Cinza de 25; massa morta pela arena e Coroados do marco vencido não soltam Cinza nem baú; a Forja usa uniaoDisponivel e aplicarUniao (design/decisoes-F-005.md §9)",
+        "Fogueira: a fase de pickups continua e um level up pode abrir, antes das ações da Fogueira; baú no disco da arena alcançável (design/decisoes-F-005.md §9)",
+        "Save grava o buffer v5 inteiro (progressão, atributos, passivas, oferta, fila de baús, pickups, efeitos de chão) e chama sincronizarDerivados; modal aberto reabre na retomada antes de qualquer passo (design/decisoes-F-005.md §9)",
+        "Medida U7: sem elites, a 1ª União só às 10:00 ou às 15:00 (contra os minutos 12 a 15 do doc 10 §3.1); relógio no HUD com os glifos da N4 e \":\" (design/decisoes-F-005.md §9)"
       ]
     },
     {
@@ -906,7 +915,8 @@
         "Postura: +2 por golpe da Espada que acerta o chefe, inclusive a estocada; \"atingida\" = qualquer acerto de arma com dano > 0, inclusive o tick; todo dano de arma por um ponto único (design/decisoes-F-004.md §9)",
         "Ordem de empilhamento da Quebra ×2 e da Postura Firme −40% (exclusivas, B §3.11) com o multStatus da F-006 (DN3; design/decisoes-F-004.md §9)",
         "Multiplicador por alvo: Quebra e Postura Firme são estados do chefe e entram por acerto, não pela tabela por (arma, nível) (DN1; design/decisoes-F-004.md §9)",
-        "Armas no Amanhecer e na TRANSICAO_FASE, com o chefe sem dano (design/decisoes-F-004.md §9)"
+        "Armas no Amanhecer e na TRANSICAO_FASE, com o chefe sem dano (design/decisoes-F-004.md §9)",
+        "HP do Lanterneiro lê o nível do estado (com os pendentes) no passo em que a arena se forma; a onda da União é acerto de arma (Postura +2) e testa o retângulo contra a caixa; A_FOME e Lanterneiro com código próprio em CAUSA, sem Cinza (design/decisoes-F-005.md §9)"
       ]
     },
     {
@@ -1015,7 +1025,9 @@
         "\"Mãos de aprendiz\" (Q-18): o nível inicial da Espada pela lista armas dos parâmetros da Vigília, já no hash pela build (design/decisoes-F-004.md §9)",
         "Rebaixamento do TETO junto com a degradação de nível 3 (E2; design/decisoes-F-004.md §9)",
         "Pausa automática reusa a tela e o flag da pausa, com o motivo automatica e A6.PAUSA.TOQUE_PARA_CONTINUAR (design/decisoes-F-004.md §9)",
-        "Nível 1 da degradação corta o pool de mortes para 150 (design/decisoes-F-004.md §9)"
+        "Nível 1 da degradação corta o pool de mortes para 150 (design/decisoes-F-004.md §9)",
+        "Pausa automática com o modal aberto não faz nada e solta os dedos ao voltar; nó de HP no Σ% do hpMax; Mãos de aprendiz pelos parâmetros de progresso inicial; toque único e swipe só com a tela de Opções; som do level up só se B §2 mudar; animação da União e faísca da barra com a arte (design/decisoes-F-005.md §9)",
+        "Balanceamento: Facas e Círculo não escalam com DES e FÉ em 3; níveis-alvo do doc 10 por comportamento (ajustar XP por inimigo ou mínimo na tela, nunca a curva); 1ª União só às 10:00 ou às 15:00 (design/decisoes-F-005.md §9)"
       ]
     }
   ]
