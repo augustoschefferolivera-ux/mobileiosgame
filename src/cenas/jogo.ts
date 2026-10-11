@@ -13,6 +13,7 @@ import { ALTURA_LOGICA, LARGURA_LOGICA, insetsZerados } from '../plataforma/safe
 import { RegistroDeTelemetria } from '../plataforma/telemetria';
 import { Acender } from './Acender';
 import { Boot } from './Boot';
+import { Hud } from './Hud';
 import type { ContextoDoJogo } from './contexto';
 import { instalarDebug } from './debug';
 import { COR, ESCALA_DO_CANVAS } from './estilo';
@@ -84,7 +85,7 @@ export function iniciarJogo(): Phaser.Game {
         if (ehBuildDeDebug) ligarTecladoDeDebug(window, ctx.entrada.tradutor.teclado);
       },
     },
-    scene: [new Boot(ctx), new Acender(ctx), new Vigilia(ctx)],
+    scene: [new Boot(ctx), new Acender(ctx), new Vigilia(ctx), new Hud(ctx)],
   });
   instalarDebug(jogo, ctx);
   return jogo;

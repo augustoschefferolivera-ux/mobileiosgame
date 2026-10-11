@@ -2,13 +2,12 @@
 // Escuta Phaser.Core.Events.STEP (antes dos update() das cenas), traduz os
 // toques do frame, soma o delta bruto do rAF e roda no máximo 5 passos por
 // frame. No update(), centra a câmera no jogador interpolado e sincroniza o
-// render do mundo.
+// render do mundo. A cena Hud roda por cima.
 import Phaser from 'phaser';
 import { alfa, criarAcumulador } from '../logica/nucleo/acumulador';
 import { criarComandos, fonteConstante, fonteDoRoteiro } from '../logica/nucleo/comandos';
 import { rodarFrame } from '../logica/nucleo/driver';
 import { criarEstado } from '../logica/nucleo/estado';
-import { medirSafeArea } from '../plataforma/safeArea';
 import { criarDadosDaVigilia } from '../logica/mundo/dados';
 import vigilantes from '../dados/vigilantes.json';
 import charneca from '../dados/regioes/charneca_das_lanternas.json';
@@ -46,11 +45,12 @@ export class Vigilia extends Phaser.Scene {
     const { fila, tradutor } = this.ctx.entrada;
     fila.reiniciar();
     tradutor.reiniciar();
-    tradutor.definirArea(medirSafeArea(this.ctx.sonda, this.game.canvas, this.ctx.container, this.ctx.insets));
+    this.scene.launch('Hud');
     this.game.events.on(Phaser.Core.Events.STEP, this.aoStep, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.game.events.off(Phaser.Core.Events.STEP, this.aoStep, this);
       fila.ativa = false;
+      this.scene.stop('Hud');
     });
     // MVP: Ciclo I, Maldição 0, sem Relíquias; a árvore comprada entra com o save meta (F-010).
     this.ctx.telemetria.registrar('vigilia_inicio', 0, {
