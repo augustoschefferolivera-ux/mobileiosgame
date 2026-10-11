@@ -253,7 +253,7 @@
           "id": "F-003.2",
           "descricao": "Diretor repõe até o mínimo.",
           "verificacao": "vitest",
-          "como": "a cada intervalo_efetivo, vivos < min_efetivo → spawna a diferença (Q-07; ADR-0002 §8).",
+          "como": "a cada intervalo efetivo, com alvo = ⌈min × I⌉ em inteiros e vivosEq = slots + 9 × convertidos, entra alvo − vivosEq, até os slots livres do TETO; a espera não reinicia na troca de linha; a 1ª reposição é no 1º passo (r = 1); os testes removem inimigos com removerInimigo (Q-07; ADR-0002 §8; design/decisoes-F-003.md §4).",
           "origem": "B §4"
         },
         {
@@ -267,7 +267,7 @@
           "id": "F-003.4",
           "descricao": "300 inimigos vivos e __GAME_DEBUG__.fps ≥ 55 por 30 s em desktop com throttling de CPU 4×.",
           "verificacao": "playwright",
-          "como": "?cenario=horda&teto=300&debug=1 (ADR-0002 §14); CDP Emulation.setCPUThrottlingRate 4.",
+          "como": "?cenario=horda&teto=300&debug=1 no taps-game, CDP Emulation.setCPUThrottlingRate 4, 10 s de aquecimento e 30 s de medida (ADR-0002 §14; design/decisoes-F-003.md §8, E1). Sempre: 300 vivos nas 30 leituras, p95 de um passo + p95 do resto do quadro até PRE_RENDER < 10 ms e draw calls ≤ 150. Só com GPU de hardware, também fps ≥ 55 nas 30 leituras, Δ quadros ÷ 30 s ≥ 55 e o quadro inteiro < 10 ms. Com WebGL por software (o contêiner), o fps fica 'não conferido' e o F-003.4 literal pendente, com dono no build de teste do iPhone da F-006 (Q-29).",
           "origem": "B §4"
         },
         {
@@ -288,28 +288,28 @@
           "id": "F-003.7",
           "descricao": "Heap sem crescimento em 60 s.",
           "verificacao": "playwright",
-          "como": "depois que o cenário horda chega a 300 vivos, tirar um HeapProfiler.takeHeapSnapshot (que faz coleta completa, então o serrilhado de alocação do Phaser não entra) e outro 60 s depois; comparar o tamanho retido total e a contagem de objetos por construtor, com variação aceita [proposta de teste a aprovar] (ADR-0002 §11).",
+          "como": "?cenario=horda_rotativa&teto=300 (10 removidos e repostos a cada 60 passos), 300 vivos, 30 s de aquecimento; HeapProfiler.collectGarbage + takeHeapSnapshot, 60 s, outro snapshot; aprovado com Δ dos bytes próprios ≤ 32.768 B no total e Δ ≤ 100 objetos em cada construtor, fora da lista fechada de exclusões ((code), PerformanceLongTaskTiming, TaskAttributionTiming); limites provisórios até 3 rodadas de calibração (ADR-0002 §11; design/decisoes-F-003.md §8, E2).",
           "origem": "B §4 (evidência)"
         },
         {
           "id": "F-003.8",
           "descricao": "Nenhum spawn nos 30 s antes de um marco.",
           "verificacao": "vitest",
-          "como": "seed fixa: zero spawns do diretor, inclusive de reposição, nos passos de relógio 16.200–18.000, 34.200–36.000 e 52.200–54.000 (4:30–5:00, 9:30–10:00, 14:30–15:00); entre 19:30 e 20:00 a reposição continua (Q-11; ADR-0002 §8, passo 3).",
+          "como": "seed fixa: zero spawns do diretor, inclusive de reposição, nos passos de relógio 16.200 ≤ r < 18.000, 34.200 ≤ r < 36.000 e 52.200 ≤ r < 54.000 (4:30–5:00, 9:30–10:00, 14:30–15:00); entre 19:30 e 20:00 a reposição continua (Q-11; ADR-0002 §8, passo 3; design/decisoes-F-003.md §1).",
           "origem": "B §3.7 (escopo)"
         },
         {
           "id": "F-003.9",
           "descricao": "Anel de spawn com viés oposto ao movimento.",
           "verificacao": "vitest",
-          "como": "toda posição de spawn do diretor fica a 468–624 px do jogador, em distância no toro (Q-06); com o jogador em movimento, ≈ 60% caem no semicírculo oposto, medidos no vetor de geração antes do wrap; parado, distribuição uniforme (Q-07); tolerância [proposta de teste a aprovar].",
+          "como": "toda posição de spawn do diretor fica a 468–624 px do jogador, em distância no toro (Q-06), conferida em [468 − 1e-3; 624 + 1e-3]; com o jogador em movimento, 60% caem no semicírculo oposto, medidos na direção sorteada antes da busca de ponto livre; parado, distribuição uniforme (Q-07). Tolerância: N = 10.000 por caso, seeds 1 a 5, fração oposta em [0,58; 0,62] em 4 direções; parado, cada quadrante em [0,233; 0,267] e cada meio-plano em [0,48; 0,52] (design/decisoes-F-003.md §4, R8).",
           "origem": "B §3.7 (escopo)"
         },
         {
           "id": "F-003.10",
           "descricao": "TETO com fallback 300.",
           "verificacao": "vitest",
-          "como": "sem ?teto, sem vdc.teto e sem resultado da sonda, o TETO é 300 e __GAME_DEBUG__.teto.origem = 'fallback' (ADR-0002 §13).",
+          "como": "sem ?teto, sem vdc.teto e sem resultado da sonda, com uma tela fora da classe antiga (DPR 3, 390 × 844), o TETO é 300 e __GAME_DEBUG__.teto.origem = 'fallback' (ADR-0002 §13; design/decisoes-F-003.md §5, T1).",
           "origem": "B §3.7 (escopo)"
         },
         {
@@ -322,19 +322,20 @@
       ],
       "evidencias": [
         {
-          "arquivo": "production/evidencias/F-003/debug-300-vivos.png",
-          "descricao": "Captura do debug com 300 vivos (B)"
+          "arquivo": "production/evidencias/F-003/debug-300-vivos-390x844.png",
+          "descricao": "Captura do debug com 300 vivos (B), no passo 1.800 do cenário horda, pausado (design/decisoes-F-003.md §8, E3)"
         },
         {
           "arquivo": "production/evidencias/F-003/heap-60s.json",
-          "descricao": "Relatório de alocações: heap snapshot sem crescimento em 60 s (B)"
+          "descricao": "Relatório de alocações: heap snapshot sem crescimento em 60 s (B; design/decisoes-F-003.md §8, E2)"
+        },
+        {
+          "arquivo": "production/evidencias/F-003/desempenho-30s.json",
+          "descricao": "Medida do F-003.4: tempos, vivos, draw calls, renderer e se o fps foi conferido (design/decisoes-F-003.md §8, E1)"
         }
       ],
       "pendencias_antes_de_comecar": [
-        "brief §11.3 F-003: força de separação entre Ocos",
-        "Render da horda com SpriteGPULayer + plano B ?render=image (ADR-0002 §11)",
-        "Tolerância do teste de heap de 60 s e do viés de 60% do anel [proposta de teste a aprovar]",
-        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): inimigos sólidos para o jogador; spawn sobre obstáculo; 'parado' no viés do anel; N, T e critério de falha do teste de contorno; cores dos inimigos fora de #2b3340"
+        "Resolvidas em design/decisoes-F-003.md (por delegação do usuário, 2026-10-11): força de separação (§2, S1 a S3); render da horda com SpriteGPULayer e plano B ?render=image (§7); tolerâncias do heap de 60 s (§8, E2) e do viés de 60% do anel (§4, R8); recomendações da F-002: inimigos sólidos (S4), spawn sobre obstáculo (R7), 'parado' no viés (R6), teste de contorno (S8) e cores (V1)"
       ]
     },
     {
@@ -403,7 +404,8 @@
         "Os dois +20% de dano da Espada (nv2 e nv6) e do Círculo de Sal (nv3 e nv6) somam (×1,40) ou multiplicam (×1,44)? (muda o resultado em mais que ±1%)",
         "Sal reaplicado em alvo já salgado: renova a duração, é ignorado ou fica o maior fator (−60% do Círculo nv4 contra −50% das Facas e da Noviça)? Nenhuma fonte dá a regra: proposta a aprovar",
         "Estender __GAME_DEBUG__ (ADR-0002 §14) com numerosDeDano, build (armas e passivas com nível) e textoAtivo (ids de t() visíveis) [proposta a aprovar]",
-        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): direção das armas com o jogador parado; distância de acerto até a hitbox; knockback nv7 com obstáculos e no máximo 32 px por passo"
+        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): direção das armas com o jogador parado; distância de acerto até a hitbox (as distâncias de comportamento foram resolvidas pela S7 da F-003); knockback nv7 com obstáculos e no máximo 32 px por passo",
+        "Recomendações da F-003 a fechar (design/decisoes-F-003.md §9): Sal só no deslocamento de comportamento; knockback antes dos obstáculos e grade remontada se as armas a consultarem depois da física; remoções durante a varredura da lista densa; anel de eventos; sonda do TETO na 1ª feature com projéteis; campo armas na receita de cenário (vazio em horda e horda_rotativa)"
       ]
     },
     {
@@ -469,7 +471,8 @@
       ],
       "pendencias_antes_de_comecar": [
         "brief §11.3 F-005: teto de FOR; HP por nível",
-        "Recomendação da F-002 a fechar (design/decisoes-F-002.md §9): level up libera os dedos e esconde o joystick"
+        "Recomendação da F-002 a fechar (design/decisoes-F-002.md §9): level up libera os dedos e esconde o joystick",
+        "Recomendações da F-003 a fechar (design/decisoes-F-003.md §9): camada GPU 'mundo'; forma das Cinzas; hpMax e o arredondamento do HP com bônus"
       ]
     },
     {
@@ -579,7 +582,8 @@
         "brief §11.3 F-006: alcance do Oco Grande, projétil da Noviça, recuperação da esquiva, toque duplo, janela do swipe, câmera lenta do tutorial, centro do raio da Postura Quebrada, aparo falho, aparo de vermelho, stamina insuficiente; o que 'vulnerável' bloqueia no aparo falho (brief §11.3 F-006)",
         "Build de teste em iPhone depois da F-006 (Q-29)",
         "Como a aura do Círculo de Sal participa do Contra-ataque (brief §11.3 F-004; armas.json circulo_de_sal)",
-        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): esquiva com obstáculos e no máximo 32 px por passo; aparo só no 1º passo do frame; swipe por timeStamp"
+        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): esquiva com obstáculos e no máximo 32 px por passo; aparo só no 1º passo do frame; swipe por timeStamp",
+        "Recomendações da F-003 a fechar (design/decisoes-F-003.md §9): solidez e contato nos i-frames; prompt de esquiva pelo telegrafo do garantido (muda o 'como' do F-006.8); ?inicio e garantidos; atordoado separado; médios acima da massa; telegrafo por tintMode/tintBlend; no build de iPhone, o F-003.4 literal, gpu × image, STATIC × DYNAMIC e a reavaliação de S2 e S4"
       ]
     },
     {
@@ -660,7 +664,8 @@
       "pendencias_antes_de_comecar": [
         "brief §11.3 F-007: câmera lenta do Apagar, carga do Frasco interrompido, 'segurar' cancela, ações durante o Frasco, ordem armadura × Brasa Firme, 15% antes ou depois da redução",
         "Arredondamento de 0,3 × N Almas da mancha (nenhuma fonte dá)",
-        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): mancha no ponto livre mais próximo; gravar no meta o tutorial de mover cumprido (Q-26)"
+        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): mancha no ponto livre mais próximo; gravar no meta o tutorial de mover cumprido (Q-26)",
+        "Recomendações da F-003 a fechar (design/decisoes-F-003.md §9): barra de HP e sinal do acerto; F-003.5 com stamina ≤ 50; arredondamento do HP com Brasa Firme e Frasco; dano_recebido do contato na telemetria"
       ]
     },
     {
@@ -769,7 +774,8 @@
       "pendencias_antes_de_comecar": [
         "brief §11.3 F-008: Patada, Grito, cadência e tamanho do Coroado; escurecimento",
         "Raio, em volta do Coroado, em que nascem os convocados dentro da arena (ADR-0002 §9)",
-        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): obstáculos da arena (quais e até quando); Fogueira e baús sem colisão e direção da Fogueira; save com outra disposição; Grito com obstáculos e no máximo 32 px por passo"
+        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): obstáculos da arena (quais e até quando); Fogueira e baús sem colisão e direção da Fogueira; save com outra disposição; Grito com obstáculos e no máximo 32 px por passo",
+        "Recomendações da F-003 a fechar (design/decisoes-F-003.md §9): diretor com relógio parado e arena (R2); Fogueira congela a horda; convocações; corpos grandes e R_MAX; obstáculos inativos na lista por célula; Grito; cenário como vigilia; save do pool; escurecimento"
       ]
     },
     {
@@ -875,7 +881,8 @@
       "pendencias_antes_de_comecar": [
         "brief §11.3 F-009 e chefes.json pendencias: danos, alcances, IA, convocação, telegrafos vermelhos, herança de ataques entre fases, Postura das outras armas, tamanho",
         "brief §11.3 F-009: luz do jogador (5 corpos) e dos Ocos convocados (3 corpos) no MVP; raio de nascimento dos convocados (ADR-0002 §9); o que o HUD mostra entre 20:00 e 23:00 (não há Hora)",
-        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): caixa do Lanterneiro; borda da arena contém o chefe; raio do Coroado"
+        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): caixa do Lanterneiro; borda da arena contém o chefe; raio do Coroado",
+        "Recomendações da F-003 a fechar (design/decisoes-F-003.md §9): o Lanterneiro no R_MAX ou na lista de corpos grandes, S1 e S4 para a caixa, camada e cor"
       ]
     },
     {
@@ -979,7 +986,8 @@
         "brief §11.3 F-010: Bigorna no peito × armadura",
         "Hospedagem HTTPS de teste no GitHub Pages (Q-29)",
         "Calibrar o limiar da sonda do TETO em iPhone 12 e 14 (ADR-0002 §13)",
-        "Recomendação da F-002 a fechar (design/decisoes-F-002.md §9): pausa automática e overlay de paisagem liberam os dedos e escondem o joystick"
+        "Recomendação da F-002 a fechar (design/decisoes-F-002.md §9): pausa automática e overlay de paisagem liberam os dedos e escondem o joystick",
+        "Recomendações da F-003 a fechar (design/decisoes-F-003.md §9): Casco e Bigorna no contato; critério da degradação de nível 3; sonda calibrada no iPhone; fps médio por Hora no painel do debug"
       ]
     }
   ]

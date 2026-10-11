@@ -187,3 +187,225 @@
 - **Testes do diretor** (técnica): na F-003 ninguém morre, então os testes de reposição e da janela removem inimigos com `removerInimigo`. F-003.2: remover k vivos e conferir que, na reposição seguinte, entram exatamente `alvo − vivosEq`. F-003.8: em cada passo das janelas, remover todos os vivos e conferir que `spawns` não muda; no passo seguinte à janela, a reposição volta; às 19:30, a reposição continua. As simulações longas têm timeout explícito.
 - **Tolerância do viés (R8). [delegada, proposta de teste]** Função pura de posição, sem obstáculos, com a seed do fluxo `diretor` e N = 10.000 spawns por caso, seeds 1 a 5. Em movimento, com d em {(1, 0), (0, 1), (−1/√2, 1/√2), (0,6; −0,8)}, a fração com v · d < 0 fica em [0,58; 0,62] (σ = 0,0049; ±0,02 ≈ 4σ, que separa 0,80, 0,50 e 0,40, os erros comuns). Parado: cada quadrante em [0,233; 0,267] e cada meio-plano dos 4 d em [0,48; 0,52]. A distância no toro é conferida em [468 − 1e-3; 624 + 1e-3] (a posição é gravada em Float32, com meio ulp de até 1,2e-4 px por coordenada) na mesma função com os obstáculos da Charneca, em ≥ 1.000 posições do jogador, inclusive na costura.
 
+## 5. TETO e cenários
+
+- **TETO (T1). [delegada]**
+  - O TETO vai para o cabeçalho do estado como parâmetro da Vigília e entra no hash (ADR-0002 §13: "TETO fixo por Vigília").
+  - `src/plataforma/teto.ts` ganha a função pura `decidirTeto({ override, cache, tela, sonda })`, com as 5 camadas na ordem do ADR-0002 §13, testada inteira; a saída é `{ valor, origem, sondaMs }`.
+  - Na F-003 só existem os produtores de override (`?teto=300|500`, só no build de debug; outro valor é ignorado) e de tela (DPR 2, largura ≤ 375 pt ou 414 × 896 → 300). O cache e a sonda chegam como `null`; `__GAME_DEBUG__.teto = { valor, origem, sondaMs: null }`.
+  - A sonda, a gravação de `vdc.teto` e o rebaixamento saem da F-003: a sonda do ADR-0002 §13 roda "500 inimigos + 400 projéteis", e sem projéteis (F-004) mediria menos do que o pedido; uma sonda por tempo de CPU no Chromium da Playwright tornaria o hash dependente da máquina (F-001.11). Até a sonda, todo aparelho fica com 300; nos dados, o único efeito é a conversão do minuto 19 com I = 1,1 acontecer também num iPhone 14.
+  - O F-003.10 fixa uma tela fora da classe (DPR 3, 390 × 844), para a origem sair `fallback`.
+- **Cenário horda (T2). [delegada]**
+  - O ADR-0002 §14 manda o cenário "no formato do `vigilia` (§10)", que só nasce na F-008. Na F-003 ele é uma **receita** (`src/dados/cenarios/horda.json`, com `src/dados/schemas/cenario.schema.json`), da qual a Vigília monta o estado inicial. A divergência vai para o ADR-0005, e a F-008 decide se converte a receita (§9).
+  - Conteúdo: linha fixa 19 (mínimo 300, intervalo de 21 passos, pesos 6/5/4, escala do minuto 19, I = 1,0); jogador parado em (585, 1.266) e invulnerável; sem armas; tutoriais vistos.
+  - Com a linha fixa, o diretor usa sempre essa linha para roster, mínimo, intervalo e escala, e ignora o relógio para a janela, os marcos e os garantidos. O relógio corre; o recomendado é que a máquina de estados da F-008 e da F-009 também fique presa no cenário (§9).
+  - Os 300 nascem na 1ª reposição, no 1º passo (r = 1), sem conversão (alvo 300 = TETO), no anel, e convergem para o jogador parado (o pior caso de render e de vizinhança). Com `?teto=500` continuam 300 (300 × 1,0).
+  - Os 300 são **vivos**, não "na tela": em volta do jogador parado, eles ocupam um disco de raio ≈ 310 px (medido, §2; o corpo mais distante chega a ≈ 330 px, e seriam ≈ 385 px sem sobreposição), maior que a meia-largura da vista (195 px).
+  - **Rotação:** a receita tem o campo `rotacao` (padrão 0). Com N > 0, a cada 60 passos, dentro do passo, os N inimigos de menor slot são removidos pelo caminho comum de liberação (que zera os campos, o mesmo que a morte vai usar na F-004), e o diretor repõe na reposição seguinte (≤ 21 passos). Cada remoção soma no contador `removidos` (no hash). Um 2º cenário, `horda_rotativa` (rotacao 10), serve só ao teste de heap (E2): sem ele, a F-003 não tem nascimento nem morte depois do 1º passo, e o heap não veria o caminho de nascer e liberar. A rotação é campo da receita, não parâmetro de URL.
+- **Cenário sem_horda (T3). [delegada]** Bit "diretor desligado" na mesma palavra de cenário, ligado por `?cenario=sem_horda` no build de debug. Com 15 Ocos sólidos no minuto 0, os testes e a evidência de movimento das F-001 e F-002 (vídeo pelo corredor, posição parada idêntica, prompt de mover aos 10 s, vivos = 0) deixariam de valer: os Ocos chegam ao jogador parado em 330 a 450 passos e o cercam. Esses testes passam a usar o `sem_horda`; o F-001.11 (hash Node × Chromium) usa a Vigília completa. É um cenário fora dos três aprovados no ADR-0002 §14, registrado no ADR-0005.
+- **Parâmetros do cenário no estado** (técnica): tudo o que muda a simulação é parâmetro da Vigília no cabeçalho e no hash: palavra `cenario` (bit 0 = jogador invulnerável; bit 1 = diretor desligado), `linhaFixa` (0xFFFFFFFF = nenhuma) e `rotacao`. Nas Vigílias normais, todos ficam em 0 (ou "nenhuma"), e o build de produção ignora `?cenario`.
+- **Receitas** (técnica): `src/dados/cenarios/horda.json`, `horda_rotativa.json` e `sem_horda.json`, validadas por `cenario.schema.json` em `tests/dados.test.ts`, lidas só no build de debug. Campos na F-003: `id`, `versao`, `linha_fixa`, `jogador.invulneravel`, `diretor_desligado`, `tutoriais_vistos` e `rotacao`; armas e roteiro entram quando forem usados. Um id desconhecido é erro no boot, como um texto ausente.
+
+## 6. Estado v3 e determinismo
+
+- **Layout (`VERSAO_LAYOUT` 3)** (técnica):
+  - cabeçalho de 16 palavras: versão, seed, passo, relógio, tutoriais vistos, disposição, `teto`, `cenario`, `linhaFixa`, `rotacao` e 6 reservadas;
+  - 6 fluxos de RNG;
+  - jogador: Float32 `x`, `y`, `xAnt`, `yAnt`, `dirX`, `dirY`, `hp`; Uint8 `promptMover`, `invulContato` e 2 reservados;
+  - mundo e diretor (8 palavras Uint32, sem reserva): `intensidade10`, `espera`, `garantidosEntregues`, `spawns`, `recusados`, `semPontoLivre`, `removidos` (rotação do cenário, §5) e `garantidosPerdidos`;
+  - pool de inimigos com capacidade física 500 (ADR-0002 §15 item 13): Float32 `x`, `y`, `xAnt`, `yAnt`, `hp`, `dano`; Uint8 `tipo`, `convertido`; e os metadados do pool (contagens, pilha de livres, lista densa, posição, geração). Os demais campos do ADR-0002 §4 (hpMax, estado, timers, Sal, Quebra, alvo) entram nas features que os usam.
+- **Códigos de tipo** (técnica): tabela fixa no código, que só cresce no fim: 0 vazio, 1 `oco_das_lanternas`, 2 `oco_grande`, 3 `novica_de_sal`, 4 `oco_grande_coroado`, 5 `o_lanterneiro`. Um teste confere que todo id de `inimigos.json` e `chefes.json` tem código. Os dados por código (raio, velocidade, `dano_tipo`, comportamento, HP e dano base) são montados uma vez nos dados da Vigília, junto com a timeline compilada (passos-base, mínimos, linha do roster e pesos acumulados por linha): nada é lido de string nem alocado por passo.
+- **Nascer e remover** (técnica): `nascerInimigo(estado, dados, codigo, x, y, convertido)` é a função única de nascimento (diretor, cenário e testes; convocações na F-008). Grava x, y, xAnt = x, yAnt = y, tipo, HP e dano com o minuto do passo. `removerInimigo(estado, slot)` libera o slot e zera os campos, sem efeito de morte; na F-003 só os testes e a rotação do cenário a usam.
+- **Hash:** o buffer inteiro (≈ 20 KB; FNV-1a ≈ 0,03 ms), com os slots mortos zerados. A grade e os rascunhos da separação ficam fora do buffer e do hash.
+- **Determinismo:**
+  - o `ROTEIRO_REFERENCIA` continua igual e passa a rodar a Charneca completa, com o diretor ligado; as referências novas das seeds 1 e 424242 vão para o ADR-0005, e a evidência da F-001 é regenerada;
+  - o log de determinismo trava também os vivos e os spawns no passo 1.000 e o passo do 1º acerto de contato;
+  - os fatos de movimento do roteiro (costuras nos passos ≈ 258 e ≈ 962, o deslize) passam a ser conferidos numa Vigília sem diretor;
+  - novo teste: copiar o buffer no passo 500 para um estado novo e seguir os dois até o 1.000 dá o mesmo hash. Isso prova que nada da simulação fica fora do buffer (a versão com save estruturado é da F-008);
+  - continuam: duas execuções, seeds diferentes, 1 contra 5 passos por frame e Node × Chromium (F-001.11, com `?teto=300` explícito);
+  - o hash por seção (cabeçalho, RNG, jogador, mundo, pool) e a trilha a cada 100 passos, aprovados no ADR-0002 §5 e §15 item 2, entram agora: a trilha vai para o log de determinismo, e `__GAME_DEBUG__.hashPorSecao()` (build de debug) ajuda a achar a 1ª seção divergente quando o F-001.11 falhar.
+
+## 7. Render da horda
+
+- **O que vai para o `SpriteGPULayer`** (técnica): só a horda, numa camada de capacidade 500 com um membro por slot do pool. Os 54 obstáculos e o jogador continuam como `Image` nos dois modos, com o código da F-002. Ordem de desenho: chão (vazio), obstáculos, horda e jogador; dentro da horda, a ordem do slot, estável quando outro inimigo morre.
+  - A camada é preenchida no `create` da Vigília, e não "no boot" como diz o ADR-0002 §11: um layer é objeto de cena e não atravessa cenas. Vai para o ADR-0005.
+  - A tabela de desenho por tipo tem só os tipos que a F-003 faz nascer e que têm tamanho (Oco das Lanternas, Oco Grande, Noviça); pedir um tipo sem entrada é erro alto na montagem, nunca NaN. O Coroado (F-008) e o Lanterneiro (F-009, de `chefes.json`) acrescentam as suas entradas.
+- **`?render=gpu|image`** (ADR-0002 §14 e §15 item 3): padrão `gpu`; no build de debug, `?render=image` troca só a horda pelo pool de `Image`, e qualquer outro valor vale `gpu`. O modo ativo aparece em `__GAME_DEBUG__.render.modo`.
+- **Um cálculo, dois escritores** (técnica): a função pura `prepararHorda` (em `src/cenas/render/horda.ts`, sem Phaser) percorre os 500 slots e escreve numa saída pré-alocada a posição de desenho e o tipo de cada slot vivo (o livre sai invisível). Dois escritores consomem a saída:
+  - pelo `SpriteGPULayer`: escrita direta no buffer de instâncias;
+  - pelo pool de 500 `Image` dentro de `this.add.layer()`: por frame, `setVisible` e `setPosition`; moldura, escala e tint só quando o tipo do slot muda.
+  - Assim os dois modos desenham o mesmo por construção. Medido: com a horda na grade de 0,5 pt, o PNG do canvas sai idêntico byte a byte nos dois. A Playwright compara os dois modos no mesmo passo, pausado, com alfa = 1 e sem `?debug=1`, na escala do dispositivo (os pixels do canvas, não um screenshot reduzido).
+  - A igualdade byte a byte foi medida no SwiftShader e é exigida com renderer por software. Com GPU de hardware, os dois caminhos montam as coordenadas de modo diferente (shader instanciado × vértices na CPU), e o spec aceita diferença ≤ 1 por canal em ≤ 0,1% dos pixels, registrando a contagem; qualquer diferença maior reprova.
+- **Posição de desenho** (técnica): interpolação pelo delta toroidal (ADR-0002 §3), arredondamento para o pixel do canvas (0,5 pt, como o jogador e a câmera; o shader só arredonda com escala 1) e cópia mais próxima da câmera (ADR-0002 §11), nessa ordem, com as contas em linha (laço quente, §2); um teste confere a igualdade com as funções do toro e da câmera. O slot que nasce grava xAnt = x, para não ser interpolado a partir do ocupante anterior.
+- **Escrita no buffer** (técnica; layout de `getMemberData` no 4.2.1, conferido no código e num protótipo):
+  - na criação: 500 × `addMember` com escala e alpha 0; depois disso, as views `viewF32`/`viewU32` são guardadas;
+  - por frame, no membro i (base = 42·i): vivo → x em [base], y em [base + 4], escala em [base + 12] e [base + 16], alpha 1 em [base + 20], índice da moldura em [base + 24] e a cor nos 4 tints de [base + 32] a [base + 35] (0xff000000 | rgb); livre → escala e alpha 0;
+  - no fim, `setAllSegmentsNeedUpdate()`: o submitter sobe o buffer inteiro (500 × 168 = 84.000 B) sem alocar. A atualização por segmento não é usada, porque aloca um `subarray` por segmento;
+  - medido: ≈ 0,1 ms para escrever 500 membros (p95 de 1,1 ms com CPU 4×);
+  - "sem alocar" vale para o nosso código: o submitter do Phaser aloca alguns objetos por desenho (é o "≈ 3 KB por `SpriteGPULayer`" que o ADR-0002 §11 já aceita).
+- **`STATIC_DRAW` e `DYNAMIC_DRAW`** (técnica): o padrão é o do Phaser (`STATIC_DRAW`). No build de debug, `?buffer=dinamico` troca para `DYNAMIC_DRAW` na criação (bufferUsage + `resize(500)` antes dos `addMember`, ADR-0002 §11), para o build de teste do iPhone comparar os dois sem recompilar. Parâmetro novo, registrado no ADR-0005. A Playwright confere que a imagem com `?buffer=dinamico` é idêntica à do padrão no mesmo passo.
+- **F-003.11** (técnica): Vitest com o `SpriteGPULayer` real do bundle do jogo, um `gl` falso e o `WebGLShaderSetterWrapper` real. Confere o stride de 168 B (42 floats); os offsets que o escritor grava (0, 4, 12, 16, 20, 24 e 32 a 35) e também 8 (rotação), 28 (`tintBlend`) e 38 (`tintMode`), pelo `addMember` e pelo `getMemberData`; a escrita direta lida de volta pelo `getMember` do próprio Phaser; o membro "morto"; e o caminho `DYNAMIC_DRAW`. A mutação de um offset reprova (conferido com o y em 5).
+- **Queda para o plano B** (técnica): o vertex shader do `SpriteGPULayer` lê uma textura (`MAX_VERTEX_TEXTURE_IMAGE_UNITS` > 0). Se o aquecimento na Acender achar 0 unidades ou o programa não ligar, a Vigília usa o modo `image` sozinha, também no build de produção (o ADR-0002 só prevê o plano B como parâmetro de debug; ADR-0005), e `__GAME_DEBUG__.render.origem` diz `fallback`. Todo iPhone com iOS 17 tem 16 unidades: é rede de segurança.
+- **Atlas** (técnica): duas molduras novas no tamanho exato a 2×, `massa` (círculo de 64 px = 32 pt) e `quadrado` (96 px = 48 pt), com escala 0,5 para todos os inimigos do MVP; o índice da moldura vem de `layer.frameDataIndices`, nunca de literal.
+- **Aquecimento** (ADR-0002 §11): a Tela de Acender cria um `SpriteGPULayer` de 1 membro de escala 0 e o desenha uma vez, para compilar o programa antes da Vigília; o cache de programas é do renderer. O teste conta os programas do `SpriteGPULayer` no cache no último frame da Acender: o número é ≥ 1 e não muda no 1º frame da Vigília.
+- **Limpeza** (técnica): o `preDestroy` do `SpriteGPULayer` não libera o submitter (um "TODO" no 4.2.1). No `SHUTDOWN` da Vigília e da Acender, antes do `destroy`: `renderer.deleteBuffer` nos dois buffers do submitter; o VAO de cada suíte de programa sai de `renderer.glVAOWrappers` e é destruído; `renderer.deleteTexture` na textura de molduras. O programa fica, no cache compartilhado. Sem isso, cada Vigília deixaria 84.000 B, um buffer de GPU, um VAO e uma textura presos (e o renderer os recriaria numa restauração de contexto). Um teste com o `gl` falso confere que as listas do renderer voltam ao tamanho inicial.
+- **Cores (V1). [delegada]**
+
+| Inimigo | Cor | Contraste com #1a1f2b | com #2b3340 | Origem (doc 13 §1.3) |
+|---|---|---|---|---|
+| Oco das Lanternas | #76884c | 4,23:1 | 3,27:1 | Ocos: verde-musgo |
+| Oco Grande (e convertido) | #9fa39a | 6,42:1 | 4,96:1 | Ocos: pele cinza |
+| Noviça de Sal | #8994b4 | 5,46:1 | 4,22:1 | Sepultadoras: sal azulado |
+
+  - Todas passam de 3:1 (objeto gráfico, WCAG 2.1 SC 1.4.11) contra o fundo e contra os obstáculos, e ficam abaixo da luminância da brasa (o jogador continua a coisa mais quente da tela). ΔE2000 ≥ 14 (CIEDE2000, sRGB D65) contra todas as cores reservadas (fundo, obstáculo, #0b0e14, brasa, #e2652b, #7a1f1f, #ff2a2a, osso, sal, branco, as 3 Cinzas e o crítico) e ≥ 18 entre si. O par mais próximo é Noviça × Cinza azul, com 15,7. A 1ª escolha da Noviça (#8796b4) dava 13,98 e não cumpria a regra; a cor atual está a ΔE 2 dela.
+  - O âmbar de lanterna ficou de fora (compete com a brasa do jogador), e o branco-osso também (confunde com o osso da UI e com o branco do aparo e do telegrafo).
+  - A massa tem o menor contraste de propósito: são 300 corpos. Os médios, mais claros, telegrafam (F-006).
+  - Na simulação de deuteranopia e de protanopia (Machado, 2009, severidade 1), os três continuam separáveis (ΔE ≥ 17,5; medido ≥ 17,9).
+  - Uma cor por tipo: as 3 variantes de paleta por tipo do doc 13 §1.5 são técnica de sprite e ficam para a arte, depois da F-010 (B §1: "formas geométricas e paleta provisória").
+  - As cores ficam em `src/cenas/estilo.ts`, como a dos obstáculos (cor provisória de cena, até a arte); um teste confere as regras acima para os tipos que a F-003 desenha. O Coroado e o Lanterneiro ganham cor nas suas features, com o mesmo teste.
+- **Convertido (V2): igual a um Oco Grande. [delegada]** Nas regras e na ficção ele é um Oco Grande; a distinção fica no debug (`convertidos`).
+- **Sem rotação (V3). [delegada]** Os quadrados ficam alinhados aos eixos; a "frente" do Oco Grande aparece no telegrafo da F-006.
+
+## 8. Debug, evidências e testes de desempenho
+
+- **`__GAME_DEBUG__` acrescido** (técnica):
+  - `vivos` por tipo, contando o pool; o convertido conta em `oco_grande`, e `convertidos` diz quantos são;
+  - `recusados.inimigos` (pool físico cheio; fica em 0) e `diretor` (`{ linha, espera, alvo, minEfetivo, vivosEq, spawns, garantidosPerdidos, semPontoLivre, removidos }`);
+  - `jogador.hp` e `jogador.invulContato`;
+  - `teto` (`{ valor, origem, sondaMs }`), `cenario` e `render` (`{ modo, origem, buffer, stride, capacidade, drawCalls }`), `webgl` (`{ renderer, software }`);
+  - só no build de debug: `inimigos()` (cópia dos vivos) e `hashPorSecao()`;
+  - `cpuFrameMs` (`{ p50, p95 }` dos últimos 60 quadros, de `PRE_STEP` a `POST_RENDER`, ADR-0002 §14);
+  - só no build de debug: os últimos 2.048 quadros (quadro inteiro, até `PRE_RENDER`, tempo da simulação e passos de cada um), para o F-003.4; e o contador de draw calls do último quadro (os pontos de desenho do renderer, `drawElements` e `drawInstancedArrays`, envolvidos por um contador sem alocação, zerado a cada `PRE_RENDER`);
+  - `memoriaEstimadaMB` passa a somar o atlas e o buffer de instâncias.
+- **`?debug=1`** (técnica): liga o painel (V4) e a verificação de NaN do ADR-0002 §5, que entra agora: ao fim de cada quadro, depois dos passos dele, os floats do jogador e dos slots vivos são lidos um a um (sem alocar), e um NaN lança erro com o slot e "no passo N ou antes (quadro de k passos)". A verificação fica fora do tempo que o medidor conta como simulação e entra no resto do quadro (≈ 0,01 ms). A F-003 é a 1ª feature com centenas de floats por passo e com divisões por distância.
+- **Painel do debug (V4). [delegada]** Só no build de debug e com `?debug=1`: um `<pre>` fixo no canto superior esquerdo, dentro da safe-area, sem receber toques, em osso sobre #0b0e14 a 60%, atualizado a cada 500 ms fora do caminho quente. Linhas "chave valor" com identificadores do `__GAME_DEBUG__` (sem textos novos no `pt-BR.json`): fps, vivos e cada tipo, convertidos, teto e origem, passo, relógio, passos perdidos, cpu (p50/p95), render, draw calls e o renderer do WebGL. A F-010 acrescenta o fps médio por Hora.
+  - O lint de textos (`vdc/textos`, ADR-0003 §8) barra qualquer literal que chegue a `textContent`, inclusive por concatenação. O painel serializa um objeto-instantâneo cujas chaves são nomes de propriedade, com separadores só de espaço e quebra de linha (vazios depois do `trim`): as chaves passam pelo `vdc/textos` porque a regra é sintática (o limite conhecido do ADR-0003 §8), sem `eslint-disable` e sem texto novo no `pt-BR.json`. É o único texto visível fora de `t()`, só no build de debug: uma exceção a B §3.15 e ao ADR-0002 §11 ("todo texto visível sai de t()"), registrada no ADR-0005.
+- **Projeto da Playwright** (técnica): o F-003.4 e o F-003.7 rodam no `taps-game`, o projeto do Pronto (390 × 844, DPR 3, toque); "desktop" é a CPU da máquina que roda o teste. Com DPR 3 e 390 pt, a classe de tela do TETO não dispara: a origem é `override` com `?teto` e `fallback` sem ele.
+- **A horda desenhada corresponde à simulação** (técnica): `__GAME_DEBUG__.inimigos()` (build de debug) devolve uma cópia `{ slot, tipo, x, y }` dos vivos. Com a simulação pausada e alfa = 1, no passo 600 do cenário horda, nos dois modos de render: o pixel do centro projetado de 10 inimigos visíveis e não cobertos por outro tem a cor do tipo (±2 por canal), e as duas imagens do canvas são idênticas. Pega offset errado e tint trocado. Como no cenário horda ninguém morre, o "slot morto visível" (um membro que continua desenhado depois de liberado) é provocado: com a simulação pausada, `__GAME_DEBUG__.removerInimigo(slot)` (só no build de debug, pelo caminho comum de `removerInimigo`) remove 3 inimigos visíveis e não cobertos; depois de 2 frames, nos dois modos, o pixel da posição antiga de cada um tem a cor do fundo ou do obstáculo de baixo, e as duas imagens continuam idênticas.
+- **Evidência da captura (E3)** (técnica): `production/evidencias/F-003/debug-300-vivos-390x844.png` (o nome com as dimensões deixa o `verify.sh` conferir o PNG). Roteiro: `?seed=1&cenario=horda&teto=300&debug=1`; tocar em Acender; pausar; avançar até o passo 1.800 (30 s, com a horda já em volta do jogador); esperar 2 frames e uma atualização do painel; screenshot. **Regra de render:** com a simulação pausada pelo debug, o render e a câmera usam alfa = 1 (o estado atual), e a imagem passa a depender só da seed e do passo.
+- **F-003.4 (E1). [delegada: muda a verificação de um critério de B]**
+  - **Por quê:** o WebGL deste contêiner é o SwiftShader, por software. Medido: uma cena do Phaser quase vazia faz ≈ 33 fps (≈ 50 com `--use-angle=swiftshader`); a Vigília da F-002, ≈ 30 (≈ 19 com CPU 4×); um bench de 300 inimigos, ≈ 13,5 fps, e ≈ 9 com CPU 4×. Essas medidas foram feitas num contexto "desktop" (DPR 1, sem `isMobile`); o gate roda no `taps-game` (DPR 3), em que o SwiftShader compõe mais pixels. Nenhuma combinação de flags passou de 55, nem o llvmpipe em Xvfb (≈ 42 com 4×). O limite é a GPU por software, não o nosso código. Além disso, o SwiftShader rasteriza em threads que disputam as 4 CPUs com a thread principal estrangulada, e o tempo até `POST_RENDER` às vezes incha (uma rodada em quatro deu p50 de 10,2 ms).
+  - **Sempre** (`?cenario=horda&teto=300&debug=1`, `Emulation.setCPUThrottlingRate` 4, 10 s de aquecimento e 30 s de medida): 300 vivos em cada uma das 30 leituras de 1 s; e **p95 de um passo + p95 do resto do quadro até `PRE_RENDER` < 10 ms**: a parte do orçamento de CPU por frame de B §3.13 (sim + render < 10 ms, iPhone 11/12, um quadro de 60 Hz = 1 passo) que não depende da GPU. O resto é a tradução da entrada, a sincronização da horda, o `update` das cenas e a verificação de NaN. O p95 do passo (simulação ÷ passos do quadro) usa só os quadros com passos ≥ 1; o p95 do resto usa todos. A soma de p95 é pessimista. Separar o passo evita que o fps baixo do contêiner (até 5 passos por quadro) infle a conta, e parar em `PRE_RENDER` tira o tempo que o SwiftShader rouba; a CPU do render do Phaser fica de fora no contêiner.
+  - **Só com GPU de hardware** (o renderer de `WEBGL_debug_renderer_info` não casa com /SwiftShader|llvmpipe|softpipe|Software/i): também `__GAME_DEBUG__.fps` ≥ 55 nas 30 leituras (o `actualFps` do Phaser é uma média móvel que nasce em 60, daí o aquecimento), Δ quadros ÷ 30 s ≥ 55 (o doc 10 §8 e B §4 F-010 leem o 55 como média) e p95 de um passo + p95 do resto do quadro inteiro < 10 ms. Com GPU por software, o teste anota "fps não conferido: WebGL por software", e o `verify.sh` imprime a linha. No desktop: `npm run e2e -- --headed` (ou o Chromium com GPU), conferindo o renderer.
+  - **Aprovado se:** 300 vivos nas 30 leituras ∧ a soma do contêiner < 10 ms ∧ draw calls ≤ 150 no modo `gpu` (B §3.13) ∧ (fps conferido ⇒ os três critérios com GPU). Com o fps não conferido, `aprovado` pode ser `true`, e o `verify.sh` avisa. Os draw calls do modo `image` são lidos no spec de igualdade, como registro.
+  - **Registro:** `production/evidencias/F-003/desempenho-30s.json` (evidência nova), com fps, os tempos (passo, até `PRE_RENDER`, quadro inteiro de `PRE_STEP` a `POST_RENDER`), vivos, passos perdidos, draw calls, renderer, `fps_conferido` e `aprovado`. O quadro inteiro vai para o registro sem valer como critério no contêiner.
+  - **Pendente:** a F-003 pode fechar como pronta com o F-003.4 literal (fps ≥ 55) pendente; o "como" do F-003.4 e o `progress.md` dizem isso, e o dono da medida é o build de teste do iPhone da F-006 (Q-29), ou um desktop com GPU antes dele.
+  - **Calibração:** antes de valer como gate, o spec roda 5 vezes no `taps-game` com CPU 4×, e o ADR-0005 registra p50, p95 e máximo do passo, do resto e da soma. O gate só vale se as 5 rodadas passarem; se alguma reprovar, o E1 volta para decisão (o limite de B não é afrouxado, e o spec não é repetido até passar).
+- **F-003.7 (E2). [delegada: proposta de teste]**
+  - Roteiro: cenário `horda_rotativa`, `?teto=300`, sem throttling. Chegar a 300 vivos, aquecer 30 s (o JIT cresce ≈ 240 KB no 1º minuto); snapshot A; 60 s; snapshot B. Cada snapshot é precedido de `HeapProfiler.collectGarbage` (o próprio `takeHeapSnapshot` também faz coleta completa).
+  - Agrupamento por nome do construtor nos nós `object`, `closure` e `native`, e pelo tipo nos demais.
+  - Exclusões, por lista fechada (repetida no relatório, com o motivo de cada uma): `(code)` (código do JIT), `PerformanceLongTaskTiming` e `TaskAttributionTiming` (entradas de desempenho do navegador, que crescem com tarefas longas). Uma exclusão nova segue o caminho da calibração.
+  - **Aprovado se:** Δ total de bytes próprios (B − A), sem os excluídos, ≤ 32.768 B; e, em todo grupo, Δ de contagem ≤ 100.
+  - Medido na Vigília da F-002: o ruído em regime fica em ≈ 0,6 KB e ≈ 21 nós sem os excluídos. Um vazamento de 1 objeto por frame (≈ 13 fps no contêiner) dá ≈ 800 objetos em 60 s, e 1 por passo, 3.600 objetos e ≈ 58 KB: os dois limites os pegam.
+  - **Calibração:** como o ruído foi medido sem a horda, os limites são provisórios até 3 rodadas no `horda_rotativa`, registradas no ADR-0005. Se o maior Δ das 3 rodadas passar de metade de um limite, o limite proposto vira 2 × esse Δ e volta à §0 para veto antes de o teste valer como gate.
+  - Mutações: (1) um `push` de um objeto novo (`{ slot }`) num array de módulo a cada spawn (≈ 600 em 60 s, acima de 100 no grupo `Object`) reprova pela contagem; (2) um `new Float64Array(8)` retido por spawn (≈ 600 × 64 B mais os cabeçalhos, acima de 32 KiB) reprova pelos bytes. Um número (Smi) num array não cria nós no snapshot e não seria pego, por isso as mutações retêm objetos. Um objeto de vida curta não é retido e não aparece no heap: isso é o E4.
+  - O relatório `heap-60s.json` traz a identificação (seed, teto, render, cenário, navegador, renderer), os dois snapshots (passo, vivos, liberações, bytes, nós, tempo), os excluídos, os deltas, os limites, os grupos que mudaram, o heap usado a cada 10 s (`Runtime.getHeapUsage` depois de coleta) e `aprovado`.
+- **Zero alocação no caminho quente (E4). [delegada, proposta de teste]** `tests/cenas/alocacao.test.ts`: o `HeapProfiler.startSampling` do `node:inspector` (intervalo de 64 B, contando também os objetos coletados pelos GCs), depois de 3.000 passos e quadros de aquecimento, mede 6.000 passos do cenário horda (300 vivos) e 6.000 quadros de `prepararHorda` + o escritor GPU sobre o `gl` falso, e soma os bytes amostrados em funções de `src/`. Aprovado com ≤ 16 B por passo em média. Medido: 8,5 a 9,2 B em 3 rodadas, quase tudo do tiering do V8 e dos getters de import do Vitest; a mutação de um `new Float32Array(2)` retido por passo mede ≈ 210 B e reprova. O "zero" de B vira "nenhuma alocação nossa por passo": o profiler amostral nunca dá 0 com o JIT em volta. O caminho de nascer e liberar fica de fora: no `horda_rotativa`, ele somaria ≈ 125 B por passo de código frio, que o V8 ainda interpreta (≈ 0,2 spawn por passo), e é conferido pelo E2. O teste mede o V8: no JSC (iPhone), um double não vira objeto ao passar por uma chamada.
+- **`verify.sh`:** uma evidência `.json` com o campo `aprovado` só passa com `aprovado: true`, como os `.log` com `iguais=true`.
+- **Tempo** (técnica): os specs de desempenho e de heap têm timeout próprio (120 s e 180 s) e rodam em todo verify das features seguintes, como guarda de regressão (≈ +2,5 min). Eles rodam no modo `gpu`; o plano B é coberto pela igualdade de imagem (§7). O E4 roda no Vitest (≈ 15 s).
+
+## 9. Recomendações para as features seguintes (não decididas aqui)
+
+Cada item volta às pendências da feature indicada, que fecha a decisão antes de implementar.
+
+- **F-004:**
+  - o Sal multiplica só o deslocamento de comportamento; o limite da separação continua a velocidade base (com 0,5·v, a horda se comprime: 15,5 px de média);
+  - knockback como deslocamento somado antes dos obstáculos, ≤ 32 px por passo; se as armas consultarem a grade depois da física, remontá-la com as posições finais (≈ 8 µs);
+  - remoções durante a varredura da lista densa iteram de trás para a frente ou ficam para o fim da fase (`liberar` move o último ativo);
+  - o anel de eventos entra com o 1º consumidor, num ArrayBuffer próprio, fora do hash e do save;
+  - a sonda do TETO entra na 1ª feature com projéteis, antes do build de iPhone pós-F-006 de preferência, e todos os testes de hash passam `?teto=300`;
+  - a receita de cenário ganha o campo `armas` (lista vazia em `horda` e `horda_rotativa`, como o ADR-0002 §14 manda), validado pelo `cenario.schema.json`, para o E1 (300 vivos nas 30 leituras) e o E2 continuarem verdes com a Espada Longa;
+  - as distâncias de comportamento (D §9) já estão resolvidas pela S7; falta a distância de acerto até a hitbox.
+- **F-005:**
+  - a camada GPU "mundo" (obstáculos e Cinzas) e as Cinzas com forma diferente do círculo de 32 pt e do quadrado de 48 pt (a Cinza azul fica a ΔE 15,7 da Noviça);
+  - `hpMax`, se o HP por nível vier aqui, e a regra de arredondamento do HP com bônus (hoje `round(130 × 115/100)` = 150).
+- **F-006:**
+  - nos i-frames, o jogador ignora os inimigos nas duas fases e os obstáculos continuam duros; depois, vale a regra simétrica de S4 (a sobreposição herdada não é expulsa nem cresce). Fica para decidir se a solidez desligada vale nos 21 passos da esquiva ou só nos i-frames;
+  - o contato durante os i-frames não tira HP nem liga o timer; conta como esquiva perfeita só se o timer estiver em 0 (um acerto "teria ocorrido", B §3.4);
+  - o prompt de esquiva segue o evento "telegrafo iniciado" do Oco Grande garantido, que chega ≈ 4 a 6 s depois das 1:00 (R3), e não o relógio; isso exige mudar o "como" do F-006.8 ("a partir de 1:00") e diverge do doc 11 §4;
+  - com `?inicio=MM:SS`, o 1º passo já repõe, e os garantidos de linhas já passadas não são entregues;
+  - o atordoado da Postura Quebrada não persegue, mas continua sendo separado;
+  - os médios desenhados acima da massa (uma 2ª camada GPU ou faixas de slots por camada de inimigo), antes de pôr o telegrafo no membro: com a ordem por slot da F-003, um médio pode ficar sob os círculos da massa;
+  - o brilho do telegrafo branco e o flash no próprio membro da horda, por `tintMode` e `tintBlend` (offsets 38 e 28, já cobertos pelo F-003.11);
+  - os telegrafos e ataques se somam ao movimento provisório da S6, que continua valendo para a aproximação e o recuo;
+  - no build de teste do iPhone (Q-29): o F-003.4 literal (fps ≥ 55 com `?cenario=horda&teto=300`), a comparação `gpu` × `image` e `STATIC_DRAW` × `DYNAMIC_DRAW` (`?buffer=dinamico`), e a reavaliação do cerco de S4 e da sobreposição visual de S2 (uma borda escura de 1 pt nos corpos é a 1ª alternativa barata).
+- **F-007:**
+  - a barra de HP e um sinal do acerto que não use branco nem #ff2a2a e respeite "desligar flashes"; a transição HP 0 → APAGANDO;
+  - manter o F-003.5 verde com stamina ≤ 50 no teste, ou com a asserção sobre o valor bruto;
+  - a regra de arredondamento do HP com bônus para a Brasa Firme e para a cura de 40% do Frasco (e `hpMax`, se a F-005 não o trouxer);
+  - a política de `dano_recebido` para o contato (≈ 3,3 por segundo expulsariam os outros eventos da telemetria local): registrar só os golpes e o acerto que zera o HP, ou uma linha agregada.
+- **F-008:**
+  - o diretor só roda nos passos em que o relógio avança; com o relógio parado ou a arena ativa, nada nasce e `espera` = 0 (R2); a busca de ponto livre conta só os obstáculos ativos;
+  - na Fogueira, congelar o comportamento e a separação dos inimigos, e nenhum contato causa dano ("ninguém ataca", doc 07 §4); o mesmo no Amanhecer (F-009);
+  - convocações com `falta = n` e o mesmo g do §8.7, com a posição na arena (o código da F-003 recebe a posição como estratégia);
+  - o Coroado: todo tipo que entra no pool precisa entrar no conjunto do R_MAX ou ser tratado à parte. Inflar o R_MAX para 48 a 96 px aumenta de 2,6 a 8 vezes a área consultada por cada Oco; a alternativa a medir é uma lista própria de corpos grandes, consultada com o raio deles e com o par processado sem a regra j > i. Se 2·R_MAX + v_max ≥ a folga mínima entre obstáculos da região (67,4 px na Charneca; 64 px pela regra de D O4 para regiões futuras), um corpo pode tocar dois obstáculos, e a lista por célula e as 2 passadas precisam de outro teste de equivalência. Partilha igual contra elites, camada GPU própria acima da massa e cor da facção Ocos fora do âmbar;
+  - a lista estática de obstáculos por célula e a colisão pulam os obstáculos inativos, com o teste de equivalência refeito;
+  - o Grito empurra o jogador (a exceção da Q-16), respeitando obstáculos e os 32 px;
+  - a receita do cenário horda vira `vigilia` (ou fica como receita), e a máquina de estados fica presa em HORA no cenário;
+  - o save grava a pilha de livres, a lista densa e as gerações do pool;
+  - o escurecimento de 10% por minuto (`escurecer_pct`) e os inimigos acinzentados, pelo tint do membro.
+- **F-009:** o Lanterneiro (caixa alinhada aos eixos, 128 a 192 px) contra os círculos da massa, numa camada acima da horda, com cor sem #ff2a2a e sem a brasa. Ele vem de `chefes.json` e não está no roster: precisa entrar no conjunto do R_MAX ou na lista de corpos grandes (F-008), e a F-009 decide como S1 e S4 valem para uma caixa.
+- **F-010:**
+  - o nó Casco soma 3 passos por rank ao timer (18, 21, 24 e 27) sem mexer no fator 0,3; a Bigorna se aplica só à origem contato;
+  - a degradação graciosa de nível 3 ganha critério (TETO efetivo = mín(TETO, mínimo da linha sem I), pela mesma conversão; a função de reposição já recebe o TETO efetivo como argumento);
+  - implementar a sonda, se ainda não houver, e calibrá-la no iPhone (a física real da horda custa 2 a 5× a sonda sintética do ADR-0002 §12);
+  - o fps médio por Hora no painel do debug (V4).
+- **Sem feature:** o campo de fluxo de S8, se o contorno simples falhar mais tarde com obstáculos de outras regiões.
+
+## 10. O que muda em dados e documentos
+
+**Aplicado no commit que registra este documento (`feature_list.json`):**
+
+- F-003:
+  - `pendencias_antes_de_comecar` vira uma linha só, "Resolvidas em design/decisoes-F-003.md", como na F-002;
+  - o "como" dos critérios F-003.2 (vivosEq, `espera`, 1ª reposição no 1º passo, r = 1), F-003.4 (E1, com o fps literal pendente), F-003.7 (E2), F-003.8 ("≤ r <"), F-003.9 (R8) e F-003.10 (tela fora da classe);
+  - evidências: `debug-300-vivos-390x844.png`, `heap-60s.json` e `desempenho-30s.json`.
+- F-004 a F-010: as recomendações da §9 entram nas pendências de cada uma; na da F-004 herdada de D §9, a nota "distâncias de comportamento resolvidas pela S7 da F-003".
+
+**A F-003 aplica ao implementar:**
+
+- `regiao.schema.json`: peso inteiro ≥ 1;
+- `inimigos.json`: sai a pendência "força de separação";
+- `src/cenas/estilo.ts`: as cores da V1, com a Noviça em #8994b4;
+- novos: `src/dados/cenarios/horda.json`, `horda_rotativa.json`, `sem_horda.json` e `src/dados/schemas/cenario.schema.json`; `scripts/gerar-direcoes.py` e a tabela literal das direções;
+- `scripts/verify.sh`: evidência `.json` com `aprovado` só passa com `true`; o aviso do fps não conferido;
+- os testes das F-001 e F-002 que dependem de não haver horda passam a usar `?cenario=sem_horda`;
+- ADR-0005, com as decisões técnicas, as referências novas de determinismo e as divergências do ADR-0002: linha fora do estado; cenário como receita; cenários `horda_rotativa` e `sem_horda`; `?buffer`; camada preenchida no `create` da Vigília; contato e solidez por varredura e não pela grade; texto visível fora de `t()` no painel de debug (B §3.15; ADR-0002 §11), só no build de debug e sem exceção no lint; sonda, cache `vdc.teto` e rebaixamento do TETO fora da F-003 (T1; ADR-0002 §11.1, §13 e §15 item 2); queda automática para `image` também no build de produção (§7); obstáculos e jogador ainda em `Image`, fora das camadas GPU "mundo" e "jogador" (§7; ADR-0002 §11); roster das linhas de marco (M1; Apêndice A); o `__GAME_DEBUG__` acrescido (§8); e a regra do laço quente (§2) com o E4.
+
+## 11. Revisão adversarial
+
+- **Método:** um workflow com 3 lentes (fidelidade às fontes, técnica e completude), cada uma seguida de um verificador cético que tentou refutar cada achado e refez as medidas onde havia número. Notas, antes das correções: fidelidade 7, técnica 7, completude 6,5.
+- **Resultado:** 61 achados (22, 15 e 24), dos quais 57 confirmados e 4 refutados:
+  - A13 (o número do convertido estava certo; a frase ficou mais clara);
+  - B5 (o teste do par já chama só a separação, e o dos 6 vizinhos pega o limite por tipo);
+  - C23 (a lista densa está no estado e é determinística; a ordem crescente de slot vale para a física, não para as armas);
+  - C24 (as duas posições do jogador no C1 já estavam ditas; a frase ficou mais clara).
+- **Os que mudaram código:**
+
+| Achado | Gravidade | Problema | O que foi feito |
+|---|---|---|---|
+| Técnica A1 | alta | os laços por inimigo alocavam ≈ 48 KB por passo no V8 (doubles em chamadas não inlinadas) | contas em linha e a colisão por `COLISAO` (§2, laço quente); E4 com limite de 16 B por passo (medido: 8,5 a 9,2) |
+| M5, C13 | média | um tipo do roster sem tamanho só falhava no meio de um passo | validação em `criarDadosDaVigilia`, com teste; o R_MAX sai dos tipos que nascem |
+| A15 | média | a Noviça (#8796b4) ficava a ΔE 13,98 da Cinza azul, abaixo da regra de 14 | Noviça em #8994b4 (ΔE 15,7; a 2 da cor antiga), com o teste das cores |
+| B3, C16 | baixa | a verificação de NaN alocava e entrava no tempo da simulação | por quadro, sem alocar, fora do tempo da simulação, com a mensagem "no passo N ou antes" |
+| B8 | baixa | o `--conferir` das direções aceitava 1 ulp | igualdade exata |
+| C07 | média | os offsets 28 e 38 eram dados como cobertos sem teste | o F-003.11 confere 8, 28 e 38 |
+
+- **Os que mudaram o documento** (e, onde cabia, o `feature_list.json`):
+  - fidelidade A1 (alta; o verificador a deu como média): o roster das linhas de marco vinha como fato e é escolha → M1 [delegada], divergência no ADR-0005;
+  - A3: o knockback de contato zero vinha como fato, com a Q-00 citada ao contrário → K3 [delegada];
+  - A4, técnica M1: o gate do E1 não é o orçamento inteiro de B → "a parte que não depende da GPU", com "<";
+  - técnica M2: o E1 não tinha medida da grandeza do gate nem regra de calibração → 5 rodadas no `taps-game`, sem afrouxar o limite;
+  - A5, C11: R2, T1 e S1 decidiam escopo das F-004 e F-008 → só a parte da F-003 fica decidida, o resto na §9;
+  - A6, C02: faltavam divergências do ADR-0002 na lista do ADR-0005 → lista completa (§10);
+  - A7, C12: o painel é exceção a B §3.15, e o texto dizia o contrário → exceção assumida na V4, sem exceção no lint;
+  - A8, C10: a tolerância de alocação não estava no §0 → E4;
+  - A9, B2, C15: o layout do mundo omitia `garantidosPerdidos` e `removidos` → §6;
+  - técnica M3: a sonda de pixel não exercitava o slot morto → `__GAME_DEBUG__.removerInimigo` no spec;
+  - técnica M4, C06: a mutação do teste de heap passaria com um número → mutações com objetos;
+  - C01, A18, B7: o `feature_list.json` não tinha as mudanças → aplicadas no commit deste documento;
+  - C03, C04: o F-003.4 literal não tinha dono, e o `aprovado` não estava definido → dono no build de iPhone da F-006 e regra do `aprovado`;
+  - C05: a calibração do heap não tinha regra → 2 × o maior Δ, de volta ao §0 para veto;
+  - C08, C09, C14, A17, A22: recomendações que faltavam ou se contradiziam (campo `armas`, corpos grandes, `hpMax`, F-006.8, critério do R_MAX) → §9;
+  - de redação e números (baixa): A2, B1, C20 (raio da horda: ≈ 310 px medidos); A10; A11 (anel medido no centro → R9 [delegada]); A12, B4, C21 (distâncias do anel); A14, C19 (resumos do §0); A16 (V1); A19; A20, C17 (status); A21; B6 (quadros sem passo); B9 (igualdade com GPU de hardware); C18 (convenção de passos); C22 (S3 rotulado e medido de novo: 7,2 / 7,0 / 9,7 px).
+- **Achado da implementação, depois da revisão:** o anel simétrico de 7 Ocos que chega junto para a 34,7 px e não acerta; com chegadas reais, o contato vale os 5/s (§3).
