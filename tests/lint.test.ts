@@ -1,3 +1,4 @@
+/* eslint-disable vdc/glossario -- este arquivo testa o detector de palavras proibidas com exemplos delas */
 // F-001.10: as regras de lint pegam o que o ADR-0002 §2/§5/§11 e a Q-31 proíbem.
 // Cada caso roda o ESLint do projeto sobre um trecho, num caminho virtual.
 import { describe, expect, it } from 'vitest';
@@ -45,8 +46,17 @@ describe('fronteiras de src/logica (ADR-0002 §2 e §5)', () => {
     ['export const p = 2 ** 3;', 'no-restricted-syntax'],
     ['let p = 2;\np **= 3;\nexport { p };', 'no-restricted-syntax'],
     ['export const o = [3, 1].sort();', 'no-restricted-syntax'],
+    ['export const t0 = process.hrtime();', 'no-restricted-globals'],
+    ["import { performance as p } from 'node:perf_hooks';\nexport const x = p;", 'no-restricted-imports'],
+    ["import { setTimeout as s } from 'timers';\nexport const x = s;", 'no-restricted-imports'],
   ])('%s → %s', async (codigo, regra) => {
     expect(await regras(codigo, LOGICA)).toContain(regra);
+  });
+
+  it('a fronteira vale também para .js em src/logica', async () => {
+    expect(await regras("import Phaser from 'phaser';\nexport const p = Phaser;", 'src/logica/nucleo/__trecho__.js')).toContain(
+      'no-restricted-imports',
+    );
   });
 
   it('aceita a aritmética exata', async () => {
@@ -122,6 +132,8 @@ describe('glossário no código (Q-31)', () => {
     ["export const s = 'checkpoint';", PLATAFORMA],
     ['export function iniciarRun(): void {}', CENAS],
     ['/* menu principal */\nexport const x = 1;', CENAS],
+    ['export const upgradeDoTeste = 1;', 'e2e/__trecho__.spec.ts'],
+    ['export const checkpointDoScript = 1;', 'scripts/__trecho__.mjs'],
   ])('%s', async (codigo, arquivo) => {
     expect(await regras(codigo, arquivo)).toContain('vdc/glossario');
   });

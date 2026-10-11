@@ -39,8 +39,9 @@ mkdir -p .verify
 
 etapa() { printf '\n== %s\n' "$1"; }
 
-etapa "typecheck"
+etapa "typecheck (projeto inteiro e src/logica sem DOM nem Node)"
 npx tsc --noEmit
+npx tsc -p tsconfig.logica.json
 
 etapa "lint"
 npx eslint . | tee .verify/lint.txt

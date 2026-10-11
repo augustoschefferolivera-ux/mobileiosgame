@@ -20,7 +20,14 @@ const GLOBAIS_DO_AMBIENTE = [
   'window', 'document', 'navigator', 'performance', 'Date', 'requestAnimationFrame', 'cancelAnimationFrame',
   'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'queueMicrotask', 'localStorage',
   'sessionStorage', 'indexedDB', 'fetch', 'XMLHttpRequest', 'crypto', 'self', 'globalThis', 'location',
+  // Node: passaria no Vitest e quebraria no Safari.
+  'process', 'Buffer', 'require', 'global', 'module', 'setImmediate', '__dirname', '__filename',
 ].map((name) => ({ name, message: `src/logica é pura: sem ${name} (ADR-0002 §2).` }));
+
+const MODULOS_DO_NODE = {
+  regex: '^(node:|(fs|path|os|crypto|timers|perf_hooks|process|child_process|worker_threads|util|events)(/|$))',
+  message: 'src/logica não usa módulos do Node (ADR-0002 §2).',
+};
 
 export default defineConfig(
   { ignores: ['dist/', 'dist-debug/', 'node_modules/', 'coverage/', 'test-results/', 'playwright-report/', '.verify/', 'design/', 'docs/', 'production/'] },
@@ -38,18 +45,19 @@ export default defineConfig(
     languageOptions: { globals: { URL: 'readonly' } },
   },
   {
-    files: ['src/**/*.ts'],
+    files: ['src/**/*.{ts,js,mjs}'],
     ignores: ['src/cenas/**'],
     rules: { 'no-restricted-imports': ['error', { patterns: [PHASER] }] },
   },
   {
-    files: ['src/logica/**/*.ts'],
+    files: ['src/logica/**/*.{ts,js,mjs}'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
             PHASER,
+            MODULOS_DO_NODE,
             {
               regex: '(^|/)(cenas|entrada|plataforma)(/|$)',
               message: 'src/logica não importa src/cenas, src/entrada nem src/plataforma (ADR-0002 §2).',
@@ -75,7 +83,8 @@ export default defineConfig(
     },
   },
   {
-    files: ['src/**/*.ts'],
+    // Q-31: o glossário vale para todo o código (os testes do detector desligam a regra no arquivo).
+    files: ['**/*.{ts,js,mjs}'],
     plugins: { vdc },
     rules: { 'vdc/glossario': 'error' },
   },

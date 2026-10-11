@@ -1,3 +1,4 @@
+/* eslint-disable vdc/glossario -- este arquivo testa o detector de palavras proibidas com exemplos delas */
 // Teste de integridade dos dados (Sessão 1, etapa 3).
 // - cada arquivo de src/dados valida no seu JSON Schema;
 // - toda referência por id entre arquivos resolve;
