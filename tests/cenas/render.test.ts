@@ -35,12 +35,12 @@ describe('atlas', () => {
     const nomes = Object.keys(MOLDURA) as NomeDaMoldura[];
     for (const a of nomes) {
       const m = MOLDURA[a];
-      expect(m.x + m.lado).toBeLessThanOrEqual(512);
-      expect(m.y + m.lado).toBeLessThanOrEqual(512);
+      expect(m.x + m.largura).toBeLessThanOrEqual(512);
+      expect(m.y + m.altura).toBeLessThanOrEqual(512);
       for (const b of nomes) {
         if (a === b) continue;
         const n = MOLDURA[b];
-        const separadas = m.x + m.lado <= n.x || n.x + n.lado <= m.x || m.y + m.lado <= n.y || n.y + n.lado <= m.y;
+        const separadas = m.x + m.largura <= n.x || n.x + n.largura <= m.x || m.y + m.altura <= n.y || n.y + n.altura <= m.y;
         expect(separadas, `${a} × ${b}`).toBe(true);
       }
     }
