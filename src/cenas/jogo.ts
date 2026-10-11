@@ -58,6 +58,8 @@ export function iniciarJogo(): Phaser.Game {
       expandParent: false,
     },
     fps: { target: 60, limit: 0, forceSetTimeOut: false, smoothStep: false },
+    // Sem MSAA: a 780 × 1688 o 4× custaria ≈ 40 MB de buffers multiamostrados (ADR-0003 §9).
+    render: { antialiasGL: false },
     input: { touch: false, mouse: false, keyboard: false, gamepad: false, windowEvents: false },
     callbacks: {
       // O nosso desbloqueio, no touchend do botão de Acender, é o único caminho (ADR-0002 §12):

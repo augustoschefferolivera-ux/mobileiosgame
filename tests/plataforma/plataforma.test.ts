@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { insetsEmPontos, insetsZerados, type Caixa, type Insets } from '../../src/plataforma/safeArea';
 import { desbloquearAudio, wavSilencioso, type SomDesbloqueavel } from '../../src/plataforma/audio';
 import { CAMPOS_DOS_EVENTOS, CAPACIDADE_DA_TELEMETRIA, RegistroDeTelemetria } from '../../src/plataforma/telemetria';
+import { lerParametros } from '../../src/plataforma/parametros';
+import { bytesDoBackbuffer } from '../../src/plataforma/memoria';
 
 const insets = (topo: number, direita: number, baixo: number, esquerda: number): Insets => ({ topo, direita, baixo, esquerda });
 
@@ -160,6 +162,8 @@ describe('telemetria local (F-001.15; Q-30)', () => {
     expect(() => r.registrar('frasco', 1, { minuto: 1 })).toThrow();
     // @ts-expect-error campo a mais
     expect(() => r.registrar('frasco', 1, { minuto: 1, hp_antes: 50, extra: 1 })).toThrow();
+    // @ts-expect-error mesmo número de campos, nome fora da Q-33
+    expect(() => r.registrar('frasco', 1, { minuto: 1, hpAntes: 50 })).toThrow();
   });
 
   it('guarda no máximo a capacidade, descartando os mais antigos', () => {
@@ -176,5 +180,40 @@ describe('telemetria local (F-001.15; Q-30)', () => {
     const copia = r.eventos();
     copia[0]!.campos['hp_antes'] = 999;
     expect(r.eventos()[0]?.campos['hp_antes']).toBe(10);
+  });
+});
+
+describe('parâmetros de URL (ADR-0002 §14)', () => {
+  it('o build de produção ignora ?seed', () => {
+    expect(lerParametros('?seed=5', false)).toEqual({ seed: null });
+  });
+
+  it.each([
+    ['?seed=0', 0],
+    ['?seed=4294967295', 4294967295],
+    ['?seed=42&outro=1', 42],
+    ['?seed=4294967296', null],
+    ['?seed=-1', null],
+    ['?seed=1.5', null],
+    ['?seed=', null],
+    ['?seed=abc', null],
+    ['', null],
+  ])('build de debug: %s → %s', (busca, seed) => {
+    expect(lerParametros(busca, true)).toEqual({ seed });
+  });
+});
+
+describe('memória estimada do backbuffer', () => {
+  const W = 780;
+  const H = 1688;
+  const px = W * H;
+  it('sem MSAA: cor em dobro + depth/stencil', () => {
+    expect(bytesDoBackbuffer(W, H, { antialias: false, depth: true, stencil: true, amostras: 0 })).toBe(px * 4 * 3);
+  });
+  it('com MSAA 4×: soma cor e depth/stencil multiamostrados', () => {
+    expect(bytesDoBackbuffer(W, H, { antialias: true, depth: true, stencil: true, amostras: 4 })).toBe(px * 4 * (2 + 4 + 4));
+  });
+  it('sem depth nem stencil: só a cor', () => {
+    expect(bytesDoBackbuffer(W, H, { antialias: false, depth: false, stencil: false, amostras: 0 })).toBe(px * 4 * 2);
   });
 });

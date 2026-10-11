@@ -31,7 +31,7 @@
 
 ## 4. Builds e parâmetros
 
-- **Build de debug:** `vite build --mode debug --outDir dist-debug`. É o que aceita `?seed` e `?debug=1`, e o único que expõe `pausar`, `retomar` e `avancar` no `__GAME_DEBUG__`. O build de produção (`dist/`) ignora os parâmetros.
+- **Build de debug:** `vite build --mode debug --outDir dist-debug`. É o que aceita `?seed`, e o único que expõe `pausar`, `retomar` e `avancar` no `__GAME_DEBUG__`. O build de produção (`dist/`) ignora os parâmetros. Os demais parâmetros do ADR-0002 §14 (`?debug`, `?teto`, `?render`, `?tutorial`, `?inicio`, `?cenario`) entram com as features que os usam.
 - **Mouse:** só no build de debug, pela mesma camada DOM (ADR-0002 §12, "Em DEV").
 - **Seed sem `?seed`:** sorteada com `crypto.getRandomValues` em `src/plataforma`; a simulação só recebe o número.
 - **`.verify/`** (ignorado pelo git): o Vitest grava ali o hash de referência que a Playwright compara (F-001.11).
@@ -40,7 +40,7 @@
 
 - **Campos presentes:** `fps`, `passo`, `relogio` (em passos), `estado`, `vivos` (todos 0 até a F-002/F-003), `passos_perdidos`, `recusados`, `memoriaEstimadaMB`, `seed`, `textoAtivo`, `eventos`, `desbloqueioDoAudio`, `hash()` e `audio()`.
 - **`estado` na F-001:** vale `'BOOT'`, `'ACENDER'` ou `'VIGILIA'` até a máquina de estados da Vigília (ADR-0002 §9).
-- **`memoriaEstimadaMB`:** estado + backbuffer de 780 × 1688 × 4 bytes, contado duas vezes.
+- **`memoriaEstimadaMB`:** estado + backbuffer calculado pelos atributos reais do contexto WebGL (`getContextAttributes()` e `gl.SAMPLES`): cor em dobro (drawing buffer e cópia exibida), depth/stencil e, com MSAA, as versões multiamostradas. A conferência no Web Inspector do iPhone fica para a F-010.
 - **Os demais campos do ADR-0002 §14** (`jogador`, `chefe`, `save`, `teto`, `degradacao`, `cpuFrameMs`, `build`, `numerosDeDano`, `entrada`, `ultimosEventos`, `toquesPerdidos`) entram com as suas features.
 
 ## 6. Telemetria local (resolve a pendência da F-001 sobre a Q-30)
@@ -72,3 +72,9 @@
   - strings com forma de texto para pessoas são barradas fora de `t()`, de logs e de `Error`: duas palavras, letra acentuada ou uma palavra com inicial maiúscula (a forma dos rótulos, como "Pausa"). A exceção são as chaves de cena (`{ key: 'Boot' }`, `scene.start('Vigilia')`);
   - limite conhecido: a regra é sintática. Um texto montado em tempo de execução a partir de dados que não vêm do `pt-BR.json` escapa; o teste de dados cobre os JSON.
 - **`vdc/glossario`:** cobre identificadores, strings e comentários de `src/`. O detector (`eslint/glossario.js` + `eslint/glossario.json`) é o mesmo do `tests/dados.test.ts`.
+
+## 9. Sem MSAA no contexto WebGL
+
+- **Fato:** sem bloco `render`, o Phaser 4.2.1 pede `antialias: true` (`antialiasGL`), `stencil: true` e `depth: true` (Config.js e WebGLRenderer.js). No WebKit, isso cria buffers de cor e de depth/stencil multiamostrados (até 4×) além do drawing buffer. A 780 × 1688, cada buffer simples tem ≈ 5 MiB e cada buffer 4× tem ≈ 20 MiB: o MSAA custaria ≈ 40 MiB do orçamento de < 150 MB (B §3.13), mais o blit de resolução a cada frame.
+- **Decisão:** `render: { antialiasGL: false }`. O filtro das texturas (`antialias`) não muda. As bordas das formas geométricas provisórias ficam serrilhadas; a arte final (depois da F-010) decide se o MSAA volta.
+

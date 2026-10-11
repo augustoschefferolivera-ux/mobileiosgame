@@ -6,6 +6,7 @@ import type Phaser from 'phaser';
 import { BYTES_ESTADO, CAB, hashEstado } from '../logica/nucleo/estado';
 import { hex8 } from '../logica/nucleo/hash';
 import { avancar } from '../logica/nucleo/passo';
+import { atributosDe, bytesDoBackbuffer } from '../plataforma/memoria';
 import type { ContextoDoJogo } from './contexto';
 
 /** Tipos de entidade de `vivos` (ADR-0002 §14); todos em zero até a F-002/F-003. */
@@ -14,8 +15,13 @@ const TIPOS_VIVOS = [
   'projeteis', 'efeitos', 'pickups', 'particulas',
 ] as const;
 
-/** Backbuffer de 780 × 1688 × 4 bytes, contado duas vezes (frente e trás). */
-const BYTES_BACKBUFFER = 780 * 1688 * 4 * 2;
+/** Backbuffer pelo contexto real (WebGL) ou, no Canvas, cor em dobro. */
+function bytesDoCanvas(jogo: Phaser.Game): number {
+  const { width, height } = jogo.canvas;
+  const gl = (jogo.renderer as Partial<Phaser.Renderer.WebGL.WebGLRenderer>).gl;
+  if (!gl) return width * height * 4 * 2;
+  return bytesDoBackbuffer(width, height, atributosDe(gl));
+}
 
 export interface GameDebug {
   readonly fps: number;
@@ -55,6 +61,7 @@ function textosVisiveis(jogo: Phaser.Game): string[] {
 }
 
 export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug {
+  let bytesBackbuffer: number | null = null;
   const debug: GameDebug = {
     get fps() {
       return jogo.loop.actualFps;
@@ -78,7 +85,8 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
       return { inimigos: 0, projeteis: 0, efeitos: 0, pickups: 0 };
     },
     get memoriaEstimadaMB() {
-      return (BYTES_ESTADO + BYTES_BACKBUFFER) / (1024 * 1024);
+      bytesBackbuffer ??= bytesDoCanvas(jogo);
+      return (BYTES_ESTADO + bytesBackbuffer) / (1024 * 1024);
     },
     get seed() {
       return ctx.seed;
