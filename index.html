@@ -39,6 +39,19 @@
         font: 16px/1.4 system-ui, -apple-system, sans-serif;
         text-align: center;
       }
+      /* Painel do ?debug=1 (só no build de debug; design/decisoes-F-003.md §8). */
+      .painel-debug {
+        position: fixed;
+        top: calc(env(safe-area-inset-top) + 4px);
+        left: calc(env(safe-area-inset-left) + 4px);
+        margin: 0;
+        padding: 4px 6px;
+        color: #e8dcc4;
+        background: rgba(11, 14, 20, 0.6);
+        font: 11px/1.3 ui-monospace, Menlo, monospace;
+        pointer-events: none;
+        z-index: 2;
+      }
       #sonda-safe-area {
         position: fixed;
         inset: 0;
