@@ -68,6 +68,8 @@ export interface GameDebug {
   readonly somTravado: boolean;
   /** Jogador em px lógicos do toro (estado da simulação) e a direção do triângulo. */
   readonly jogador: { x: number; y: number; dirX: number; dirY: number } | null;
+  /** Centro da câmera do mundo, em px lógicos do toro (arredondado para 0,5 pt). */
+  readonly camera: { x: number; y: number } | null;
   readonly entrada: EntradaDebug;
   /** Eventos de toque descartados (fila de 64 por frame) e dedos além de 5, na Vigília. */
   readonly toquesPerdidos: number;
@@ -139,6 +141,10 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     get jogador() {
       const j = ctx.simulacao?.estado.jogador;
       return j ? { x: j[JOGADOR.x]!, y: j[JOGADOR.y]!, dirX: j[JOGADOR.dirX]!, dirY: j[JOGADOR.dirY]! } : null;
+    },
+    get camera() {
+      const c = ctx.simulacao?.camera;
+      return c ? { x: c.x, y: c.y } : null;
     },
     entrada: {
       get joystick() {

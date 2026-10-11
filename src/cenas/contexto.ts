@@ -20,6 +20,8 @@ export interface Simulacao {
   readonly comandosAoVivo: ComandosDoPasso;
   /** De onde vêm os ComandosDoPasso: ao vivo, comandosAoVivo; com entrada.roteiro, o roteiro. */
   fonte: FonteDeComandos;
+  /** Centro da câmera do mundo no último frame, em px lógicos do toro. */
+  readonly camera: { x: number; y: number };
   /** Driver parado pelos ganchos de debug (avancar). */
   pausada: boolean;
 }

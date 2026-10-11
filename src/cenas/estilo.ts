@@ -3,11 +3,17 @@
 // até a arte, depois da F-010.
 import Phaser from 'phaser';
 import { ALTURA_LOGICA, LARGURA_LOGICA } from '../plataforma/safeArea';
+import { ESCALA_DO_CANVAS } from './escala';
 import { t, type Parametros } from './textos';
+
+export { ESCALA_DO_CANVAS };
 
 /** As cores em uso; as demais da base do doc 13 entram com o que as usar. */
 export const COR = {
+  /** Fundo dos painéis "pedra e osso" e da base do joystick (doc 13 §1.3 e §1.7). */
+  pedra: 0x0b0e14,
   fundo: 0x1a1f2b,
+  /** Também a cor dos obstáculos (design/decisoes-F-002.md §2). */
   cinzaFrio: 0x2b3340,
   brasa: 0xffb347,
   laranjaQueimado: 0xe2652b,
@@ -21,9 +27,6 @@ export const FONTE = 'system-ui, -apple-system, sans-serif';
 export function css(cor: number): string {
   return `#${cor.toString(16).padStart(6, '0')}`;
 }
-
-/** Pontos lógicos por pixel do canvas: 390 × 844 @2× (B §3.2; ADR-0002 §11). */
-export const ESCALA_DO_CANVAS = 2;
 
 /** Câmera em pt lógicos: o canvas de 780 × 1688 com zoom 2 mostra 390 × 844. */
 export function cameraLogica(cena: Phaser.Scene): void {
