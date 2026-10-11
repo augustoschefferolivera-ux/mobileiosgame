@@ -20,6 +20,7 @@ const GLOBAIS_DO_AMBIENTE = [
   'window', 'document', 'navigator', 'performance', 'Date', 'requestAnimationFrame', 'cancelAnimationFrame',
   'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'queueMicrotask', 'localStorage',
   'sessionStorage', 'indexedDB', 'fetch', 'XMLHttpRequest', 'crypto', 'self', 'globalThis', 'location',
+  'eval', 'Function',
   // Node: passaria no Vitest e quebraria no Safari.
   'process', 'Buffer', 'require', 'global', 'module', 'setImmediate', '__dirname', '__filename',
 ].map((name) => ({ name, message: `src/logica é pura: sem ${name} (ADR-0002 §2).` }));
@@ -75,6 +76,7 @@ export default defineConfig(
         'error',
         { selector: "BinaryExpression[operator='**']", message: 'O operador ** é aproximado (ADR-0002 §5).' },
         { selector: "AssignmentExpression[operator='**=']", message: 'O operador **= é aproximado (ADR-0002 §5).' },
+        { selector: 'ImportExpression', message: 'src/logica não usa import() dinâmico (ADR-0002 §2).' },
         {
           selector: "CallExpression[callee.property.name='sort'][arguments.length=0]",
           message: 'A simulação nunca ordena sem critério de desempate (ADR-0002 §5).',

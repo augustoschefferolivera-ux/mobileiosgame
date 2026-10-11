@@ -76,6 +76,14 @@ test('F-001.2 e F-001.7: 390 × 844 sem barras de rolagem, viewport-fit=cover e 
   expect(m.sh).toBeLessThanOrEqual(m.ih);
   expect(m.sw).toBeLessThanOrEqual(m.iw);
   expect(m.meta).toContain('viewport-fit=cover');
+  // #jogo ocupa a altura dinâmica do viewport (100dvh, lista iOS de B §3.14).
+  expect(
+    await page.evaluate(() =>
+      Array.from(document.styleSheets).flatMap((f) => Array.from(f.cssRules)).some(
+        (r) => r instanceof CSSStyleRule && r.selectorText === '#jogo' && r.style.height === '100dvh',
+      ),
+    ),
+  ).toBe(true);
   expect(await page.evaluate(() => window.__GAME_DEBUG__.textoAtivo)).toEqual(
     expect.arrayContaining(['A1.ACENDER.BOTAO', 'A1.ACENDER.AVISO_AUDIO']),
   );
@@ -322,5 +330,21 @@ test('F-001.7 e F-001.13 de ponta a ponta: insets emulados chegam aos alvos em p
   await page.waitForTimeout(200);
   expect(await page.evaluate(() => window.__GAME_DEBUG__.estado)).toBe('ACENDER');
   await tocarAcender(page, insets);
+});
+
+test('o desbloqueio acontece no touchend, não no touchstart (B §3.14)', async ({ page }) => {
+  await abrir(page);
+  const b = alvosDoAcender(insetsZerados(), [])[0]!;
+  const p = await paraPagina(page, b.x + b.largura / 2, b.y + b.altura / 2);
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: p.x, y: p.y }] });
+  await page.waitForTimeout(200);
+  expect(await page.evaluate(() => [window.__GAME_DEBUG__.estado, window.__GAME_DEBUG__.audio()])).toEqual([
+    'ACENDER',
+    'suspended',
+  ]);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await page.waitForFunction(() => window.__GAME_DEBUG__.estado === 'VIGILIA');
+  await page.waitForFunction(() => window.__GAME_DEBUG__.audio() === 'running');
 });
 

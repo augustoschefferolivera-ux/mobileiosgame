@@ -35,10 +35,12 @@ export class Acender extends Phaser.Scene {
     this.aviso.setWordWrapWidth(300);
     this.diagramar();
     this.scale.on(Phaser.Scale.Events.RESIZE, this.diagramar, this);
-    this.ctx.camada?.aoSoltar(this.aoSoltar);
+    const camada = this.ctx.camada;
+    if (!camada) throw new Error('Acender: a camada de toque nasce no postBoot, antes desta cena');
+    camada.aoSoltar(this.aoSoltar);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off(Phaser.Scale.Events.RESIZE, this.diagramar, this);
-      this.ctx.camada?.removerAoSoltar(this.aoSoltar);
+      camada.removerAoSoltar(this.aoSoltar);
     });
   }
 

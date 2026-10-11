@@ -28,7 +28,12 @@ const METODOS_DE_CENA = new Set([
 
 /** Propriedades e métodos que desenham ou anunciam texto. */
 const PROPS_TEXTO = new Set(['textContent', 'innerText', 'innerHTML', 'outerHTML', 'title', 'placeholder', 'ariaLabel', 'alt', 'text']);
-const METODOS_TEXTO = new Set(['setText', 'appendText', 'createTextNode', 'insertAdjacentHTML', 'write', 'writeln', 'alert', 'confirm', 'prompt']);
+const METODOS_TEXTO = new Set([
+  'setText', 'appendText', 'createTextNode', 'insertAdjacentHTML', 'write', 'writeln', 'alert', 'confirm', 'prompt',
+  'append', 'prepend', 'replaceChildren', 'replaceWith', 'before', 'after',
+]);
+/** Fábricas do Phaser e posição do argumento de texto: add.text(x, y, texto), add.bitmapText(x, y, fonte, texto). */
+const FABRICAS_DE_TEXTO = new Map([['text', 2], ['bitmapText', 3]]);
 const ATRIBUTOS_TEXTO = new Set(['aria-label', 'title', 'alt', 'placeholder']);
 /** Chaves de objeto cujo valor é CSS de fonte, não texto. */
 const CHAVES_FONTE = new Set(['font', 'fontFamily']);
@@ -197,9 +202,10 @@ const textos = {
           return;
         }
         const nome = propriedade(no.callee) ?? (no.callee.type === 'Identifier' ? no.callee.name : undefined);
-        if (nome === 'text' && no.callee.type === 'MemberExpression' && ['add', 'make'].includes(propriedade(no.callee.object))) {
+        if (FABRICAS_DE_TEXTO.has(nome) && no.callee.type === 'MemberExpression' && ['add', 'make'].includes(propriedade(no.callee.object))) {
           const cfg = no.arguments[0];
-          if (no.arguments[2]) literalNaTela(no, no.arguments[2]);
+          const arg = no.arguments[FABRICAS_DE_TEXTO.get(nome)];
+          if (arg) literalNaTela(no, arg);
           if (cfg && cfg.type === 'ObjectExpression') {
             for (const p of cfg.properties) if (p.type === 'Property' && nomeDe(p.key) === 'text') literalNaTela(no, p.value);
           }

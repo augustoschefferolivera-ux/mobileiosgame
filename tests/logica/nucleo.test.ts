@@ -68,6 +68,15 @@ describe('acumulador', () => {
     expect(total).toBe(60);
   });
 
+  it('fronteira do teto: 5 passos num frame não perdem nada; 6 perdem 1', () => {
+    const a5 = criarAcumulador();
+    expect(avancarAcumulador(a5, 5 * PASSO_MS)).toBe(5);
+    expect(a5.passosPerdidos).toBe(0);
+    const a6 = criarAcumulador();
+    expect(avancarAcumulador(a6, 6 * PASSO_MS)).toBe(5);
+    expect(a6.passosPerdidos).toBe(1);
+  });
+
   it('roda no máximo 5 passos e soma o excedente em passosPerdidos', () => {
     const acc = criarAcumulador();
     expect(avancarAcumulador(acc, 8 * PASSO_MS)).toBe(5);

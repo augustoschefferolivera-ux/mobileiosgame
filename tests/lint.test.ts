@@ -46,6 +46,8 @@ describe('fronteiras de src/logica (ADR-0002 §2 e §5)', () => {
     ['export const p = 2 ** 3;', 'no-restricted-syntax'],
     ['let p = 2;\np **= 3;\nexport { p };', 'no-restricted-syntax'],
     ['export const o = [3, 1].sort();', 'no-restricted-syntax'],
+    ["export const p = import('phaser');", 'no-restricted-syntax'],
+    ["export const v = eval('1');", 'no-restricted-globals'],
     ['export const t0 = process.hrtime();', 'no-restricted-globals'],
     ["import { performance as p } from 'node:perf_hooks';\nexport const x = p;", 'no-restricted-imports'],
     ["import { setTimeout as s } from 'timers';\nexport const x = s;", 'no-restricted-imports'],
@@ -99,6 +101,8 @@ describe('textos visíveis só por t(id) (ADR-0002 §11; Q-32)', () => {
     ["texto(cena, 0, 0, 'pausa', 18, 0);", 'idForaDoPadrao'],
     ["export const ids = ['A1.ACENDER.NAO_EXISTE'];", 'idAusente'],
     ["export const id = 'A1.acender.botao';", 'idForaDoPadrao'],
+    ["declare const c: { add: { bitmapText(x: number, y: number, f: string, s: string): void } };\nc.add.bitmapText(0, 0, 'fonte', 'pausa');", 'literalNaTela'],
+    ["declare const d: { append(s: string): void };\nd.append('pausa');", 'literalNaTela'],
   ])('%s → %s', async (codigo, mensagem) => {
     const [r] = await eslint.lintText(decl + codigo, { filePath: join(RAIZ, CENAS) });
     expect(r?.messages.map((m) => m.messageId)).toContain(mensagem);

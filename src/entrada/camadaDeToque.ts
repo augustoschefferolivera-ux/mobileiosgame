@@ -18,7 +18,6 @@ export function clienteParaPontos(clientX: number, clientY: number, caixa: Caixa
 export class CamadaDeToque {
   private readonly ouvintes: AoSoltar[] = [];
   private readonly ponto = { x: 0, y: 0 };
-  private caixa: Caixa = { left: 0, top: 0, width: LARGURA_LOGICA, height: ALTURA_LOGICA };
 
   constructor(
     private readonly alvo: HTMLElement,
@@ -26,14 +25,11 @@ export class CamadaDeToque {
   ) {}
 
   ligar(): void {
-    this.atualizarCaixa();
     for (const tipo of ['touchstart', 'touchmove', 'touchcancel'] as const) {
       this.alvo.addEventListener(tipo, this.impedir, NAO_PASSIVO);
     }
     this.alvo.addEventListener('touchend', this.aoTouchEnd, NAO_PASSIVO);
     if (this.aceitarMouse) this.alvo.addEventListener('mouseup', this.aoMouseUp);
-    window.addEventListener('resize', this.atualizarCaixa);
-    window.addEventListener('orientationchange', this.atualizarCaixa);
   }
 
   aoSoltar(fn: AoSoltar): void {
@@ -44,12 +40,6 @@ export class CamadaDeToque {
     const i = this.ouvintes.indexOf(fn);
     if (i >= 0) this.ouvintes.splice(i, 1);
   }
-
-  /** A caixa muda com o FIT (resize, rotação, barra do Safari). */
-  readonly atualizarCaixa = (): void => {
-    const r = this.alvo.getBoundingClientRect();
-    this.caixa = { left: r.left, top: r.top, width: r.width, height: r.height };
-  };
 
   private readonly impedir = (e: Event): void => {
     if (e.cancelable) e.preventDefault();
@@ -67,8 +57,9 @@ export class CamadaDeToque {
     this.avisar(e.clientX, e.clientY);
   };
 
+  /** A caixa é lida no próprio evento: o FIT muda com resize, rotação e a barra do Safari. */
   private avisar(clientX: number, clientY: number): void {
-    clienteParaPontos(clientX, clientY, this.caixa, this.ponto);
+    clienteParaPontos(clientX, clientY, this.alvo.getBoundingClientRect(), this.ponto);
     for (const fn of this.ouvintes.slice()) fn(this.ponto.x, this.ponto.y);
   }
 }
