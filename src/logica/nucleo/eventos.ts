@@ -11,9 +11,9 @@ export const PALAVRAS_POR_EVENTO = 8;
 export const BYTES_DO_ANEL = 4 + CAPACIDADE_DO_ANEL * PALAVRAS_POR_EVENTO * 4;
 
 /** Tipos de evento; os códigos só crescem no fim. */
-export const EVENTO = { acerto: 1, morte: 2, golpe: 3, pulso: 4 } as const;
+export const EVENTO = { acerto: 1, morte: 2, golpe: 3, pulso: 4, nivel: 5, carta: 6, onda: 7, bau: 8, item: 9, uniao: 10 } as const;
 /** Formas de ataque do evento; os códigos só crescem no fim. */
-export const FORMA = { ida: 1, volta: 2, estocada: 3, faca: 4, tick: 5 } as const;
+export const FORMA = { ida: 1, volta: 2, estocada: 3, faca: 4, tick: 5, onda: 6 } as const;
 /** Bits de flags. */
 export const FLAG = { critico: 1, matou: 2, convertido: 4 } as const;
 /** Causa de morte (as F-008 e F-009 acrescentam as suas). */
@@ -30,7 +30,15 @@ export const EV = {
   alvo: 2,
   /** tipo do inimigo | flags << 8 | causa << 16. */
   inimigoFlagsCausa: 3,
-  /** Os 4 Float32 (acerto: x, y, valor, 0; morte: x, y, 0, 0; golpe: dirX, dirY, alcance, meia-largura; pulso: 0, 0, R, empurrão). */
+  /**
+   * Os 4 Float32. acerto: x, y, valor, 0; morte: x, y, 0, 0; golpe: dirX, dirY,
+   * alcance, meia-largura; pulso: 0, 0, R, empurrão (F-004). F-005
+   * (design/decisoes-F-005.md E5): nivel: nível, XP restante; carta: nível
+   * ofertado, índice da carta (tipo de carta na forma, item na arma); onda: x,
+   * y, dirX, dirY (slot da onda no alvo); bau: x, y, índice de queda, itens
+   * (tipo do pickup na forma); item: nível resultante (categoria na forma,
+   * código na arma); uniao: código da passiva (o resultado na arma).
+   */
   floats: 4,
 } as const;
 

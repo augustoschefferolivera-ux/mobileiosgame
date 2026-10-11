@@ -11,6 +11,8 @@ import { alocar, liberar } from '../nucleo/pool';
 import type { DadosDaVigilia } from './dados';
 import { PASSOS_POR_MINUTO } from '../diretor/timeline';
 import { TIPO } from './tipos';
+import { desmarcarInimigo } from '../armas/ondas';
+import { soltarCinza } from '../progressao/pickups';
 
 /** Minuto da escala (Q-10): a linha fixa do cenário ou o minuto inteiro do relógio, até a última linha. */
 export function minutoDaEscala(e: Estado, dados: DadosDaVigilia): number {
@@ -87,9 +89,14 @@ export function nascerInimigoDoRascunho(e: Estado, dados: DadosDaVigilia, codigo
   return slot;
 }
 
-/** Libera o slot e zera os campos, sem efeito de morte (testes e rotação do cenário). */
+/**
+ * Libera o slot e zera os campos, sem efeito de morte (testes e rotação do
+ * cenário). Tira a marca do slot nas ondas vivas (decisoes-F-005 U4): um
+ * inimigo novo no mesmo slot nunca herda o "já acertou".
+ */
 export function removerInimigo(e: Estado, slot: number): void {
   liberar(e.pool, slot);
+  desmarcarInimigo(e, slot);
   const ini = e.inimigos;
   ini.x[slot] = ini.y[slot] = ini.xAnt[slot] = ini.yAnt[slot] = ini.hp[slot] = ini.dano[slot] = 0;
   ini.tipo[slot] = 0;
@@ -100,10 +107,11 @@ export function removerInimigo(e: Estado, slot: number): void {
 /**
  * Morte de um inimigo (M3): grava o evento `morte` com o handle da geração
  * que morreu, a posição, o tipo, a causa e o bit de convertido; soma 1 em
- * `mortes` se a causa é arma; e só então remove. Chamada só pela varredura do
- * fim da fase de armas. As Cinzas de XP (F-005) saem daqui.
+ * `mortes` se a causa é arma; solta a Cinza de XP, só com causa arma
+ * (decisoes-F-005 X3); e só então remove. Chamada só pela varredura do fim da
+ * fase de armas.
  */
-export function matarInimigo(e: Estado, slot: number, causa: number): void {
+export function matarInimigo(e: Estado, dados: DadosDaVigilia, slot: number, causa: number): void {
   const ini = e.inimigos;
   FLOATS_DO_EVENTO[0] = ini.x[slot]!;
   FLOATS_DO_EVENTO[1] = ini.y[slot]!;
@@ -111,7 +119,10 @@ export function matarInimigo(e: Estado, slot: number, causa: number): void {
   FLOATS_DO_EVENTO[3] = 0;
   const flags = ini.convertido[slot] === 1 ? FLAG.convertido : 0;
   gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.morte, 0, 0, slot, e.pool.geracao[slot]!, ini.tipo[slot]!, flags, causa);
-  if (causa === CAUSA.arma) e.mundo[MUNDO.mortes] = e.mundo[MUNDO.mortes]! + 1;
+  if (causa === CAUSA.arma) {
+    e.mundo[MUNDO.mortes] = e.mundo[MUNDO.mortes]! + 1;
+    soltarCinza(e, dados, slot);
+  }
   removerInimigo(e, slot);
 }
 
