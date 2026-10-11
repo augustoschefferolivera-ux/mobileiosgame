@@ -1,67 +1,13 @@
 // F-001 na Playwright (projeto taps-game): F-001.2, .3, .4, .6, .7 (meta), .8,
 // .11 e .15. A seed vem de VDC_SEED (o --seed do scripts/verify.sh).
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { alvosDoAcender } from '../src/entrada/alvos';
 import { BYTES_ESTADO } from '../src/logica/nucleo/estado';
-import { PASSOS_REFERENCIA, ROTEIRO_REFERENCIA, SEED_PADRAO } from '../src/logica/nucleo/referencia';
+import { PASSOS_REFERENCIA, ROTEIRO_REFERENCIA } from '../src/logica/nucleo/referencia';
 import { insetsZerados, type Insets } from '../src/plataforma/safeArea';
-
-const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SEED = Number(process.env['VDC_SEED'] ?? SEED_PADRAO);
-const EVIDENCIAS = process.env['VDC_EVIDENCIAS'] === '1';
-
-interface Debug {
-  fps: number;
-  passo: number;
-  relogio: number;
-  estado: string;
-  vivos: Record<string, number>;
-  passos_perdidos: number;
-  recusados: Record<string, number>;
-  memoriaEstimadaMB: number;
-  safeArea: { topo: number; direita: number; baixo: number; esquerda: number };
-  seed: number;
-  textoAtivo: string[];
-  eventos: { evento: string; passo: number; campos: Record<string, unknown> }[];
-  desbloqueioDoAudio: string | null;
-  somTravado: boolean;
-  entrada: { roteiro(lista: unknown): void };
-  hash(): string | null;
-  audio(): string;
-  pausar(): void;
-  retomar(): void;
-  avancar(n: number): void;
-}
-declare global {
-  interface Window {
-    __GAME_DEBUG__: Debug;
-  }
-}
-
-async function abrir(page: Page): Promise<void> {
-  await page.goto(`/?seed=${SEED}`);
-  await page.waitForFunction(() => window.__GAME_DEBUG__?.estado === 'ACENDER');
-}
-
-/** Ponto lógico (pt) → coordenada da página, pela caixa do canvas. */
-async function paraPagina(page: Page, x: number, y: number): Promise<{ x: number; y: number }> {
-  const caixa = await page.locator('#jogo canvas').boundingBox();
-  if (!caixa) throw new Error('canvas sem caixa');
-  return { x: caixa.x + (x * caixa.width) / 390, y: caixa.y + (y * caixa.height) / 844 };
-}
-
-async function tocarAcender(page: Page, insets: Insets = insetsZerados()): Promise<void> {
-  const b = alvosDoAcender(insets, [])[0]!;
-  const p = await paraPagina(page, b.x + b.largura / 2, b.y + b.altura / 2);
-  await page.touchscreen.tap(p.x, p.y);
-  await page.waitForFunction(() => window.__GAME_DEBUG__.estado === 'VIGILIA');
-}
-
-const proximoFrame = (page: Page): Promise<void> =>
-  page.evaluate(() => new Promise<void>((ok) => requestAnimationFrame(() => requestAnimationFrame(() => ok()))));
+import { EVIDENCIAS, RAIZ, SEED, abrir, paraPagina, proximoFrame, tocarAcender } from './apoio';
 
 test('F-001.2 e F-001.7: 390 × 844 sem barras de rolagem, viewport-fit=cover e screenshot', async ({ page }, info) => {
   await abrir(page);
