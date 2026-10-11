@@ -27,6 +27,7 @@ import { MedidorDeQuadros } from './medidas';
 import { instalarPainelDeDebug } from '../plataforma/painelDeDebug';
 import { COR, ESCALA_DO_CANVAS } from './estilo';
 import { t } from './textos';
+import { Modal } from './Modal';
 import { Vigilia } from './Vigilia';
 
 export const LARGURA_CANVAS = LARGURA_LOGICA * ESCALA_DO_CANVAS;
@@ -130,7 +131,7 @@ export function iniciarJogo(): Phaser.Game | null {
         if (ehBuildDeDebug) ligarTecladoDeDebug(window, ctx.entrada.tradutor.teclado);
       },
     },
-    scene: [new Boot(ctx), new Acender(ctx), new Vigilia(ctx), new Hud(ctx), new Pausa(ctx)],
+    scene: [new Boot(ctx), new Acender(ctx), new Vigilia(ctx), new Hud(ctx), new Modal(ctx), new Pausa(ctx)],
   });
   const debug = instalarDebug(jogo, ctx);
   if (ctx.debug) instalarPainelDeDebug(document, () => instantaneoDoDebug(debug));

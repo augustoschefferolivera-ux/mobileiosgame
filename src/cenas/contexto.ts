@@ -44,6 +44,12 @@ export interface Simulacao {
    * e o render congela o alfa enquanto ela está ativa.
    */
   readonly pausa: { ativa: boolean; origem: OrigemDaPausa | null; alfa: number };
+  /**
+   * Modal da simulação (level up ou baú; design/decisoes-F-005.md M1 a M5): a
+   * carta selecionada é estado da UI, fora da simulação; só a confirmação chama
+   * confirmarModal.
+   */
+  readonly modal: { selecionada: number | null };
   /** O escritor da horda desta Vigília, para o debug. */
   horda: EscritorDaHorda | null;
   /** Consumidor do anel de eventos e pools do render (números, mortes, efeitos), para o debug. */
