@@ -24,6 +24,8 @@ import {
 } from '../../src/logica/nucleo/estado';
 import { avancar } from '../../src/logica/nucleo/passo';
 import { PASSOS_REFERENCIA, ROTEIRO_REFERENCIA, SEED_PADRAO } from '../../src/logica/nucleo/referencia';
+import { RAIO_DO_JOGADOR } from '../../src/logica/mundo/jogador';
+import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, deltaNoToro } from '../../src/logica/mundo/toro';
 import { criarDadosDaVigilia, type DadosDaVigilia } from '../../src/logica/mundo/dados';
 import charneca from '../../src/dados/regioes/charneca_das_lanternas.json';
 import { DADOS_DA_CHARNECA as D } from './apoio';
@@ -100,6 +102,8 @@ describe('determinismo (F-001.1)', () => {
     let cruzouX = -1;
     let cruzouY = -1;
     let freados = 0;
+    let primeiroTocado = -1;
+    const o = D.obstaculos;
     for (let k = 0; k < PASSOS_REFERENCIA; k++) {
       const [x0, y0] = [e.jogador[JOGADOR.x]!, e.jogador[JOGADOR.y]!];
       avancar(e, D, fonte, 1);
@@ -108,9 +112,15 @@ describe('determinismo (F-001.1)', () => {
       if (Math.abs(y - y0) > 1000 && cruzouY < 0) cruzouY = k;
       const d = Math.sqrt((Math.abs(x - x0) > 500 ? 0 : x - x0) ** 2 + (Math.abs(y - y0) > 1000 ? 0 : y - y0) ** 2);
       if (k >= 25 && d > 0.1 && d < 2.39) freados++;
+      for (let i = 0; i < o.n && primeiroTocado < 0; i++) {
+        const dx = deltaNoToro(o.x[i]!, x, LARGURA_DO_MAPA);
+        const dy = deltaNoToro(o.y[i]!, y, ALTURA_DO_MAPA);
+        if (Math.sqrt(dx * dx + dy * dy) < o.r[i]! + RAIO_DO_JOGADOR + 1e-3) primeiroTocado = i;
+      }
     }
-    expect(cruzouX).toBeGreaterThan(0);
-    expect(cruzouY).toBeGreaterThan(cruzouX);
+    // Os fatos que referencia.ts e o ADR-0004 §2 descrevem.
+    expect([cruzouX, cruzouY]).toEqual([258, 962]);
+    expect([o.x[primeiroTocado], o.y[primeiroTocado]]).toEqual([230, 1278]);
     expect(freados, 'passos de deslize (deslocamento menor que 2,4 px)').toBeGreaterThan(20);
     log.push(`roteiro: costura x no passo ${cruzouX}, costura y no passo ${cruzouY}, ${freados} passos de deslize`);
   });

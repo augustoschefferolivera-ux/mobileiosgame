@@ -19,9 +19,9 @@ const ponto: Ponto = { x: 0, y: 0 };
 
 /**
  * Move o jogador um passo e devolve se havia intenção de movimento. A
- * intenção acima de |v| = 1 é reduzida ao círculo; NaN conta como parada.
- * Ordem (§3): guarda a posição anterior, soma o deslocamento, colide e
- * normaliza no toro em Float32.
+ * intenção acima de |v| = 1 é reduzida ao círculo; NaN e infinito contam como
+ * parada. Ordem (§3), em todo passo, mesmo parado: guarda a posição anterior,
+ * soma o deslocamento, colide e normaliza no toro em Float32.
  */
 export function moverJogador(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): boolean {
   const j = e.jogador;
@@ -32,20 +32,24 @@ export function moverJogador(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPa
   let mx = cmd.movimento[0]!;
   let my = cmd.movimento[1]!;
   const m2 = mx * mx + my * my;
-  if (!(m2 > 0)) return false;
-  const m = Math.sqrt(m2);
-  j[JOGADOR.dirX] = mx / m;
-  j[JOGADOR.dirY] = my / m;
-  if (m > 1) {
-    mx /= m;
-    my /= m;
+  const temIntencao = m2 > 0 && m2 < Infinity;
+  let dx = 0;
+  let dy = 0;
+  if (temIntencao) {
+    const m = Math.sqrt(m2);
+    j[JOGADOR.dirX] = mx / m;
+    j[JOGADOR.dirY] = my / m;
+    if (m > 1) {
+      mx /= m;
+      my /= m;
+    }
+    dx = mx * dados.velocidadePorPasso;
+    dy = my * dados.velocidadePorPasso;
   }
-  const dx = mx * dados.velocidadePorPasso;
-  const dy = my * dados.velocidadePorPasso;
   colidirComObstaculos(dados.obstaculos, x + dx, y + dy, RAIO_DO_JOGADOR, dx, dy, false, ponto);
   j[JOGADOR.x] = normalizarNoToro(ponto.x, LARGURA_DO_MAPA);
   j[JOGADOR.y] = normalizarNoToro(ponto.y, ALTURA_DO_MAPA);
-  return true;
+  return temIntencao;
 }
 
 /**

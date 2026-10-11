@@ -38,7 +38,7 @@ export interface TrechoDeRoteiro {
 }
 export type Roteiro = readonly TrechoDeRoteiro[];
 
-/** Tolerância do |v| ≤ 1: 1/√2 em Float32 é um pouco maior que o real. */
+/** Tolerância do |v| ≤ 1: com o literal 1/√2 em double, 2 × r² dá 1,0000000000000002. */
 const FOLGA_DO_MODULO = 1e-6;
 
 /** Lança erro se os passos não crescerem estritamente a partir de 0 ou algum |v| passar de 1. */

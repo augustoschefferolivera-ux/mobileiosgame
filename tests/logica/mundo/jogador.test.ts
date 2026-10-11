@@ -58,13 +58,33 @@ describe('velocidade (F-002.5, B §3.3)', () => {
     expect([e.jogador[J.xAnt], e.jogador[J.yAnt]]).toEqual([x1, y1]);
   });
 
-  it('intenção acima de |v| = 1 é reduzida ao círculo; NaN conta como parada', () => {
+  it('intenção acima de |v| = 1 é reduzida ao círculo', () => {
     const e = criarEstado(1, VAZIO);
     passo(e, VAZIO, intencao(3, 4));
     const [x, y] = pos(e);
     expect(Math.sqrt((x - VAZIO.inicioX) ** 2 + (y - VAZIO.inicioY) ** 2)).toBeCloseTo(2.4, 4);
-    passo(e, VAZIO, intencao(Number.NaN, 0));
-    expect(pos(e)).toEqual([x, y]);
+  });
+
+  it.each([
+    ['NaN', Number.NaN, 0],
+    ['infinito', Infinity, 0],
+    ['−infinito em y', 0, -Infinity],
+  ])('%s conta como parada: não anda, não gira e não cumpre o prompt', (_nome, mx, my) => {
+    const e = criarEstado(1, VAZIO);
+    passo(e, VAZIO, intencao(mx, my));
+    expect(pos(e)).toEqual([VAZIO.inicioX, VAZIO.inicioY]);
+    expect([e.jogador[J.dirX], e.jogador[J.dirY]]).toEqual([0, -1]);
+    expect(prompt(e)).toBe(PROMPT.aguardando);
+    expect(Array.from(e.jogador).some(Number.isNaN)).toBe(false);
+  });
+
+  it('o 1º passo da Vigília é o passo 0 do roteiro', () => {
+    const e = criarEstado(1, VAZIO);
+    const fonte = fonteDoRoteiro([{ passo: 0, mx: 0, my: 0 }, { passo: 1, mx: 1, my: 0 }]);
+    avancar(e, VAZIO, fonte, 1);
+    expect(pos(e)[0]).toBe(VAZIO.inicioX);
+    avancar(e, VAZIO, fonte, 1);
+    expect(pos(e)[0]).toBeCloseTo(VAZIO.inicioX + 2.4, 4);
   });
 
   it('a posição fica em Float32 no toro, e xAnt/yAnt guardam a do passo anterior', () => {
@@ -81,6 +101,13 @@ describe('velocidade (F-002.5, B §3.3)', () => {
 
 describe('colisão do jogador (F-002.6)', () => {
   const um = criarDadosDaVigilia({ ...charneca, obstaculos: [{ x: 700, y: 1266, tamanho_px: 80 }] }, { velocidade: 1 });
+
+  it('a colisão roda em todo passo, mesmo parado: quem está dentro de um obstáculo é empurrado para fora', () => {
+    const sobre = criarDadosDaVigilia({ ...charneca, obstaculos: [{ x: 600, y: 1266, tamanho_px: 80 }] }, { velocidade: 1 });
+    const e = criarEstado(1, sobre);
+    passo(e, sobre, intencao(0, 0));
+    expect(pos(e)).toEqual([600 - 40 - RAIO_DO_JOGADOR, 1266]);
+  });
 
   it('empurrado contra um obstáculo, para na borda e não o atravessa', () => {
     const e = criarEstado(1, um);

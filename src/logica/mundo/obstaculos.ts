@@ -9,6 +9,13 @@ import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, deltaNoToro } from './toro';
 
 /** Iterações por passo: a 2ª resolve o empurrão de um obstáculo para dentro de outro (junções). */
 export const ITERACOES_DE_COLISAO = 2;
+/**
+ * Tangente "nula" do desempate, relativa ao comprimento do movimento. Com a
+ * tangente exatamente nula como limite, uma reta 2:1 pelo centro deixava o
+ * deslize por passo abaixo de meio ulp do Float32: o corpo ficava preso para
+ * sempre (ADR-0004 §3).
+ */
+export const TOLERANCIA_DO_DESEMPATE = 1e-3;
 
 export interface Obstaculos {
   readonly n: number;
@@ -73,10 +80,11 @@ export interface Ponto {
  * do movimento fica tangente, e o corpo desliza junto à borda.
  *
  * `movX`/`movY` é o deslocamento do passo. Com `desempate` (inimigos), se a
- * componente tangente dele for exatamente nula e ele apontar para dentro do
- * obstáculo, o corpo desliza ao longo da normal girada +90° (−ny, nx), pelo
- * mesmo comprimento. O jogador não usa o desempate: andar de frente para um
- * obstáculo só para.
+ * componente tangente dele for nula (até TOLERANCIA_DO_DESEMPATE × |mov|) e ele
+ * apontar para dentro do obstáculo, o corpo desliza ao longo da normal girada
+ * +90° (−ny, nx), ou no sentido oposto se a tangente for negativa, pelo
+ * comprimento da componente normal. O jogador não usa o desempate: andar de
+ * frente para um obstáculo só para.
  *
  * Escreve a posição em `out`, sem normalizar no toro (quem chama normaliza) e
  * devolve quantos empurrões houve.
@@ -94,6 +102,7 @@ export function colidirComObstaculos(
   let px = x;
   let py = y;
   let empurroes = 0;
+  const tangenteNula = desempate ? TOLERANCIA_DO_DESEMPATE * Math.sqrt(movX * movX + movY * movY) : 0;
   for (let it = 0; it < ITERACOES_DE_COLISAO; it++) {
     for (let i = 0; i < o.n; i++) {
       const dx = deltaNoToro(o.x[i]!, px, LARGURA_DO_MAPA);
@@ -115,9 +124,10 @@ export function colidirComObstaculos(
       if (desempate) {
         const tangente = -ny * movX + nx * movY;
         const normal = nx * movX + ny * movY;
-        if (tangente === 0 && normal < 0) {
-          px += -ny * -normal;
-          py += nx * -normal;
+        if (normal < 0 && Math.abs(tangente) <= tangenteNula) {
+          const sentido = tangente < 0 ? normal : -normal;
+          px += -ny * sentido;
+          py += nx * sentido;
         }
       }
     }

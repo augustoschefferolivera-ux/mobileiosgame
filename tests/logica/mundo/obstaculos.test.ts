@@ -76,6 +76,31 @@ describe.each([16, 24])('corpo de raio %s px', (r) => {
     expect(Math.abs(com.x - 800) + Math.abs(com.y - 600)).toBeLessThan(PASSO_PX);
   });
 
+  it.each([
+    ['reta 2:1 pelo centro', 400, 500, 800, 700, true],
+    ['alvo a 0,001 px da linha dos centros', 400, 600, 800, 600.001, true],
+    // Sai sozinho, mas só depois de ≈ 340 passos (5,7 s) roçando o obstáculo.
+    ['alvo a 0,01 px da linha dos centros', 400, 600, 800, 600.01, false],
+  ])('desempate com tangente quase nula (%s): o corpo não fica preso', (_nome, x0, y0, ax, ay, presoSemDesempate) => {
+    const sem = andar(o, x0, y0, r, 2000, ate(ax, ay), false);
+    const com = andar(o, x0, y0, r, 400, ate(ax, ay), true);
+    if (presoSemDesempate) expect(Math.abs(sem.x - ax) + Math.abs(sem.y - ay), 'sem o desempate fica preso').toBeGreaterThan(100);
+    expect(com.menorFolga).toBeGreaterThan(-1e-3);
+    expect(Math.abs(com.x - ax) + Math.abs(com.y - ay)).toBeLessThan(PASSO_PX);
+  });
+
+  it('desempate: com a tangente quase nula, desliza para o lado em que o movimento pende', () => {
+    const p = { x: 0, y: 0 };
+    for (const [movY, lado] of [
+      [1e-4, 1],
+      [-1e-4, -1],
+    ] as const) {
+      colidirComObstaculos(o, 600 - 40 - r + 1, 600, r, PASSO_PX, movY, true, p);
+      expect(Math.sign(p.y - 600), `movY = ${movY}`).toBe(lado);
+      expect(Math.abs(p.y - 600)).toBeGreaterThan(2);
+    }
+  });
+
   it('desempate: gira a normal +90° (−ny, nx); em world, n = (−1, 0) vai para (0, −1)', () => {
     const p = { x: 0, y: 0 };
     // O corpo encosta pela esquerda (n = (−1, 0)) andando para +x.
@@ -105,6 +130,22 @@ describe('casos de borda', () => {
     const fim = andar(o, 1150, 500, 16, 100, reto(PASSO_PX, 0), false);
     expect(fim.contatos).toBeGreaterThan(0);
     expect(fim.x).toBeCloseTo(W - 16, 3);
+    expect(fim.menorFolga).toBeGreaterThan(-1e-3);
+  });
+
+  it('cruzando a costura em y: o obstáculo junto de y = 0 bloqueia quem vem de y = 2.500', () => {
+    const o = criarObstaculos([um(300, 40, 80)]);
+    const fim = andar(o, 300, 2500, 16, 100, reto(0, PASSO_PX), false);
+    expect(fim.contatos).toBeGreaterThan(0);
+    expect(fim.y).toBeCloseTo(H - 16, 3);
+    expect(fim.menorFolga).toBeGreaterThan(-1e-3);
+  });
+
+  it('cruzando a costura em x para −x: o obstáculo junto de x = W bloqueia quem vem de x = 20', () => {
+    const o = criarObstaculos([um(W - 40, 500, 80)]);
+    const fim = andar(o, 20, 500, 16, 100, reto(-PASSO_PX, 0), false);
+    expect(fim.contatos).toBeGreaterThan(0);
+    expect(fim.x).toBeCloseTo(16, 3);
     expect(fim.menorFolga).toBeGreaterThan(-1e-3);
   });
 
