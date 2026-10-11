@@ -9,6 +9,8 @@ import { CAPACIDADE_DE_INIMIGOS } from '../../logica/nucleo/estado';
 import { CHAVE_DO_ATLAS, type NomeDaMoldura } from './atlas';
 import type { DesenhoDoTipo, SaidaDaHorda } from './horda';
 
+export { tintOpaco } from './horda';
+
 /** Floats por membro do SpriteGPULayer no Phaser 4.2.1 (168 bytes). */
 export const FLOATS_POR_MEMBRO = 42;
 /** Offsets, em floats, dos campos que o sincronizador escreve (JSDoc de getMemberData). */
@@ -34,10 +36,6 @@ export interface EscritorDaHorda {
   liberar(): void;
 }
 
-/** Tint como o Phaser grava (Utils.getTintAppendFloatAlpha com alpha 1). */
-export function tintOpaco(cor: number): number {
-  return (0xff000000 | cor) >>> 0;
-}
 
 /** Cria o SpriteGPULayer da horda (ou o de aquecimento), com os membros invisíveis. */
 export function criarLayerDaHorda(cena: Phaser.Scene, capacidade: number, dinamico: boolean): Phaser.GameObjects.SpriteGPULayer {
@@ -120,7 +118,7 @@ export class HordaPorGPU implements EscritorDaHorda {
       f32[base + OFFSET.escalaY] = d.escala;
       f32[base + OFFSET.alpha] = 1;
       f32[base + OFFSET.moldura] = this.indiceDaMoldura[d.moldura]!;
-      const tint = tintOpaco(d.cor);
+      const tint = d.tint;
       u32[base + OFFSET.tint] = tint;
       u32[base + OFFSET.tint + 1] = tint;
       u32[base + OFFSET.tint + 2] = tint;

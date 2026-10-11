@@ -16,7 +16,7 @@ const URL_EXTRA = '&cenario=horda_rotativa&teto=300';
 const AQUECIMENTO_MS = 90_000;
 /** Inimigos que a rotação remove a cada 60 passos (horda_rotativa.json): entre a remoção e a reposição, há 290 vivos. */
 const ROTACAO = 10;
-/** Limites provisórios até as 3 rodadas de calibração (ADR-0005). */
+/** Limites de D3 §8, mantidos depois das 3 rodadas de calibração (ADR-0005 §7). */
 const LIMITE_BYTES = 32_768;
 const LIMITE_POR_GRUPO = 100;
 /** Lista fechada de exclusões, com o motivo (o relatório a repete). */

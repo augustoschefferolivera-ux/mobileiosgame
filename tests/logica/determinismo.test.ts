@@ -34,7 +34,8 @@ import { RAIO_DO_JOGADOR } from '../../src/logica/mundo/jogador';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, deltaNoToro } from '../../src/logica/mundo/toro';
 import type { DadosDaVigilia } from '../../src/logica/mundo/dados';
 import charneca from '../../src/dados/regioes/charneca_das_lanternas.json';
-import { DADOS_DA_CHARNECA as D, SEM_HORDA, dadosDe } from './apoio';
+import { parametrosDoCenario } from '../../src/plataforma/cenarios';
+import { DADOS_DA_CHARNECA as D, PARADO, SEM_HORDA, dadosDe } from './apoio';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SEED = Number(process.env['VDC_SEED'] ?? SEED_PADRAO);
@@ -43,6 +44,16 @@ const log: string[] = [];
 function executar(seed: number, n: number, roteiro: Roteiro = ROTEIRO_REFERENCIA, dados: DadosDaVigilia = D): number {
   const e = criarEstado(seed, dados);
   avancar(e, dados, fonteDoRoteiro(roteiro), n);
+  return hashEstado(e);
+}
+
+/** Passos do cenário horda até a captura E3 (design/decisoes-F-003.md §8). */
+const PASSOS_DA_HORDA = 1800;
+
+/** O cenário horda da Playwright (?cenario=horda&teto=300), parado, até o passo da captura. */
+function executarHorda(seed: number): number {
+  const e = criarEstado(seed, D, { ...parametrosDoCenario('horda'), teto: 300 });
+  avancar(e, D, PARADO, PASSOS_DA_HORDA);
   return hashEstado(e);
 }
 
@@ -108,6 +119,12 @@ describe('determinismo (F-001.1)', () => {
     avancar(b, D, fonte, PASSOS_REFERENCIA - 500);
     expect(hashEstado(b)).toBe(hashEstado(a));
     expect(hashEstado(a)).toBe(executar(SEED, PASSOS_REFERENCIA));
+  });
+
+  it('cenário horda (300 vivos, linha 19): duas execuções de 1.800 passos dão o mesmo hash, que a Playwright compara', () => {
+    const a = executarHorda(SEED);
+    expect(executarHorda(SEED)).toBe(a);
+    log.push(`cenario horda: seed=${SEED} passos=${PASSOS_DA_HORDA} hash=${hex8(a)} (comparado pela Playwright no E3)`);
   });
 
   it('trilha a cada 100 passos, com o hash por seção (ADR-0002 §5)', () => {
@@ -229,6 +246,10 @@ afterAll(() => {
   writeFileSync(
     join(RAIZ, '.verify', 'referencia-f001.json'),
     JSON.stringify({ seed: SEED, passos: PASSOS_REFERENCIA, hash: hex8(hash) }, null, 2) + '\n',
+  );
+  writeFileSync(
+    join(RAIZ, '.verify', 'referencia-horda.json'),
+    JSON.stringify({ seed: SEED, passos: PASSOS_DA_HORDA, hash: hex8(executarHorda(SEED)) }, null, 2) + '\n',
   );
   const dir = join(RAIZ, 'production', 'evidencias', 'F-001');
   mkdirSync(dir, { recursive: true });

@@ -60,8 +60,18 @@ describe('prepararHorda', () => {
 describe('tabela de desenho', () => {
   it('massa em círculo de 32 pt e médios em quadrado de 48 pt, com as cores de estilo.ts; o resto fica null', () => {
     const tabela = criarTabelaDeDesenho(inimigos.inimigos, D.tipos.existe);
-    expect(tabela[TIPO.oco_das_lanternas]).toEqual({ moldura: 'massa', escala: escalaPara('massa', 32), cor: COR_DO_INIMIGO['oco_das_lanternas'] });
-    expect(tabela[TIPO.oco_grande]).toEqual({ moldura: 'quadrado', escala: escalaPara('quadrado', 48), cor: COR_DO_INIMIGO['oco_grande'] });
+    expect(tabela[TIPO.oco_das_lanternas]).toEqual({
+      moldura: 'massa',
+      escala: escalaPara('massa', 32),
+      cor: COR_DO_INIMIGO['oco_das_lanternas'],
+      tint: tintOpaco(COR_DO_INIMIGO['oco_das_lanternas']!),
+    });
+    expect(tabela[TIPO.oco_grande]).toEqual({
+      moldura: 'quadrado',
+      escala: escalaPara('quadrado', 48),
+      cor: COR_DO_INIMIGO['oco_grande'],
+      tint: tintOpaco(COR_DO_INIMIGO['oco_grande']!),
+    });
     expect(tabela[TIPO.novica_de_sal]).toMatchObject({ moldura: 'quadrado', cor: COR_DO_INIMIGO['novica_de_sal'] });
     expect([tabela[TIPO.vazio], tabela[TIPO.oco_grande_coroado], tabela[TIPO.o_lanterneiro]]).toEqual([null, null, null]);
     expect(escalaPara('massa', 32)).toBe(0.5);

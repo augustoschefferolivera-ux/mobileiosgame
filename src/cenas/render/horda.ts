@@ -11,11 +11,17 @@ import { ESCALA_DO_CANVAS } from '../escala';
 import { COR_DO_INIMIGO } from '../paleta';
 import { escalaPara, type NomeDaMoldura } from './atlas';
 
-/** Como desenhar um tipo: moldura do atlas, escala e cor (tint). */
+/** Como desenhar um tipo: moldura do atlas, escala, cor e o tint já empacotado (calculado uma vez, fora do laço). */
 export interface DesenhoDoTipo {
   readonly moldura: NomeDaMoldura;
   readonly escala: number;
   readonly cor: number;
+  readonly tint: number;
+}
+
+/** Tint como o Phaser grava (Utils.getTintAppendFloatAlpha com alpha 1). */
+export function tintOpaco(cor: number): number {
+  return (0xff000000 | cor) >>> 0;
 }
 
 /** O que se lê de cada inimigo de inimigos.json para desenhar. */
@@ -39,7 +45,7 @@ export function criarTabelaDeDesenho(inimigos: readonly FormaDoJson[], existe: U
     const cor = COR_DO_INIMIGO[id];
     if (!i || i.tamanho_px === null || cor === undefined) throw new Error(`desenho: ${id} nasce sem tamanho ou sem cor`);
     const moldura: NomeDaMoldura = i.forma === 'circulo' ? 'massa' : i.forma === 'quadrado' ? 'quadrado' : falha(id, i.forma);
-    tabela[codigo] = { moldura, escala: escalaPara(moldura, i.tamanho_px), cor };
+    tabela[codigo] = { moldura, escala: escalaPara(moldura, i.tamanho_px), cor, tint: tintOpaco(cor) };
   }
   return tabela;
 }

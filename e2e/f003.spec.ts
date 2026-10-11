@@ -4,7 +4,7 @@
 // dois modos de render (com o slot morto), a igualdade gpu × image × buffer
 // dinâmico e o F-003.4 (E1). O F-003.7 (heap de 60 s) fica em f003-heap.spec.ts.
 import { expect, test, type Page } from '@playwright/test';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { COR, COR_DO_INIMIGO } from '../src/cenas/paleta';
 import { ALTURA_DO_MAPA as H, LARGURA_DO_MAPA as W, deltaNoToro } from '../src/logica/mundo/toro';
@@ -161,6 +161,29 @@ test('render padrão (gpu, buffer estático, stride 42) e o aquecimento: o progr
   expect(await page.evaluate(() => window.__GAME_DEBUG__.render)).toMatchObject({ modo: 'image', stride: null });
 });
 
+test('sem unidade de textura no vertex shader, a horda cai sozinha para image (render.origem = fallback, §7)', async ({ page }) => {
+  await page.addInitScript(() => {
+    const MAX_VERTEX_TEXTURE_IMAGE_UNITS = 0x8b4c;
+    for (const contexto of [WebGLRenderingContext, WebGL2RenderingContext]) {
+      const original = contexto.prototype.getParameter;
+      contexto.prototype.getParameter = function (this: WebGLRenderingContext, p: number): unknown {
+        return p === MAX_VERTEX_TEXTURE_IMAGE_UNITS ? 0 : original.call(this, p);
+      };
+    }
+  });
+  await abrir(page, HORDA);
+  expect(await page.evaluate(() => window.__GAME_DEBUG__.render)).toMatchObject({ modo: 'image', origem: 'fallback' });
+  await tocarAcender(page);
+  await pausarNoPasso(page, 600);
+  const d = await page.evaluate(() => ({ render: window.__GAME_DEBUG__.render, vivos: window.__GAME_DEBUG__.vivos }));
+  expect(d.render).toMatchObject({ modo: 'image', origem: 'fallback', stride: null });
+  expect(totalDeVivos(d.vivos)).toBe(300);
+  const { lista, jogador } = await naTela(page);
+  const visiveis = escolher(lista, jogador, 5, false);
+  const lidas = await cores(page, await pixelsDoCanvas(page), visiveis);
+  visiveis.forEach((a, i) => expect(perto(lidas[i]!, rgb(COR_DO_INIMIGO[a.tipo]!)), `slot ${a.slot} = ${lidas[i]}`).toBe(true));
+});
+
 test('evidência (E3): captura do debug com 300 vivos no passo 1.800 do cenário horda', async ({ page }, info) => {
   await abrirHorda(page, '&debug=1');
   await pausarNoPasso(page, 1800);
@@ -174,6 +197,19 @@ test('evidência (E3): captura do debug com 300 vivos no passo 1.800 do cenário
   expect(d.vivos.oco_das_lanternas + d.vivos.oco_grande + d.vivos.novica_de_sal).toBe(300);
   expect([d.teto.valor, d.cenario, d.recusados.inimigos, d.seed]).toEqual([300, 'horda', 0, SEED]);
   expect(d.diretor).toMatchObject({ linha: 19, alvo: 300, spawns: 300 });
+  // O mesmo hash do Node no passo 1.800 do cenário horda (a referência é do Vitest, design/decisoes-F-003.md §6).
+  const arquivo = join(RAIZ, '.verify', 'referencia-horda.json');
+  expect(existsSync(arquivo), 'rode o Vitest antes (scripts/verify.sh grava a referência)').toBe(true);
+  const ref = JSON.parse(readFileSync(arquivo, 'utf-8')) as { seed: number; passos: number; hash: string };
+  expect([ref.seed, ref.passos]).toEqual([SEED, 1800]);
+  const hash = await page.evaluate(() => window.__GAME_DEBUG__.hash());
+  if (EVIDENCIAS) {
+    appendFileSync(
+      join(RAIZ, 'production', 'evidencias', 'F-001', 'determinismo.log'),
+      `chromium (Playwright), cenário horda: seed=${SEED} passos=1800 hash=${hash} iguais=${hash === ref.hash}\n`,
+    );
+  }
+  expect(hash).toBe(ref.hash);
   const painel = await page.locator('pre.painel-debug').textContent();
   expect(painel).toContain('vivos 300');
   expect(painel).toContain('passo 1800');
@@ -238,7 +274,7 @@ test('F-003.4 (E1): 300 vivos por 30 s com CPU 4×; passo + resto até PRE_RENDE
   try {
     await tocarAcender(page);
     await page.waitForTimeout(10_000);
-    const n0 = await page.evaluate(() => window.__GAME_DEBUG__.quadrosContados);
+    const inicio = await page.evaluate(() => ({ n0: window.__GAME_DEBUG__.quadrosContados, t0: performance.now() }));
     const leituras: { vivos: number; fps: number; drawCalls: number | null; passosPerdidos: number }[] = [];
     for (let i = 0; i < 30; i++) {
       await page.waitForTimeout(1000);
@@ -257,14 +293,18 @@ test('F-003.4 (E1): 300 vivos por 30 s com CPU 4×; passo + resto até PRE_RENDE
     }
     const fim = await page.evaluate(() => {
       const d = window.__GAME_DEBUG__;
-      return { n1: d.quadrosContados, quadros: d.quadros(), webgl: d.webgl, render: d.render, seed: d.seed };
+      return { n1: d.quadrosContados, t1: performance.now(), quadros: d.quadros(), webgl: d.webgl, render: d.render, seed: d.seed };
     });
-    const medidos = fim.quadros.slice(-(fim.n1 - n0));
+    // A janela de medida: os quadros contados entre as duas leituras; com mais de 2.048 (o anel), só os últimos.
+    const naJanela = fim.n1 - inicio.n0;
+    expect(naJanela, 'quadros na janela de 30 s').toBeGreaterThan(0);
+    const medidos = fim.quadros.slice(-Math.min(naJanela, fim.quadros.length));
     const passo = percentil(medidos.filter((q) => q.passos >= 1).map((q) => q.simulacao / q.passos), 0.95);
     const resto = percentil(medidos.map((q) => q.ateRender - q.simulacao), 0.95);
     const restoInteiro = percentil(medidos.map((q) => q.total - q.simulacao), 0.95);
     const fpsConferido = !fim.webgl.software;
-    const fpsMedio = (fim.n1 - n0) / 30;
+    const segundos = (fim.t1 - inicio.t0) / 1000;
+    const fpsMedio = naJanela / segundos;
     const vivosOk = leituras.every((l) => l.vivos === 300);
     const drawCalls = Math.max(...leituras.map((l) => l.drawCalls ?? Infinity));
     const criterios = {
@@ -289,6 +329,8 @@ test('F-003.4 (E1): 300 vivos por 30 s com CPU 4×; passo + resto até PRE_RENDE
       fps_conferido: fpsConferido,
       ...(fpsConferido ? {} : { aviso: 'fps não conferido: WebGL por software' }),
       quadros_medidos: medidos.length,
+      janela_s: Number(segundos.toFixed(2)),
+      janela_parcial: medidos.length < naJanela,
       fps_medio: Number(fpsMedio.toFixed(2)),
       fps_leituras: leituras.map((l) => Number(l.fps.toFixed(1))),
       vivos_leituras: leituras.map((l) => l.vivos),

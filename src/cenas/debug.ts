@@ -7,8 +7,7 @@
 import type Phaser from 'phaser';
 import { fonteConstante, fonteDoRoteiro, validarRoteiro, type Roteiro } from '../logica/nucleo/comandos';
 import { BYTES_ESTADO, CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR, JOGADOR_U8, MUNDO, hashEstado, hashPorSecao, type Estado } from '../logica/nucleo/estado';
-import { quantosAtivos } from '../logica/nucleo/pool';
-import { alvoDaLinha, convertidosVivos, linhaCorrente } from '../logica/diretor/diretor';
+import { alvoDaLinha, convertidosVivos, linhaCorrente, vivosEquivalentes } from '../logica/diretor/diretor';
 import { removerInimigo } from '../logica/mundo/inimigos';
 import { IDS_DE_TIPO } from '../logica/mundo/tipos';
 import type { DadosDaVigilia } from '../logica/mundo/dados';
@@ -54,7 +53,7 @@ function diretorDe(e: Estado, dados: DadosDaVigilia) {
     espera: e.mundo[MUNDO.espera]!,
     alvo,
     minEfetivo: Math.min(alvo, e.cab[CAB.teto]!),
-    vivosEq: quantosAtivos(e.pool) + 9 * convertidosVivos(e),
+    vivosEq: vivosEquivalentes(e),
     spawns: e.mundo[MUNDO.spawns]!,
     garantidosPerdidos: e.mundo[MUNDO.garantidosPerdidos]!,
     semPontoLivre: e.mundo[MUNDO.semPontoLivre]!,
@@ -392,7 +391,8 @@ export function instantaneoDoDebug(d: GameDebug): Record<string, string | number
     passo: d.passo,
     relogio: d.relogio,
     passos_perdidos: d.passos_perdidos,
-    cpuFrameMs: cpu.p50.toFixed(1) + '/' + cpu.p95.toFixed(1),
+    cpuFrameMs_p50: Number(cpu.p50.toFixed(1)),
+    cpuFrameMs_p95: Number(cpu.p95.toFixed(1)),
     render: d.render.modo,
     drawCalls: d.render.drawCalls,
     webgl: d.webgl.renderer.slice(0, 40),
