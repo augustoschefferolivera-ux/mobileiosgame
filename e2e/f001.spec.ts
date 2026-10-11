@@ -5,16 +5,24 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { alvosDoAcender } from '../src/entrada/alvos';
+import { BYTES_ESTADO } from '../src/logica/nucleo/estado';
 import { PASSOS_REFERENCIA, SEED_PADRAO } from '../src/logica/nucleo/referencia';
-import { insetsZerados } from '../src/plataforma/safeArea';
+import { insetsZerados, type Insets } from '../src/plataforma/safeArea';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SEED = Number(process.env['VDC_SEED'] ?? SEED_PADRAO);
 const EVIDENCIAS = process.env['VDC_EVIDENCIAS'] === '1';
 
 interface Debug {
+  fps: number;
   passo: number;
+  relogio: number;
   estado: string;
+  vivos: Record<string, number>;
+  passos_perdidos: number;
+  recusados: Record<string, number>;
+  memoriaEstimadaMB: number;
+  safeArea: { topo: number; direita: number; baixo: number; esquerda: number };
   seed: number;
   textoAtivo: string[];
   eventos: { evento: string; passo: number; campos: Record<string, unknown> }[];
@@ -23,6 +31,7 @@ interface Debug {
   hash(): string | null;
   audio(): string;
   pausar(): void;
+  retomar(): void;
   avancar(n: number): void;
 }
 declare global {
@@ -43,8 +52,8 @@ async function paraPagina(page: Page, x: number, y: number): Promise<{ x: number
   return { x: caixa.x + (x * caixa.width) / 390, y: caixa.y + (y * caixa.height) / 844 };
 }
 
-async function tocarAcender(page: Page): Promise<void> {
-  const b = alvosDoAcender(insetsZerados(), [])[0]!;
+async function tocarAcender(page: Page, insets: Insets = insetsZerados()): Promise<void> {
+  const b = alvosDoAcender(insets, [])[0]!;
   const p = await paraPagina(page, b.x + b.largura / 2, b.y + b.altura / 2);
   await page.touchscreen.tap(p.x, p.y);
   await page.waitForFunction(() => window.__GAME_DEBUG__.estado === 'VIGILIA');
@@ -123,11 +132,18 @@ test('F-001.6: o canvas fica em 780 × 1688 depois de resize e rotação', async
     { width: 844, height: 390 },
     { width: 390, height: 844 },
   ]) {
+    const antes = (await medir())[2];
     await page.setViewportSize(v);
-    await page.waitForTimeout(700); // o ScaleManager confere o pai a cada 500 ms
-    const [w, h, css] = await medir();
+    // Espera o FIT reagir (o estilo do canvas muda); no 390 × 844 ele volta ao inicial.
+    await page.waitForFunction(
+      ([a, alvo]) => {
+        const w = document.querySelector<HTMLCanvasElement>('#jogo canvas')!.style.width;
+        return alvo ? w === alvo : w !== a;
+      },
+      [antes, v.width === 390 ? css0 : ''] as const,
+    );
+    const [w, h] = await medir();
     expect([w, h], JSON.stringify(v)).toEqual([780, 1688]);
-    if (v.width !== 390) expect(css, 'o FIT reagiu ao novo tamanho').not.toBe(css0);
   }
 });
 
@@ -152,6 +168,8 @@ test('F-001.8: touchmove não passivo com preventDefault; touch-action none', as
       gesturestart: gesto('gesturestart'),
       gesturechange: gesto('gesturechange'),
       contextmenu: gesto('contextmenu'),
+      gestureend: gesto('gestureend'),
+      dblclick: gesto('dblclick'),
       touchActionCanvas: getComputedStyle(canvas).touchAction,
       touchActionBody: getComputedStyle(document.body).touchAction,
       overscroll: getComputedStyle(document.documentElement).overscrollBehaviorY,
@@ -163,18 +181,31 @@ test('F-001.8: touchmove não passivo com preventDefault; touch-action none', as
     gesturestart: true,
     gesturechange: true,
     contextmenu: true,
+    gestureend: true,
+    dblclick: true,
     touchActionCanvas: 'none',
     touchActionBody: 'none',
     overscroll: 'none',
   });
-  // Arrasto real para baixo a partir do topo (pull-to-refresh), acima do botão: a página não rola.
+  // Toques reais (CDP) num arrasto de pull-to-refresh acima do botão: um ouvinte na fase de
+  // bolha do window, o último a rodar, registra se os nossos handlers impediram o padrão.
+  await page.evaluate(() => {
+    const w = window as unknown as { __impedidos: string[] };
+    w.__impedidos = [];
+    for (const tipo of ['touchstart', 'touchmove', 'touchend']) {
+      window.addEventListener(tipo, (e) => w.__impedidos.push(`${tipo}:${e.defaultPrevented}`));
+    }
+  });
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 195, y: 20 }] });
   for (let y = 40; y <= 360; y += 40) {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 195, y }] });
   }
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  expect(await page.evaluate(() => [scrollX, scrollY, window.__GAME_DEBUG__.estado])).toEqual([0, 0, 'ACENDER']);
+  const impedidos = await page.evaluate(() => (window as unknown as { __impedidos: string[] }).__impedidos);
+  expect(impedidos.length).toBeGreaterThanOrEqual(3);
+  expect(impedidos.filter((x) => x.endsWith(':false'))).toEqual([]);
+  expect(await page.evaluate(() => window.__GAME_DEBUG__.estado)).toBe('ACENDER');
 });
 
 test('F-001.11: mesmo hash da seed no passo 1.000 no Vitest (Node) e no Chromium', async ({ page }) => {
@@ -226,3 +257,70 @@ test('F-001.15: telemetria local em __GAME_DEBUG__.eventos, sem rede', async ({ 
   });
   expect(depoisDaCarga).toEqual([]);
 });
+
+test('__GAME_DEBUG__: fps, vivos por tipo, passos perdidos e memória (B §4 F-001)', async ({ page }) => {
+  await abrir(page);
+  await tocarAcender(page);
+  await page.waitForFunction(() => window.__GAME_DEBUG__.fps > 0 && window.__GAME_DEBUG__.passo > 0);
+  const d = await page.evaluate(() => {
+    const g = window.__GAME_DEBUG__;
+    return {
+      fps: g.fps,
+      vivos: g.vivos,
+      recusados: g.recusados,
+      passos_perdidos: g.passos_perdidos,
+      relogioIgualPasso: g.relogio === g.passo,
+      memoria: g.memoriaEstimadaMB,
+    };
+  });
+  expect(d.fps).toBeGreaterThan(0);
+  expect(d.vivos).toEqual({
+    oco_das_lanternas: 0, oco_grande: 0, novica_de_sal: 0, oco_grande_coroado: 0, o_lanterneiro: 0,
+    projeteis: 0, efeitos: 0, pickups: 0, particulas: 0,
+  });
+  expect(d.recusados).toEqual({ inimigos: 0, projeteis: 0, efeitos: 0, pickups: 0 });
+  expect(Number.isInteger(d.passos_perdidos) && d.passos_perdidos >= 0).toBe(true);
+  expect(d.relogioIgualPasso).toBe(true);
+  // Sem MSAA (ADR-0003 §9): cor em dobro + depth/stencil a 780 × 1688.
+  expect(d.memoria).toBeCloseTo((BYTES_ESTADO + 780 * 1688 * 4 * 3) / (1024 * 1024), 3);
+});
+
+test('driver real: ≈ 60 passos por segundo e pausa observada entre frames', async ({ page }) => {
+  await abrir(page);
+  await tocarAcender(page);
+  const ler = (): Promise<[number, number]> => page.evaluate(() => [window.__GAME_DEBUG__.passo, performance.now()]);
+  const [p0, t0] = await ler();
+  await page.waitForTimeout(1500);
+  const [p1, t1] = await ler();
+  const esperado = ((t1 - t0) / 1000) * 60;
+  expect(p1 - p0, 'nunca mais que 60 Hz (um passo extra por frame daria ≈ 120)').toBeLessThanOrEqual(esperado * 1.1 + 2);
+  expect(p1 - p0, 'o driver acompanha o tempo real').toBeGreaterThanOrEqual(esperado * 0.3);
+  await page.evaluate(() => window.__GAME_DEBUG__.pausar());
+  const parado = await page.evaluate(() => window.__GAME_DEBUG__.passo);
+  await proximoFrame(page);
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => window.__GAME_DEBUG__.passo)).toBe(parado);
+  await page.evaluate(() => window.__GAME_DEBUG__.retomar());
+  await page.waitForFunction((p) => window.__GAME_DEBUG__.passo > p, parado);
+});
+
+test('F-001.7 e F-001.13 de ponta a ponta: insets emulados chegam aos alvos em pt', async ({ page }) => {
+  const insets: Insets = { topo: 59, direita: 0, baixo: 34, esquerda: 0 };
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Emulation.setSafeAreaInsetsOverride', {
+    insets: { top: insets.topo, right: insets.direita, bottom: insets.baixo, left: insets.esquerda },
+  });
+  await abrir(page);
+  // 390 × 844 sem letterbox: 1 px CSS = 1 pt.
+  expect(await page.evaluate(() => window.__GAME_DEBUG__.safeArea)).toEqual(insets);
+  const semInsets = alvosDoAcender(insetsZerados(), [])[0]!;
+  const comInsets = alvosDoAcender(insets, [])[0]!;
+  expect(comInsets.y).toBeGreaterThan(semInsets.y + 2);
+  // Um ponto dentro do botão sem insets, mas fora do botão deslocado pela safe-area, não acende.
+  const p = await paraPagina(page, 195, semInsets.y + 1);
+  await page.touchscreen.tap(p.x, p.y);
+  await page.waitForTimeout(200);
+  expect(await page.evaluate(() => window.__GAME_DEBUG__.estado)).toBe('ACENDER');
+  await tocarAcender(page, insets);
+});
+

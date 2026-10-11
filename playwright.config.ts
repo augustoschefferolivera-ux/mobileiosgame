@@ -3,7 +3,8 @@
 // de debug em dist-debug/ (scripts/verify.sh gera os dois builds antes).
 import { defineConfig } from '@playwright/test';
 
-const PORTA = 4173;
+// Fora da 4173 padrão do vite preview, para não colidir com um preview aberto.
+const PORTA = Number(process.env['VDC_PORTA'] ?? 4317);
 
 export default defineConfig({
   testDir: 'e2e',
@@ -11,6 +12,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
+  forbidOnly: true,
   reporter: [['list']],
   use: { baseURL: `http://localhost:${PORTA}` },
   webServer: {

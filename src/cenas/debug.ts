@@ -7,6 +7,7 @@ import { BYTES_ESTADO, CAB, hashEstado } from '../logica/nucleo/estado';
 import { hex8 } from '../logica/nucleo/hash';
 import { avancar } from '../logica/nucleo/passo';
 import { atributosDe, bytesDoBackbuffer } from '../plataforma/memoria';
+import type { Insets } from '../plataforma/safeArea';
 import type { ContextoDoJogo } from './contexto';
 
 /** Tipos de entidade de `vivos` (ADR-0002 §14); todos em zero até a F-002/F-003. */
@@ -34,6 +35,8 @@ export interface GameDebug {
   readonly recusados: { inimigos: number; projeteis: number; efeitos: number; pickups: number };
   readonly memoriaEstimadaMB: number;
   readonly seed: number;
+  /** Insets da safe-area em pt lógicos, como a cena ativa os mediu. */
+  readonly safeArea: Insets;
   /** Ids de t() visíveis nas cenas ativas. */
   readonly textoAtivo: string[];
   readonly eventos: ReturnType<ContextoDoJogo['telemetria']['eventos']>;
@@ -90,6 +93,9 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     },
     get seed() {
       return ctx.seed;
+    },
+    get safeArea() {
+      return { ...ctx.insets };
     },
     get textoAtivo() {
       return textosVisiveis(jogo);
