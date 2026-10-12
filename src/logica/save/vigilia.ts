@@ -17,11 +17,12 @@ import {
   LIMITE_DE_ALMAS,
   PROGRESSAO,
   VERSAO_LAYOUT,
+  hashDoBufferDoEstado,
   sincronizarDerivados,
   type Estado,
 } from '../nucleo/estado';
 import { esvaziarAnel } from '../nucleo/eventos';
-import { FNV_BASE, fnv1aBytes, hex8 } from '../nucleo/hash';
+import { hex8 } from '../nucleo/hash';
 import { verificarNaN } from '../nucleo/nan';
 import { aplicarFimDeVigilia, somaDoTexto, type Meta } from './meta';
 import { MIGRACOES_DO_ENVELOPE, MIGRACOES_DO_LAYOUT, migrarEnvelope, migrarLayout, type EnvelopeBruto, type MigracaoDeEnvelope, type MigracaoDeLayout } from './migracoes';
@@ -121,7 +122,7 @@ function corpoSemSoma(o: Record<string, unknown>): string {
 
 /** Hash do buffer gravado (FNV-1a de 32 bits, 8 hex): o `__GAME_DEBUG__.save.hash` e a conferência da retomada. */
 export function hashDosBytes(bytes: Uint8Array): string {
-  return hex8(fnv1aBytes(FNV_BASE, bytes));
+  return hex8(hashDoBufferDoEstado(bytes));
 }
 
 /** Hora do save: a da última Fogueira acesa (1 a 3), ou 0 antes da primeira (o save do passo 0, SV5). Os saves só saem em momentos de Fogueira ou no passo 0. */

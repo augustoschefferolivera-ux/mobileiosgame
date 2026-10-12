@@ -1068,7 +1068,11 @@ export function baseDoFluxo(fluxo: Fluxo): number {
  * faz parte da simulação; contá-la fazia a Vigília do navegador (id 1) divergir da do Node (id 0) em qualquer seed.
  */
 export function hashEstado(e: Estado): number {
-  const b = e.bytes;
+  return hashDoBufferDoEstado(e.bytes);
+}
+
+/** O mesmo hash sobre um buffer de estado qualquer (a sombra do save, o `vigilia` gravado). */
+export function hashDoBufferDoEstado(b: Uint8Array): number {
   const ini = INICIO_FOGUEIRA_U32 + FOGUEIRA_U32.idVigilia * 4;
   let h = fnv1aBytes(FNV_BASE, b.subarray(0, ini));
   for (let k = 0; k < 4; k++) h = fnv1aByte(h, 0);
