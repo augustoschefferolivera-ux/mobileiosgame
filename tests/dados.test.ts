@@ -423,12 +423,16 @@ describe('números do briefing técnico (design/gdd/18 §3)', () => {
     expect(obj(porId(inimigos, 'oco_grande'), 'almas')).toEqual({ valor: 3, chance: 1 });
     expect(obj(porId(inimigos, 'novica_de_sal'), 'almas')).toEqual({ valor: 3, chance: 1 });
     expect(obj(porId(inimigos, 'oco_grande_coroado'), 'almas')).toEqual({ valor: 30, chance: 1 });
-    expect(porId(inimigos, 'oco_grande_coroado')['convoca']).toEqual({ inimigo: 'oco_das_lanternas', quantidade: 10, intervalo_s: 10 });
-    // dano por ataque = dano_base do inimigo (B §3.6); o Grito do Coroado fica pendente (F-008)
+    expect(porId(inimigos, 'oco_grande_coroado')['convoca']).toEqual({ inimigo: 'oco_das_lanternas', quantidade: 10, intervalo_s: 10, anel_corpos: 2.5 });
+    // dano por ataque = dano_base do inimigo (B §3.6); o Grito do Coroado causa `dano_pct` (50%) dele (decisoes-F-008 CR3)
     for (const i of inimigos) {
-      for (const a of lista(i, 'ataques')) if (typeof a['dano'] === 'number') expect(a['dano'], `${String(i['id'])}.${String(a['id'])}`).toBe(i['dano_base']);
+      for (const a of lista(i, 'ataques')) {
+        if (typeof a['dano'] !== 'number') continue;
+        const parte = typeof a['dano_pct'] === 'number' ? a['dano_pct'] / 100 : 1;
+        expect(a['dano'], `${String(i['id'])}.${String(a['id'])}`).toBe(Number(i['dano_base']) * parte);
+      }
     }
-    expect(porId(lista(porId(inimigos, 'oco_grande_coroado'), 'ataques'), 'grito')['dano']).toBeNull();
+    expect(porId(lista(porId(inimigos, 'oco_grande_coroado'), 'ataques'), 'grito')['dano_pct']).toBe(50);
     // Coroado = Oco Grande com HP ×6 (Guardião) e ×10 (Chefe Menor) (B §2)
     expect(Number(porId(inimigos, 'oco_grande_coroado')['hp_base'])).toBe(Number(porId(inimigos, 'oco_grande')['hp_base']) * 6);
   });

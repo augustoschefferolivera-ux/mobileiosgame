@@ -152,6 +152,22 @@ function juntarAlma(e: Estado, exceto: number, valor: number): void {
  * vizinha dela e cede o slot. Devolve o slot, ou −1 se nem assim há vaga.
  */
 export function soltarBau(e: Estado, x: number, y: number, dourado: boolean): number {
+  PONTO[0] = x;
+  PONTO[1] = y;
+  return soltarBauEmPonto(e, dourado);
+}
+
+/** Baú do Coroado que morreu por arma (CR9): no ponto da morte do inimigo `slot`, sem double atravessando a chamada. */
+export function soltarBauDoInimigo(e: Estado, slot: number, dourado: boolean): number {
+  PONTO[0] = e.inimigos.x[slot]!;
+  PONTO[1] = e.inimigos.y[slot]!;
+  return soltarBauEmPonto(e, dourado);
+}
+
+/** O corpo de soltarBau, com o ponto já em PONTO. */
+function soltarBauEmPonto(e: Estado, dourado: boolean): number {
+  const x = PONTO[0]!;
+  const y = PONTO[1]!;
   const indice = e.mundo2[MUNDO2.bausSoltos]! + 1;
   e.mundo2[MUNDO2.bausSoltos] = indice;
   const tipo = dourado ? TIPO_DE_PICKUP.bauDourado : TIPO_DE_PICKUP.bauComum;

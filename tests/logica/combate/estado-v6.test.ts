@@ -250,8 +250,8 @@ describe('tabela de combate (ET9)', () => {
     expect(c.projetilPorPasso[t.novica_de_sal]).toBeCloseTo(1.6, 12);
     expect([c.projetilRaio[t.novica_de_sal], c.projetilVida[t.novica_de_sal], c.salPct[t.novica_de_sal], c.salPassos[t.novica_de_sal]]).toEqual([8, 150, 50, 180]);
     expect([c.ataqueAparavel[t.oco_grande], c.ataqueAparavel[t.novica_de_sal], c.ataqueAparavel[t.oco_das_lanternas]]).toEqual([1, 1, 0]);
-    // O Coroado (números pendentes da F-008) fica sem ataque compilado e imune.
-    expect([c.telegrafoPassos[t.oco_grande_coroado], c.posturaQuebrada[t.oco_grande_coroado]]).toEqual([0, 0]);
+    // O Coroado (F-008): a Patada de 36 passos e 96 px; imune à Postura Quebrada (CR8). O Grito fica nas tabelas próprias.
+    expect([c.telegrafoPassos[t.oco_grande_coroado], c.alcanceDoArco[t.oco_grande_coroado], c.posturaQuebrada[t.oco_grande_coroado]]).toEqual([36, 96, 0]);
     expect([c.posturaQuebrada[t.oco_das_lanternas], c.posturaQuebrada[t.oco_grande], c.posturaQuebrada[t.novica_de_sal]]).toEqual([1, 1, 1]);
   });
 });

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "combate.schema.json",
   "title": "Combate (src/dados/combate.json)",
-  "description": "Só o que nenhum outro JSON tem: stamina, esquiva, aparo, congelamento, Poder, Postura Quebrada, Contra-ataque, gestos e, na F-007, o cancelar do Frasco, o Apagar, a mancha e a agregação da telemetria (design/decisoes-F-006.md ET9; design/decisoes-F-007.md §14; B §3.4 e §3.5). Durações em passos de 60 Hz, exatas como em B; os gestos em ms e pt.",
+  "description": "Só o que nenhum outro JSON tem: stamina, esquiva, aparo, congelamento, Poder, Postura Quebrada, Contra-ataque, gestos e, na F-007, o cancelar do Frasco, o Apagar, a mancha e a agregação da telemetria e, na F-008, a arena e a Fogueira (design/decisoes-F-006.md ET9; design/decisoes-F-007.md §14; B §3.4 e §3.5). Durações em passos de 60 Hz, exatas como em B; os gestos em ms e pt.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -20,7 +20,9 @@
     "apagar",
     "mancha",
     "telemetria",
-    "gestos"
+    "gestos",
+    "arena",
+    "fogueira"
   ],
   "properties": {
     "versao": {
@@ -333,6 +335,40 @@
               "exclusiveMinimum": 0
             }
           }
+        }
+      }
+    },
+    "arena": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raio_px"
+      ],
+      "properties": {
+        "raio_px": {
+          "description": "Raio da arena do marco, de centro a centro, no toro (AR2).",
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "fogueira": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raio_px",
+        "distancia_px"
+      ],
+      "properties": {
+        "raio_px": {
+          "description": "Raio em que a Fogueira abre, de centro a centro (FG2).",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "distancia_px": {
+          "description": "Distância do jogador em que a Fogueira acende no fim do marco (FG1).",
+          "type": "number",
+          "exclusiveMinimum": 0
         }
       }
     }

@@ -157,6 +157,11 @@
         "ilumina_raio_corpos": {
           "type": "number",
           "exclusiveMinimum": 0
+        },
+        "anel_corpos": {
+          "description": "Raio do anel em que os convocados nascem, em volta do convocador (CR7).",
+          "type": "number",
+          "exclusiveMinimum": 0
         }
       }
     },
@@ -281,6 +286,11 @@
             },
             "distancia_corpos": {
               "$ref": "#/$defs/positivoOuPendente"
+            },
+            "passos": {
+              "description": "Passos em que o empurrão se reparte (CR3); ausente = sem empurrão por passos.",
+              "type": "integer",
+              "minimum": 1
             }
           }
         },
@@ -305,6 +315,12 @@
               "type": "boolean"
             }
           }
+        },
+        "dano_pct": {
+          "description": "Parte do dano do slot que o ataque causa, em % (Grito do Coroado, CR3). Só vale com `dano` informado.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100
         }
       }
     },

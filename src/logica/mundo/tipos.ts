@@ -50,6 +50,8 @@ export interface InimigoDoJson {
   readonly postura_quebrada?: boolean;
   /** Ataques do tipo; a tabela de combate lê o arco e o projétil (inimigo.schema.json). */
   readonly ataques?: readonly AtaqueDoJson[];
+  /** Convocação do Coroado (CR7): quem, quantos, de quanto em quanto tempo e em que anel. */
+  readonly convoca?: { readonly inimigo: string; readonly quantidade: number; readonly intervalo_s: number | null; readonly anel_corpos?: number };
 }
 
 /** O que a tabela de combate lê de cada ataque de inimigos.json. */
@@ -65,6 +67,10 @@ export interface AtaqueDoJson {
   readonly intervalo_s?: number | null;
   readonly projetil?: { readonly velocidade_corpos_s: number; readonly raio_corpos: number | null; readonly vida_s: number | null };
   readonly aplica?: { readonly status: string; readonly fator_pct: number; readonly duracao_s: number };
+  /** Grito do Coroado (CR3): parte do dano do slot (%), raio da área e empurrão (distância em corpos, em tantos passos). */
+  readonly dano_pct?: number;
+  readonly raio_corpos?: number | null;
+  readonly empurrao?: { readonly raio_corpos: number; readonly distancia_corpos: number | null; readonly passos?: number };
 }
 
 /** Dados por código de tipo, montados uma vez (arrays indexados pelo código). */
@@ -87,9 +93,16 @@ export interface TiposDeInimigo {
   readonly comportamento: Uint8Array;
   /** Distância de comportamento em px, de centro a centro (decisoes-F-003 S7). */
   readonly distancia: Float64Array;
-  /** R_MAX da separação e da lista de obstáculos: aqui, o maior raio entre os tipos que existem; nos dados da Vigília, o dos que podem nascer. */
+  /** 1 se o corpo é grande (raio > 24 px): fica fora da grade da massa, numa lista própria de até 4 (CR10). */
+  readonly grande: Uint8Array;
+  /** R_MAX da grade, da separação e das consultas das armas: o maior raio entre os tipos que existem e não são grandes; nos dados da Vigília, o dos que podem nascer. */
   readonly raioMaximo: number;
+  /** O maior raio entre todos os tipos que existem, grandes incluídos: o alcance da lista de obstáculos por célula (CR10). */
+  readonly raioDeObstaculo: number;
 }
+
+/** Acima deste raio (px) o corpo é grande (CR10): o Oco Grande e a Noviça (24) ainda cabem na grade. */
+export const RAIO_MAXIMO_DA_GRADE = 24;
 
 export function codigoDoTipo(id: string): number {
   const c = IDS_DE_TIPO.indexOf(id as (typeof IDS_DE_TIPO)[number]);
@@ -122,12 +135,13 @@ export function criarTiposDeInimigo(inimigos: readonly InimigoDoJson[]): TiposDe
     contato: new Uint8Array(CODIGOS),
     comportamento: new Uint8Array(CODIGOS),
     distancia: new Float64Array(CODIGOS),
+    grande: new Uint8Array(CODIGOS),
   };
   let raioMaximo = 0;
+  let raioDeObstaculo = 0;
   for (const i of inimigos) {
     const codigo = codigoDoTipo(i.id);
     const comp = comportamentoDe(i);
-    // O Coroado (tamanho e comportamento da F-008) ainda não nasce.
     if (i.tamanho_px === null || comp === null) continue;
     t.existe[codigo] = 1;
     t.raio[codigo] = i.tamanho_px / 2;
@@ -140,9 +154,11 @@ export function criarTiposDeInimigo(inimigos: readonly InimigoDoJson[]): TiposDe
     t.contato[codigo] = i.dano_tipo === 'contato_por_s' ? 1 : 0;
     t.comportamento[codigo] = comp.codigo;
     t.distancia[codigo] = comp.distancia;
-    raioMaximo = Math.max(raioMaximo, t.raio[codigo]);
+    t.grande[codigo] = t.raio[codigo]! > RAIO_MAXIMO_DA_GRADE ? 1 : 0;
+    if (t.grande[codigo] === 0) raioMaximo = Math.max(raioMaximo, t.raio[codigo]!);
+    raioDeObstaculo = Math.max(raioDeObstaculo, t.raio[codigo]!);
   }
-  return { ...t, raioMaximo };
+  return { ...t, raioMaximo, raioDeObstaculo };
 }
 
 /** Fase do ataque de um inimigo (`ataqueFase`). */

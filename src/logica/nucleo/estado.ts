@@ -26,6 +26,7 @@ import { CODIGOS_DE_ARMA, NUMERO_DE_ATRIBUTOS, POR_NIVEL } from '../armas/tabela
 import { recalcularDano } from '../progressao/dano';
 import { PASSOS_POR_MINUTO } from '../diretor/timeline';
 import { gravarDanoNoSpawn, gravarHpNoSpawn } from '../mundo/escala';
+import { TIPO } from '../mundo/tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, normalizarNoToro } from '../mundo/toro';
 
 export const VERSAO_LAYOUT = 8;
@@ -971,6 +972,8 @@ function postarInimigoInicial(e: Estado, dados: DadosDaVigilia, i: InimigoInicia
   ini.tipo[slot] = codigo;
   gravarHpNoSpawn(ini.hp, slot, dados.tipos.hpBase[codigo]!, minuto, e.mundo[MUNDO.intensidade10]!);
   gravarDanoNoSpawn(ini.dano, slot, dados.tipos.danoBase[codigo]!, minuto);
+  ini.convocaEspera[slot] = dados.combate.convocaPassos[codigo]!;
+  if (codigo === TIPO.oco_grande_coroado) e.fogueiraU8[FOGUEIRA_U8.coroadosVivos] = e.fogueiraU8[FOGUEIRA_U8.coroadosVivos]! + 1;
 }
 
 /** Recusa passivas impossíveis na montagem (como validarBuild). */

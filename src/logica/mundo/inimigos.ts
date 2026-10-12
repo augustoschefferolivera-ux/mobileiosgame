@@ -5,7 +5,7 @@
 // hash do buffer inteiro conter só os slots vivos. HP e dano são fixados no
 // spawn pela escala do minuto (B §3.6; Q-10), em inteiros. matarInimigo é o
 // único caminho de morte: grava o evento, conta e remove.
-import { CAB, LINHA_LIVRE, MUNDO, type Estado } from '../nucleo/estado';
+import { CAB, FOGUEIRA_U8, LINHA_LIVRE, MUNDO, type Estado } from '../nucleo/estado';
 import { CAUSA, EVENTO, FLAG, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import { alocar, liberar } from '../nucleo/pool';
 import type { DadosDaVigilia } from './dados';
@@ -13,7 +13,7 @@ import { PASSOS_POR_MINUTO } from '../diretor/timeline';
 import { gravarDanoNoSpawn, gravarHpNoSpawn } from './escala';
 import { TIPO } from './tipos';
 import { desmarcarInimigo } from '../armas/ondas';
-import { soltarAlma, soltarCinza } from '../progressao/pickups';
+import { soltarAlma, soltarBauDoInimigo, soltarCinza } from '../progressao/pickups';
 
 export { gravarDanoNoSpawn, gravarHpNoSpawn };
 
@@ -38,8 +38,11 @@ export function danoNoSpawn(danoBase: number, minuto: number): number {
   return RESULTADO[0]!;
 }
 
-/** Posição de nascerInimigoDoRascunho: x e y, já no toro. */
-export const NASCIMENTO = new Float64Array(2);
+/**
+ * Entrada de nascerInimigoDoRascunho: x e y, já no toro, e o `hp_base` da linha de marco do Coroado (CR6; 0 = o do tipo).
+ * Quem usa o terceiro slot o escreve a cada nascimento; nascerInimigoDoRascunho o devolve a 0.
+ */
+export const NASCIMENTO = new Float64Array(3);
 
 /** Inimigos de massa que um convertido substitui (B §3.7: "a cada 10 massa"). */
 export const MASSA_POR_CONVERTIDO = 10;
@@ -60,6 +63,8 @@ export function nascerInimigo(e: Estado, dados: DadosDaVigilia, codigo: number, 
 export function nascerInimigoDoRascunho(e: Estado, dados: DadosDaVigilia, codigo: number, convertido: boolean): number {
   const x = NASCIMENTO[0]!;
   const y = NASCIMENTO[1]!;
+  const hpDoMarco = NASCIMENTO[2]!;
+  NASCIMENTO[2] = 0;
   const t = dados.tipos;
   if (t.existe[codigo] !== 1) throw new Error(`nascerInimigo: o tipo ${codigo} não nasce nesta feature`);
   const slot = alocar(e.pool);
@@ -74,9 +79,13 @@ export function nascerInimigoDoRascunho(e: Estado, dados: DadosDaVigilia, codigo
   ini.salPct[slot] = ini.salPassos[slot] = ini.kbPassos[slot] = 0;
   ini.quebradaPassos[slot] = ini.ataqueFase[slot] = ini.ataqueTimer[slot] = 0;
   ini.miraX[slot] = ini.miraY[slot] = 0;
+  ini.ataqueId[slot] = ini.ataqueSeq[slot] = 0;
+  // A 1ª convocação vem um período depois do nascimento (CR7); quem não convoca fica em 0.
+  ini.convocaEspera[slot] = dados.combate.convocaPassos[codigo]!;
   if (convertido) gravarHpNoSpawn(ini.hp, slot, MASSA_POR_CONVERTIDO * t.hpBase[TIPO.oco_das_lanternas]!, min, i10);
-  else gravarHpNoSpawn(ini.hp, slot, t.hpBase[codigo]!, min, i10);
+  else gravarHpNoSpawn(ini.hp, slot, hpDoMarco > 0 ? hpDoMarco : t.hpBase[codigo]!, min, i10);
   gravarDanoNoSpawn(ini.dano, slot, t.danoBase[codigo]!, min);
+  if (codigo === TIPO.oco_grande_coroado) e.fogueiraU8[FOGUEIRA_U8.coroadosVivos] = e.fogueiraU8[FOGUEIRA_U8.coroadosVivos]! + 1;
   return slot;
 }
 
@@ -86,15 +95,19 @@ export function nascerInimigoDoRascunho(e: Estado, dados: DadosDaVigilia, codigo
  * inimigo novo no mesmo slot nunca herda o "já acertou".
  */
 export function removerInimigo(e: Estado, slot: number): void {
+  const ini = e.inimigos;
+  // Coroado vivo cai da conta em qualquer causa (CR9): morte, cinza, rotação do cenário.
+  if (ini.tipo[slot] === TIPO.oco_grande_coroado) e.fogueiraU8[FOGUEIRA_U8.coroadosVivos] = e.fogueiraU8[FOGUEIRA_U8.coroadosVivos]! - 1;
   liberar(e.pool, slot);
   desmarcarInimigo(e, slot);
-  const ini = e.inimigos;
   ini.x[slot] = ini.y[slot] = ini.xAnt[slot] = ini.yAnt[slot] = ini.hp[slot] = ini.dano[slot] = 0;
   ini.tipo[slot] = 0;
   ini.convertido[slot] = 0;
   ini.salPct[slot] = ini.salPassos[slot] = ini.kbPassos[slot] = 0;
   ini.quebradaPassos[slot] = ini.ataqueFase[slot] = ini.ataqueTimer[slot] = 0;
   ini.miraX[slot] = ini.miraY[slot] = 0;
+  ini.ataqueId[slot] = ini.ataqueSeq[slot] = 0;
+  ini.convocaEspera[slot] = 0;
 }
 
 /**
@@ -117,6 +130,11 @@ export function matarInimigo(e: Estado, dados: DadosDaVigilia, slot: number, cau
     e.mundo[MUNDO.mortes] = e.mundo[MUNDO.mortes]! + (flags === FLAG.convertido ? MASSA_POR_CONVERTIDO : 1);
     soltarCinza(e, dados, slot);
     soltarAlma(e, dados, slot);
+    // O Coroado solta o baú no ponto da morte; o do 2º marco (Chefe Menor) é dourado (CR9). Dois Coroados, dois baús.
+    if (ini.tipo[slot] === TIPO.oco_grande_coroado) {
+      const k = e.fogueiraU8[FOGUEIRA_U8.marcosIniciados]! - 1;
+      soltarBauDoInimigo(e, slot, k >= 0 && dados.marcos.dourado[k] === 1);
+    }
   }
   removerInimigo(e, slot);
 }

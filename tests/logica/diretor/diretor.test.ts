@@ -86,14 +86,17 @@ describe('intervalo e alvo em inteiros (§1)', () => {
 
 describe('tipos que podem nascer (§4)', () => {
   it('um tipo sem tamanho no roster ou nos garantidos é erro na montagem dos dados, não no passo', () => {
-    const comCoroado = charneca.linhas.map((l) => (l.minuto === 2 ? { ...l, roster: [...l.roster, { inimigo: 'oco_grande_coroado', peso: 1 }] } : l));
-    expect(() => dadosDe({ linhas: comCoroado })).toThrow(/oco_grande_coroado/);
-    const garantido = charneca.linhas.map((l) => (l.minuto === 4 ? { ...l, garantidos: [{ inimigo: 'oco_grande_coroado', quantidade: 1 }] } : l));
-    expect(() => dadosDe({ linhas: garantido })).toThrow(/oco_grande_coroado/);
+    // O Coroado ganhou tamanho na F-008; o Lanterneiro (F-009) ainda não tem, e o erro vem na montagem.
+    const comLanterneiro = charneca.linhas.map((l) => (l.minuto === 2 ? { ...l, roster: [...l.roster, { inimigo: 'o_lanterneiro', peso: 1 }] } : l));
+    expect(() => dadosDe({ linhas: comLanterneiro })).toThrow(/o_lanterneiro/);
+    const garantido = charneca.linhas.map((l) => (l.minuto === 4 ? { ...l, garantidos: [{ inimigo: 'o_lanterneiro', quantidade: 1 }] } : l));
+    expect(() => dadosDe({ linhas: garantido })).toThrow(/o_lanterneiro/);
   });
 
-  it('o R_MAX sai dos tipos que nascem: 24 na Charneca', () => {
+  it('o R_MAX sai dos tipos da grade que nascem (24 na Charneca); o Coroado (32) é grande e só entra no raio dos obstáculos (CR10)', () => {
     expect(D.tipos.raioMaximo).toBe(24);
+    expect(D.tipos.raioDeObstaculo).toBe(32);
+    expect([...D.tipos.grande]).toEqual([0, 0, 0, 0, 1, 0]);
   });
 });
 

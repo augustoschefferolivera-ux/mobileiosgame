@@ -114,7 +114,7 @@
       "camada": "elite",
       "faccao": "ocos",
       "forma": "quadrado",
-      "tamanho_px": null,
+      "tamanho_px": 64,
       "hp_base": 600,
       "dano_base": 25,
       "dano_tipo": "por_ataque",
@@ -127,7 +127,8 @@
       "bau": true,
       "postura_quebrada": false,
       "comportamento": {
-        "tipo": "elite_convocador"
+        "tipo": "aproximar_e_atacar",
+        "para_a_corpos": 2.5
       },
       "ataques": [
         {
@@ -139,7 +140,9 @@
           "forma": "cone",
           "aparavel": true,
           "dano": 25,
-          "alcance_corpos": null
+          "angulo_graus": 120,
+          "alcance_corpos": 3,
+          "recuperacao_s": 1.5
         },
         {
           "id": "grito",
@@ -149,33 +152,23 @@
           },
           "forma": "area_circular",
           "aparavel": false,
-          "dano": null,
+          "dano": 12.5,
+          "dano_pct": 50,
           "raio_corpos": 3,
           "empurrao": {
             "raio_corpos": 3,
-            "distancia_corpos": null
-          }
+            "distancia_corpos": 2,
+            "passos": 8
+          },
+          "recuperacao_s": 1.5
         }
       ],
       "convoca": {
         "inimigo": "oco_das_lanternas",
         "quantidade": 10,
-        "intervalo_s": 10
-      },
-      "pendentes": {
-        "tamanho_px": "F-008",
-        "ataques[0].alcance_corpos": "F-008",
-        "ataques[1].dano": "F-008",
-        "ataques[1].empurrao.distancia_corpos": "F-008"
-      },
-      "pendencias": [
-        "F-008: tamanho (B: 'Oco Grande', 48 px; doc 13 §1.2: elite 64×64, Chefe Menor 96 a 128 px; brief §11.3)",
-        "F-008: alcance e ângulo da Patada (brief §11.3)",
-        "F-008: dano do Grito (se houver) e distância do empurrão (brief §11.3)",
-        "F-008: cadência de ataque (brief §11.3)",
-        "F-008: raio de nascimento dos convocados dentro da arena (ADR-0002 §9)",
-        "hp_base 600 é a versão de Guardião; o Chefe Menor das 10:00 usa hp_base 1.000 pela linha de marco da região (B §2 e §3.7)"
-      ]
+        "intervalo_s": 10,
+        "anel_corpos": 2.5
+      }
     }
   ]
 }

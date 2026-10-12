@@ -164,6 +164,26 @@ export interface TabelaDeCombate {
   readonly alcanceDeTiro: Float64Array;
   readonly salPct: Uint8Array;
   readonly salPassos: Int32Array;
+  /**
+   * Grito do Coroado, por tipo (CR3; 0 = o tipo não tem): raio da área em px (96), telegrafo e recuperação em passos
+   * (60 e 90), parte do dano do slot em % (50) e o empurrão em px totais (64) repartidos em tantos passos (8).
+   */
+  readonly gritoRaio: Float64Array;
+  readonly gritoTelegrafoPassos: Int32Array;
+  readonly gritoRecuperacaoPassos: Int32Array;
+  readonly gritoDanoPct: Float64Array;
+  readonly gritoEmpurraoPx: Float64Array;
+  readonly gritoEmpurraoPassos: Int32Array;
+  /** Convocação por tipo (CR7; passos 0 = o tipo não convoca): período em passos (600), quantidade (10), anel em px (80) e o tipo dos convocados. */
+  readonly convocaPassos: Int32Array;
+  readonly convocaQuantidade: Int32Array;
+  readonly convocaAnel: Float64Array;
+  readonly convocaTipo: Uint8Array;
+  /** Arena do marco (AR2): raio em px (224). */
+  readonly arenaRaio: number;
+  /** Fogueira: raio em que abre (64) e distância do jogador em que acende no fim do marco (96), em px (FG1, FG2). */
+  readonly fogueiraRaio: number;
+  readonly fogueiraDistancia: number;
 }
 
 /** O que se lê de combate.json (combate.schema.json). */
@@ -210,11 +230,12 @@ export function criarDadosDaVigilia(
 ): DadosDaVigilia {
   const obstaculos = criarObstaculos(regiao.obstaculos);
   const timeline = compilarTimeline(regiao.linhas, regiao.sem_spawn_antes_do_marco_s);
-  const tipos = tiposQueNascem(criarTiposDeInimigo(inimigos), timeline);
+  const marcos = criarTabelaDeMarcos(regiao);
+  const tipos = tiposQueNascem(criarTiposDeInimigo(inimigos), timeline, marcos);
   const tabelaDeArmas = criarTabelaDeArmas(armas, vigilante.atributos, vigilante.arma_inicial);
   return {
     obstaculos,
-    obstaculosPorCelula: criarObstaculosPorCelula(obstaculos, tipos.raioMaximo),
+    obstaculosPorCelula: criarObstaculosPorCelula(obstaculos, tipos.raioDeObstaculo),
     impressao: impressaoDaDisposicao(obstaculos),
     inicioX: regiao.inicio_jogador.x,
     inicioY: regiao.inicio_jogador.y,
@@ -224,7 +245,7 @@ export function criarDadosDaVigilia(
     armas: tabelaDeArmas,
     progressao: criarTabelaDeProgressao(progressao, vigilante, tabelaDeArmas),
     timeline,
-    marcos: criarTabelaDeMarcos(regiao),
+    marcos,
     combate: criarTabelaDeCombate(combate, vigilante, inimigos),
   };
 }
@@ -281,11 +302,37 @@ export function criarTabelaDeCombate(c: CombateDoJson, vigilante: VigilanteDoJso
   const alcanceDeTiro = new Float64Array(n);
   const salPct = new Uint8Array(n);
   const salPassos = new Int32Array(n);
+  const gritoRaio = new Float64Array(n);
+  const gritoTelegrafoPassos = new Int32Array(n);
+  const gritoRecuperacaoPassos = new Int32Array(n);
+  const gritoDanoPct = new Float64Array(n);
+  const gritoEmpurraoPx = new Float64Array(n);
+  const gritoEmpurraoPassos = new Int32Array(n);
+  const convocaPassos = new Int32Array(n);
+  const convocaQuantidade = new Int32Array(n);
+  const convocaAnel = new Float64Array(n);
+  const convocaTipo = new Uint8Array(n);
   for (const i of inimigos) {
     const codigo = codigoDoTipo(i.id);
     posturaQuebrada[codigo] = i.postura_quebrada === false ? 0 : 1;
+    if (i.convoca !== undefined && i.convoca.intervalo_s != null) {
+      convocaPassos[codigo] = segundosEmPassos(i.convoca.intervalo_s);
+      convocaQuantidade[codigo] = i.convoca.quantidade;
+      convocaAnel[codigo] = (i.convoca.anel_corpos ?? 0) * CORPO_PX;
+      convocaTipo[codigo] = codigoDoTipo(i.convoca.inimigo);
+    }
     for (const a of i.ataques ?? []) {
-      if (a.forma === 'arco' && a.alcance_corpos != null && a.recuperacao_s != null) {
+      if (a.forma === 'area_circular' && a.raio_corpos != null && a.dano_pct != null && a.empurrao?.distancia_corpos != null && a.empurrao.passos != null && a.recuperacao_s != null) {
+        // O Grito (CR3): círculo em volta do centro, vermelho, não aparável; o Coroado tem também a Patada, que vem do ramo abaixo.
+        gritoRaio[codigo] = a.raio_corpos * CORPO_PX;
+        gritoTelegrafoPassos[codigo] = segundosEmPassos(a.telegrafo.duracao_s);
+        gritoRecuperacaoPassos[codigo] = segundosEmPassos(a.recuperacao_s);
+        gritoDanoPct[codigo] = a.dano_pct;
+        gritoEmpurraoPx[codigo] = a.empurrao.distancia_corpos * CORPO_PX;
+        gritoEmpurraoPassos[codigo] = a.empurrao.passos;
+        continue;
+      }
+      if ((a.forma === 'arco' || a.forma === 'cone') && a.alcance_corpos != null && a.recuperacao_s != null) {
         if (a.angulo_graus !== 120) throw new Error(`${i.id}.${a.id}: só o arco de 120° tem cosseno literal`);
         alcanceDoArco[codigo] = a.alcance_corpos * CORPO_PX;
         recuperacaoPassos[codigo] = segundosEmPassos(a.recuperacao_s);
@@ -303,7 +350,6 @@ export function criarTabelaDeCombate(c: CombateDoJson, vigilante: VigilanteDoJso
       ataqueAparavel[codigo] = a.aparavel ? 1 : 0;
       telegrafoPassos[codigo] = segundosEmPassos(a.telegrafo.duracao_s);
       danoDoAtaque[codigo] = a.dano ?? 0;
-      break;
     }
   }
   return {
@@ -360,6 +406,19 @@ export function criarTabelaDeCombate(c: CombateDoJson, vigilante: VigilanteDoJso
     alcanceDeTiro,
     salPct,
     salPassos,
+    gritoRaio,
+    gritoTelegrafoPassos,
+    gritoRecuperacaoPassos,
+    gritoDanoPct,
+    gritoEmpurraoPx,
+    gritoEmpurraoPassos,
+    convocaPassos,
+    convocaQuantidade,
+    convocaAnel,
+    convocaTipo,
+    arenaRaio: c.arena.raio_px,
+    fogueiraRaio: c.fogueira.raio_px,
+    fogueiraDistancia: c.fogueira.distancia_px,
   };
 }
 
@@ -369,15 +428,19 @@ export function criarTabelaDeCombate(c: CombateDoJson, vigilante: VigilanteDoJso
  * precisa de tamanho e comportamento de movimento; um número pendente (como o tamanho do
  * Coroado, da F-008) é erro aqui, e não no meio de um passo. O R_MAX sai desse conjunto.
  */
-function tiposQueNascem(t: TiposDeInimigo, tl: Timeline): TiposDeInimigo {
+function tiposQueNascem(t: TiposDeInimigo, tl: Timeline, marcos: TabelaDeMarcos): TiposDeInimigo {
+  // O Coroado nasce pelos marcos (F-008), e não pelo roster; os convocados do Coroado são Ocos das Lanternas, que já estão no roster.
   const codigos = new Set<number>([...tl.rosterTipo, ...tl.garantidoTipo, TIPO.oco_grande]);
+  if (marcos.n > 0) codigos.add(TIPO.oco_grande_coroado);
   const existe = new Uint8Array(t.existe.length);
   let raioMaximo = 0;
+  let raioDeObstaculo = 0;
   for (const c of codigos) {
     if (t.existe[c] !== 1) throw new Error(`tipo de inimigo sem tamanho ou sem comportamento de movimento: ${IDS_DE_TIPO[c]}`);
     existe[c] = 1;
-    raioMaximo = Math.max(raioMaximo, t.raio[c]!);
+    if (t.grande[c] === 0) raioMaximo = Math.max(raioMaximo, t.raio[c]!);
+    raioDeObstaculo = Math.max(raioDeObstaculo, t.raio[c]!);
   }
-  // Fora do conjunto, existe = 0: nascerInimigo recusa o tipo, e nenhum corpo passa do R_MAX da separação e dos obstáculos.
-  return { ...t, existe, raioMaximo };
+  // Fora do conjunto, existe = 0: nascerInimigo recusa o tipo, e nenhum corpo passa do R_MAX da separação e do raio dos obstáculos.
+  return { ...t, existe, raioMaximo, raioDeObstaculo };
 }

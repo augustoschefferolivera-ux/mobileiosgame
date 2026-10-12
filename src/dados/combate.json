@@ -64,5 +64,12 @@
       "distancia_entre_toques_max_pt": 40,
       "deslocamento_max_pt": 10
     }
+  },
+  "arena": {
+    "raio_px": 224
+  },
+  "fogueira": {
+    "raio_px": 64,
+    "distancia_px": 96
   }
 }
