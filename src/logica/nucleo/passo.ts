@@ -17,6 +17,7 @@ import { aplicarRotacao } from '../mundo/cenario';
 import { aplicarContato } from '../mundo/contato';
 import type { DadosDaVigilia } from '../mundo/dados';
 import { rodarFrasco } from '../mundo/frasco';
+import { rodarEtapa } from '../mundo/etapas';
 import { moverHorda } from '../mundo/horda';
 import { atualizarPromptDeMover, moverJogador } from '../mundo/jogador';
 import { encerrarVigilia, rodarApagando, rodarMancha, verificarMorte } from '../mundo/vigilia';
@@ -94,8 +95,11 @@ export function passo(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): v
     passoFora(e, dados, cmd);
     return;
   }
+  const congelado = e.jogador3U8[JOGADOR3_U8.congelamento]! > 0;
   passoVivo(e, dados, cmd);
   depoisDoPasso(e, dados);
+  // Etapas (F-008): horas, marcos e a convocação do Coroado; o passo congelado não conta (nada andou).
+  if (!congelado) rodarEtapa(e, dados);
 }
 
 const comandos = criarComandos();
@@ -121,8 +125,10 @@ export function avancar(e: Estado, dados: DadosDaVigilia, fonte: FonteDeComandos
     if (e.jogador4U8[INDICE_DA_FASE]! !== FASE_VIVA || (comandos.acoes[0]! & BIT_ABANDONAR) !== 0) {
       passoFora(e, dados, comandos);
     } else {
+      const congelado = e.jogador3U8[JOGADOR3_U8.congelamento]! > 0;
       passoVivo(e, dados, comandos);
       if (e.jogador4U8[JOGADOR4_U8.manchaAtiva] !== 0 || e.jogador[JOGADOR.hp]! <= 0) depoisDoPasso(e, dados);
+      if (!congelado) rodarEtapa(e, dados);
     }
     i++;
   }
