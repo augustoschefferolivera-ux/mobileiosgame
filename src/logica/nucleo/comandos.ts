@@ -7,8 +7,12 @@
 // (design/decisoes-F-006.md ET5), as ações (esquiva, aparo) são bordas: valem
 // só no passo em que a fonte as entrega, uma vez.
 
-/** Bits de `ComandosDoPasso.acoes`. O Frasco (4) é da F-007: a validação o recusa até lá. */
-export const ACAO = { esquiva: 1, aparo: 2, frasco: 4 } as const;
+/**
+ * Bits de `ComandosDoPasso.acoes`. O Frasco (4), `frascoCancelar` (8, emitido pelo tradutor ao segurar) e
+ * `abandonar` (16, só da pausa) são da F-007 (LY3): a validação os recusa até o `passo` aprendê-los; os
+ * códigos só crescem no fim.
+ */
+export const ACAO = { esquiva: 1, aparo: 2, frasco: 4, frascoCancelar: 8, abandonar: 16 } as const;
 /** Os bits que um roteiro pode pedir hoje. */
 const ACOES_PERMITIDAS = ACAO.esquiva | ACAO.aparo;
 

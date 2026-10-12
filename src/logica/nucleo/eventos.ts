@@ -34,6 +34,15 @@ export const EVENTO = {
   acaoNegada: 19,
   projetilLancado: 20,
   aparoVazio: 21,
+  // F-007 (design/decisoes-F-007.md LY4); os códigos só crescem no fim.
+  frascoIniciado: 22,
+  frascoInterrompido: 23,
+  frascoCancelado: 24,
+  apagou: 25,
+  fimDaVigilia: 26,
+  manchaRecuperada: 27,
+  /** Dano líquido (depois da armadura e da Brasa Firme) em `FLOATS_DO_EVENTO[0]`. */
+  danoAoJogador: 28,
 } as const;
 /** Formas de ataque do evento; os códigos só crescem no fim. */
 /** 7 e 8 (F-006): o arco do Oco Grande e o projétil de Sal da Noviça. */
@@ -70,6 +79,11 @@ export const EV = {
    * jogador; posturaQuebrada: x, y, passos; contraAtaque: x, y, slot do alvo,
    * vagas armadas; acaoNegada: x, y, stamina, custo (a ação na forma);
    * projetilLancado: x, y, dirX, dirY; aparoVazio: x, y, stamina depois.
+   * F-007 (LY4): frascoIniciado: x, y, hp antes, hpMax; frascoInterrompido:
+   * x, y, dano líquido, passo da cura; frascoCancelado: x, y, passo da cura,
+   * 0; apagou: x, y, Almas, 0; fimDaVigilia: x, y, Almas na mancha, Almas ao
+   * Santuário (a causa na forma); manchaRecuperada: x, y, Almas, 0;
+   * danoAoJogador: x, y, dano líquido, hp depois.
    */
   floats: 4,
 } as const;

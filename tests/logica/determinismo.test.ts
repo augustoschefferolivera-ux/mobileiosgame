@@ -89,11 +89,11 @@ describe('determinismo (F-001.1)', () => {
   });
 
   it('valores de referência fixos (mudar layout, semeadura, hash, roteiro, disposição, horda, diretor ou armas exige atualizar aqui)', () => {
-    // Desde a F-006 (estado v6: stamina, esquiva, aparo e ataques; muda só o layout, pois os ataques
-    // ficam desligados por padrão e a regressão v5 prova que os campos antigos não mudaram).
-    // F-005: f39dd6b4 e 7c1b6c0c; F-004: 901adb6d e 9cdc2c63; F-003: e91ed119 e 6173ca75.
-    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('c052c6c9');
-    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('6ddd6d39');
+    // Desde a F-007 (estado v7: fase, Frasco, mancha e contadores; muda só o layout, pois nada da F-007 atua
+    // ainda e a regressão v6 prova que os campos antigos não mudaram).
+    // F-006: c052c6c9 e 6ddd6d39. F-005: f39dd6b4 e 7c1b6c0c; F-004: 901adb6d e 9cdc2c63; F-003: e91ed119 e 6173ca75.
+    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('2175475d');
+    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('de4a60fd');
   });
 
   /** Vivos, spawns, mortes, passo da 1ª morte, passo do 1º acerto de contato, HP e o fluxo armas intocado, no passo 1.000. */
@@ -150,7 +150,7 @@ describe('determinismo (F-001.1)', () => {
     for (let k = 100; k <= PASSOS_REFERENCIA; k += 100) {
       avancar(e, D, fonte, 100);
       const s = hashPorSecao(e);
-      expect(Object.keys(s)).toEqual(['cabecalho', 'rng', 'jogador', 'mundo', 'inimigos', 'projeteis', 'progressao', 'pickups', 'efeitos', 'combate']);
+      expect(Object.keys(s)).toEqual(['cabecalho', 'rng', 'jogador', 'mundo', 'inimigos', 'projeteis', 'progressao', 'pickups', 'efeitos', 'combate', 'vigilia']);
       const secoes = Object.entries(s).map(([nome, h]) => `${nome}=${hex8(h)}`).join(' ');
       log.push(`trilha passo=${k} hash=${hex8(hashEstado(e))} ${secoes}`);
     }

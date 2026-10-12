@@ -11,7 +11,10 @@
 // save. Cada feature seguinte aumenta VERSAO_LAYOUT. Na F-006 (VERSAO_LAYOUT 6;
 // design/decisoes-F-006.md ET1), de novo só no fim, depois dos 67.488 bytes do
 // v5: stamina, esquiva, aparo e Poder do jogador, a Sequência do Contra-ataque
-// por vaga, os ataques dos inimigos e o dono dos projéteis.
+// por vaga, os ataques dos inimigos e o dono dos projéteis. Na F-007
+// (VERSAO_LAYOUT 7; design/decisoes-F-007.md LY1), mais uma vez só no fim,
+// depois dos 74.636 bytes do v6: a fase da Vigília, o Frasco, a mancha das
+// Cinzas Perdidas e os contadores da pausa e do Resultado.
 import type { DadosDaVigilia } from '../mundo/dados';
 import { criarAnel, esvaziarAnel, type AnelDeEventos } from './eventos';
 import { fnv1aBytes, FNV_BASE } from './hash';
@@ -23,7 +26,7 @@ import { PASSOS_POR_MINUTO } from '../diretor/timeline';
 import { gravarDanoNoSpawn, gravarHpNoSpawn } from '../mundo/escala';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, normalizarNoToro } from '../mundo/toro';
 
-export const VERSAO_LAYOUT = 6;
+export const VERSAO_LAYOUT = 7;
 
 /** Palavras do cabeçalho (Uint32). As não usadas ficam em zero e entram no hash. */
 export const CAB = {
@@ -254,6 +257,16 @@ export interface ParametrosDaVigilia {
   readonly staminaInicial: number | null;
   /** Só o ?inicio do build de debug liga: dispensa a linha fixa do relógio inicial > 0 (decisoes-F-006 TU7). */
   readonly inicioLivre: boolean;
+  /** Mancha das Cinzas Perdidas do meta, nascida no passo 0; null = nenhuma (decisoes-F-007 MC6). Entra no hash. */
+  readonly mancha: ManchaInicial | null;
+  /** Almas dadas no início (só o ?almas do build de debug; decisoes-F-007 MC12). Entra no hash; não grava no meta. */
+  readonly almasIniciais: number;
+}
+/** A mancha de uma Vigília anterior: posição no mapa e Almas a devolver (decisoes-F-007 MC6; `almas` ≥ 1 e < 2^30). */
+export interface ManchaInicial {
+  readonly x: number;
+  readonly y: number;
+  readonly almas: number;
 }
 export const PARAMETROS_PADRAO: ParametrosDaVigilia = {
   tutoriaisVistos: 0,
@@ -269,7 +282,11 @@ export const PARAMETROS_PADRAO: ParametrosDaVigilia = {
   inimigos: [],
   staminaInicial: null,
   inicioLivre: false,
+  mancha: null,
+  almasIniciais: 0,
 };
+/** Os saldos de Almas (`almas`, mancha, `valor` do pickup) ficam abaixo de 2^30 (decisoes-F-007 AM7; regra do laço quente). */
+export const LIMITE_DE_ALMAS = 1_073_741_824;
 
 /** Bloco da progressão, Uint32 (design/decisoes-F-005.md §5). */
 export const PROGRESSAO = {
@@ -314,7 +331,8 @@ export const MUNDO2 = {
 const PALAVRAS_MUNDO2 = 4;
 /** Pool de pickups (ADR-0002 §4). */
 export const CAPACIDADE_DE_PICKUPS = 512;
-export const TIPO_DE_PICKUP = { vazio: 0, cinza: 1, bauComum: 2, bauDourado: 3 } as const;
+/** A Alma (4) é da F-007 (decisoes-F-007 AM2); os códigos só crescem no fim. */
+export const TIPO_DE_PICKUP = { vazio: 0, cinza: 1, bauComum: 2, bauDourado: 3, alma: 4 } as const;
 /** Pool de efeitos de chão (ADR-0002 §4): as ondas da União. */
 export const CAPACIDADE_DE_EFEITOS = 64;
 /** Bits de "já acertou" por onda: 512 slots de inimigo em 16 Uint32 (U4). */
@@ -411,6 +429,52 @@ const CAMPOS_INIMIGO3_F32 = ['miraX', 'miraY'] as const;
 const CAMPOS_INIMIGO3_U8 = ['quebradaPassos', 'ataqueFase', 'ataqueTimer'] as const;
 const CAMPOS_PROJETIL3_U16 = ['donoSlot', 'donoGeracao'] as const;
 
+/** Fases da Vigília (decisoes-F-007 AG4): em FIM o `passo` não faz nada e o hash fica congelado. */
+export const FASE = { viva: 0, apagando: 1, fim: 2 } as const;
+/** Por que a Vigília acabou; 3 e 4 ficam reservados às F-009 (decisoes-F-007 AG4). */
+export const CAUSA_DO_FIM = { nenhuma: 0, apagar: 1, abandonar: 2, aFome: 3, amanhecer: 4 } as const;
+
+/** Registro da F-007, Float32 (5 campos, 20 B; decisoes-F-007 LY1). */
+export const JOGADOR4 = {
+  /** Cura do Frasco por passo, gravada no toque: `0,4 × hpMax / 120` (FR2). */
+  frascoPorPasso: 0,
+  /** O que falta curar do Frasco em curso; o passo 120 soma o resto (FR2). */
+  frascoRestante: 1,
+  /** HP efetivamente perdido, depois da armadura e da Brasa Firme (DM5; Resultado e pausa). */
+  danoRecebido: 2,
+  /** Posição da mancha das Cinzas Perdidas (MC6). */
+  manchaX: 3,
+  manchaY: 4,
+} as const;
+const FLOATS_JOGADOR4 = 5;
+/** Registro da F-007, Uint32 (4 campos, 16 B; todos < 2^30). */
+export const JOGADOR4_U32 = {
+  /** Aparos bem-sucedidos (PE2). */
+  aparos: 0,
+  /** Esquivas perfeitas, 1 por esquiva (PE2; alimenta os Feitos da F-011). */
+  esquivasPerfeitas: 1,
+  frascosUsados: 2,
+  /** Almas da mancha, a devolver ao encostar (MC6). */
+  manchaAlmas: 3,
+} as const;
+const PALAVRAS_JOGADOR4_U32 = 4;
+/** Registro da F-007, Uint8 (6 campos, 8 B com 2 de folga em zero). */
+export const JOGADOR4_U8 = {
+  /** FASE (AG4). */
+  fase: 0,
+  /** CAUSA_DO_FIM (AG4). */
+  causaDoFim: 1,
+  /** Passos de APAGANDO já decorridos (0 a `apagar.duracao_passos`). */
+  apagandoPassos: 2,
+  /** Cargas do Frasco; começa em `vigilantes.json` `frascos.cargas` (FR8). */
+  frascoCargas: 3,
+  /** Passo da cura em curso: 1 no passo do toque, 120 no último; 0 = fora dela (FR2). */
+  frascoPasso: 4,
+  /** 1 enquanto a mancha existe e não foi recuperada (MC6). */
+  manchaAtiva: 5,
+} as const;
+const BYTES_JOGADOR4_U8 = 8;
+
 const PALAVRAS_RNG = FLUXOS.length * PALAVRAS_POR_FLUXO;
 const BYTES_CAB = PALAVRAS_CAB * 4;
 const BYTES_RNG = PALAVRAS_RNG * 4;
@@ -463,7 +527,13 @@ const INICIO_VAGAS3 = INICIO_JOGADOR3_U16 + BYTES_JOGADOR3_U16;
 const INICIO_INIMIGOS3_F32 = INICIO_VAGAS3 + BYTES_VAGAS3;
 const INICIO_INIMIGOS3_U8 = INICIO_INIMIGOS3_F32 + CAMPOS_INIMIGO3_F32.length * CAPACIDADE_DE_INIMIGOS * 4;
 const INICIO_PROJETEIS3_U16 = INICIO_INIMIGOS3_U8 + CAMPOS_INIMIGO3_U8.length * CAPACIDADE_DE_INIMIGOS;
-export const BYTES_ESTADO = INICIO_PROJETEIS3_U16 + CAMPOS_PROJETIL3_U16.length * P * 2;
+/** Fim do layout v6 da F-006 (a regressão v6 compara os bytes até aqui). */
+export const BYTES_DO_LAYOUT_6 = INICIO_PROJETEIS3_U16 + CAMPOS_PROJETIL3_U16.length * P * 2;
+// F-007: tudo depois de BYTES_DO_LAYOUT_6, em múltiplos de 4 bytes.
+const INICIO_JOGADOR4 = BYTES_DO_LAYOUT_6;
+const INICIO_JOGADOR4_U32 = INICIO_JOGADOR4 + FLOATS_JOGADOR4 * 4;
+const INICIO_JOGADOR4_U8 = INICIO_JOGADOR4_U32 + PALAVRAS_JOGADOR4_U32 * 4;
+export const BYTES_ESTADO = INICIO_JOGADOR4_U8 + BYTES_JOGADOR4_U8;
 
 /** Deslocamento de cada seção no buffer (o teste de layout trava todos e o alinhamento de cada view). */
 export const LAYOUT = {
@@ -504,6 +574,10 @@ export const LAYOUT = {
   inimigos3F32: INICIO_INIMIGOS3_F32,
   inimigos3U8: INICIO_INIMIGOS3_U8,
   projeteis3U16: INICIO_PROJETEIS3_U16,
+  fimDoV6: BYTES_DO_LAYOUT_6,
+  jogador4: INICIO_JOGADOR4,
+  jogador4U32: INICIO_JOGADOR4_U32,
+  jogador4U8: INICIO_JOGADOR4_U8,
   fim: BYTES_ESTADO,
 } as const;
 
@@ -524,6 +598,12 @@ export interface Estado {
   readonly jogador3U8: Uint8Array;
   /** Alvo aparado e ameaças aparáveis, pelos índices de JOGADOR3_U16. */
   readonly jogador3U16: Uint16Array;
+  /** Frasco (cura), dano recebido e posição da mancha, pelos índices de JOGADOR4 (F-007). */
+  readonly jogador4: Float32Array;
+  /** Contadores e Almas da mancha, pelos índices de JOGADOR4_U32 (F-007). */
+  readonly jogador4U32: Uint32Array;
+  /** Fase, causa do fim, Apagar, cargas e passo do Frasco e mancha ativa, pelos índices de JOGADOR4_U8 (F-007). */
+  readonly jogador4U8: Uint8Array;
   /** Build: as 5 vagas de arma. */
   readonly build: Build;
   /** Bloco do mundo e do diretor, pelos índices de MUNDO. */
@@ -581,6 +661,9 @@ export function criarEstado(seed: number, dados: DadosDaVigilia, params: Partial
     jogador3: new Float32Array(buffer, INICIO_JOGADOR3, FLOATS_JOGADOR3),
     jogador3U8: new Uint8Array(buffer, INICIO_JOGADOR3_U8, BYTES_JOGADOR3_U8),
     jogador3U16: new Uint16Array(buffer, INICIO_JOGADOR3_U16, BYTES_JOGADOR3_U16 / 2),
+    jogador4: new Float32Array(buffer, INICIO_JOGADOR4, FLOATS_JOGADOR4),
+    jogador4U32: new Uint32Array(buffer, INICIO_JOGADOR4_U32, PALAVRAS_JOGADOR4_U32),
+    jogador4U8: new Uint8Array(buffer, INICIO_JOGADOR4_U8, BYTES_JOGADOR4_U8),
     build: {
       recarga: new Uint16Array(buffer, INICIO_BUILD, V),
       esperaPulso: new Uint16Array(buffer, INICIO_BUILD + 2 * V, V),
@@ -696,6 +779,12 @@ export function reiniciarEstado(e: Estado, seed: number, dados: DadosDaVigilia, 
   const staminaMax = dados.combate.staminaMax;
   const stamina = p.staminaInicial ?? staminaMax;
   if (!(stamina >= 0 && stamina <= staminaMax)) throw new Error(`stamina inicial fora de 0 a ${staminaMax}: ${stamina}`);
+  if (!Number.isInteger(p.almasIniciais) || p.almasIniciais < 0 || p.almasIniciais >= LIMITE_DE_ALMAS) throw new Error(`Almas iniciais inválidas: ${p.almasIniciais}`);
+  if (p.mancha !== null) {
+    const m = p.mancha;
+    if (!Number.isInteger(m.almas) || m.almas < 1 || m.almas >= LIMITE_DE_ALMAS) throw new Error(`mancha: Almas inválidas: ${m.almas}`);
+    if (!(m.x >= 0 && m.x < LARGURA_DO_MAPA && m.y >= 0 && m.y < ALTURA_DO_MAPA)) throw new Error('mancha fora do mapa');
+  }
   if (p.inimigos.length > CAPACIDADE_DE_INIMIGOS) throw new Error('inimigos demais no início');
   for (const i of p.inimigos) if (!(Math.abs(i.dx) <= 500 && Math.abs(i.dy) <= 500)) throw new Error('inimigo inicial fora do alcance');
   for (const b of p.baus) if (!(Math.abs(b.dx) <= 500 && Math.abs(b.dy) <= 500)) throw new Error('baú inicial fora do alcance');
@@ -721,6 +810,15 @@ export function reiniciarEstado(e: Estado, seed: number, dados: DadosDaVigilia, 
   e.jogador3[JOGADOR3.stamina] = stamina;
   e.jogador3U8[JOGADOR3_U8.promptEsquiva] = p.tutoriaisVistos & TUTORIAL.esquiva ? PROMPT.cumprido : PROMPT.aguardando;
   e.jogador3U8[JOGADOR3_U8.promptAparo] = p.tutoriaisVistos & TUTORIAL.aparo ? PROMPT.cumprido : PROMPT.aguardando;
+  // F-007: Vigília viva, cargas do Frasco e a mancha do meta (nasce no passo 0, sem RNG; MC6).
+  e.jogador4U8[JOGADOR4_U8.fase] = FASE.viva;
+  e.jogador4U8[JOGADOR4_U8.frascoCargas] = dados.combate.frascoCargas;
+  if (p.mancha !== null) {
+    e.jogador4U8[JOGADOR4_U8.manchaAtiva] = 1;
+    e.jogador4[JOGADOR4.manchaX] = p.mancha.x;
+    e.jogador4[JOGADOR4.manchaY] = p.mancha.y;
+    e.jogador4U32[JOGADOR4_U32.manchaAlmas] = p.mancha.almas;
+  }
   e.mundo[MUNDO.intensidade10] = 10;
   esvaziarPool(e.pool);
   esvaziarPool(e.poolDeProjeteis);
@@ -736,6 +834,7 @@ export function reiniciarEstado(e: Estado, seed: number, dados: DadosDaVigilia, 
   e.progresso[PROGRESSAO.nivel] = 1;
   e.progresso[PROGRESSAO.xp] = p.xpInicial;
   e.progresso[PROGRESSAO.xpTotal] = p.xpInicial;
+  e.progresso[PROGRESSAO.almas] = p.almasIniciais;
   e.atributos.set(pr.atributosIniciais);
   e.jogador2[JOGADOR2.hpMax] = dados.hpInicial;
   esvaziarPool(e.poolDePickups);
@@ -877,7 +976,7 @@ export function hashEstado(e: Estado): number {
  */
 export function hashPorSecao(
   e: Estado,
-): Record<'cabecalho' | 'rng' | 'jogador' | 'mundo' | 'inimigos' | 'projeteis' | 'progressao' | 'pickups' | 'efeitos' | 'combate', number> {
+): Record<'cabecalho' | 'rng' | 'jogador' | 'mundo' | 'inimigos' | 'projeteis' | 'progressao' | 'pickups' | 'efeitos' | 'combate' | 'vigilia', number> {
   const secao = (inicio: number, fim: number): number => fnv1aBytes(FNV_BASE, new Uint8Array(e.buffer, inicio, fim - inicio));
   return {
     cabecalho: secao(0, BYTES_CAB),
@@ -889,6 +988,7 @@ export function hashPorSecao(
     progressao: secao(INICIO_PROGRESSAO, INICIO_POOL_PICKUPS),
     pickups: secao(INICIO_POOL_PICKUPS, INICIO_POOL_EFEITOS),
     efeitos: secao(INICIO_POOL_EFEITOS, BYTES_DO_LAYOUT_5),
-    combate: secao(BYTES_DO_LAYOUT_5, BYTES_ESTADO),
+    combate: secao(BYTES_DO_LAYOUT_5, BYTES_DO_LAYOUT_6),
+    vigilia: secao(BYTES_DO_LAYOUT_6, BYTES_ESTADO),
   };
 }

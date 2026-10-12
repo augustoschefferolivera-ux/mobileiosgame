@@ -95,6 +95,27 @@ export interface TabelaDeCombate {
   readonly posturaDanoPct: number;
   /** Fator do dano da salva extra do Contra-ataque (×2). */
   readonly contraFator: number;
+  /** O Frasco (vigilantes.json): cargas, cura em % do hpMax, duração da cura e espera da regeneração em passos, limiar de interrupção em % do hpMax. */
+  readonly frascoCargas: number;
+  readonly frascoCuraPct: number;
+  readonly frascoPassos: number;
+  readonly frascoInterrompePct: number;
+  readonly frascoEsperaRegen: number;
+  /** Passos que um novo toque no botão precisa durar para cancelar a cura (combate.json). */
+  readonly frascoCancelarPassos: number;
+  /** Brasa Firme (vigilantes.json): redução do dano em % e o limiar da stamina em % de `staminaMax` (estrito, `>`). */
+  readonly brasaFirmeReducaoPct: number;
+  readonly brasaFirmeStaminaPct: number;
+  /** Apagar: passos de APAGANDO e o fator do `deltaMs` do driver (só apresentação). */
+  readonly apagarPassos: number;
+  readonly apagarFator: number;
+  /** Mancha: % das Almas, raio de encosto e margem da zona proibida, em px. */
+  readonly manchaPct: number;
+  readonly manchaRaio: number;
+  readonly manchaMargem: number;
+  /** Telemetria de dano recebido: janela do contato em passos e teto de linhas por fonte. */
+  readonly telemetriaAgregacaoPassos: number;
+  readonly telemetriaTeto: number;
   /** Por tipo: 1 se a Postura Quebrada o atinge. */
   readonly posturaQuebrada: Uint8Array;
   /** Por tipo: 1 se o ataque tem telegrafo branco (aparável). */
@@ -130,6 +151,20 @@ export interface RegiaoDoJson {
 /** O que se lê do Vigilante (vigilante.schema.json). */
 export interface VigilanteDoJson extends VigilanteDaProgressao {
   readonly velocidade: number;
+  /** O Frasco (cargas, cura, duração, limiar de interrupção e espera da stamina; decisoes-F-007 FR). */
+  readonly frascos: {
+    readonly cargas: number;
+    readonly cura_pct: number;
+    readonly duracao_s: number;
+    readonly interrompe_acima_pct_hp: number;
+    readonly sem_regen_stamina_s: number;
+  };
+  /** A Brasa Firme (decisoes-F-007 DM1 e DM2): a redução do dano e a condição de stamina, em %. */
+  readonly passiva: {
+    readonly hp_max_pct: number;
+    readonly reducao_dano_pct: number;
+    readonly condicao_stamina_acima_pct: number;
+  };
   /** Capacidade da stamina (o teto; design/decisoes-F-006.md ST1). */
   readonly stamina: number;
   readonly arma_inicial: string;
@@ -158,7 +193,7 @@ export function criarDadosDaVigilia(
     armas: tabelaDeArmas,
     progressao: criarTabelaDeProgressao(progressao, vigilante, tabelaDeArmas),
     timeline,
-    combate: criarTabelaDeCombate(combate, vigilante.stamina, inimigos),
+    combate: criarTabelaDeCombate(combate, vigilante, inimigos),
   };
 }
 
@@ -168,7 +203,9 @@ export function criarDadosDaVigilia(
  * o JSON importado aqui, sem mudar a assinatura. Só o arco de 120° tem cosseno
  * literal no código: outro ângulo é erro de dados.
  */
-export function criarTabelaDeCombate(c: CombateDoJson, staminaMax: number, inimigos: readonly InimigoDoJson[]): TabelaDeCombate {
+export function criarTabelaDeCombate(c: CombateDoJson, vigilante: VigilanteDoJson, inimigos: readonly InimigoDoJson[]): TabelaDeCombate {
+  const staminaMax = vigilante.stamina;
+  const fr = vigilante.frascos;
   const n = IDS_DE_TIPO.length;
   const posturaQuebrada = new Uint8Array(n);
   const ataqueAparavel = new Uint8Array(n);
@@ -232,6 +269,21 @@ export function criarTabelaDeCombate(c: CombateDoJson, staminaMax: number, inimi
     contraAtaquePassos: c.contra_ataque_passos,
     posturaDanoPct: c.postura_quebrada.dano_pct,
     contraFator: c.contra_ataque_fator,
+    frascoCargas: fr.cargas,
+    frascoCuraPct: fr.cura_pct,
+    frascoPassos: segundosEmPassos(fr.duracao_s),
+    frascoInterrompePct: fr.interrompe_acima_pct_hp,
+    frascoEsperaRegen: segundosEmPassos(fr.sem_regen_stamina_s),
+    frascoCancelarPassos: c.frasco.cancelar_segurando_passos,
+    brasaFirmeReducaoPct: vigilante.passiva.reducao_dano_pct,
+    brasaFirmeStaminaPct: vigilante.passiva.condicao_stamina_acima_pct,
+    apagarPassos: c.apagar.duracao_passos,
+    apagarFator: c.apagar.camera_lenta_fator,
+    manchaPct: c.mancha.pct_das_almas,
+    manchaRaio: c.mancha.raio_px,
+    manchaMargem: c.mancha.margem_dos_obstaculos_px,
+    telemetriaAgregacaoPassos: segundosEmPassos(c.telemetria.agregacao_do_contato_s),
+    telemetriaTeto: c.telemetria.teto_por_fonte,
     posturaQuebrada,
     ataqueAparavel,
     telegrafoPassos,

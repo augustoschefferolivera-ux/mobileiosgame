@@ -1,15 +1,17 @@
-// Códigos de evento, forma e flag da F-006 (design/decisoes-F-006.md ET10): os
+// Códigos de evento, forma e flag das F-006 e F-007 (design/decisoes-F-006.md ET10; decisoes-F-007 LY4): os
 // literais ficam travados; os códigos só crescem no fim.
 import { describe, expect, it } from 'vitest';
 import { NOMES_DOS_EVENTOS } from '../../../src/cenas/debug';
 import { EVENTO, FLAG, FORMA } from '../../../src/logica/nucleo/eventos';
 
 describe('códigos de EVENTO, FORMA e FLAG', () => {
-  it('EVENTO 1 a 21, literais', () => {
+  it('EVENTO 1 a 28, literais', () => {
     expect(EVENTO).toEqual({
       acerto: 1, morte: 2, golpe: 3, pulso: 4, nivel: 5, carta: 6, onda: 7, bau: 8, item: 9, uniao: 10,
       telegrafo: 11, golpeInimigo: 12, esquiva: 13, esquivaPerfeita: 14, aparo: 15, aparoFalho: 16,
       posturaQuebrada: 17, contraAtaque: 18, acaoNegada: 19, projetilLancado: 20, aparoVazio: 21,
+      frascoIniciado: 22, frascoInterrompido: 23, frascoCancelado: 24, apagou: 25, fimDaVigilia: 26, manchaRecuperada: 27,
+      danoAoJogador: 28,
     });
   });
 
@@ -20,8 +22,8 @@ describe('códigos de EVENTO, FORMA e FLAG', () => {
 });
 
 describe('nomes dos eventos no debug', () => {
-  it('NOMES_DOS_EVENTOS tem o nome de cada código, nas posições 0 a 21', () => {
-    expect(NOMES_DOS_EVENTOS).toHaveLength(22);
+  it('NOMES_DOS_EVENTOS tem o nome de cada código, nas posições 0 a 28', () => {
+    expect(NOMES_DOS_EVENTOS).toHaveLength(29);
     for (const [nome, codigo] of Object.entries(EVENTO)) expect(NOMES_DOS_EVENTOS[codigo], nome).toBe(nome);
     expect(NOMES_DOS_EVENTOS[0]).toBe('');
   });

@@ -1,4 +1,4 @@
-// Estado v6 (design/decisoes-F-006.md ET1 a ET3): versão, tamanho, cada
+// Estado v6 dentro do v7 (design/decisoes-F-006.md ET1 a ET3; o bloco da F-007 está em estado-v7.test.ts): tamanho, cada
 // deslocamento e o alinhamento, a lista canônica de campos, as constantes
 // novas, o início da stamina e dos prompts, a seção `combate` do hash e a
 // tabela de combate compilada dos JSON.
@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { ACAO } from '../../../src/logica/nucleo/comandos';
 import {
   BYTES_DO_LAYOUT_5,
-  BYTES_ESTADO,
+  BYTES_DO_LAYOUT_6,
   CAB,
   CAPACIDADE_DE_INIMIGOS,
   CAPACIDADE_DE_PROJETEIS,
@@ -19,7 +19,6 @@ import {
   TIPO_DE_PROJETIL,
   TODOS_OS_TUTORIAIS,
   TUTORIAL,
-  VERSAO_LAYOUT,
   VAGAS_DE_ARMA,
   criarEstado,
   hashPorSecao,
@@ -32,11 +31,10 @@ import combate from '../../../src/dados/combate.json';
 import { DADOS_DA_CHARNECA as D, DADOS_SEM_OBSTACULOS, PARADO, PRODUCAO } from '../apoio';
 
 describe('layout v6 (ET1)', () => {
-  it('versão 6, 74.636 bytes; o v5 (67.488) no mesmo lugar e as seções novas em ordem, cada deslocamento literal', () => {
-    expect(VERSAO_LAYOUT).toBe(6);
+  it('74.636 bytes; o v5 (67.488) no mesmo lugar e as seções novas em ordem, cada deslocamento literal', () => {
     expect(BYTES_DO_LAYOUT_5).toBe(67_488);
-    expect(BYTES_ESTADO).toBe(74_636);
-    expect(BYTES_ESTADO - BYTES_DO_LAYOUT_5).toBe(36 + 12 + 5_500 + 1_600);
+    expect(BYTES_DO_LAYOUT_6).toBe(74_636);
+    expect(BYTES_DO_LAYOUT_6 - BYTES_DO_LAYOUT_5).toBe(36 + 12 + 5_500 + 1_600);
     expect({
       fimDoV5: LAYOUT.fimDoV5,
       jogador3: LAYOUT.jogador3,
@@ -46,7 +44,7 @@ describe('layout v6 (ET1)', () => {
       inimigos3F32: LAYOUT.inimigos3F32,
       inimigos3U8: LAYOUT.inimigos3U8,
       projeteis3U16: LAYOUT.projeteis3U16,
-      fim: LAYOUT.fim,
+      fimDoV6: LAYOUT.fimDoV6,
     }).toEqual({
       fimDoV5: 67_488,
       jogador3: 67_488,
@@ -56,7 +54,7 @@ describe('layout v6 (ET1)', () => {
       inimigos3F32: 67_536,
       inimigos3U8: 71_536,
       projeteis3U16: 73_036,
-      fim: 74_636,
+      fimDoV6: 74_636,
     });
     // Nenhuma seção do v5 mudou de lugar (os deslocamentos de antes da F-006).
     expect(LAYOUT.progressao).toBe(42_988);
@@ -87,7 +85,7 @@ describe('layout v6 (ET1)', () => {
     expect(e.inimigos.ataqueTimer.byteOffset).toBe(fim(e.inimigos.ataqueFase));
     expect(fim(e.inimigos.ataqueTimer)).toBe(e.projeteis.donoSlot.byteOffset);
     expect(e.projeteis.donoGeracao.byteOffset).toBe(fim(e.projeteis.donoSlot));
-    expect(fim(e.projeteis.donoGeracao)).toBe(BYTES_ESTADO);
+    expect(fim(e.projeteis.donoGeracao)).toBe(BYTES_DO_LAYOUT_6);
     expect(e.projeteis.donoSlot.length).toBe(CAPACIDADE_DE_PROJETEIS);
     // Os 2 bytes reservados do registro do jogador do v5 e as palavras 10 a 15 do cabeçalho seguem em zero.
     avancar(e, D, PARADO, 50);
@@ -128,14 +126,14 @@ describe('layout v6 (ET1)', () => {
     }
   });
 
-  it('`efeitos` termina em BYTES_DO_LAYOUT_5 e `combate` cobre o resto', () => {
+  it('`efeitos` termina em BYTES_DO_LAYOUT_5 e `combate` cobre o resto do v6', () => {
     const e = criarEstado(1, D);
     const antes = hashPorSecao(e);
     e.efeitos.arma[63] = 1; // último byte do v5
     expect(hashPorSecao(e).efeitos).not.toBe(antes.efeitos);
     expect(hashPorSecao(e).combate).toBe(antes.combate);
     e.efeitos.arma[63] = 0;
-    e.bytes[BYTES_ESTADO - 1] = 1; // último byte do v6
+    e.bytes[BYTES_DO_LAYOUT_6 - 1] = 1; // último byte do v6
     expect(hashPorSecao(e).combate).not.toBe(antes.combate);
     expect(hashPorSecao(e).efeitos).toBe(antes.efeitos);
   });
@@ -155,7 +153,7 @@ describe('constantes novas (ET2)', () => {
     expect(TUTORIAL).toEqual({ mover: 1, esquiva: 2, aparo: 4 });
     expect(TODOS_OS_TUTORIAIS).toBe(7);
     expect(CENARIO).toEqual({ jogadorInvulneravel: 1, diretorDesligado: 2, semCinzas: 4, ataques: 8 });
-    expect(ACAO).toEqual({ esquiva: 1, aparo: 2, frasco: 4 });
+    expect(ACAO).toEqual({ esquiva: 1, aparo: 2, frasco: 4, frascoCancelar: 8, abandonar: 16 });
     expect(TIPO_DE_PROJETIL).toEqual({ vazio: 0, faca: 1, sal: 2 });
     expect(PROMPT).toEqual({ aguardando: 0, visivel: 1, cumprido: 2 });
     expect(ORIGEM_DO_DANO).toEqual({ contato: 1, golpe: 2, projetil: 3 });

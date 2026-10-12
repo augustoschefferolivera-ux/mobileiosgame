@@ -94,7 +94,7 @@ describe('ações e mira (decisoes-F-006 ET5, ET6)', () => {
   };
 
   it('a tabela literal dos bits de ação', () => {
-    expect(ACAO).toEqual({ esquiva: 1, aparo: 2, frasco: 4 });
+    expect(ACAO).toEqual({ esquiva: 1, aparo: 2, frasco: 4, frascoCancelar: 8, abandonar: 16 });
   });
 
   it('criarComandos zera os três campos e copiarComandos copia movimento, ações e mira', () => {

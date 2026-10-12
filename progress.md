@@ -5,7 +5,7 @@
 ### Estado: em andamento (D7 aprovada; Etapa 2 em curso)
 
 - [x] **Etapa 1, decisões:** `design/decisoes-F-007.md` (D7), com revisão adversarial (12 achados, nota 8 antes das correções). Aprovada pelo usuário sem veto em 2026-10-12 ("Concordo com tudo que me trouxe"). `feature_list.json` recebeu o "como" dos F-007.1 a F-007.8, as duas evidências e as pendências resolvidas; as recomendações da §13 entraram nas pendências da F-008 a F-010.
-- [ ] **Etapa 2, implementação** (em curso, em 5 etapas): 1) registro da aprovação; 2) regressão v6, dados, schemas e textos; 3) estado v7; seguintes: comportamento (dano, Frasco, Apagar, mancha, meta) e cenas (HUD, pausa, Resultado), testes e evidências.
+- [ ] **Etapa 2, implementação** (em curso, em 5 etapas): 1) registro da aprovação (feito); 2) regressão v6 (`regressao-v6.test.ts`, gravada com o código da F-006), dados, schemas e textos (feito); 3) estado v7 (feito): layout de 74.680 B (bloco da F-007 de 44 B depois dos 74.636 do v6), `BYTES_DO_LAYOUT_6`, `FASE`, `CAUSA_DO_FIM`, eventos 22 a 28, `ACAO.frascoCancelar` e `.abandonar`, `TIPO_DE_PICKUP.alma`, parâmetros `mancha` e `almasIniciais`; sem comportamento novo; hashes de referência (passo 1.000): seed 1 `c052c6c9` → `2175475d`, seed 424242 `6ddd6d39` → `de4a60fd`; `nivel_tres` seed 1 `ca1c0824`/`286ca680` → `e5cba098`/`5a7d8aac`; seguintes: comportamento (dano, Frasco, Apagar, mancha, meta) e cenas (HUD, pausa, Resultado), testes e evidências.
 
 ## Backlog do usuário (teste no iPhone, 2026-10-12)
 
