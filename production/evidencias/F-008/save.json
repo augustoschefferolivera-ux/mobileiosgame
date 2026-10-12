@@ -1,0 +1,32 @@
+{
+  "aprovado": true,
+  "seed": 1,
+  "cenario": "fogueira_hora1",
+  "envelope": {
+    "versao": 1,
+    "layout": 8,
+    "idVigilia": 1,
+    "seq": 2,
+    "hora": 1,
+    "nivel": 1,
+    "almas": 400,
+    "frascos": 1,
+    "soma": "73094da6",
+    "bytesEmBase64": 102384
+  },
+  "save": {
+    "seq": 2,
+    "hash": "2ef0a161"
+  },
+  "depoisDeContinuar": {
+    "hash": "2ef0a161",
+    "relogio": 18000,
+    "passo": 70,
+    "etapa": 2,
+    "almas": 400
+  },
+  "chaves": [
+    "vdc.meta",
+    "vdc.vigilia"
+  ]
+}

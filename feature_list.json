@@ -815,7 +815,11 @@
         },
         {
           "arquivo": "production/evidencias/F-008/coroado-arena-390x844.png",
-          "descricao": "`?cenario=marco_coroado`: borda da arena e telegrafo da Patada e do Grito (design/decisoes-F-008.md, Evidências)"
+          "descricao": "`?cenario=marco_coroado`: borda da arena e telegrafo da Patada (design/decisoes-F-008.md, Evidências)"
+        },
+        {
+          "arquivo": "production/evidencias/F-008/coroado-grito-390x844.png",
+          "descricao": "`?cenario=marco_coroado`: borda da arena e o círculo vermelho do telegrafo do Grito (a mesma captura da D8 em dois momentos: a Patada e o Grito não se telegrafam juntos)"
         },
         {
           "arquivo": "production/evidencias/F-008/acender-retomada-390x844.png",
