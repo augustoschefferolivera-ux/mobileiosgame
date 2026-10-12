@@ -487,3 +487,177 @@ Numeração dos passos (a mesma da esquiva, ES1): `c` é o passo em que a simula
   - `CAMPOS_DOS_EVENTOS.aparo = ['minuto', 'sucesso', 'alvo']` (doc 10 §6), exposto em `__GAME_DEBUG__` (Q-30), um registro por desfecho, lido do anel de eventos pela Vigília: sucesso `{ minuto, sucesso: true, alvo: id do tipo do atacante }` (`null` sem atacante válido); falho `{ minuto, sucesso: false, alvo: null }`; vazio `{ minuto, sucesso: false, alvo: null }`. `minuto = ⌊relógio / 3.600⌋`; `alvo` usa o id do JSON (`oco_grande`, `novica_de_sal`).
   - O doc 10 §6 pede só `aparo`; o vazio é linha nova. "Aparos bem-sucedidos por Vigília" (doc 10 §3.1, 10 a 25) conta só `sucesso = true`. A política de agregação junto de `dano_recebido` (1.024 eventos) é da F-007.
   - Teste: um aparo de sucesso grava `{ sucesso: true, alvo: 'oco_grande' }` em `__GAME_DEBUG__.eventos`; falho e vazio gravam as linhas acima; o registro rejeita campos errados.
+
+## 5. Oco Grande, Noviça e Sal no jogador
+
+Aqui fica só a regra de simulação. O desenho (telegrafo no corpo, cunha, faixa, projétil, camada dos médios) está na §8. Contagem: o passo que lê o comando ou decide o ataque é o passo T (ES1); todos os ataques dos inimigos rodam na fase 6 do passo (ET4), depois das armas e dos pickups, com a posição final do passo, e a resolução do acerto no jogador é a única (§3, EP1; precedência aparo > i-frames > dano, ES6).
+
+### Oco Grande
+
+- **Ciclo e período (OG1). [documento nas durações, com o período e a imobilidade delegados]**
+  - Telegrafo de 36 passos (0,6 s; T a T+35); golpe no passo T+36; recuperação de 90 passos (1,5 s). Durações de B §3.6 e ADR-0002 §3 (0,6 s = 36; 1,5 s = 90).
+  - O passo do golpe é o 1º da recuperação: a recuperação vai de T+36 a T+125 e o próximo telegrafo é T+126. Período 126 passos (2,1 s). O verificador apontou que "90 depois do golpe" daria 127; fica 126, e os testes usam esse número.
+  - Nenhum passo cancela o ciclo: se o jogador sai do arco durante o telegrafo, o golpe sai em T+36 com desfecho "errou" e a recuperação é cheia. É o que torna a silhueta verdadeira.
+  - Por quê: nenhum documento diz quando o telegrafo começa nem se o corpo anda na recuperação; a imobilidade é inferência de "1,5 s de recuperação". (A frase "ensina punição pós-ataque" é do doc 05 §5, sobre o Autômato de Orun, e não da D4 §9.)
+  - Medida: 126 passos; 20 de dano a cada 2,1 s = 9,5 de dano por segundo por Grande no minuto 0 e 18,6 no minuto 19 (dano 39).
+  - Teste: telegrafo em T, golpe em T+36 (não T+35 nem T+37), próximo telegrafo em T+126 com o jogador parado; jogador a 79 px em T e a 200 px em T+36: evento de golpe "errou" e próximo telegrafo em T+126. Reprova 35, 37, 89, 91 e 127.
+
+- **Gatilho e enraizamento (OG2). [delegada; veto]**
+  - O Oco Grande começa o telegrafo no passo em que o centro do jogador está a d ≤ 80 px (alcance 64 + hitbox 16 do jogador, OG3). Fica enraizado do passo T ao T+125: a posição não muda pelo comportamento. O Sal e o afastamento do pulso continuam valendo (OG9), e a separação, o bloqueio S4 e os obstáculos também.
+  - **Diverge:** B §3.6 lido ao pé da letra ("Para a 1,5 corpo; telegrafo branco 0,6 s" = anda até 48 px, para e só então telegrafa), e **a D3 §9, que mantinha o movimento provisório da S6 durante os ataques: a S6 continua valendo fora do telegrafo, mas o telegrafo e o golpe enraízam o corpo**.
+  - Por quê: na horda real só 4% a 21% dos Grandes chegam a 48,5 px (a multidão os segura longe). Com o gatilho em 80 px atacam de 1,3 a 2 vezes mais. Com o gatilho literal, um terço a metade dos ataques some.
+  - Alternativa de veto: gatilho literal (parar a 48 px e só então telegrafar), com esse custo. Registrar também que um Oco parado a 79 px tem 1 px de margem: um passo de 2,4 px do jogador já sai do arco, e o jogador tem 36 passos para isso.
+  - Medida (jogador parado, seeds 1 a 8, só o garantido e os sorteados do minuto 1): o 1º Grande chega a 80 px entre os passos 230 e 329 depois das 1:00 (3,8 a 5,5 s); 2 a 5 Grandes já nascem no passo 1, então o garantido não é necessariamente o primeiro. Fração dos Grandes vivos a ≤ 80 px: 38,7% (Espada nv1, linha 6), 17,8% (linha 19), 29,1% e 7,0% (3 armas nv8).
+  - (técnica) Gatilho, mira, relógios e evento só na fase 6 (com a posição final e `dx, dy, d` recalculados por médio vivo, ≤ ≈ 200 por passo); `moverHorda` só lê `ataqueFase` e zera o deslocamento de comportamento quando a fase não é "livre". O Oco que decide telegrafar no passo T anda ainda no T (a horda roda antes) e a posição do passo T vale até T+125.
+  - Teste: Oco a 79,9 px telegrafa e a 80,1 px não; posição constante de T a T+125 (jogador parado, sem empurrão); Oco que morre no passo em que iria telegrafar não emite evento.
+
+- **Alcance e geometria do arco (OG3). [delegada]**
+  - Setor de 120° com vértice no centro do Oco, raio 64 px (`alcance_corpos` = 2, preenche o pendente do brief §11.3 e de `inimigos.json`), contra a hitbox circular do jogador (raio 16): o jogador é atingido com o centro a até 80 px. É a regra W3 da D4 (acerto ao tocar a hitbox, `≤`, sem ε), agora do inimigo contra o jogador. Cosseno literal 0,5 (120°; ADR-0002 §5); outro ângulo no dado falha na carga.
+  - Por quê: igual à Espada nv1 a nv4 (64) e menor que a nv5 em diante (76,8), como a D4 §9 pede para ler a esquiva. A Espada alcança o Oco Grande a 88 px (64 + 24) e ele alcança o jogador a 80: 8 px de vantagem do jogador. O Oco para a 48 px, então o jogador parado está 32 px dentro do arco; sair a pé leva 14 passos, dentro dos 36.
+  - Teste: jogador à frente a 80 px exatos acerta e a 80 + 1/16 não (ambos exatos em Float32); a 60° do eixo e a 48 px acerta; a 90° não; atrás (180°) a 48 px não; vale na costura do toro. Reprova raio medido ao centro do jogador (79,9 acertaria, 80 não).
+
+- **Mira fixa no início (OG4). [delegada; representação (técnica)]**
+  - A direção é o vetor unitário do centro do Oco ao centro do jogador no passo T (delta toroidal; com d = 0, a mira do jogador), guardada em `miraX` e `miraY` (Float32) e congelada até o golpe. O vértice do setor é o centro atual do Oco: se o pulso o empurrar, o arco acompanha o corpo com a direção fixa.
+  - Por quê: a silhueta no chão é a verdade (D4 V6); uma direção que gira até o último passo a tornaria ilegível. Um índice de 256 direções exigiria buscar numa tabela em função fria: ler 256 valores no interpretador aloca da ordem de milhares de bytes por chamada (cada leitura de `Float32Array` vira um HeapNumber, ADR-0007 §8); o vetor Float32 sai de graça do laço.
+  - Teste: jogador a 90° do eixo em T e a 0° em T+36: o golpe não acerta; pulso em T+12 desloca o corpo e o golpe sai com o vértice novo e a mesma direção. Reprova mira lida no golpe.
+
+- **Golpe: instante e ordem (OG5). [delegada; a ordem do passo é a ET4]**
+  - O golpe é instantâneo no passo T+36 (D4 W2), na fase 6, depois de a fase do jogador (esquiva, aparo, movimento) ter atualizado o passo. O setor é testado contra a hitbox do jogador **na posição daquele passo**. Desfecho no evento `golpeInimigo` (12): 1 acertou, 2 esquivado, 3 aparado, 4 errou (ET10), pela resolução única (aparo > i-frames > dano).
+  - Quem morreu no passo (varredura das armas) não golpeia: o evento e o dano não saem (D4 §9). Por isso a fase dos ataques vem depois das armas e dos pickups.
+  - A esquiva perfeita usa a posição real do passo do golpe, não uma projeção. Consequência de design: rolar para dentro do arco ou de lado (a ≤ 80 px, dentro dos 120°) dá a perfeita; rolar para longe (80 px em 21 passos) tira o jogador do alcance e não dá o bônus. Contas: um Oco a 48 px, com o jogador rolando para trás, fica a ≈ 98 px no passo 13 (fora); rolando de lado, a ≈ 69 px e ≈ 46° do eixo (dentro). Depende do perfil de deslocamento da §2 (ES2).
+  - **Diverge:** D4 §4 e ADR-0006 §1 (a lista de fases do passo ganha a fase 6, "ataques dos inimigos"); registrar no ADR-0008. A área de ataques propôs "depois das mortes" e as de aparo propuseram "antes das armas"; ficou depois, porque a morte antes do golpe é documento (D4 §9) e a Postura Quebrada marcada em `h` vale para os acertos de `h+1` em diante, que é o que o Contra-ataque precisa.
+  - Teste: três golpes idênticos com o jogador (a) parado (dano), (b) na esquiva com o passo 13 coincidindo com T+36 (esquivado, perfeita) e (c) com o passo 14 (dano); golpe no mesmo passo em que o jogador começa a esquiva (passo 1, sem i-frames: dano; passo 2: esquivado); Oco morto pela Espada em T+36 não golpeia; modal aberto no passo do golpe: ataques e contato do passo ainda rodam.
+
+- **Dano e escala (OG6). [documento, com o caminho técnico]**
+  - Dano = campo `dano` do inimigo, fixado no spawn pela escala do minuto inteiro decorrido (Q-10; B §3.6: 20 por ataque × (1 + 0,05·min)): 20, 21, 23, 39 nos minutos 0, 1, 3, 19 (Float32 exato). Um Grande nascido no minuto 1 golpeia com 21 no minuto 5.
+  - Entra por `danoAoJogador`, único caminho do HP, com uma origem nova `golpe`; sem armadura e sem Brasa Firme (F-007). Dois golpes no mesmo passo somam. Sem empurrão no jogador (D3 K3; Q-16: só o Grito empurra). O dano passa por um rascunho `Float64Array`, não por argumento double (regra do laço quente, ADR-0005 §2).
+  - Teste: HP cai 21 num golpe do Grande nascido no minuto 1; sem empurrão (posição igual antes e depois, parado); escala fixada no spawn. Reprova dano lido no golpe com o minuto atual.
+
+- **Invulnerabilidade de contato (OG7). [documento]**
+  - O golpe ignora `invulContato` e não o liga (Q-14: o timer "bloqueia só dano de contato, para um encostão não 'comprar' imunidade a um telegrafo").
+  - Teste: com `invulContato` em 18, o golpe tira HP e o timer continua em 18. Reprova golpe bloqueado pelo timer.
+
+- **Oco Grande convertido (OG8). [documento]**
+  - O convertido (excedente do diretor, HP agregado) ataca como qualquer Oco Grande: telegrafo, golpe, recuperação, dano normal. A máquina de ataque é função do tipo; o campo `convertido` só muda HP, XP e Almas. Q-08: "causa o dano normal de Oco Grande"; ADR-0002 §8.7 diz o mesmo.
+  - Teste: convertido a 80 px telegrafa e golpeia com dano de Oco Grande; o HP agregado não altera o ciclo.
+
+- **Sal, pulso e morte no ataque (OG9). [documento]**
+  - Transcrição da D4 §9: o Sal do inimigo reduz só a velocidade de aproximação e não mexe em nenhum relógio de ataque; o afastamento do pulso empurra o corpo, não cancela nem adia o telegrafo, e a silhueta acompanha o corpo; a morte cancela o telegrafo e o golpe pendente; o projétil já lançado continua.
+  - (técnica) A morte zera os campos de ataque em `removerInimigo`, para o slot reaproveitado pelo diretor no mesmo passo nascer em repouso.
+  - Teste: Grande com Sal 50% telegrafa e golpeia nos mesmos T e T+36; pulso em T+10 desloca o corpo e o golpe sai em T+36; morte em T+36 não deixa evento; slot reutilizado nasce em repouso.
+
+- **Postura Quebrada sobre o ataque (OG10). [delegada]**
+  - Enquanto `quebradaPassos > 0` o inimigo não persegue nem recua, não ataca e continua separado, empurrado e bloqueado (D3 §9; duração e raio são da §4, PQ1 e PQ2). O telegrafo em curso é cancelado (sem golpe, sem projétil) e a máquina fica em repouso. Quando acaba, o Oco Grande volta a "livre" (pode telegrafar no mesmo passo se o jogador estiver no gatilho) e a Noviça volta com a espera cheia de 180. O projétil já lançado continua.
+  - Efeito de design a registrar: depois de um aparo, a Noviça aparada some do jogo por 300 passos (120 + 180, 5 s) e o Oco Grande por 120 (menos de 126 do ciclo, mas mais que os 90 da recuperação).
+  - O Oco das Lanternas atordoado não fere por contato (veto) está na §4 (PQ4); aqui só vale que o atordoado não ataca. Coroado e Lanterneiro são imunes por dado (PQ5); como eles reagem é das F-008 e F-009.
+  - Teste: Grande atingido em T+20 não golpeia em T+36 e telegrafa de novo só depois do fim; Noviça em T+10 não lança em T+30 e o 1º telegrafo seguinte vem 180 passos depois do fim. Reprova cancelar só o golpe.
+
+- **Ameaças aparáveis e vermelho (OG11). [documento no vermelho, com a contagem delegada]**
+  - A fase 6 zera e recalcula `ameacasAparaveis` em todo passo (a regra do falho é da §4, AP5): +1 por Oco Grande em telegrafo, +1 por Noviça em telegrafo, +1 por projétil tipo 2 com impacto previsto em ≤ 36 passos. O telegrafo vermelho (`aparavel: false`, B §3.4: só esquiva) não conta e não é aparável.
+  - Vermelho não é implementado nem testado na F-006. A máquina de ataque é guiada por dados (`telegrafo.duracao_s`, `cor`, `aparavel` em arrays por tipo, em passos) e o desfecho do golpe consulta o bit antes do aparo; o dado `aparavel = true` dos dois ataques é conferido. Coroado e Lanterneiro reusam isso (F-008, F-009).
+  - Teste: arrays por tipo batem com `inimigos.json` (36, 30, 90, 180, aparável 1 para os dois).
+
+### Noviça
+
+- **Ciclo (NV1). [documento nas durações, com o período delegado]**
+  - Telegrafo de 30 passos (0,5 s; T a T+29); o projétil nasce no passo T+30; a espera seguinte é de 150 passos; o próximo telegrafo começa em T+180 (3 s, `intervalo_s` e B §3.6). Espera inicial 0: nasce pronta e telegrafa assim que entra no alcance de tiro (D4 W16).
+  - Enraizada no telegrafo (T a T+29); fora dele volta a manter 4 corpos (D3 S6/S7: aproxima ou recua até 128 px). É emenda à D3 §9, igual à do Oco Grande.
+  - Se o jogador sai do alcance durante o telegrafo, ela lança mesmo assim, com a mira congelada. Se a espera acaba com o jogador fora de 192 px, ela espera pronta (o período de 180 só vale em alcance).
+  - Teste: evento em T, projétil em T+30 (não T+29 nem T+31), segundo telegrafo em T+180, 3 lançamentos em 540 passos sem Noviça nova; Noviça morta em T+15 não lança; enraizada de T a T+29; jogador a 190 px em T e a 400 px em T+30: lança.
+
+- **Alcance de tiro (NV2). [delegada]**
+  - 192 px (6 corpos) de centro a centro: a Noviça telegrafa a d ≤ 192 e não a 192 + 1/16. Menor que a meia-largura da tela (195 pt), então ela só atira de dentro da vista (o anel de spawn vai de 468 a 624 px) e nenhum telegrafo da F-006 acontece fora de vista. É o alcance de busca das Facas (D4 W9).
+  - Medida: a 1ª Noviça chega a 192 px entre os passos 141 e 187 depois do relógio 3:00 (2,4 a 3,1 s). Fração das Noviças a ≤ 192 px com o jogador parado: 94,9% (Espada nv1, linha 6), 50,2% (linha 19), 89,0% e 43,7% (3 armas): na linha 19 metade não atira.
+  - Teste: 191,9 px telegrafa e 192,1 não. Reprova alcance de 128.
+
+- **Mira fixa no início (NV3). [delegada]**
+  - Mesma regra do Oco Grande (OG4): vetor unitário do centro da Noviça ao jogador no passo T, congelado; a faixa no chão mostra a trajetória real. Sem perseguição.
+  - Medida (projétil a 1,6 px/passo, jogador em linha reta): parado, 100%; andando a 2,4 px/passo, 5,3% (Noviça a 192 px) a 7,5% (a 128); com Sal (1,2 px/passo), 7,5% a 10,3%. Mirar no fim do telegrafo daria só 2 a 3 pontos a mais.
+  - Risco de design a manter: um jogador que não para quase nunca é atingido; a Noviça é pressão por Sal e por obrigar a se mexer, e o aparo só se ensina com quem fica parado (TU3). Se o tutorial precisar de mais acertos, a saída é vida/velocidade ou mira à frente, nunca mudar B nesta feature.
+  - Teste: o jogador muda de posição depois de T e a trajetória não desvia (velocidade do projétil = vetor de T × 1,6). Reprova mira no fim.
+
+- **Projétil: tamanho, vida, velocidade, nascimento (NV4). [delegada]**
+  - Velocidade 3 corpos/s = 1,6 px por passo. Hitbox de raio 8 px (0,25 corpo, o da faca). Vida 150 passos (2,5 s; 240 px): cobre o tiro de 192 px com 48 px de sobra e é menor que o período (180), logo no máximo 1 projétil vivo por Noviça. Dados: `raio_corpos` 0,25 e `vida_s` 2,5 saem dos pendentes de `inimigos.json`.
+  - Nasce no centro da Noviça no passo T+30 com `xAnt = x` e só anda e testa acerto a partir do passo seguinte (D4 W9). Cada passo move (`Math.fround(x + vx)`) e testa d² ≤ (8 + 16)² contra o centro do jogador, pelo delta toroidal.
+  - Dano copiado do campo `dano` da Noviça no lançamento (fixado, D4 W13): 18 × (1 + 0,05·min do spawn). Valor do Sal que ele leva: NV7.
+  - Tempo de voo até a Noviça a 128 px: 65 passos; a 192 px: 105.
+  - O desenho (disco branco de 16 pt, anel, faixa) é da §8.
+  - Teste: lançado em L, está em `x0 + vx` em L+1; contato a 24 px acerta e a 24 + 1/16 não; some em L+150 e nunca vive mais; o dano é o do lançamento mesmo que a Noviça morra.
+
+- **Pool, dono e capacidade (NV5). [técnica, com a verificação de capacidade delegada]**
+  - Tipo 2 no pool de projéteis das facas (`TIPO_DE_PROJETIL.sal`), contando no limite somado de 200 ou 400 com os efeitos de chão (ADR-0002 §4; D4 §9): `limiteDeProjeteis` não muda. `moverProjeteis` pula o tipo 2; a fase 6 o move e o testa contra o jogador, no mesmo laço que recalcula as ameaças (OG11).
+  - Dono em dois campos, `donoSlot` e `donoGeracao` (Uint16), checados em linha (`pool.geracao[slot] === donoGeracao`); o handle só é montado dentro de `gravarEvento`. O handle `geração × 65.536 + slot` em Uint32 passaria de 2^30 com a geração ≥ 16.384 e viraria HeapNumber (ADR-0005 §2; D4 §10). Custo de layout igual (400 × 4 B).
+  - A Noviça confere a capacidade ao **iniciar** o telegrafo (pool no limite: não inicia, tenta no passo seguinte), para o telegrafo nunca mentir. Se mesmo assim estiver cheio no lançamento, recusa e soma em `projeteisRecusados` (já existe). Como o máximo medido é 35 projéteis de 200 (jogador parado, linha 19; 20 na horda), a versão mínima (só recusar no lançamento) bastaria; fica a conferência no início pelo custo de um teste a mais.
+  - Teste: com o pool no limite a Noviça não inicia o telegrafo; limite atingido entre T e T+30: lançamento recusado e `projeteisRecusados` + 1; dono com geração 20.000 forçada lido sem alocação; dono inválido depois que o slot é reaproveitado.
+
+- **O que o projétil acerta e quando some (NV6). [documento no que atravessa, com o desfecho delegado]**
+  - Documento: nenhuma arma acerta o projétil inimigo (D4 §9: o tutorial do aparo depende disso); obstáculos não o bloqueiam (D2 O6); o projétil já lançado continua depois da morte do dono (D4 §9); i-frames valem contra projéteis (doc 02 §5.3).
+  - Some no 1º toque na hitbox do jogador, qualquer que seja o desfecho (dano, esquiva perfeita, aparo), no próprio passo; e no fim da vida (150). Com `jogadorInvulneravel` ainda é consumido e gera o evento, sem HP e sem Sal. O toque usa o evento `golpeInimigo` (12) com forma `projetilSal` (8) e o desfecho 1 a 3.
+  - **O que foi resolvido:** a área de esquiva propôs que o projétil evitado seguisse (e pudesse acertar depois dos i-frames); a de ataques mediu que consumi-lo é determinístico e dá no máximo uma esquiva perfeita por projétil sem um conjunto de "já tocou". Fica consumir.
+  - Teste: faca e Espada com o projétil no meio do alcance: ele segue com a mesma `vida`; atravessa obstáculo; sobre o jogador em esquiva (passos 2 a 13): some, sem dano, esquiva perfeita; em aparo: some, anulado; em dano: some, HP cai 18, Sal ligado; dono morto em T+40: o lançado em T+30 continua e acerta em T+95. Reprova projétil que sobrevive ao toque.
+
+### Sal no jogador
+
+- **Sal e o deslocamento do jogador (NV7). [documento no efeito, com as exceções delegadas]**
+  - Documento: Sal = −50% de velocidade por 3 s (B §3.6; doc 04 §8); o Sal multiplica a velocidade do joystick (D2 §6: "O Sal (F-006) multiplica esse valor"); regra de reaplicação da S1 da D4: fica o maior fator e a maior duração, campo a campo.
+  - Campos `salPct` e `salPassos` (Uint8) no registro do jogador, fora dos 2 bytes reservados de `JOGADOR_U8` e depois dos 67.488 B do v5 (ET1). O acerto do projétil que tira HP faz `salPct ← máx(salPct, 50)` e `salPassos ← máx(salPassos, 180)`. O timer cai uma vez por passo, também durante a esquiva; acaba no passo 180 depois do acerto.
+  - O fator vale só na caminhada: `v × (100 − salPct) / 100`, em linha, de 2,4 para 1,2 px por passo; em 180 passos o jogador anda 216 px em vez de 432. **Não afeta a esquiva** (perfil constante 80 px em 21 passos, ES2), nem empurrões, nem o bloqueio S4. Por quê: B fixa a esquiva em 21 passos e 2,5 corpos sem modificador, e a 50% ela duraria 42 e quebraria as janelas.
+  - O projétil que a esquiva perfeita ou o aparo consome não aplica Sal. `jogadorInvulneravel` bloqueia o Sal.
+  - Teste: acerto liga 50/180; segundo acerto renova (máx); 1,2 px por passo com Sal e 2,4 sem; a esquiva sob Sal desloca os mesmos 80 px em 21 passos; Sal acaba no passo 180 (e em 179 não). Reprova Sal aplicado no aparo ou na esquiva perfeita, e esquiva a 50%.
+
+## 6. Tutoriais
+
+Os textos já existem em `src/dados/textos/pt-BR.json`: A2.TUTORIAL.02 "Deslize rápido para esquivar" e A2.TUTORIAL.03 "Toque em ⟲ no momento do brilho para aparar" (IDs do doc 17; limite de 12 palavras). Não nasce texto novo. O estado vivo de cada prompt (`promptEsquiva`, `promptAparo`: aguardando, visível, cumprido; e `falhasDeAparo`) fica no registro do jogador (3 bytes depois dos 67.488 B do v5, ET1), no estado e no hash, como o de mover (ADR-0002 §3).
+
+- **Prompt de esquiva (TU1). [delegada no gatilho; doc 11 §4 na intenção]**
+  - Gatilho: o 1º evento `telegrafo` (11) de **qualquer** Oco Grande com o bit de esquiva ainda não visto. Fica visível (A2.TUTORIAL.02) até a esquiva ser **aceita** (a negada por stamina não cumpre; o prompt de mover é D2 §7). Sem prazo: continua na tela mesmo depois de o Oco Grande errar o golpe ou morrer.
+  - **Diverge:** doc 11 §4 ("1:00 | Oco Grande telegrafando": o instante de 1:00) e o "como" do F-006.8 ("a partir de 1:00"). A intenção do doc 11 (o prompt aparece quando o Oco Grande telegrafa) é a que se cumpre; o evento chega ≈ 3,8 a 5,5 s depois das 1:00 com o jogador parado (D3 §9 já avisava), e o relógio ≥ 3.600 na condição é redundante, porque os Grandes só nascem a partir da linha 1.
+  - Por quê "qualquer": o garantido nasce junto de 1 a 4 Grandes sorteados (2 a 5 no passo 1) e não há como distingui-lo sem um campo novo por inimigo.
+  - Risco, para o balanceamento: o Oco Grande (0,7) é mais lento que o jogador (1,0). Quem anda em círculo de ≈ 480 px de raio só vê o prompt depois de 1.061 passos (seed 7) ou nunca em 1.500 (seed 6).
+  - Teste: antes do 1º telegrafo, `promptEsquiva` é "aguardando" mesmo com o relógio em 3.700; no passo T vira "visível"; segue visível depois do golpe e da morte do Oco; uma esquiva aceita o cumpre; uma negada não; com o bit pré-visto nunca aparece. Reprova gatilho por relógio.
+
+- **Prompt de aparo (TU2). [delegada]**
+  - Gatilho: o 1º evento `telegrafo` de **Noviça** com o bit de aparo não visto. Como a Noviça só entra na linha 3, a 1ª é a garantida; se ela morrer antes de atirar, o prompt espera a próxima. Fica visível (A2.TUTORIAL.03) até um **aparo bem-sucedido** (de qualquer ataque aparável); um toque sem ataque, o aparo vazio e o aparo falho não cumprem.
+  - Também sem prazo: continua na tela depois de o projétil sumir.
+  - Teste: aparo bem-sucedido cumpre; toque sem ataque não; com `?tutorial=0`, o F-006.2 roda sem prompt (janela de 11).
+
+- **Falhas e janela de 17 passos (TU3). [delegada; "repete" interpretado]**
+  - Conta uma falha em `falhasDeAparo` (Uint8) quando, com o prompt de aparo visível, (a) o aparo é falho (§4, AP5) ou (b) um ataque aparável (golpe ou projétil) causa dano. O aparo vazio não conta. Sem (b), quem nunca toca nunca ganharia a janela maior.
+  - Com `promptAparo` visível e `falhasDeAparo ≥ 2`, a janela do aparo passa de 11 para 17 passos (11 + 6; 0,1 s = 6 passos, ADR-0002 §3 e doc 11 §4): o aparo protege os passos c+1 a c+17. Vale também para o golpe do Oco Grande enquanto o prompt está na tela. Quando o prompt cumpre, a janela volta a 11. Em passos: 17 × 1,6 = 27,2 px de voo do projétil contra 17,6 px.
+  - **Diverge:** doc 11 §4 ("1 vez; se falhar 2 vezes, repete com janela +0,1 s") na forma: o prompt não some e volta; "repete" passa a significar "a janela de 17 começa a valer com o prompt ainda na tela". Alternativa descartada: o prompt some no fim de cada ataque e volta no seguinte (mais fiel a "repete", mais estado).
+  - Teste: duas falhas ligam a janela de 17; aparo no passo c+17 funciona e no c+18 não, só com o prompt visível; com o prompt cumprido ou `?tutorial=0`, o passo c+12 não funciona; o aparo vazio não conta. Reprova janela estendida sem as duas falhas ou depois de cumprido.
+
+- **Dois prompts na tela (TU4). [delegada]**
+  - Se os dois estão "visíveis", mostra-se um só texto: o de índice maior (aparo, o mais recente). O de esquiva volta quando o de aparo cumpre; nenhum se perde.
+  - Teste: os dois visíveis mostram A2.TUTORIAL.03; cumprido o de aparo, volta A2.TUTORIAL.02.
+
+- **Bits e persistência (TU5). [documento nos bits, com o prazo delegado]**
+  - `TUTORIAL = { mover: 1, esquiva: 2, aparo: 4 }` e `TODOS_OS_TUTORIAIS = 7`. `CAB.tutoriaisVistos` continua parâmetro da Vigília (ADR-0002 §3: entra no estado, no replay e no hash). O Vitest da F-006 começa com todos vistos.
+  - **Diverge:** Q-26 ("marcado no save meta") no prazo: nada é gravado no meta na F-006, porque o save meta só existe na F-010 (B §4), e a D2 §9 já manda a F-007 gravar o de mover. Uma função `tutoriaisCumpridos(e)` deriva os bits dos prompts cumpridos para a F-007/F-010 gravarem. Na F-006, recarregar a página volta a mostrar os prompts.
+  - Teste: `TODOS_OS_TUTORIAIS` = 7; `tutoriaisCumpridos` reflete os prompts; nada é escrito em armazenamento persistente.
+
+- **`?tutorial=0` e `?visto=` (TU6). [documento no primeiro, delegada no segundo]**
+  - `?tutorial=0` marca todos como vistos (ADR-0002 §3; já existe). `?visto=mover,esquiva,aparo` marca só os listados (nomes do objeto `TUTORIAL`), somente no build de debug; valor desconhecido é ignorado; o build de produção ignora o parâmetro. Sem ele não há como isolar o prompt de aparo sem acender o de esquiva.
+  - O F-006.8 de 3:00 usa `?visto=mover,esquiva`, porque aos 3:00 já há Ocos Grandes e Noviças vivos e o Grande telegrafaria antes.
+  - Teste: `lerParametros('?visto=mover,esquiva', true)` devolve 3; `?visto=xyz` devolve 0; produção devolve 0.
+
+- **`?inicio=MM:SS` e os garantidos (TU7). [documento na semântica, com a trava delegada]**
+  - Só no build de debug, formato `MM:SS` de 00:00 a 22:59: `relogioInicial = (60·MM + SS) × 60` passos, com a linha **livre** (a escala é o minuto inteiro do relógio, Q-10, sem salto). Aldric começa no estado de início do ADR-0002 §14 (nível 1, só a Espada, `I` = 1,0, HP cheio); a progressão do minuto pedido não é simulada.
+  - **Diverge:** D5 §7 e `cenario.schema.json` (`relogio_inicial_s` > 0 exige `linha_fixa`), só na forma. A trava de `reiniciarEstado` passa a depender de um parâmetro explícito `inicioLivre` da Vigília, ligado só por `?inicio` no debug. A receita de cenário continua exigindo linha fixa; um teste para cada lado (a receita ainda lança, o `?inicio` não).
+  - Garantidos: o da linha do minuto pedido nasce no 1º passo (`?inicio=01:00` entrega o Oco Grande; `?inicio=03:00`, a Noviça). Os de linhas já passadas **não são entregues**, e isso já vale sem código novo: `rodarDiretor` só entrega os garantidos da `linhaCorrente` e o relógio só cresce. Não se ligam os bits de `garantidosEntregues` das linhas anteriores (a pesquisa propôs; o verificador mostrou que é desnecessário).
+  - O 1º passo repõe de uma vez o mínimo da linha (Q-07): 25 inimigos no anel, contra ≈ 15 vivos de uma Vigília real às 1:00; nenhum teste usa passo exato logo depois do 1º passo. Medida: aos 3:00 há 4 Ocos Grandes e 7 a 10 Noviças no passo 1.
+  - Teste: `relogioInicial = 3.600` com `inicioLivre` não lança e a receita com `relogio_inicial_s` > 0 sem `linha_fixa` ainda lança; o Oco Grande garantido nasce no passo 1 e nunca de novo; com `?inicio=03:00` o garantido da linha 1 não nasce; escala do minuto 1. Playwright: `?inicio=01:00` mostra `relogio` em 3.600 antes do 1º passo.
+
+- **Câmera lenta leve (TU8). [delegada; a regra de apresentação é a FB5 da §3]**
+  - A câmera lenta é do driver e dispara uma vez, no evento que mostra o prompt de esquiva (TU1), só se o bit de esquiva não foi visto; `?tutorial=0` a desliga. Fator 0,5 sobre o `deltaMs` por 500 ms de tempo real: 15 dos 36 passos do telegrafo saem em câmera lenta e os 21 restantes (350 ms) em tempo normal, para a decisão. Detalhes, divergência do ADR-0002 §3 e teste na §3 (FB5).
+  - Teste (aqui só o gatilho): a escala dispara no quadro em que o prompt de esquiva fica visível e não dispara de novo no de aparo, nem com o bit pré-visto.
+
+- **Texto do aparo e indício da janela (TU9). [delegada; veto]**
+  - O texto aprovado manda tocar "no momento do brilho". O brilho do telegrafo da Noviça termina 65 a 105 passos antes de o projétil chegar, e o aparo é medido no contato, com janela de 11 (17 com o prompt estendido). Quem segue o texto ao pé da letra toca durante o brilho do corpo e falha sempre; a janela de 17 também não alcança.
+  - Decisão: indício só de **render**, sem número novo na simulação. O anel do projétil (e a cunha do Oco Grande) fica branco sólido quando o impacto previsto está a ≤ 11 passos (≤ 17 com a janela estendida, enquanto o prompt está na tela). Assim "o momento do brilho" passa a ser verdade, e o texto de doc 11 §4 não muda. É o acréscimo de render descrito na §8 e a linha AP12 do 0.A.
+  - Alternativas de veto: (a) manter o texto e o render como estão e aceitar que o prompt ensina errado; (c) trocar o texto (decisão do doc 17, fora da F-006).
+  - Teste: com `?inicio=03:00&visto=mover,esquiva`, o prompt aparece depois do 1º telegrafo de Noviça e não antes; tocar o botão com o projétil dentro da janela cumpre e `textoAtivo` deixa de conter A2.TUTORIAL.03. Pixel: o anel está sólido nos últimos 11 passos e não antes.
+
+- **Contexto dos textos (TU10). [documento, mudança só de dado]**
+  - O campo `contexto` (não o `texto`) de A2.TUTORIAL.02 e .03 em `pt-BR.json` diz hoje "Prompt aos 1:00, com o Oco Grande telegrafando" e "Prompt aos 3:00, com a Noviça de Sal". Passa a dizer "No 1º telegrafo de um Oco Grande (a partir das 1:00)" e "No 1º telegrafo de uma Noviça (a partir das 3:00)", sem mudar o texto visível.
+  - Teste: o teste de textos continua verde (IDs, limite de 12 palavras); o `contexto` novo não aparece em tela.
