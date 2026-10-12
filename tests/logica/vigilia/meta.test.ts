@@ -73,6 +73,15 @@ describe('ler e gravar (SV1, SV9)', () => {
     expect(lerMeta(JSON.stringify(bom)).almas).toBe(5);
   });
 
+  it('a mancha com a soma CERTA mas campo fora da faixa é recusada: Hora 0, 6 a 9 e 1,5; x fora do mapa; Almas 0; rótulo; Hora 1 a 5 passam (crítico M67)', () => {
+    const boa = { x: 10, y: 20, hora: 1, rotulo: null, almas: 3 };
+    const comMancha = (mancha: unknown): Meta => lerMeta(serializarMeta({ ...metaPadrao(), almas: 7, mancha } as Meta));
+    for (const hora of [1, 2, 3, 4, 5]) expect(comMancha({ ...boa, hora }).mancha?.hora, `Hora ${hora}`).toBe(hora);
+    for (const ruim of [{ hora: 0 }, { hora: 6 }, { hora: 9 }, { hora: 1.5 }, { x: -1 }, { y: -1 }, { almas: 0 }, { almas: LIMITE_DE_ALMAS }, { rotulo: 'x' }]) {
+      expect(comMancha({ ...boa, ...ruim }), JSON.stringify(ruim)).toEqual(metaPadrao());
+    }
+  });
+
   it('seq é monotônico: fim de Vigília, opção e tutorial novo o crescem; tutorial repetido não', () => {
     let m = metaPadrao();
     const seqs: number[] = [];

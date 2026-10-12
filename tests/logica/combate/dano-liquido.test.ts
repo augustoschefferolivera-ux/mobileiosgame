@@ -4,11 +4,12 @@
 import { describe, expect, it } from 'vitest';
 import inimigos from '../../../src/dados/inimigos.json';
 import { BRUTO, LIQUIDO, ORIGEM_DO_DANO, REDUCAO, danoAoJogador, reducaoDeArmadura } from '../../../src/logica/mundo/contato';
-import { CENARIO, JOGADOR, JOGADOR3, JOGADOR4, type Estado } from '../../../src/logica/nucleo/estado';
+import { CENARIO, JOGADOR, JOGADOR3, JOGADOR3_U8, JOGADOR4, type Estado } from '../../../src/logica/nucleo/estado';
 import { EVENTO } from '../../../src/logica/nucleo/eventos';
 import { armadura } from '../../../src/logica/progressao/dano';
 import { ELMO } from '../progressao/apoio';
-import { D, D_LIVRE, D_LIVRE_COM_BRASA_FIRME as DREAL, criar, eventosDe } from './apoio';
+import { D, D_LIVRE, D_LIVRE_COM_BRASA_FIRME as DREAL, TIPO, criar, eventosDe, fonteDeAcoes } from './apoio';
+import { avancar } from '../../../src/logica/nucleo/passo';
 
 const f = Math.fround;
 const hp = (e: Estado): number => e.jogador[JOGADOR.hp]!;
@@ -101,6 +102,32 @@ describe('Brasa Firme (DM2): stamina estritamente acima de 50% da máxima', () =
 
   it('o 39 bruto com Brasa Firme dá 31,2 (Float32), sem arredondar', () => {
     expect(bater(comElmo(0, 100), 39)).toBe(f(31.2));
+  });
+});
+
+describe('Brasa Firme lê a stamina depois da regeneração do passo (ADR-0009 §9.2; F-007.6)', () => {
+  /** HP perdido no 1º passo de um contato com o Oco colado, com a stamina e a espera de regeneração dadas. */
+  function perdaNoPrimeiroPasso(stamina: number, esperaRegen: number): number {
+    const e = criar({ inimigos: [{ codigo: TIPO.oco_das_lanternas, dx: 0, dy: 0 }] }, DREAL);
+    e.jogador3[JOGADOR3.stamina] = stamina;
+    e.jogador3U8[JOGADOR3_U8.esperaRegen] = esperaRegen;
+    avancar(e, DREAL, fonteDeAcoes([]), 1);
+    return f(150 - hp(e));
+  }
+
+  it('49,75 + regeneração de 0,5 cruza 50 no mesmo passo: o contato sai × 0,8; sem regeneração (espera 30) fica 49,75 e sai × 1,0', () => {
+    const semBrasa = perdaNoPrimeiroPasso(49.75, 30);
+    const comBrasa = perdaNoPrimeiroPasso(49.75, 0);
+    expect(semBrasa).toBe(1.5);
+    expect(comBrasa).toBeCloseTo(1.2, 4);
+    // Referência independente: a stamina 100 (Brasa Firme sem dúvida) perde o mesmo que o passo que cruza.
+    expect(perdaNoPrimeiroPasso(100, 0)).toBe(comBrasa);
+  });
+
+  it('o limite com regeneração: 49,5 + 0,5 = 50 não é > 50 (× 1,0); 49,75 + 0,5 = 50,25 é (× 0,8)', () => {
+    const sem = perdaNoPrimeiroPasso(49.75, 30);
+    expect(perdaNoPrimeiroPasso(49.5, 0)).toBe(sem);
+    expect(perdaNoPrimeiroPasso(49.75, 0)).toBeLessThan(sem);
   });
 });
 

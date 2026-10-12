@@ -2,6 +2,7 @@
 // estado sem RNG.
 import { describe, expect, it } from 'vitest';
 import { almasAoSantuario, almasNaMancha, horaDoRelogio, pontoLivreMaisProximo } from '../../../src/logica/mundo/mancha';
+import type { Obstaculos } from '../../../src/logica/mundo/obstaculos';
 import { resultadoDaVigilia } from '../../../src/logica/mundo/vigilia';
 import { CAUSA_DO_FIM, JOGADOR4_U8, PROGRESSAO } from '../../../src/logica/nucleo/estado';
 import { EVENTO } from '../../../src/logica/nucleo/eventos';
@@ -12,6 +13,17 @@ import { D_LIVRE, criar, eventosDe, posJogador } from '../combate/apoio';
 import { DADOS_DA_CHARNECA as D_REAL } from '../apoio';
 
 const min = (m: number, s = 0): number => (m * 60 + s) * 60;
+
+const IO = new Float64Array(3);
+/** Chama a função com o rascunho Float64Array e devolve o ponto como objeto (só para o teste ler). */
+function livre(o: Obstaculos, x: number, y: number, margem: number, saida: { x: number; y: number }): void {
+  IO[0] = x;
+  IO[1] = y;
+  IO[2] = margem;
+  pontoLivreMaisProximo(o, IO);
+  saida.x = IO[0]!;
+  saida.y = IO[1]!;
+}
 
 describe('Hora (MC5)', () => {
   it('0:00, 4:59, 5:00, 9:59, 10:00, 15:00, 19:59 (IV), 20:00 e 22:59 (A Fome)', () => {
@@ -45,13 +57,31 @@ describe('ponto livre (MC4)', () => {
 
   it('fora das zonas, o ponto fica onde está; dentro de uma, sai para a borda (raio + 16) pela normal', () => {
     const p = { x: 0, y: 0 };
-    pontoLivreMaisProximo(o, 5, 5, 16, p);
+    livre(o, 5, 5, 16, p);
     if (!dentroDaZona(5, 5, 16)) expect(p).toEqual({ x: 5, y: 5 });
     const x = o.x[0]!;
     const y = o.y[0]!;
-    pontoLivreMaisProximo(o, x + 3, y, 16, p);
+    livre(o, x + 3, y, 16, p);
     expect(dentroDaZona(p.x, p.y, 16)).toBe(false);
     expect(Math.hypot(deltaNoToro(x, p.x, LARGURA_DO_MAPA), deltaNoToro(y, p.y, ALTURA_DO_MAPA))).toBeGreaterThanOrEqual(o.r[0]! + 16);
+  });
+
+  it('zonas encadeadas pedem mais de uma passada: sair de A cai em B e C, e o resultado só fica livre repetindo (crítico M45)', () => {
+    const o: Obstaculos = { n: 3, x: Float32Array.from([1000, 1071, 1051]), y: Float32Array.from([1000, 976, 1017]), r: Float32Array.from([30, 30, 30]) };
+    const emZona = (x: number, y: number): boolean => [0, 1, 2].some((i) => Math.hypot(x - o.x[i]!, y - o.y[i]!) < o.r[i]! + 16 - 1e-3);
+    // Uma passada só (a conta à mão) deixa o ponto dentro de uma zona.
+    let px = 1008;
+    let py = 1001;
+    for (let i = 0; i < 3; i++) {
+      const d = Math.hypot(px - o.x[i]!, py - o.y[i]!);
+      if (d >= 46) continue;
+      px += ((px - o.x[i]!) / d) * (46.5 - d);
+      py += ((py - o.y[i]!) / d) * (46.5 - d);
+    }
+    expect(emZona(px, py)).toBe(true);
+    const p = { x: 0, y: 0 };
+    livre(o, 1008, 1001, 16, p);
+    expect(emZona(p.x, p.y)).toBe(false);
   });
 
   it('em 20.000 pontos da grade do mapa, o resultado nunca cai numa zona e fica dentro do mapa', () => {
@@ -63,7 +93,7 @@ describe('ponto livre (MC4)', () => {
         const x = ((a + 0.5) * LARGURA_DO_MAPA) / lado;
         const y = ((b + 0.5) * ALTURA_DO_MAPA) / lado;
         if (dentroDaZona(x, y, 16)) dentro++;
-        pontoLivreMaisProximo(o, x, y, 16, p);
+        livre(o, x, y, 16, p);
         expect(dentroDaZona(p.x, p.y, 16), `${x},${y}`).toBe(false);
         expect(p.x >= 0 && p.x < LARGURA_DO_MAPA && p.y >= 0 && p.y < ALTURA_DO_MAPA).toBe(true);
       }

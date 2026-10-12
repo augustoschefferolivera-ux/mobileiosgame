@@ -150,7 +150,8 @@ export interface ResultadoDaVigilia {
   readonly recuperouMancha: boolean;
 }
 
-const PONTO_LIVRE = { x: 0, y: 0 };
+/** Rascunho do ponto livre: x, y e a margem (entrada), x e y (saída). */
+const PONTO_LIVRE = new Float64Array(3);
 
 /** Função pura do estado (qualquer fase; o crédito só se faz em FIM, uma vez: SV7). */
 export function resultadoDaVigilia(e: Estado, dados: DadosDaVigilia): ResultadoDaVigilia {
@@ -159,8 +160,11 @@ export function resultadoDaVigilia(e: Estado, dados: DadosDaVigilia): ResultadoD
   const naMancha = almasNaMancha(causa, almas, dados.combate.manchaPct);
   let mancha: ManchaDoResultado | null = null;
   if (naMancha >= 1) {
-    pontoLivreMaisProximo(dados.obstaculos, e.jogador[JOGADOR.x]!, e.jogador[JOGADOR.y]!, dados.combate.manchaMargem, PONTO_LIVRE);
-    mancha = { x: PONTO_LIVRE.x, y: PONTO_LIVRE.y, hora: horaDoRelogio(e.cab[CAB.relogio]!), rotulo: null, almas: naMancha };
+    PONTO_LIVRE[0] = e.jogador[JOGADOR.x]!;
+    PONTO_LIVRE[1] = e.jogador[JOGADOR.y]!;
+    PONTO_LIVRE[2] = dados.combate.manchaMargem;
+    pontoLivreMaisProximo(dados.obstaculos, PONTO_LIVRE);
+    mancha = { x: PONTO_LIVRE[0]!, y: PONTO_LIVRE[1]!, hora: horaDoRelogio(e.cab[CAB.relogio]!), rotulo: null, almas: naMancha };
   }
   return {
     causa,

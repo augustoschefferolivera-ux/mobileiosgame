@@ -68,11 +68,16 @@ test('evidência: vídeo de 390 × 844 e 3 screenshots sequenciais (roteiro do �
   // 3. Cruzar a costura em x (de x = 585 a 144 px/s, ≈ 4,1 s) e 4. encostar no obstáculo e deslizar.
   await page.waitForFunction(() => window.__GAME_DEBUG__.jogador!.x < 400, undefined, { timeout: 20_000 });
   await page.waitForFunction(() => window.__GAME_DEBUG__.jogador!.y < 1266 - 6, undefined, { timeout: 20_000 });
-  // A posição é lida antes da captura: no contêiner a captura leva quase 1 s de jogo (≈ 100 px a mais depois das camadas da F-006).
-  const deslize = await page.evaluate(() => window.__GAME_DEBUG__.jogador!);
+  // A simulação para ao ler (o valor não depende do atraso por parede do contêiner, 144 px/s) e volta logo em seguida.
+  const deslize = await page.evaluate(() => {
+    window.__GAME_DEBUG__.pausar!();
+    return window.__GAME_DEBUG__.jogador!;
+  });
+  await page.evaluate(() => window.__GAME_DEBUG__.retomar!());
   expect(deslize.x).toBeGreaterThan(150);
-  // O contato com o obstáculo (230, 1278, 80 px) começa em x = 286; o deslize lido depende do tempo da captura no contêiner (277 na F-007).
-  expect(deslize.x).toBeLessThan(290);
+  // O contato com o obstáculo (230, 1278, 80 px) começa em x = 286: já encostou (y subiu ao teto do vão) e não atravessou.
+  expect(deslize.y).toBeLessThan(1266 - 6);
+  expect(deslize.x).toBeLessThan(286 + 4);
   await page.waitForTimeout(300);
   await foto(3);
   await page.waitForTimeout(2000);

@@ -22,7 +22,7 @@ import { CamadaPorGPU, criarSaidaDeSprites } from '../../src/cenas/render/camada
 import { CAPACIDADE_DE_MORTES, EfeitosDaVigilia } from '../../src/cenas/render/efeitos';
 import { criarSaidaDaHorda, criarTabelaDeDesenho, prepararHorda } from '../../src/cenas/render/horda';
 import { BRUTO, ORIGEM_DO_DANO, danoAoJogador } from '../../src/logica/mundo/contato';
-import { CAB, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CENARIO, FASE, JOGADOR, JOGADOR4_U8, MUNDO, MUNDO2, PROGRESSAO, TIPO_DE_PICKUP, TODOS_OS_TUTORIAIS, TIPO_DE_PROJETIL, criarEstado, type ParametrosDaVigilia } from '../../src/logica/nucleo/estado';
+import { CAB, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CENARIO, FASE, JOGADOR, JOGADOR4, JOGADOR4_U32, JOGADOR4_U8, MUNDO, MUNDO2, PROGRESSAO, TIPO_DE_PICKUP, TODOS_OS_TUTORIAIS, TIPO_DE_PROJETIL, criarEstado, type ParametrosDaVigilia } from '../../src/logica/nucleo/estado';
 import { ACAO, criarComandos, fonteConstante, fonteDoRoteiro, type AcaoDeRoteiro } from '../../src/logica/nucleo/comandos';
 import { EVENTO, LeitorDeEventos, inicioDoEvento } from '../../src/logica/nucleo/eventos';
 import { PASSIVA } from '../../src/logica/progressao/tabela';
@@ -368,9 +368,10 @@ describe('alocação no caminho quente (E4)', () => {
   }, 600_000);
 
   // F-007 (LY4, DM8): o dano líquido, o Frasco e a interrupção no caminho quente, com a horda atacando o jogador parado.
-  it(`E7c: horda com ataques, Frasco a cada 400 passos, dano forte a cada 500 e HP refeito a cada 400, ${MEDIDOS} passos: ≤ ${LIMITE} B por passo, sem lista branca`, async () => {
+  // A mancha ativa roda a cada passo (`rodarMancha`) e é recuperada a cada 400 passos, com o crédito de Almas e o evento (crítico B5).
+  it(`E7c: horda com ataques, Frasco a cada 400 passos, dano forte a cada 500, HP refeito e mancha recuperada a cada 400, ${MEDIDOS} passos: ≤ ${LIMITE} B por passo, sem lista branca`, async () => {
     const total = AQUECIMENTO_DOS_ATAQUES + MEDIDOS + 400;
-    const e = criarEstado(1, D, paramsE7(TODOS_OS_TUTORIAIS, false));
+    const e = criarEstado(1, D, { ...paramsE7(TODOS_OS_TUTORIAIS, false), mancha: { x: 585, y: 1266 - 700, almas: 50 } });
     const acoes: AcaoDeRoteiro[] = [];
     for (let p = 100; p < total; p += 400) acoes.push({ passo: p, acoes: ACAO.frasco });
     const fonte = fonteDoRoteiro([{ passo: 0, mx: 0, my: 0 }], 'primeira', acoes);
@@ -389,6 +390,13 @@ describe('alocação no caminho quente (E4)', () => {
           e.jogador[JOGADOR.hp] = 60;
           e.jogador4U8[JOGADOR4_U8.frascoCargas] = 3;
         }
+        if (passo % 400 === 399) {
+          // A mancha de novo, a 20 px do jogador: o próximo passo a recupera.
+          e.jogador4[JOGADOR4.manchaX] = e.jogador[JOGADOR.x]! + 20;
+          e.jogador4[JOGADOR4.manchaY] = e.jogador[JOGADOR.y]!;
+          e.jogador4U32[JOGADOR4_U32.manchaAlmas] = 50;
+          e.jogador4U8[JOGADOR4_U8.manchaAtiva] = 1;
+        }
         if (passo % 500 === 250) {
           BRUTO[0] = 40;
           danoAoJogador(e, D, ORIGEM_DO_DANO.golpe);
@@ -399,7 +407,7 @@ describe('alocação no caminho quente (E4)', () => {
       }
     }, AQUECIMENTO_DOS_ATAQUES);
     expect(c.leitor.perdidos).toBe(0);
-    for (const ev of ['frascoIniciado', 'frascoInterrompido', 'danoAoJogador', 'golpeInimigo', 'apagou', 'fimDaVigilia'] as const) expect(c.porTipo[EVENTO[ev]], ev).toBeGreaterThan(0);
+    for (const ev of ['frascoIniciado', 'frascoInterrompido', 'danoAoJogador', 'golpeInimigo', 'apagou', 'fimDaVigilia', 'manchaRecuperada'] as const) expect(c.porTipo[EVENTO[ev]], ev).toBeGreaterThan(0);
     expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
   }, 600_000);
 

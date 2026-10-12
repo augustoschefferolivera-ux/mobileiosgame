@@ -145,6 +145,20 @@ describe('APAGANDO (AG2, AG3)', () => {
     expect(fase(e)).toBe(FASE.fim);
   });
 
+  it('CAB.passo anda 1 por passo em APAGANDO e o fimDaVigilia leva o passo da morte + 30 (crítico M35)', () => {
+    const e = aoLadoDeUmOco(1);
+    avancar(e, D, PARADO, 1);
+    const passoDaMorte = e.cab[CAB.passo]!;
+    expect(passoDaMorte).toBe(1);
+    for (let k = 1; k <= 30; k++) {
+      avancar(e, D, PARADO, 1);
+      expect(e.cab[CAB.passo]).toBe(passoDaMorte + k);
+    }
+    const fim = eventosDe(e, EVENTO.fimDaVigilia);
+    expect(fim).toHaveLength(1);
+    expect(fim[0]!.passo).toBe(passoDaMorte + 30);
+  });
+
   it('o contato não fere em APAGANDO: nenhum danoAoJogador novo e o HP segue 0', () => {
     const e = aoLadoDeUmOco(1);
     avancar(e, D, PARADO, 1);
@@ -233,6 +247,16 @@ describe('encerrarVigilia (AG6) e a divisão das Almas (MC1, PE6)', () => {
     avancar(e, D, PARADO, 61);
     const r = resultadoDaVigilia(e, D);
     expect([r.segundos, r.danoRecebido, r.mortes, r.aparos]).toEqual([0, 1, 0, 0]);
+  });
+});
+
+describe('Tempo do Resultado (RS2; crítico M51)', () => {
+  it('segundos = relógio / 60, truncado: 19:04 e 30 passos = 1.144 s; 59 passos ainda é 0 s; 60 passos, 1 s', () => {
+    const e = criar();
+    for (const [relogio, segundos] of [[(19 * 60 + 4) * 60 + 30, 1144], [59, 0], [60, 1], [0, 0]] as const) {
+      e.cab[CAB.relogio] = relogio;
+      expect(resultadoDaVigilia(e, D).segundos, `relógio ${relogio}`).toBe(segundos);
+    }
   });
 });
 

@@ -71,6 +71,39 @@ describe('dano_recebido: golpe e projétil uma linha cada, contato agregado (TL1
     expect(e.cab[CAB.passo]).toBe(3600);
   });
 
+  it('a borda da janela (críticos M77): a linha fecha com exatamente 300 passos, não com 299, pela leitura e pelo contato seguinte', () => {
+    const contatoNoPasso = (p: number) => {
+      const e = criarEstado(1, D, BASE);
+      e.cab[CAB.passo] = p;
+      bater(e, 1.5, ORIGEM_DO_DANO.contato);
+      return e;
+    };
+    // Só a leitura do quadro (sem contato novo): fecha em 10 + 300.
+    for (const [agora, linhasEsperadas] of [[10 + JANELA_DO_CONTATO - 1, 0], [10 + JANELA_DO_CONTATO, 1]] as const) {
+      const e = contatoNoPasso(10);
+      const r = new RegistroDeTelemetria();
+      const tele = new TelemetriaDeCombate();
+      tele.ler(e, r);
+      e.cab[CAB.passo] = agora;
+      tele.ler(e, r);
+      expect(linhas(r, 'dano_recebido'), `leitura em ${agora}`).toHaveLength(linhasEsperadas);
+    }
+    // O contato novo no passo 309 entra na mesma janela; no 310 fecha a anterior e abre outra.
+    for (const [novo, linhasEsperadas] of [[10 + JANELA_DO_CONTATO - 1, 0], [10 + JANELA_DO_CONTATO, 1]] as const) {
+      const e = contatoNoPasso(10);
+      const r = new RegistroDeTelemetria();
+      const tele = new TelemetriaDeCombate();
+      tele.ler(e, r);
+      e.cab[CAB.passo] = novo;
+      bater(e, 1.5, ORIGEM_DO_DANO.contato);
+      // Mede só o ramo do contato novo: lê com o passo ainda dentro da janela da nova linha.
+      tele.ler(e, r);
+      expect(linhas(r, 'dano_recebido'), `contato em ${novo}`).toHaveLength(linhasEsperadas);
+      // A linha fechada é a da janela antiga: o HP dela é o do 1º contato (150 − 1,5 → 149), não o do contato novo (147).
+      if (linhasEsperadas === 1) expect(linhas(r, 'dano_recebido')[0]!.campos['hp_restante']).toBe(149);
+    }
+  });
+
   it('a linha que zera o HP entra na hora, mesmo no meio da janela', () => {
     const e = criarEstado(1, D, BASE);
     const r = new RegistroDeTelemetria();

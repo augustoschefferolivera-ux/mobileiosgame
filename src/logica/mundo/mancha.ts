@@ -39,11 +39,13 @@ const PASSADAS_DO_PONTO_LIVRE = 8;
 /**
  * Ponto livre mais próximo de (x, y) (MC4): fora da zona de cada obstáculo, de raio `r + margem`, pelo delta
  * toroidal. Quem está dentro de uma zona sai pela normal centro a centro; se isso o põe na zona de outro,
- * repete (até 8 passadas). O resultado é normalizado no toro e em Float32 (como o meta o guarda).
+ * repete (até 8 passadas). O resultado é normalizado no toro e em Float32 (como o meta o guarda). Entrada e saída vão
+ * num rascunho Float64Array (regra do laço quente: nenhum double cruza a chamada): `io` = [x, y, margem] → [x, y, margem].
  */
-export function pontoLivreMaisProximo(o: Obstaculos, x: number, y: number, margem: number, saida: { x: number; y: number }): void {
-  let px = x;
-  let py = y;
+export function pontoLivreMaisProximo(o: Obstaculos, io: Float64Array): void {
+  const margem = io[2]!;
+  let px = io[0]!;
+  let py = io[1]!;
   for (let passada = 0; passada < PASSADAS_DO_PONTO_LIVRE; passada++) {
     let mexeu = false;
     for (let i = 0; i < o.n; i++) {
@@ -72,6 +74,6 @@ export function pontoLivreMaisProximo(o: Obstaculos, x: number, y: number, marge
   if (px >= LARGURA_DO_MAPA) px = Math.fround(px - LARGURA_DO_MAPA);
   if (py < 0) py = Math.fround(py + ALTURA_DO_MAPA);
   if (py >= ALTURA_DO_MAPA) py = Math.fround(py - ALTURA_DO_MAPA);
-  saida.x = px;
-  saida.y = py;
+  io[0] = px;
+  io[1] = py;
 }
