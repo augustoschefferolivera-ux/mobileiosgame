@@ -103,7 +103,7 @@ export function xDaMarcaDeStamina(largura: number, pontos: number, maxima: numbe
  * vão de 8 pt: x = esquerda + 80 e largura 119 pt com a faixa de 246). O número (`ceil(hp)`) fica logo abaixo, a 2 pt,
  * em 12 pt de corpo, acima das vagas (topo + 80).
  */
-export const BARRA_DE_HP = { altura: 10, abaixoDoTopo: 56, vao: 8, numeroAbaixo: 2, corpoDoNumero: 12 } as const;
+export const BARRA_DE_HP = { altura: 10, abaixoDoTopo: 56, vao: 8, numeroAbaixo: 0, corpoDoNumero: 12 } as const;
 /** Retardo da perda (HB2): a barra mostra o HP de antes por 12 passos da simulação, e a vinheta do acerto dura 6 quadros a 0,35. */
 export const RETARDO_DO_HP = { passos: 12 } as const;
 export const VINHETA_DO_ACERTO = { alfa: 0.35, quadros: 6, degraus: 6, borda: 48 } as const;

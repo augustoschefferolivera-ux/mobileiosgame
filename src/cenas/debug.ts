@@ -440,6 +440,8 @@ export interface GameDebug {
   hashPorSecao?: () => Record<string, string> | null;
   /** Remove um inimigo vivo pelo caminho comum (o teste do slot morto, decisoes-F-003 §8). Só no build de debug. */
   removerInimigo?: (slot: number) => void;
+  /** Põe o HP do jogador (0 < hp ≤ hpMax), para o screenshot do HUD com HP 71 (decisoes-F-007 HB2). Só no build de debug. */
+  definirHp?: (hp: number) => void;
 }
 
 /** FIM(apagar), FIM(abandonar)...; VIVA e APAGANDO sem causa. */
@@ -813,6 +815,11 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
         throw new Error(`removerInimigo: o slot ${slot} não está vivo`);
       }
       removerInimigo(e, slot);
+    };
+    debug.definirHp = (hp: number) => {
+      const e = ctx.simulacao?.estado;
+      if (!e || !(hp > 0 && hp <= e.jogador2[JOGADOR2.hpMax]!)) throw new Error(`definirHp: HP inválido: ${hp}`);
+      e.jogador[JOGADOR.hp] = hp;
     };
     debug.hashPorSecao = () => {
       const e = ctx.simulacao?.estado;

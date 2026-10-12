@@ -8,7 +8,7 @@
 import Phaser from 'phaser';
 import { alvoDaPausa, alvoDoAparo, alvoDoFrasco, areaDoJoystick, type Alvo } from '../entrada/alvos';
 import { RAIO_DO_JOYSTICK_PT, RAIO_DO_PINO_PT } from '../entrada/joystick';
-import { CAB, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR3_U8, JOGADOR4, JOGADOR4_U8, PROGRESSAO, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, type Estado } from '../logica/nucleo/estado';
+import { CAB, FASE, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR3_U8, JOGADOR4, JOGADOR4_U8, PROGRESSAO, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, type Estado } from '../logica/nucleo/estado';
 import { ALTURA_LOGICA, LARGURA_LOGICA, medirSafeArea, type Insets } from '../plataforma/safeArea';
 import type { ContextoDoJogo } from './contexto';
 import { COR, cameraLogica, texto } from './estilo';
@@ -292,6 +292,9 @@ export class Hud extends Phaser.Scene {
       this.almasDesenhadas = -1;
       this.retardo.reiniciar();
     }
+    // As Almas ficam de fora da pausa (AM5) e do fim da Vigília (o Resultado tem as suas).
+    const mostrarAlmas = e.jogador4U8[JOGADOR4_U8.fase] === FASE.viva && !sim.pausa.ativa;
+    if (mostrarAlmas !== this.almasTexto!.visible) this.almasTexto!.setVisible(mostrarAlmas);
     const almas = e.progresso[PROGRESSAO.almas]!;
     if (almas !== this.almasDesenhadas) {
       this.almasDesenhadas = almas;

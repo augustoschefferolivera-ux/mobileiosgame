@@ -671,6 +671,22 @@
         {
           "arquivo": "production/evidencias/F-007/mancha.png",
           "descricao": "`?inicio=19:00&seed=N&almas=1000` → morrer → Repetir Vigília (seed nova) → mancha visível, com a seta se fora da vista (B; design/decisoes-F-007.md §12)"
+        },
+        {
+          "arquivo": "production/evidencias/F-007/mancha-anel-390x844.png",
+          "descricao": "Mesma Vigília seguinte, a pé até a mancha entrar na vista: o anel de brasa pulsando e a Alma lilás (390 × 844; design/decisoes-F-007.md MC9)"
+        },
+        {
+          "arquivo": "production/evidencias/F-007/hud-hp71-390x844.png",
+          "descricao": "HUD com HP 71 (número sob a barra) e 1.240 Almas (HB1, HB2, AM5)"
+        },
+        {
+          "arquivo": "production/evidencias/F-007/frasco-curando-390x844.png",
+          "descricao": "Frasco em curso: trecho claro da cura na barra de HP e botão aceso com 2 cargas (FR8)"
+        },
+        {
+          "arquivo": "production/evidencias/F-007/pausa-390x844.png",
+          "descricao": "Pausa com a build, as estatísticas, o aviso e o Abandonar armado (PE3, PE4)"
         }
       ],
       "pendencias_antes_de_comecar": [

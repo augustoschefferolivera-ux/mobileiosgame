@@ -23,7 +23,7 @@ export const SEM_CINZAS = '&cenario=vigilia_sem_cinzas';
 
 /** O contrato do __GAME_DEBUG__ (src/cenas/debug.ts), com os ganchos do build de debug, que é o que a Playwright serve. */
 export type Debug = Omit<GameDebug, 'entrada'> &
-  Required<Pick<GameDebug, 'pausar' | 'retomar' | 'avancar' | 'quadros' | 'inimigos' | 'projeteis' | 'hashPorSecao' | 'removerInimigo' | 'pickups' | 'efeitosDeChao'>> & {
+  Required<Pick<GameDebug, 'pausar' | 'retomar' | 'avancar' | 'quadros' | 'inimigos' | 'projeteis' | 'hashPorSecao' | 'removerInimigo' | 'pickups' | 'efeitosDeChao' | 'definirHp'>> & {
     entrada: Required<EntradaDebug>;
   };
 declare global {
