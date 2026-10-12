@@ -67,7 +67,7 @@ export function faca(graus: number): Imagem {
 }
 
 /** Cristal das Cinzas: losango de meia largura `a` e meia altura `b`, na cor `chave`, com brilho em cima à esquerda. */
-export function cristal(a: number, b: number, chave: string): Imagem {
+export function cristal(a: number, b: number, chave: string, brilhando = false): Imagem {
   const w = 2 * a + 3;
   const h = 2 * b + 3;
   const img = novaImagem(w, h);
@@ -80,7 +80,7 @@ export function cristal(a: number, b: number, chave: string): Imagem {
       if (Math.abs(u) + Math.abs(v) > 1) continue;
       // Faceta de cima à esquerda clara; a de baixo à direita, escura.
       const chaveDoPixel = u < 0 && v < 0 && Math.abs(u) + Math.abs(v) > 0.45 ? 'H' : u > 0 && v > 0.15 ? 'D' : chave;
-      pintar(img, x, y, cor(chaveDoPixel === 'H' && (x + y) % 2 === 1 ? chave : chaveDoPixel));
+      pintar(img, x, y, cor(chaveDoPixel === 'H' && (x + y) % 2 === 1 && !brilhando ? chave : chaveDoPixel));
     }
   }
   return contornar(img);
@@ -88,8 +88,9 @@ export function cristal(a: number, b: number, chave: string): Imagem {
 
 /**
  * Rocha da Charneca de raio `r` px de arte, em vista de 3/4: tampo de ferro com
- * a borda de cima clara, face da frente escura, borda irregular e musgo em uma
- * de cada três (luz de cima, style card §3).
+ * a borda de cima clara, face da frente escura, borda irregular, rachaduras no
+ * tampo e tufos de musgo em uma de cada três (luz de cima,
+ * style card §3).
  */
 export function rocha(r: number, semente: number): Imagem {
   const lado = 2 * r + 3;
@@ -100,6 +101,12 @@ export function rocha(r: number, semente: number): Imagem {
     const borda = r - 0.8 * ((hash(Math.round(ang * 2.5), semente) % 100) / 100);
     return px * px + py * py <= borda * borda;
   };
+  // Tufos de musgo: 3 discos pequenos perto do topo à esquerda.
+  const tufos = [0, 1, 2].map((k) => ({
+    x: -r * (0.15 + 0.25 * ((hash(k, semente, 5) % 100) / 100)),
+    y: -r * (0.25 + 0.3 * ((hash(k, semente, 6) % 100) / 100)),
+    raio: r * (0.12 + 0.08 * k),
+  }));
   for (let y = 0; y < lado; y++) {
     for (let x = 0; x < lado; x++) {
       const px = x + 0.5 - c;
@@ -110,9 +117,22 @@ export function rocha(r: number, semente: number): Imagem {
       const corte = r * (0.05 + 0.4 * Math.sqrt(1 - u * u)) + (bayer(x, y) / 16 - 0.5) * 1.2;
       let chave = py < corte ? 'M' : 'D';
       if (py < corte && !dentro(px, py - 1.5)) chave = 'L';
-      const musgo = (px + r * 0.25) ** 2 + (py + r * 0.35) ** 2 < (r * 0.38) ** 2 + (hash(x, y, semente) % 5) - 2;
-      if (semente % 3 === 0 && chave !== 'D' && musgo) chave = 'E';
+      const musgo = tufos.some((t) => (px - t.x) ** 2 + (py - t.y) ** 2 < t.raio * t.raio + (hash(x, y, semente + 1) % 3) - 1);
+      if (semente % 3 === 0 && chave !== 'D' && musgo) chave = hash(x, y, 9) % 4 === 0 ? 'e' : 'E';
       pintar(img, x, y, cor(chave));
+    }
+  }
+  // Rachaduras: 2 traços quebrados no tampo, em K, com a sombra D embaixo.
+  for (let k = 0; k < 2; k++) {
+    let x = Math.round(c + (((hash(k, semente, 11) % 100) / 100) - 0.5) * r);
+    let y = Math.round(c - r * 0.1 - ((hash(k, semente, 12) % 100) / 100) * r * 0.4);
+    const passos = Math.round(r / 3) + (hash(k, semente, 13) % Math.max(2, Math.round(r / 4)));
+    for (let p = 0; p < passos; p++) {
+      if (lerPixel(img, x, y).alfa === 0 || lerPixel(img, x, y + 1).alfa === 0) break;
+      pintar(img, x, y, cor('K'));
+      if (lerPixel(img, x, y + 1).cor !== cor('K')) pintar(img, x, y + 1, cor('D'));
+      x += hash(p, k, semente) % 2 === 0 ? 1 : -1;
+      y += hash(p, k, semente + 7) % 3 === 0 ? 0 : 1;
     }
   }
   return contornar(img);
