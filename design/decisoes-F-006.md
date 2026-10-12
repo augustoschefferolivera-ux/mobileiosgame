@@ -1,6 +1,6 @@
 # Decisões da F-006 "Stamina, esquiva e aparo"
 
-- **Status:** proposta para aprovação (Etapa 1 da Sessão 6), já corrigida pela revisão adversarial (§12: 65 achados, 2 refutados). Nada foi implementado. As decisões técnicas da implementação e as divergências vão para o ADR-0008.
+- **Status:** aprovado pelo usuário sem veto em 2026-10-12 ("Aprovo"), depois da revisão adversarial (§12); implementação na Etapa 2 da Sessão 6. As decisões técnicas da implementação e as divergências vão para o ADR-0008.
 - **Como foi feito:**
   - levantamento: um workflow com 4 pesquisadores, cada um seguido de um verificador cético, e um crítico de completude. Áreas: stamina, esquiva, gestos e feedback; aparo, Postura Quebrada e Contra-ataque; Oco Grande, Noviça, telegrafos, Sal no jogador e tutoriais; estado v6, ordem do passo, comandos, áudio, debug, testes e evidências. Todos os agentes rodaram em Sonnet com esforço médio;
   - saíram 99 perguntas dos pesquisadores e 49 dos verificadores. 16 delas os documentos já respondem, no todo ou em parte (§1). Os verificadores revisaram as 99 propostas: confirmaram 60, corrigiram 39 e não refutaram nenhuma. Conferiram as citações, procuraram a resposta em todas as fontes e refizeram as contas e os protótipos;

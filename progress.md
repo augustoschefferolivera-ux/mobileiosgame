@@ -7,7 +7,8 @@
 - [x] Leitura: este arquivo (Sessão 5 e Retomada), ADR-0007, `design/decisoes-F-005.md` §9 e a entrada da F-006. Branch `claude/f006-esquiva-weodg1`, a partir do fim da F-005 (`bc999b3`); `verify.sh --feature F-005 --taps-game --seed 1` verde no início.
 - [x] **Etapa 1, decisões:** `design/decisoes-F-006.md` (aqui, D6). Levantamento com 4 pesquisadores, cada um com verificador cético, e um crítico de completude (99 perguntas mais 49 dos verificadores; 17 conflitos entre áreas resolvidos); revisão adversarial com 3 lentes, cada uma com verificador (65 achados: 32 confirmados, 31 ajustados e 2 refutados; aplicados, D6 §12). Todos os agentes em Sonnet com esforço médio.
 - [x] `feature_list.json`: o "como" dos F-006.1 a F-006.12 (D6 §9, VT8), as seis evidências (VT9), as pendências da F-006 resolvidas na D6 e as recomendações da §10 nas pendências das F-007 a F-010.
-- [ ] Aprovação ou veto da §0 da D6 pelo usuário; depois, a Etapa 2 (implementação só da F-006).
+- [x] D6 aprovada sem veto (2026-10-12, "Aprovo, mas precisamos economizar tokens").
+- [ ] Etapa 2: implementação só da F-006.
 
 ## Sessão 5 — F-005 "XP, level up, passivas e União"
 

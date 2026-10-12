@@ -595,7 +595,7 @@
         }
       ],
       "pendencias_antes_de_comecar": [
-        "Resolvidas em design/decisoes-F-006.md (proposta da Etapa 1, aguarda a aprovação do usuário pela tabela §0): brief §11.3 (OG3, NV4, ES1, GE1, GE2, FB5, PQ1, AP5, AP7, AP8, AP10, ST3, AP9); build do iPhone (VT10); aura no Contra-ataque (CA4); recomendações da D2 §9 (ES3, AP2, ET6, GE1), da D3 §9 (ES7, EP1, TU1, TU7, PQ3, RE8, RE4, VT10), da D4 §9 (PQ6, PQ2, PQ8, PQ7, CA2 a CA4, EP4, NV5, NV6, RE6, NV7, OG9, RE5, FB3, RE11, FB2) e da D5 §9 (AP2, GE3, FB1, EP3, CA2, ET10)"
+        "Resolvidas em design/decisoes-F-006.md (aprovadas pelo usuário sem veto, 2026-10-12): brief §11.3 (OG3, NV4, ES1, GE1, GE2, FB5, PQ1, AP5, AP7, AP8, AP10, ST3, AP9); build do iPhone (VT10); aura no Contra-ataque (CA4); recomendações da D2 §9 (ES3, AP2, ET6, GE1), da D3 §9 (ES7, EP1, TU1, TU7, PQ3, RE8, RE4, VT10), da D4 §9 (PQ6, PQ2, PQ8, PQ7, CA2 a CA4, EP4, NV5, NV6, RE6, NV7, OG9, RE5, FB3, RE11, FB2) e da D5 §9 (AP2, GE3, FB1, EP3, CA2, ET10)"
       ]
     },
     {
