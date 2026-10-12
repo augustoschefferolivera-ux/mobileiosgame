@@ -10,10 +10,10 @@ import inimigos from '../../src/dados/inimigos.json';
 import { COR, COR_DO_INIMIGO } from '../../src/cenas/estilo';
 import { arredondarParaOPixel } from '../../src/cenas/render/camera';
 import { FLOATS_POR_MEMBRO, HordaPorGPU, OFFSET, tintOpaco } from '../../src/cenas/render/escritores';
-import { criarSaidaDaHorda, criarTabelaDeDesenho, prepararHorda } from '../../src/cenas/render/horda';
-import { escalaPara } from '../../src/cenas/render/atlas';
+import { criarSaidaDaHorda, criarTabelaDeDesenho, prepararHorda, prepararQuadrosDaHorda } from '../../src/cenas/render/horda';
+import { indiceDaMoldura } from '../../src/cenas/render/atlas';
 import { COR_DO_CRITICO } from '../../src/cenas/render/armas';
-import { criarEstado } from '../../src/logica/nucleo/estado';
+import { CAB, JOGADOR, criarEstado } from '../../src/logica/nucleo/estado';
 import { semear, proximoUnitario } from '../../src/logica/nucleo/rng';
 import { nascerInimigo, removerInimigo } from '../../src/logica/mundo/inimigos';
 import { TIPO } from '../../src/logica/mundo/tipos';
@@ -59,23 +59,60 @@ describe('prepararHorda', () => {
 });
 
 describe('tabela de desenho', () => {
-  it('massa em círculo de 32 pt e médios em quadrado de 48 pt, com as cores de estilo.ts; o resto fica null', () => {
+  it('massa (16 px de arte, 32 pt) e médios (24 px, 48 pt) com as molduras da arte do tipo, a escala de 2 pt e a cor de identidade; o resto fica null', () => {
     const tabela = criarTabelaDeDesenho(inimigos.inimigos, D.tipos.existe);
+    const i = (n: string): number => indiceDaMoldura(n);
     expect(tabela[TIPO.oco_das_lanternas]).toEqual({
-      moldura: 'massa',
-      escala: escalaPara('massa', 32),
+      id: 'oco_das_lanternas',
+      medio: false,
+      escala: 2,
       cor: COR_DO_INIMIGO['oco_das_lanternas'],
-      tint: tintOpaco(COR_DO_INIMIGO['oco_das_lanternas']!),
+      tint: tintOpaco(0xffffff),
+      andar: [i('oco_das_lanternas'), i('oco_das_lanternas_2')],
+      acerto: i('oco_das_lanternas_acerto'),
+      telegrafo: i('oco_das_lanternas'),
+      ataque: i('oco_das_lanternas'),
+      branco: -1,
+      cinza: [i('oco_das_lanternas_cinza_0'), i('oco_das_lanternas_cinza_1'), i('oco_das_lanternas_cinza_2')],
     });
-    expect(tabela[TIPO.oco_grande]).toEqual({
-      moldura: 'quadrado',
-      escala: escalaPara('quadrado', 48),
+    expect(tabela[TIPO.oco_grande]).toMatchObject({
+      medio: true,
+      escala: 2,
       cor: COR_DO_INIMIGO['oco_grande'],
-      tint: tintOpaco(COR_DO_INIMIGO['oco_grande']!),
+      telegrafo: i('oco_grande_telegrafo'),
+      ataque: i('oco_grande_ataque'),
+      branco: i('oco_grande_telegrafo_branco'),
     });
-    expect(tabela[TIPO.novica_de_sal]).toMatchObject({ moldura: 'quadrado', cor: COR_DO_INIMIGO['novica_de_sal'] });
+    expect(tabela[TIPO.novica_de_sal]).toMatchObject({ medio: true, cor: COR_DO_INIMIGO['novica_de_sal'] });
     expect([tabela[TIPO.vazio], tabela[TIPO.oco_grande_coroado], tabela[TIPO.o_lanterneiro]]).toEqual([null, null, null]);
-    expect(escalaPara('massa', 32)).toBe(0.5);
+  });
+
+  it('quadros (F-011): andar de 2 quadros pelo passo (defasado pelo slot), acerto nos 3 passos depois do golpe, espelho para o lado do jogador', () => {
+    const tabela = criarTabelaDeDesenho(inimigos.inimigos, D.tipos.existe);
+    const oco = tabela[TIPO.oco_das_lanternas]!;
+    const e = criarEstado(1, D);
+    e.jogador[JOGADOR.x] = 500;
+    const esq = nascerInimigo(e, D, TIPO.oco_das_lanternas, 400, 100, false);
+    const dir = nascerInimigo(e, D, TIPO.oco_das_lanternas, 600, 100, false);
+    const saida = criarSaidaDaHorda();
+    const acertos = new Float64Array(500).fill(-1e9);
+    const quadros: number[] = [];
+    for (const passo of [0, 8, 16]) {
+      e.cab[CAB.passo] = passo;
+      prepararHorda(e, 1, 585, 1266, saida);
+      prepararQuadrosDaHorda(e, tabela, acertos, saida);
+      quadros.push(saida.quadro[esq]!);
+    }
+    expect(quadros).toEqual([oco.andar[((0 + esq * 5) >> 3) & 1], oco.andar[((8 + esq * 5) >> 3) & 1], oco.andar[((16 + esq * 5) >> 3) & 1]]);
+    expect(new Set(quadros).size).toBe(2);
+    // À esquerda do jogador olha para a direita (sem espelho); à direita, espelhado.
+    expect([saida.espelhar[esq], saida.espelhar[dir]]).toEqual([0, 1]);
+    acertos[esq] = 15;
+    prepararQuadrosDaHorda(e, tabela, acertos, saida);
+    expect(saida.quadro[esq]).toBe(oco.acerto);
+    e.cab[CAB.passo] = 18;
+    prepararQuadrosDaHorda(e, tabela, acertos, saida);
+    expect(saida.quadro[esq]).not.toBe(oco.acerto);
   });
 
   it('um tipo que nasce sem tamanho ou sem cor é erro na montagem', () => {
@@ -258,13 +295,19 @@ describe('SpriteGPULayer do Phaser 4.2.1 (F-003.11)', () => {
       saida.tipo[3] = TIPO.oco_das_lanternas;
       saida.x[3] = 100.5;
       saida.y[3] = -12;
+      saida.quadro[3] = tabela[TIPO.oco_das_lanternas]!.andar[1];
+      saida.tipo[5] = TIPO.oco_das_lanternas;
+      saida.quadro[5] = tabela[TIPO.oco_das_lanternas]!.andar[0];
+      saida.espelhar[5] = 1;
       saida.tipo[7] = TIPO.novica_de_sal;
       saida.x[7] = 1200;
       saida.y[7] = 2600.5;
       horda.escrever(saida, tabela);
       const vivo = layer.getMember(3) as unknown as Membro;
-      expect(vivo).toMatchObject({ x: 100.5, y: -12, scaleX: 0.5, scaleY: 0.5, alpha: 1, frame: 'massa' });
-      expect([vivo.tintTopLeft, vivo.alphaTopLeft]).toEqual([COR_DO_INIMIGO['oco_das_lanternas'], 1]);
+      expect(vivo).toMatchObject({ x: 100.5, y: -12, scaleX: 2, scaleY: 2, alpha: 1, frame: 'oco_das_lanternas_2' });
+      expect([vivo.tintTopLeft, vivo.alphaTopLeft]).toEqual([0xffffff, 1]);
+      // Virado para a esquerda: o sprite espelhado pela escala negativa.
+      expect(layer.getMember(5)).toMatchObject({ scaleX: -2, scaleY: 2, frame: 'oco_das_lanternas' });
       // Os médios saem desta camada (RE8): têm a 2ª camada, acima da massa; aqui o slot dele é invisível.
       expect(layer.getMember(7)).toMatchObject({ scaleX: 0, scaleY: 0, alpha: 0 });
       for (const morto of [0, 4, 499]) expect(layer.getMember(morto)).toMatchObject({ scaleX: 0, scaleY: 0, alpha: 0 });

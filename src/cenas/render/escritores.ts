@@ -6,7 +6,7 @@
 // Os dois só escrevem o que prepararHorda calculou. Nada é alocado por frame.
 import Phaser from 'phaser';
 import { CAPACIDADE_DE_INIMIGOS } from '../../logica/nucleo/estado';
-import { CHAVE_DO_ATLAS, type NomeDaMoldura } from './atlas';
+import { CHAVE_DO_ATLAS, NOMES_DAS_MOLDURAS, type NomeDaMoldura } from './atlas';
 import type { DesenhoDoTipo, SaidaDaHorda } from './horda';
 
 export { tintOpaco } from './horda';
@@ -34,7 +34,7 @@ export const OFFSET = {
  * real em `SaidaDaHorda.tipo` (o status, as marcas e o Sal leem os médios dali).
  */
 export function ehMedio(d: DesenhoDoTipo | null): boolean {
-  return d !== null && d.moldura === 'quadrado';
+  return d !== null && d.medio;
 }
 
 export interface EscritorDaHorda {
@@ -88,8 +88,8 @@ export class HordaPorGPU implements EscritorDaHorda {
   private readonly layer: Phaser.GameObjects.SpriteGPULayer;
   private readonly f32: Float32Array;
   private readonly u32: Uint32Array;
-  /** Índice da moldura no frameDataTexture, por nome (lido do layer, nunca literal). */
-  private readonly indiceDaMoldura: Readonly<Record<string, number>>;
+  /** Índice da moldura no frameDataTexture, por índice de NOMES_DAS_MOLDURAS (lido do layer, nunca literal). */
+  private readonly indiceNaTextura: Float64Array;
 
   constructor(cena: Phaser.Scene, dinamico: boolean) {
     this.layer = criarLayerDaHorda(cena, CAPACIDADE_DE_INIMIGOS, dinamico);
@@ -100,7 +100,8 @@ export class HordaPorGPU implements EscritorDaHorda {
     if (!buffer.viewF32 || !buffer.viewU32) throw new Error('SpriteGPULayer: buffer de instâncias sem views');
     this.f32 = buffer.viewF32;
     this.u32 = buffer.viewU32;
-    this.indiceDaMoldura = this.layer.frameDataIndices as Record<string, number>;
+    const indices = this.layer.frameDataIndices as Record<string, number>;
+    this.indiceNaTextura = Float64Array.from(NOMES_DAS_MOLDURAS, (n) => indices[n] ?? 0);
   }
 
   get bufferDinamico(): boolean {
@@ -114,7 +115,7 @@ export class HordaPorGPU implements EscritorDaHorda {
     for (let s = 0; s < CAPACIDADE_DE_INIMIGOS; s++) {
       const base = s * FLOATS_POR_MEMBRO;
       const d = tabela[saida.tipo[s]!];
-      if (!d || d.moldura === 'quadrado') {
+      if (!d || d.medio) {
         f32[base + OFFSET.escalaX] = 0;
         f32[base + OFFSET.escalaY] = 0;
         f32[base + OFFSET.alpha] = 0;
@@ -122,10 +123,10 @@ export class HordaPorGPU implements EscritorDaHorda {
       }
       f32[base + OFFSET.x] = saida.x[s]!;
       f32[base + OFFSET.y] = saida.y[s]!;
-      f32[base + OFFSET.escalaX] = d.escala;
+      f32[base + OFFSET.escalaX] = saida.espelhar[s] === 1 ? -d.escala : d.escala;
       f32[base + OFFSET.escalaY] = d.escala;
       f32[base + OFFSET.alpha] = 1;
-      f32[base + OFFSET.moldura] = this.indiceDaMoldura[d.moldura]!;
+      f32[base + OFFSET.moldura] = this.indiceNaTextura[saida.quadro[s]!]!;
       const tint = d.tint;
       u32[base + OFFSET.tint] = tint;
       u32[base + OFFSET.tint + 1] = tint;
@@ -144,8 +145,9 @@ export class HordaPorGPU implements EscritorDaHorda {
 export class HordaPorImagem implements EscritorDaHorda {
   readonly modo = 'image';
   private readonly imagens: Phaser.GameObjects.Image[] = [];
-  /** Tipo desenhado por slot: moldura, escala e tint só mudam quando ele muda. */
+  /** Tipo desenhado por slot: a escala e o tint só mudam quando ele muda; a moldura e o espelho, quando mudam. */
   private readonly tipoDesenhado = new Uint8Array(CAPACIDADE_DE_INIMIGOS);
+  private readonly quadroDesenhado = new Int32Array(CAPACIDADE_DE_INIMIGOS).fill(-1);
 
   constructor(cena: Phaser.Scene) {
     const camada = cena.add.layer();
@@ -161,13 +163,18 @@ export class HordaPorImagem implements EscritorDaHorda {
       const img = this.imagens[s]!;
       const tipo = saida.tipo[s]!;
       const d = tabela[tipo];
-      if (!d || d.moldura === 'quadrado') {
+      if (!d || d.medio) {
         if (img.visible) img.setVisible(false);
         continue;
       }
       if (this.tipoDesenhado[s] !== tipo) {
         this.tipoDesenhado[s] = tipo;
-        img.setFrame(d.moldura).setScale(d.escala).setTint(d.cor);
+        img.setTint(d.tint & 0xffffff);
+      }
+      const quadro = saida.quadro[s]! | (saida.espelhar[s]! << 16);
+      if (this.quadroDesenhado[s] !== quadro) {
+        this.quadroDesenhado[s] = quadro;
+        img.setFrame(NOMES_DAS_MOLDURAS[saida.quadro[s]!]!).setScale(saida.espelhar[s] === 1 ? -d.escala : d.escala, d.escala);
       }
       if (!img.visible) img.setVisible(true);
       img.setPosition(saida.x[s]!, saida.y[s]!);

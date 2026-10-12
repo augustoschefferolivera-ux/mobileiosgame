@@ -83,6 +83,8 @@ export class EfeitosDaVigilia {
     c: new Float64Array(CAPACIDADE_DE_EFEITOS),
     d: new Float64Array(CAPACIDADE_DE_EFEITOS),
   };
+  /** Passo do último acerto em cada slot de inimigo (o quadro de acerto da F-011); −1e9 = nenhum. */
+  readonly acertos = new Float64Array(CAPACIDADE_DE_INIMIGOS).fill(-1e9);
   /** O número mais novo de cada slot de inimigo (−1 = nenhum), para a agregação (N7). */
   private readonly numeroDoSlot = new Int16Array(CAPACIDADE_DE_INIMIGOS).fill(-1);
   readonly leitor = new LeitorDeEventos();
@@ -100,6 +102,7 @@ export class EfeitosDaVigilia {
     this.mortes.ativo.fill(0);
     this.efeitos.ativo.fill(0);
     this.numeroDoSlot.fill(-1);
+    this.acertos.fill(-1e9);
     this.leitor.reiniciar();
     this.recusados.numeros = this.recusados.mortes = this.recusados.efeitos = this.recusados.telegrafos = this.recusados.projeteisInimigos = 0;
     this.feedback.aparo = this.feedback.esquivaPerfeita = this.feedback.acaoNegada = this.feedback.danoRecebido = 0;
@@ -126,6 +129,8 @@ export class EfeitosDaVigilia {
       this.expirar(u32[i + EV.passo]!);
       const tipo = u32[i + EV.tipoArmaForma]! & 0xff;
       if (tipo === EVENTO.acerto) {
+        const slot = u32[i + EV.alvo]! & 0xffff;
+        if (slot < CAPACIDADE_DE_INIMIGOS) this.acertos[slot] = u32[i + EV.passo]!;
         if (this.numerosLigados) this.somarAcerto(e, i);
       } else if (tipo === EVENTO.morte) {
         // A morte e os efeitos são criados aqui, em linha: são raros por quadro, e numa função à parte ficariam no

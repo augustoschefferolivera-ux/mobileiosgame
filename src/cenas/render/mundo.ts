@@ -14,7 +14,7 @@
 // pelo delta toroidal, arredondada para o pixel do canvas como a câmera. Nada é
 // alocado por frame.
 import type Phaser from 'phaser';
-import { JOGADOR, type Estado } from '../../logica/nucleo/estado';
+import { CAPACIDADE_DE_INIMIGOS, JOGADOR, type Estado } from '../../logica/nucleo/estado';
 import type { DadosDaVigilia } from '../../logica/mundo/dados';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, copiaMaisProxima, interpolarNoToro } from '../../logica/mundo/toro';
 import { COR } from '../estilo';
@@ -26,8 +26,9 @@ import { criarSaidaDeSprites, type EscritorDeSprites, type SaidaDeSprites } from
 import { CAPACIDADE_DE_MORTES, EfeitosDaVigilia } from './efeitos';
 import type { EscritorDaHorda } from './escritores';
 import { membrosDoMundo, prepararMundo } from './pickups';
-import { criarSaidaDaHorda, prepararHorda, type DesenhoDoTipo } from './horda';
-import { CAPACIDADE_DE_INIMIGOS } from '../../logica/nucleo/estado';
+import { criarSaidaDaHorda, prepararHorda, prepararQuadrosDaHorda, type DesenhoDoTipo } from './horda';
+/** Sem o consumidor do anel (testes do render só com a horda), ninguém foi acertado. */
+const SEM_ACERTOS = new Float64Array(CAPACIDADE_DE_INIMIGOS).fill(-1e9);
 
 export interface RenderDoMundo {
   /** Desenha o estado interpolado por `alfa`, com a câmera centrada em (camX, camY), em px lógicos. */
@@ -146,6 +147,7 @@ export class RenderDaVigilia implements RenderDoMundo {
     if (this.efeitos && this.armas) this.efeitos.consumir(e, this.armas.opcoes.numerosDeDano);
     if (this.horda) {
       prepararHorda(e, alfa, camX, camY, this.saida);
+      prepararQuadrosDaHorda(e, this.tabela, this.efeitos ? this.efeitos.acertos : SEM_ACERTOS, this.saida);
       this.horda.escrever(this.saida, this.tabela);
     }
     const ef = this.efeitos;

@@ -2,22 +2,42 @@
 // só cálculo para os dois modos de render, que só escrevem o resultado. Para
 // cada slot vivo: posição interpolada pelo delta toroidal (ADR-0002 §3),
 // arredondada para o pixel do canvas como o jogador e a câmera, e na cópia mais
-// próxima da câmera (ADR-0002 §11); o slot livre sai invisível. Nada é alocado
-// por frame.
-import { CAPACIDADE_DE_INIMIGOS, type Estado } from '../../logica/nucleo/estado';
+// próxima da câmera (ADR-0002 §11); o slot livre sai invisível. Na F-011, cada
+// slot também ganha o quadro da arte (andar, acerto) e o espelho pela direção
+// em que anda. Nada é alocado por frame.
+import { ESCALA_DA_GRADE } from '../../arte/catalogo';
+import { CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR, type Estado } from '../../logica/nucleo/estado';
 import { IDS_DE_TIPO } from '../../logica/mundo/tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../../logica/mundo/toro';
 import { ESCALA_DO_CANVAS } from '../escala';
 import { COR_DO_INIMIGO } from '../paleta';
-import { escalaPara, type NomeDaMoldura } from './atlas';
+import { indiceDaMoldura } from './atlas';
 
-/** Como desenhar um tipo: moldura do atlas, escala, cor e o tint já empacotado (calculado uma vez, fora do laço). */
+/**
+ * Como desenhar um tipo (calculado uma vez, fora do laço): as molduras da arte (índices em NOMES_DAS_MOLDURAS), a
+ * escala de 2 pt por px de arte, a cor de identidade (o bloco do centro do sprite, COR_DO_INIMIGO) e o tint branco
+ * opaco (a arte não é tingida).
+ */
 export interface DesenhoDoTipo {
-  readonly moldura: NomeDaMoldura;
+  readonly id: string;
+  /** Médio (Oco Grande, Noviça): vai na 2ª camada, acima da massa (RE8). */
+  readonly medio: boolean;
   readonly escala: number;
   readonly cor: number;
   readonly tint: number;
+  readonly andar: readonly [number, number];
+  readonly acerto: number;
+  /** Telegrafo ("inspirar") e ataque; na massa, o 1º quadro de andar. */
+  readonly telegrafo: number;
+  readonly ataque: number;
+  /** Silhueta branca do telegrafo, por cima do corpo com alfa 1 − blend (RE4); na massa, −1. */
+  readonly branco: number;
+  /** A morte que vira cinza em 3 quadros (doc 13 §1.5). */
+  readonly cinza: readonly [number, number, number];
 }
+
+/** Passos que o quadro de acerto fica na tela depois do golpe (≈ 50 ms; style card §6). */
+export const PASSOS_DO_ACERTO = 3;
 
 /** Tint como o Phaser grava (Utils.getTintAppendFloatAlpha com alpha 1). */
 export function tintOpaco(cor: number): number {
@@ -33,8 +53,9 @@ export interface FormaDoJson {
 
 /**
  * Tabela de desenho por código de tipo, só com os tipos que nascem (`existe`):
- * círculo (massa) e quadrado (médios) de B §2, no tamanho de B §3.2. Um tipo que
- * nasce sem forma, tamanho ou cor é erro alto aqui, nunca um NaN na tela.
+ * círculo (massa) e quadrado (médios) de B §2, no tamanho de B §3.2, agora com
+ * as molduras da arte do tipo. Um tipo que nasce sem forma, tamanho, cor ou
+ * arte é erro alto aqui, nunca um NaN na tela.
  */
 export function criarTabelaDeDesenho(inimigos: readonly FormaDoJson[], existe: Uint8Array): (DesenhoDoTipo | null)[] {
   const tabela: (DesenhoDoTipo | null)[] = IDS_DE_TIPO.map(() => null);
@@ -44,8 +65,21 @@ export function criarTabelaDeDesenho(inimigos: readonly FormaDoJson[], existe: U
     const i = inimigos.find((x) => x.id === id);
     const cor = COR_DO_INIMIGO[id];
     if (!i || i.tamanho_px === null || cor === undefined) throw new Error(`desenho: ${id} nasce sem tamanho ou sem cor`);
-    const moldura: NomeDaMoldura = i.forma === 'circulo' ? 'massa' : i.forma === 'quadrado' ? 'quadrado' : falha(id, i.forma);
-    tabela[codigo] = { moldura, escala: escalaPara(moldura, i.tamanho_px), cor, tint: tintOpaco(cor) };
+    const medio = i.forma === 'circulo' ? false : i.forma === 'quadrado' ? true : falha(id, i.forma);
+    const andar = indiceDaMoldura(id);
+    tabela[codigo] = {
+      id,
+      medio,
+      escala: ESCALA_DA_GRADE.arte,
+      cor,
+      tint: tintOpaco(0xffffff),
+      andar: [andar, indiceDaMoldura(`${id}_2`)],
+      acerto: indiceDaMoldura(`${id}_acerto`),
+      telegrafo: medio ? indiceDaMoldura(`${id}_telegrafo`) : andar,
+      ataque: medio ? indiceDaMoldura(`${id}_ataque`) : andar,
+      branco: medio ? indiceDaMoldura(`${id}_telegrafo_branco`) : -1,
+      cinza: [indiceDaMoldura(`${id}_cinza_0`), indiceDaMoldura(`${id}_cinza_1`), indiceDaMoldura(`${id}_cinza_2`)],
+    };
   }
   return tabela;
 }
@@ -60,6 +94,10 @@ export interface SaidaDaHorda {
   readonly tipo: Uint8Array;
   readonly x: Float64Array;
   readonly y: Float64Array;
+  /** Moldura do quadro (índice em NOMES_DAS_MOLDURAS), escrita por prepararQuadrosDaHorda. */
+  readonly quadro: Uint16Array;
+  /** 1 = virado para a esquerda (o sprite espelhado): o inimigo olha para o lado do jogador. */
+  readonly espelhar: Uint8Array;
 }
 
 export function criarSaidaDaHorda(): SaidaDaHorda {
@@ -67,7 +105,31 @@ export function criarSaidaDaHorda(): SaidaDaHorda {
     tipo: new Uint8Array(CAPACIDADE_DE_INIMIGOS),
     x: new Float64Array(CAPACIDADE_DE_INIMIGOS),
     y: new Float64Array(CAPACIDADE_DE_INIMIGOS),
+    quadro: new Uint16Array(CAPACIDADE_DE_INIMIGOS),
+    espelhar: new Uint8Array(CAPACIDADE_DE_INIMIGOS),
   };
+}
+
+/**
+ * O quadro e o espelho de cada slot visível (F-011): o quadro de acerto nos 3 passos depois de um golpe
+ * (`acertos[slot]` é o passo do último acerto, mantido pelo consumidor do anel); senão o andar de 2 quadros a
+ * 7,5 por segundo, defasado pelo slot para a horda não andar em sincronia. O espelho olha para o lado do
+ * jogador (a horda persegue). Tudo pelo estado do passo: a imagem pausada não depende de quantos quadros o
+ * render desenhou antes.
+ */
+export function prepararQuadrosDaHorda(e: Estado, tabela: readonly (DesenhoDoTipo | null)[], acertos: Float64Array, out: SaidaDaHorda): void {
+  const ini = e.inimigos;
+  const passo = e.cab[CAB.passo]!;
+  const jx = e.jogador[JOGADOR.x]!;
+  for (let s = 0; s < CAPACIDADE_DE_INIMIGOS; s++) {
+    const d = out.tipo[s] === 0 ? null : tabela[out.tipo[s]!];
+    if (!d) continue;
+    let dx = jx - ini.x[s]!;
+    if (dx > MEIA_LARGURA_DO_MAPA) dx -= LARGURA_DO_MAPA;
+    if (dx < -MEIA_LARGURA_DO_MAPA) dx += LARGURA_DO_MAPA;
+    out.espelhar[s] = dx < 0 ? 1 : 0;
+    out.quadro[s] = passo - acertos[s]! < PASSOS_DO_ACERTO ? d.acerto : d.andar[((passo + s * 5) >> 3) & 1]!;
+  }
 }
 
 /**
