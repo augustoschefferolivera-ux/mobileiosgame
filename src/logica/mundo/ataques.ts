@@ -16,6 +16,8 @@ import {
   CAPACIDADE_DE_INIMIGOS,
   CAPACIDADE_DE_PROJETEIS,
   CENARIO,
+  FOGUEIRA_F32,
+  FOGUEIRA_U8,
   JOGADOR,
   JOGADOR3_U16,
   JOGADOR3_U8,
@@ -170,7 +172,37 @@ export function rodarAtaques(e: Estado, dados: DadosDaVigilia): void {
     if (fase === FASE_DO_ATAQUE.telegrafo) {
       timer--;
       if (timer === 0) {
-        if (raioDoArco > 0) {
+        if (raioDoArco > 0 && ini.ataqueId[s] === 1) {
+          // Grito do Coroado (CR3): círculo em volta do centro, sem ramo de aparo; os i-frames da esquiva evitam o dano e o empurrão.
+          const alcance = c.gritoRaio[tipo]! + RAIO_DO_JOGADOR;
+          let desfecho: number = DESFECHO_DO_GOLPE.errou;
+          if (d2 <= alcance * alcance) {
+            BRUTO[0] = (ini.dano[s]! * c.gritoDanoPct[tipo]!) / 100;
+            desfecho = resolverAcertoNoJogador(e, dados, ORIGEM_DO_DANO.golpe, s);
+            if (desfecho === DESFECHO.acertou) {
+              // Empurrão de `gritoEmpurraoPx` em tantos passos, do Coroado para o jogador; com d = 0, a mira (CR3).
+              const porPasso = c.gritoEmpurraoPx[tipo]! / c.gritoEmpurraoPassos[tipo]!;
+              const f = e.fogueiraF32;
+              if (d2 > 0) {
+                const d = Math.sqrt(d2);
+                f[FOGUEIRA_F32.empurraoX] = (dx / d) * porPasso;
+                f[FOGUEIRA_F32.empurraoY] = (dy / d) * porPasso;
+              } else {
+                f[FOGUEIRA_F32.empurraoX] = ini.miraX[s]! * porPasso;
+                f[FOGUEIRA_F32.empurraoY] = ini.miraY[s]! * porPasso;
+              }
+              e.fogueiraU8[FOGUEIRA_U8.empurraoPassos] = c.gritoEmpurraoPassos[tipo]!;
+            }
+          }
+          FLOATS_DO_EVENTO[0] = x;
+          FLOATS_DO_EVENTO[1] = y;
+          FLOATS_DO_EVENTO[2] = desfecho === DESFECHO.acertou ? BRUTO[0]! : 0;
+          FLOATS_DO_EVENTO[3] = desfecho;
+          gravarEvento(e.eventos, passoAtual, EVENTO.golpeInimigo, 0, FORMA.gritoInimigo, s, geracaoDoInimigo[s]!, tipo, 0, 0);
+          ini.ataqueSeq[s] = ini.ataqueSeq[s]! === 2 ? 0 : ini.ataqueSeq[s]! + 1;
+          fase = FASE_DO_ATAQUE.recuperacao;
+          timer = c.gritoRecuperacaoPassos[tipo]!;
+        } else if (raioDoArco > 0) {
           // Golpe em T+36 (OG5): o setor de 120° contra a hitbox do jogador, na posição deste passo.
           const alcance = raioDoArco + RAIO_DO_JOGADOR;
           const mx = ini.miraX[s]!;
@@ -193,7 +225,9 @@ export function rodarAtaques(e: Estado, dados: DadosDaVigilia): void {
           FLOATS_DO_EVENTO[1] = y;
           FLOATS_DO_EVENTO[2] = desfecho === DESFECHO.acertou ? ini.dano[s]! : 0;
           FLOATS_DO_EVENTO[3] = desfecho;
-          gravarEvento(e.eventos, passoAtual, EVENTO.golpeInimigo, 0, FORMA.arcoInimigo, s, geracaoDoInimigo[s]!, tipo, 0, 0);
+          gravarEvento(e.eventos, passoAtual, EVENTO.golpeInimigo, 0, c.gritoRaio[tipo]! > 0 ? FORMA.coneInimigo : FORMA.arcoInimigo, s, geracaoDoInimigo[s]!, tipo, 0, 0);
+          // A Patada do Coroado conta no ciclo Patada, Patada, Grito (CR4).
+          if (c.gritoRaio[tipo]! > 0) ini.ataqueSeq[s] = ini.ataqueSeq[s]! === 2 ? 0 : ini.ataqueSeq[s]! + 1;
           fase = FASE_DO_ATAQUE.recuperacao;
           timer = c.recuperacaoPassos[tipo]!;
         } else {
@@ -255,7 +289,10 @@ export function rodarAtaques(e: Estado, dados: DadosDaVigilia): void {
           ini.miraX[s] = mx;
           ini.miraY[s] = my;
           fase = FASE_DO_ATAQUE.telegrafo;
-          timer = c.telegrafoPassos[tipo]!;
+          // Coroado (CR4): o ciclo fixo Patada, Patada, Grito, sem sorteio; o Grito telegrafa mais (60 contra 36).
+          const grito = c.gritoRaio[tipo]! > 0 && ini.ataqueSeq[s] === 2;
+          ini.ataqueId[s] = grito ? 1 : 0;
+          timer = grito ? c.gritoTelegrafoPassos[tipo]! : c.telegrafoPassos[tipo]!;
           FLOATS_DO_EVENTO[0] = x;
           FLOATS_DO_EVENTO[1] = y;
           FLOATS_DO_EVENTO[2] = timer;
@@ -263,14 +300,15 @@ export function rodarAtaques(e: Estado, dados: DadosDaVigilia): void {
           // Gatilho dos prompts (TU1, TU2): o 1º telegrafo de Oco Grande ou de Noviça com o bit não visto.
           const promptDoTipo = tipo === TIPO.oco_grande ? JOGADOR3_U8.promptEsquiva : tipo === TIPO.novica_de_sal ? JOGADOR3_U8.promptAparo : -1;
           if (promptDoTipo >= 0 && e.jogador3U8[promptDoTipo] === PROMPT.aguardando) e.jogador3U8[promptDoTipo] = PROMPT.visivel;
-          gravarEvento(e.eventos, passoAtual, EVENTO.telegrafo, 0, raioDoArco > 0 ? FORMA.arcoInimigo : FORMA.projetilSal, s, geracaoDoInimigo[s]!, tipo, 0, 0);
+          const forma = grito ? FORMA.gritoInimigo : c.gritoRaio[tipo]! > 0 ? FORMA.coneInimigo : raioDoArco > 0 ? FORMA.arcoInimigo : FORMA.projetilSal;
+          gravarEvento(e.eventos, passoAtual, EVENTO.telegrafo, 0, forma, s, geracaoDoInimigo[s]!, tipo, 0, 0);
         }
       }
     }
     ini.ataqueFase[s] = fase;
     ini.ataqueTimer[s] = timer;
     // Ameaça aparável (OG11): o Oco Grande em telegrafo com o jogador dentro do setor do golpe.
-    if (fase === FASE_DO_ATAQUE.telegrafo && raioDoArco > 0 && c.ataqueAparavel[tipo] === 1) {
+    if (fase === FASE_DO_ATAQUE.telegrafo && raioDoArco > 0 && c.ataqueAparavel[tipo] === 1 && ini.ataqueId[s] === 0) {
       const alcance = raioDoArco + RAIO_DO_JOGADOR;
       if (d2 <= alcance * alcance && dx * ini.miraX[s]! + dy * ini.miraY[s]! >= COSSENO_DO_ARCO * Math.sqrt(d2)) ameacas++;
     }

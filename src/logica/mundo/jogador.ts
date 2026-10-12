@@ -8,7 +8,7 @@
 // mesma colisão, sem o bloqueio dos inimigos nos i-frames). Também cuida do prompt "Deslize para mover", cujo
 // gatilho é a intenção, e não o deslocamento: um obstáculo não segura o prompt.
 import { ACAO, type ComandosDoPasso } from '../nucleo/comandos';
-import { CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR, JOGADOR3, JOGADOR3_U16, JOGADOR3_U8, JOGADOR_U8, PROMPT, type Estado } from '../nucleo/estado';
+import { CAB, CAPACIDADE_DE_INIMIGOS, FOGUEIRA_F32, FOGUEIRA_U8, JOGADOR, JOGADOR3, JOGADOR3_U16, JOGADOR3_U8, JOGADOR_U8, PROMPT, type Estado } from '../nucleo/estado';
 import { EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import { segundosEmPassos } from '../nucleo/passos';
 import type { DadosDaVigilia } from './dados';
@@ -188,6 +188,13 @@ export function moverJogador(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPa
   if (ep > 0) {
     dx = e.jogador3[JOGADOR3.esquivaDirX]! * dados.combate.esquivaPorPasso;
     dy = e.jogador3[JOGADOR3.esquivaDirY]! * dados.combate.esquivaPorPasso;
+  }
+  // Empurrão do Grito (CR3): soma ao deslocamento dos 8 passos seguintes ao acerto; os obstáculos e a solidez dos inimigos valem depois.
+  const empurrao = e.fogueiraU8[FOGUEIRA_U8.empurraoPassos]!;
+  if (empurrao > 0) {
+    dx += e.fogueiraF32[FOGUEIRA_F32.empurraoX]!;
+    dy += e.fogueiraF32[FOGUEIRA_F32.empurraoY]!;
+    e.fogueiraU8[FOGUEIRA_U8.empurraoPassos] = empurrao - 1;
   }
   // A posição vai por COLISAO, sem passar doubles (design/decisoes-F-003.md §2, laço quente).
   COLISAO[ES.x] = x + dx;

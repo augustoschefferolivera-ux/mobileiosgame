@@ -25,6 +25,7 @@ export function cancelarAtaque(e: Estado, dados: DadosDaVigilia, s: number, tipo
   if (c.alcanceDoArco[tipo]! > 0) {
     e.inimigos.ataqueFase[s] = FASE_DO_ATAQUE.livre;
     e.inimigos.ataqueTimer[s] = 0;
+    e.inimigos.ataqueId[s] = 0;
   } else if (c.intervaloPassos[tipo]! > 0) {
     e.inimigos.ataqueFase[s] = FASE_DO_ATAQUE.recuperacao;
     e.inimigos.ataqueTimer[s] = c.intervaloPassos[tipo]!;
