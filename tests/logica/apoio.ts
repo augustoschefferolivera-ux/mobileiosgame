@@ -27,5 +27,10 @@ export const PARADO = fonteConstante(criarComandos());
 export const SEM_ARMAS: Partial<ParametrosDaVigilia> = { armas: [] };
 /** Parâmetros de uma Vigília sem diretor e sem armas (cenário sem_horda): os testes de movimento da F-002. */
 export const SEM_HORDA: Partial<ParametrosDaVigilia> = { cenario: CENARIO.diretorDesligado, armas: [] };
+/**
+ * Os parâmetros da Vigília de produção (decisoes-F-006 ET3, VT1): a Vigília normal com os ataques dos
+ * inimigos ligados. `criarEstado(seed, D)` e os helpers antigos seguem sem ataques.
+ */
+export const PRODUCAO: Partial<ParametrosDaVigilia> = { cenario: CENARIO.ataques };
 /** A Vigília normal sem Cinzas (receita vigilia_sem_cinzas; design/decisoes-F-005.md §5, E6). */
 export const SEM_CINZAS: Partial<ParametrosDaVigilia> = { cenario: CENARIO.semCinzas };

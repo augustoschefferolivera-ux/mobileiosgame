@@ -18,6 +18,8 @@ function hashDosCamposV4(e: Estado): string {
   const copia = e.bytes.slice(4, BYTES_DO_LAYOUT_4);
   const cab = new Uint32Array(copia.buffer, 0, 15);
   cab[CAB.cenario - 1] = cab[CAB.cenario - 1]! & ~CENARIO.semCinzas;
+  // Desde a F-006 os bits de esquiva e aparo (2 e 4) existem em tutoriaisVistos (decisoes-F-006 ET3): só o bit mover (1) vale.
+  cab[CAB.tutoriaisVistos - 1] = cab[CAB.tutoriaisVistos - 1]! & 1;
   return hex8(fnv1aBytes(FNV_BASE, copia));
 }
 

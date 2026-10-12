@@ -4,6 +4,7 @@
 // timeline do diretor compilada.
 // Não mudam durante a Vigília e não ficam no estado; o estado guarda só a
 // impressão da disposição (design/decisoes-F-002.md §2), que entra no hash.
+import combate from '../../dados/combate.json';
 import { criarTabelaDeArmas, type ArmaDoJson, type TabelaDeArmas } from '../armas/tabela';
 import {
   criarTabelaDeProgressao,
@@ -13,7 +14,7 @@ import {
   type VigilanteDaProgressao,
 } from '../progressao/tabela';
 import { compilarTimeline, type LinhaDoJson, type Timeline } from '../diretor/timeline';
-import { PASSOS_POR_SEGUNDO } from '../nucleo/passos';
+import { PASSOS_POR_SEGUNDO, segundosEmPassos } from '../nucleo/passos';
 import {
   criarObstaculos,
   criarObstaculosPorCelula,
@@ -27,6 +28,7 @@ import {
   CORPOS_POR_SEGUNDO_NA_VELOCIDADE_1,
   IDS_DE_TIPO,
   TIPO,
+  codigoDoTipo,
   criarTiposDeInimigo,
   type InimigoDoJson,
   type TiposDeInimigo,
@@ -51,7 +53,65 @@ export interface DadosDaVigilia {
   /** XP, Cinzas, level up, baús, passivas e Uniões (design/decisoes-F-005.md). */
   readonly progressao: TabelaDeProgressao;
   readonly timeline: Timeline;
+  /** Stamina, esquiva, aparo, congelamento, Poder, Postura Quebrada e os ataques dos inimigos (design/decisoes-F-006.md ET9). */
+  readonly combate: TabelaDeCombate;
 }
+
+/**
+ * Os números do combate, compilados uma vez de combate.json, vigilantes.json e
+ * inimigos.json (ET9). Durações em passos inteiros; distâncias em px. Os dados
+ * não entram no hash. Os arrays por tipo são indexados pelo código do tipo.
+ */
+export interface TabelaDeCombate {
+  /** Capacidade da stamina (vigilantes.json); o teto de toda soma. */
+  readonly staminaMax: number;
+  readonly custoEsquiva: number;
+  readonly custoAparo: number;
+  readonly regeneracaoPorPasso: number;
+  /** Passos sem regeneração depois de um gasto. */
+  readonly esperaDoGasto: number;
+  readonly devolucaoDoAparo: number;
+  readonly esquivaDuracao: number;
+  /** Primeiro e último passo com i-frames (contados do passo do comando = 1). */
+  readonly esquivaIframesDe: number;
+  readonly esquivaIframesAte: number;
+  readonly esquivaRecuperacao: number;
+  readonly esquivaDistancia: number;
+  /** Deslocamento por passo da esquiva: distância ÷ duração (80 ÷ 21 = 3,8095 px). */
+  readonly esquivaPorPasso: number;
+  /** Último passo (depois do comando) em que o aparo protege: 11, ou 17 com a janela do tutorial. */
+  readonly aparoLimite: number;
+  readonly aparoLimiteEstendido: number;
+  readonly aparoFalho: number;
+  readonly congelamento: number;
+  /** Poder da esquiva perfeita: % e passos. */
+  readonly poderPct: number;
+  readonly poderPassos: number;
+  readonly posturaPassos: number;
+  /** Raio da área da Postura Quebrada, de centro do jogador a borda do alvo. */
+  readonly posturaRaio: number;
+  readonly contraAtaquePassos: number;
+  /** Por tipo: 1 se a Postura Quebrada o atinge. */
+  readonly posturaQuebrada: Uint8Array;
+  /** Por tipo: 1 se o ataque tem telegrafo branco (aparável). */
+  readonly ataqueAparavel: Uint8Array;
+  /** Por tipo, em passos: telegrafo, recuperação do golpe e intervalo do lançamento (0 = não tem). */
+  readonly telegrafoPassos: Int32Array;
+  readonly recuperacaoPassos: Int32Array;
+  readonly intervaloPassos: Int32Array;
+  /** Por tipo: alcance do arco em px (0 = sem arco) e dano bruto do ataque no minuto 0. */
+  readonly alcanceDoArco: Float64Array;
+  readonly danoDoAtaque: Float64Array;
+  /** Por tipo: projétil (velocidade em px por passo, raio em px, vida em passos) e o Sal que aplica (% e passos). */
+  readonly projetilPorPasso: Float64Array;
+  readonly projetilRaio: Float64Array;
+  readonly projetilVida: Int32Array;
+  readonly salPct: Uint8Array;
+  readonly salPassos: Int32Array;
+}
+
+/** O que se lê de combate.json (combate.schema.json). */
+type CombateDoJson = typeof combate;
 
 /** O que se lê do JSON da região (regiao.schema.json). */
 export interface RegiaoDoJson {
@@ -64,6 +124,8 @@ export interface RegiaoDoJson {
 /** O que se lê do Vigilante (vigilante.schema.json). */
 export interface VigilanteDoJson extends VigilanteDaProgressao {
   readonly velocidade: number;
+  /** Capacidade da stamina (o teto; design/decisoes-F-006.md ST1). */
+  readonly stamina: number;
   readonly arma_inicial: string;
 }
 
@@ -90,6 +152,88 @@ export function criarDadosDaVigilia(
     armas: tabelaDeArmas,
     progressao: criarTabelaDeProgressao(progressao, vigilante, tabelaDeArmas),
     timeline,
+    combate: criarTabelaDeCombate(combate, vigilante.stamina, inimigos),
+  };
+}
+
+/**
+ * Compila combate.json e os ataques de inimigos.json na tabela do combate. O
+ * `combate` é recebido para o teste poder trocá-lo; `criarDadosDaVigilia` passa
+ * o JSON importado aqui, sem mudar a assinatura. Só o arco de 120° tem cosseno
+ * literal no código: outro ângulo é erro de dados.
+ */
+export function criarTabelaDeCombate(c: CombateDoJson, staminaMax: number, inimigos: readonly InimigoDoJson[]): TabelaDeCombate {
+  const n = IDS_DE_TIPO.length;
+  const posturaQuebrada = new Uint8Array(n);
+  const ataqueAparavel = new Uint8Array(n);
+  const telegrafoPassos = new Int32Array(n);
+  const recuperacaoPassos = new Int32Array(n);
+  const intervaloPassos = new Int32Array(n);
+  const alcanceDoArco = new Float64Array(n);
+  const danoDoAtaque = new Float64Array(n);
+  const projetilPorPasso = new Float64Array(n);
+  const projetilRaio = new Float64Array(n);
+  const projetilVida = new Int32Array(n);
+  const salPct = new Uint8Array(n);
+  const salPassos = new Int32Array(n);
+  for (const i of inimigos) {
+    const codigo = codigoDoTipo(i.id);
+    posturaQuebrada[codigo] = i.postura_quebrada === false ? 0 : 1;
+    for (const a of i.ataques ?? []) {
+      if (a.forma === 'arco' && a.alcance_corpos != null && a.recuperacao_s != null) {
+        if (a.angulo_graus !== 120) throw new Error(`${i.id}.${a.id}: só o arco de 120° tem cosseno literal`);
+        alcanceDoArco[codigo] = a.alcance_corpos * CORPO_PX;
+        recuperacaoPassos[codigo] = segundosEmPassos(a.recuperacao_s);
+      } else if (a.forma === 'projetil' && a.intervalo_s != null && a.projetil?.raio_corpos != null && a.projetil.vida_s != null) {
+        intervaloPassos[codigo] = segundosEmPassos(a.intervalo_s);
+        projetilPorPasso[codigo] = (a.projetil.velocidade_corpos_s * CORPO_PX) / PASSOS_POR_SEGUNDO;
+        projetilRaio[codigo] = a.projetil.raio_corpos * CORPO_PX;
+        projetilVida[codigo] = segundosEmPassos(a.projetil.vida_s);
+        if (a.aplica?.status === 'sal') {
+          salPct[codigo] = a.aplica.fator_pct;
+          salPassos[codigo] = segundosEmPassos(a.aplica.duracao_s);
+        }
+      } else continue;
+      ataqueAparavel[codigo] = a.aparavel ? 1 : 0;
+      telegrafoPassos[codigo] = segundosEmPassos(a.telegrafo.duracao_s);
+      danoDoAtaque[codigo] = a.dano ?? 0;
+      break;
+    }
+  }
+  return {
+    staminaMax,
+    custoEsquiva: c.stamina.custo_esquiva,
+    custoAparo: c.stamina.custo_aparo,
+    regeneracaoPorPasso: c.stamina.regeneracao_por_passo,
+    esperaDoGasto: c.stamina.espera_regeneracao_passos,
+    devolucaoDoAparo: c.stamina.devolucao_do_aparo,
+    esquivaDuracao: c.esquiva.duracao_passos,
+    esquivaIframesDe: c.esquiva.iframes_primeiro_passo,
+    esquivaIframesAte: c.esquiva.iframes_ultimo_passo,
+    esquivaRecuperacao: c.esquiva.recuperacao_passos,
+    esquivaDistancia: c.esquiva.distancia_px,
+    esquivaPorPasso: c.esquiva.distancia_px / c.esquiva.duracao_passos,
+    aparoLimite: c.aparo.janela_passos,
+    aparoLimiteEstendido: c.aparo.janela_passos + c.aparo.janela_tutorial_extra_passos,
+    aparoFalho: c.aparo.falho_passos,
+    congelamento: c.congelamento_passos,
+    poderPct: c.poder_da_esquiva_perfeita.pct,
+    poderPassos: c.poder_da_esquiva_perfeita.duracao_passos,
+    posturaPassos: c.postura_quebrada.duracao_passos,
+    posturaRaio: c.postura_quebrada.raio_px,
+    contraAtaquePassos: c.contra_ataque_passos,
+    posturaQuebrada,
+    ataqueAparavel,
+    telegrafoPassos,
+    recuperacaoPassos,
+    intervaloPassos,
+    alcanceDoArco,
+    danoDoAtaque,
+    projetilPorPasso,
+    projetilRaio,
+    projetilVida,
+    salPct,
+    salPassos,
   };
 }
 

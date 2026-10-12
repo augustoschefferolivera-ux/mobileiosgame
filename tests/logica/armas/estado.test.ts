@@ -5,6 +5,7 @@ import { liberarProjetil, rodarArmas } from '../../../src/logica/armas/armas';
 import { ARMA } from '../../../src/logica/armas/tabela';
 import {
   BYTES_DO_LAYOUT_4,
+  BYTES_DO_LAYOUT_5,
   BYTES_ESTADO,
   CAPACIDADE_DE_PROJETEIS,
   CENARIO,
@@ -32,11 +33,12 @@ const E = ARMA.espada_longa_do_juramento;
 const F = ARMA.facas_de_sal;
 const C = ARMA.circulo_de_sal;
 
-describe('layout v5 (o v4 da F-004 intacto no começo)', () => {
-  it('versão 5, 67.488 bytes; os 42.988 do v4 no mesmo lugar; cada seção em múltiplo de 4 e cada view alinhada à sua largura', () => {
-    expect(VERSAO_LAYOUT).toBe(5);
+describe('layout v6 (o v4 da F-004 e o v5 da F-005 intactos no começo)', () => {
+  it('versão 6, 74.636 bytes; os 42.988 do v4 e os 67.488 do v5 no mesmo lugar; cada seção em múltiplo de 4 e cada view alinhada à sua largura', () => {
+    expect(VERSAO_LAYOUT).toBe(6);
     expect(BYTES_DO_LAYOUT_4).toBe(42988);
-    expect(BYTES_ESTADO).toBe(67488);
+    expect(BYTES_DO_LAYOUT_5).toBe(67488);
+    expect(BYTES_ESTADO).toBe(74636);
     expect(Object.values(LAYOUT).every((o) => o % 4 === 0)).toBe(true);
     const e = criarEstado(1, D);
     const views = [
@@ -47,7 +49,9 @@ describe('layout v5 (o v4 da F-004 intacto no começo)', () => {
     for (const v of views) expect(v.byteOffset % v.BYTES_PER_ELEMENT).toBe(0);
     expect(e.projeteis.salPassos.byteOffset + CAPACIDADE_DE_PROJETEIS).toBe(BYTES_DO_LAYOUT_4);
     expect(LAYOUT.progressao).toBe(BYTES_DO_LAYOUT_4);
-    expect(e.efeitos.arma.byteOffset + e.efeitos.arma.length).toBe(BYTES_ESTADO);
+    expect(e.efeitos.arma.byteOffset + e.efeitos.arma.length).toBe(BYTES_DO_LAYOUT_5);
+    // A última view do buffer é a última seção do v6 (os donos dos projéteis).
+    expect(e.projeteis.donoGeracao.byteOffset + e.projeteis.donoGeracao.byteLength).toBe(BYTES_ESTADO);
   });
 
   it('a Vigília normal começa com a Espada nv1 na vaga 0, as outras vazias', () => {

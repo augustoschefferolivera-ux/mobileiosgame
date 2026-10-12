@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { fonteDoRoteiro } from '../../../src/logica/nucleo/comandos';
 import { FNV_BASE, fnv1aBytes, hex8 } from '../../../src/logica/nucleo/hash';
-import { BYTES_ESTADO as BYTES_DO_LAYOUT_5, CAB, PROGRESSAO, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
+import { BYTES_DO_LAYOUT_5, CAB, PROGRESSAO, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { PASSOS_REFERENCIA, ROTEIRO_REFERENCIA } from '../../../src/logica/nucleo/referencia';
 import { confirmarModal, modalAberto } from '../../../src/logica/progressao/modal';

@@ -142,6 +142,7 @@ export function liberarProjetil(e: Estado, p: number): void {
   pr.ultimoAlvo[p] = 0;
   pr.vida[p] = 0;
   pr.tipo[p] = pr.arma[p] = pr.perfuracoes[p] = pr.salPct[p] = pr.salPassos[p] = 0;
+  pr.donoSlot[p] = pr.donoGeracao[p] = 0;
 }
 
 /**

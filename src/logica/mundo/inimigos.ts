@@ -10,29 +10,18 @@ import { CAUSA, EVENTO, FLAG, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/e
 import { alocar, liberar } from '../nucleo/pool';
 import type { DadosDaVigilia } from './dados';
 import { PASSOS_POR_MINUTO } from '../diretor/timeline';
+import { gravarDanoNoSpawn, gravarHpNoSpawn } from './escala';
 import { TIPO } from './tipos';
 import { desmarcarInimigo } from '../armas/ondas';
 import { soltarCinza } from '../progressao/pickups';
+
+export { gravarDanoNoSpawn, gravarHpNoSpawn };
 
 /** Minuto da escala (Q-10): a linha fixa do cenário ou o minuto inteiro do relógio, até a última linha. */
 export function minutoDaEscala(e: Estado, dados: DadosDaVigilia): number {
   const fixa = e.cab[CAB.linhaFixa]!;
   if (fixa !== LINHA_LIVRE) return fixa;
   return Math.min(Math.floor(e.cab[CAB.relogio]! / PASSOS_POR_MINUTO), dados.timeline.linhas - 1);
-}
-
-/**
- * HP no spawn: fround(hp_base × (100 + 12·min) × I10 / 1.000) (B §3.6;
- * decisoes-F-003 §1), escrito em `out[i]` (no V8, um double devolvido alocaria
- * um HeapNumber a cada nascimento; decisoes-F-004 E6).
- */
-export function gravarHpNoSpawn(out: Float32Array, i: number, hpBase: number, minuto: number, intensidade10: number): void {
-  out[i] = (hpBase * (100 + 12 * minuto) * intensidade10) / 1000;
-}
-
-/** Dano no spawn: fround(dano_base × (100 + 5·min) / 100) (B §3.6), escrito em `out[i]`. */
-export function gravarDanoNoSpawn(out: Float32Array, i: number, danoBase: number, minuto: number): void {
-  out[i] = (danoBase * (100 + 5 * minuto)) / 100;
 }
 
 const RESULTADO = new Float32Array(1);
@@ -83,6 +72,8 @@ export function nascerInimigoDoRascunho(e: Estado, dados: DadosDaVigilia, codigo
   ini.tipo[slot] = codigo;
   ini.convertido[slot] = convertido ? 1 : 0;
   ini.salPct[slot] = ini.salPassos[slot] = ini.kbPassos[slot] = 0;
+  ini.quebradaPassos[slot] = ini.ataqueFase[slot] = ini.ataqueTimer[slot] = 0;
+  ini.miraX[slot] = ini.miraY[slot] = 0;
   if (convertido) gravarHpNoSpawn(ini.hp, slot, MASSA_POR_CONVERTIDO * t.hpBase[TIPO.oco_das_lanternas]!, min, i10);
   else gravarHpNoSpawn(ini.hp, slot, t.hpBase[codigo]!, min, i10);
   gravarDanoNoSpawn(ini.dano, slot, t.danoBase[codigo]!, min);
@@ -102,6 +93,8 @@ export function removerInimigo(e: Estado, slot: number): void {
   ini.tipo[slot] = 0;
   ini.convertido[slot] = 0;
   ini.salPct[slot] = ini.salPassos[slot] = ini.kbPassos[slot] = 0;
+  ini.quebradaPassos[slot] = ini.ataqueFase[slot] = ini.ataqueTimer[slot] = 0;
+  ini.miraX[slot] = ini.miraY[slot] = 0;
 }
 
 /**

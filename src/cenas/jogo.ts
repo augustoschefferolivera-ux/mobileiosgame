@@ -85,6 +85,7 @@ export function iniciarJogo(): Phaser.Game | null {
     audioSilencioso: criarAudioSilencioso(document),
     desbloqueioDoAudio: null,
     roteiro: null,
+    acoesDoRoteiro: null,
     teto,
     sondaDoTeto,
     cenario: params.cenario === null ? null : { id: params.cenario, parametros: parametrosDoCenario(params.cenario) },

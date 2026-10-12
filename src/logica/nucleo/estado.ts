@@ -8,7 +8,10 @@
 // baús, o 2º bloco do mundo, o pool de pickups (Cinzas e baús) e o de efeitos
 // de chão (ondas). As seções ficam em múltiplos de 4 bytes. O anel de eventos
 // e os derivados (o dano vivo) moram no objeto, fora do buffer, do hash e do
-// save. Cada feature seguinte aumenta VERSAO_LAYOUT.
+// save. Cada feature seguinte aumenta VERSAO_LAYOUT. Na F-006 (VERSAO_LAYOUT 6;
+// design/decisoes-F-006.md ET1), de novo só no fim, depois dos 67.488 bytes do
+// v5: stamina, esquiva, aparo e Poder do jogador, a Sequência do Contra-ataque
+// por vaga, os ataques dos inimigos e o dono dos projéteis.
 import type { DadosDaVigilia } from '../mundo/dados';
 import { criarAnel, esvaziarAnel, type AnelDeEventos } from './eventos';
 import { fnv1aBytes, FNV_BASE } from './hash';
@@ -16,9 +19,11 @@ import { alocar, bytesDoPool, esvaziarPool, viewsDoPool, type Pool } from './poo
 import { FLUXOS, PALAVRAS_POR_FLUXO, indiceDoFluxo, semear, type Fluxo } from './rng';
 import { CODIGOS_DE_ARMA, NUMERO_DE_ATRIBUTOS, POR_NIVEL } from '../armas/tabela';
 import { recalcularDano } from '../progressao/dano';
+import { PASSOS_POR_MINUTO } from '../diretor/timeline';
+import { gravarDanoNoSpawn, gravarHpNoSpawn } from '../mundo/escala';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, normalizarNoToro } from '../mundo/toro';
 
-export const VERSAO_LAYOUT = 5;
+export const VERSAO_LAYOUT = 6;
 
 /** Palavras do cabeçalho (Uint32). As não usadas ficam em zero e entram no hash. */
 export const CAB = {
@@ -43,13 +48,19 @@ export const CAB = {
 } as const;
 const PALAVRAS_CAB = 16;
 
-/** Bits de `CAB.tutoriaisVistos`; esquiva e aparo entram na F-006. */
-export const TUTORIAL = { mover: 1 } as const;
+/** Bits de `CAB.tutoriaisVistos` (decisoes-F-006 ET2). */
+export const TUTORIAL = { mover: 1, esquiva: 2, aparo: 4 } as const;
 /** Todos os bits de TUTORIAL (?tutorial=0). */
-export const TODOS_OS_TUTORIAIS = TUTORIAL.mover;
+export const TODOS_OS_TUTORIAIS = TUTORIAL.mover | TUTORIAL.esquiva | TUTORIAL.aparo;
 
 /** Bits de `CAB.cenario` (design/decisoes-F-003.md §5). */
-export const CENARIO = { jogadorInvulneravel: 1, diretorDesligado: 2, semCinzas: 4 } as const;
+export const CENARIO = {
+  jogadorInvulneravel: 1,
+  diretorDesligado: 2,
+  semCinzas: 4,
+  /** Os médios telegrafam, golpeiam e lançam (decisoes-F-006 VT1); desligado por padrão. */
+  ataques: 8,
+} as const;
 /** `CAB.linhaFixa` sem linha fixa: o diretor segue o relógio. */
 export const LINHA_LIVRE = 0xffffffff;
 /** TETO de fallback (ADR-0002 §13; B §3.7). */
@@ -82,10 +93,14 @@ export interface Build {
   readonly golpe: Uint8Array;
   /** Passos até o próximo golpe da sequência. */
   readonly esperaGolpe: Uint8Array;
+  /** Contra-ataque: índice da salva em andamento da vaga; 0 = nenhuma (decisoes-F-006 ET1). Mora na seção `vagas3`. */
+  readonly caSeq: Uint8Array;
+  /** Passos até a próxima salva do Contra-ataque da vaga. */
+  readonly caEspera: Uint8Array;
 }
 const BYTES_BUILD = VAGAS_DE_ARMA * (2 + 2 + 1 + 1 + 1 + 1);
 
-/** Estados do prompt "Deslize para mover" (A2.TUTORIAL.01; design/decisoes-F-002.md §7). */
+/** Estados de cada prompt de tutorial (A2.TUTORIAL.01 a .03; design/decisoes-F-002.md §7; decisoes-F-006 TU). */
 export const PROMPT = { aguardando: 0, visivel: 1, cumprido: 2 } as const;
 
 /** Bloco do mundo e do diretor, Uint32 (design/decisoes-F-003.md §4 e §6). */
@@ -136,13 +151,23 @@ export interface CamposDosInimigos {
   readonly salPassos: Uint8Array;
   /** Passos restantes do afastamento do pulso do Círculo (K1). */
   readonly kbPassos: Uint8Array;
+  /** Postura Quebrada: passos restantes (121 no passo em que é marcada, 120 depois); 0 = não está (ET1). */
+  readonly quebradaPassos: Uint8Array;
+  /** Fase do ataque: 0 livre, 1 telegrafo, 2 recuperação (valores em src/logica/mundo/ataques.ts). */
+  readonly ataqueFase: Uint8Array;
+  /** Passos restantes da fase do ataque. */
+  readonly ataqueTimer: Uint8Array;
+  /** Direção do golpe ou do lançamento, fixada no início do telegrafo. */
+  readonly miraX: Float32Array;
+  readonly miraY: Float32Array;
 }
 
 /** Capacidade física do pool de projéteis nos dois TETOs (ADR-0002 §4 e §15 item 2). */
 export const CAPACIDADE_DE_PROJETEIS = 400;
 
 /** Tipos de projétil; 0 = slot vazio. */
-export const TIPO_DE_PROJETIL = { vazio: 0, faca: 1 } as const;
+/** O tipo 2 é o projétil de Sal da Noviça, no mesmo pool (decisoes-F-006 ET1). */
+export const TIPO_DE_PROJETIL = { vazio: 0, faca: 1, sal: 2 } as const;
 /** Perfurações que não se gastam (só a sonda do TETO). */
 export const PERFURACAO_INFINITA = 255;
 
@@ -169,12 +194,21 @@ export interface CamposDosProjeteis {
   /** Sal que aplica, em % e em passos, fixado no disparo; 0 = nenhum. */
   readonly salPct: Uint8Array;
   readonly salPassos: Uint8Array;
+  /** Dono do projétil de Sal (slot e geração do atirador); 0 nas facas (ET1). */
+  readonly donoSlot: Uint16Array;
+  readonly donoGeracao: Uint16Array;
 }
 
 /** Uma arma da build inicial: código da tabela de armas e nível. */
 export interface ArmaInicial {
   readonly codigo: number;
   readonly nivel: number;
+}
+/** Um inimigo posto no início: tipo (código) e deslocamento do início do jogador, em px. */
+export interface InimigoInicial {
+  readonly codigo: number;
+  readonly dx: number;
+  readonly dy: number;
 }
 /** Uma passiva inicial: código da tabela de passivas e nível. */
 export interface PassivaInicial {
@@ -205,6 +239,10 @@ export interface ParametrosDaVigilia {
   readonly xpInicial: number;
   /** Relógio no início, em passos (exige linha fixa). */
   readonly relogioInicial: number;
+  /** Inimigos postos no início, nessa ordem (receitas de cenário e testes; decisoes-F-006 VT1). */
+  readonly inimigos: readonly InimigoInicial[];
+  /** Stamina no início; null = a capacidade do Vigilante (decisoes-F-006 ST1). */
+  readonly staminaInicial: number | null;
 }
 export const PARAMETROS_PADRAO: ParametrosDaVigilia = {
   tutoriaisVistos: 0,
@@ -217,6 +255,8 @@ export const PARAMETROS_PADRAO: ParametrosDaVigilia = {
   baus: [],
   xpInicial: 0,
   relogioInicial: 0,
+  inimigos: [],
+  staminaInicial: null,
 };
 
 /** Bloco da progressão, Uint32 (design/decisoes-F-005.md §5). */
@@ -302,6 +342,60 @@ export interface Derivados {
   readonly danoOnda: Float64Array;
 }
 
+/** Registro do jogador da F-006, Float32 (3 campos, 12 B; decisoes-F-006 ET1). */
+export const JOGADOR3 = {
+  /** Stamina em múltiplos de 0,5, de 0 à capacidade do Vigilante (ST1). */
+  stamina: 0,
+  /** Direção fixa da esquiva em curso (módulo 1). */
+  esquivaDirX: 1,
+  esquivaDirY: 2,
+} as const;
+const FLOATS_JOGADOR3 = 3;
+/** Registro do jogador da F-006, Uint8 (14 campos, 16 B com 2 de folga em zero). */
+export const JOGADOR3_U8 = {
+  /** Passos sem regenerar a stamina (o atraso do gasto e do aparo falho). */
+  esperaRegen: 0,
+  /** Passo da esquiva em curso: 1 no passo do comando, 21 no último; 0 = fora dela. */
+  esquivaPasso: 1,
+  /** 1 se a esquiva em curso já deu a esquiva perfeita (uma por esquiva). */
+  esquivaPerfeitaDada: 2,
+  /** Passos restantes do Poder da esquiva perfeita. */
+  poderPassos: 3,
+  /** Passos restantes da janela do aparo (12 ou 18 no passo do comando). */
+  aparoJanela: 4,
+  /** Último passo protegido da janela em curso (11 ou 17), gravado junto de `aparoJanela`. */
+  aparoLimite: 5,
+  /** Passos restantes do aparo falho (24). */
+  aparoFalho: 6,
+  /** Passos restantes do congelamento da esquiva perfeita e do aparo (5). */
+  congelamento: 7,
+  /** 1 se a próxima salva das Facas leva a faca extra da esquiva perfeita. */
+  facaExtra: 8,
+  promptEsquiva: 9,
+  promptAparo: 10,
+  /** Aparos falhos seguidos (2 ligam a janela estendida enquanto o prompt está visível). */
+  falhasDeAparo: 11,
+  /** Sal no jogador: redução de velocidade em % e passos restantes. */
+  salPct: 12,
+  salPassos: 13,
+} as const;
+const BYTES_JOGADOR3_U8 = 16;
+/** Registro do jogador da F-006, Uint16 (3 campos, 8 B com 2 de folga em zero). */
+export const JOGADOR3_U16 = {
+  /** Slot e geração do último inimigo aparado (alvo do Contra-ataque). */
+  alvoAparadoSlot: 0,
+  alvoAparadoGeracao: 1,
+  /** Ataques aparáveis a caminho no passo anterior: decide o aparo falho em `c + 12`. */
+  ameacasAparaveis: 2,
+} as const;
+const BYTES_JOGADOR3_U16 = 8;
+/** `caSeq` e `caEspera`: 5 vagas, Uint8 cada, 12 B com 2 de folga. */
+const BYTES_VAGAS3 = 12;
+/** Campos novos dos inimigos e dos projéteis (ET1). */
+const CAMPOS_INIMIGO3_F32 = ['miraX', 'miraY'] as const;
+const CAMPOS_INIMIGO3_U8 = ['quebradaPassos', 'ataqueFase', 'ataqueTimer'] as const;
+const CAMPOS_PROJETIL3_U16 = ['donoSlot', 'donoGeracao'] as const;
+
 const PALAVRAS_RNG = FLUXOS.length * PALAVRAS_POR_FLUXO;
 const BYTES_CAB = PALAVRAS_CAB * 4;
 const BYTES_RNG = PALAVRAS_RNG * 4;
@@ -344,7 +438,17 @@ const INICIO_EFEITOS_F32 = INICIO_POOL_EFEITOS + bytesDoPool(F);
 const CAMPOS_EFEITO_F32 = ['x', 'y', 'dirX', 'dirY', 'dano'] as const;
 const INICIO_EFEITOS_BITS = INICIO_EFEITOS_F32 + CAMPOS_EFEITO_F32.length * F * 4;
 const INICIO_EFEITOS_U8 = INICIO_EFEITOS_BITS + F * PALAVRAS_DO_BITSET * 4;
-export const BYTES_ESTADO = INICIO_EFEITOS_U8 + 2 * F;
+/** Fim do layout v5 da F-005 (a regressão v5 compara os bytes até aqui). */
+export const BYTES_DO_LAYOUT_5 = INICIO_EFEITOS_U8 + 2 * F;
+// F-006: tudo depois de BYTES_DO_LAYOUT_5, em múltiplos de 4 bytes.
+const INICIO_JOGADOR3 = BYTES_DO_LAYOUT_5;
+const INICIO_JOGADOR3_U8 = INICIO_JOGADOR3 + FLOATS_JOGADOR3 * 4;
+const INICIO_JOGADOR3_U16 = INICIO_JOGADOR3_U8 + BYTES_JOGADOR3_U8;
+const INICIO_VAGAS3 = INICIO_JOGADOR3_U16 + BYTES_JOGADOR3_U16;
+const INICIO_INIMIGOS3_F32 = INICIO_VAGAS3 + BYTES_VAGAS3;
+const INICIO_INIMIGOS3_U8 = INICIO_INIMIGOS3_F32 + CAMPOS_INIMIGO3_F32.length * CAPACIDADE_DE_INIMIGOS * 4;
+const INICIO_PROJETEIS3_U16 = INICIO_INIMIGOS3_U8 + CAMPOS_INIMIGO3_U8.length * CAPACIDADE_DE_INIMIGOS;
+export const BYTES_ESTADO = INICIO_PROJETEIS3_U16 + CAMPOS_PROJETIL3_U16.length * P * 2;
 
 /** Deslocamento de cada seção no buffer (o teste de layout trava todos e o alinhamento de cada view). */
 export const LAYOUT = {
@@ -377,6 +481,14 @@ export const LAYOUT = {
   efeitosF32: INICIO_EFEITOS_F32,
   efeitosBits: INICIO_EFEITOS_BITS,
   efeitosU8: INICIO_EFEITOS_U8,
+  fimDoV5: BYTES_DO_LAYOUT_5,
+  jogador3: INICIO_JOGADOR3,
+  jogador3U8: INICIO_JOGADOR3_U8,
+  jogador3U16: INICIO_JOGADOR3_U16,
+  vagas3: INICIO_VAGAS3,
+  inimigos3F32: INICIO_INIMIGOS3_F32,
+  inimigos3U8: INICIO_INIMIGOS3_U8,
+  projeteis3U16: INICIO_PROJETEIS3_U16,
   fim: BYTES_ESTADO,
 } as const;
 
@@ -391,6 +503,12 @@ export interface Estado {
   readonly jogador: Float32Array;
   /** Campos Uint8 do jogador, pelos índices de JOGADOR_U8. */
   readonly jogadorU8: Uint8Array;
+  /** Stamina e direção da esquiva, pelos índices de JOGADOR3 (F-006). */
+  readonly jogador3: Float32Array;
+  /** Timers e flags de esquiva, aparo, Poder e Sal do jogador, pelos índices de JOGADOR3_U8. */
+  readonly jogador3U8: Uint8Array;
+  /** Alvo aparado e ameaças aparáveis, pelos índices de JOGADOR3_U16. */
+  readonly jogador3U16: Uint16Array;
   /** Build: as 5 vagas de arma. */
   readonly build: Build;
   /** Bloco do mundo e do diretor, pelos índices de MUNDO. */
@@ -435,6 +553,8 @@ export function criarEstado(seed: number, dados: DadosDaVigilia, params: Partial
     new Float32Array(buffer, INICIO_PROJETEIS_F32 + CAMPOS_PROJETIL_F32.indexOf(nome) * P * 4, P);
   const pu8 = (nome: (typeof CAMPOS_PROJETIL_U8)[number]): Uint8Array =>
     new Uint8Array(buffer, INICIO_PROJETEIS_U8 + CAMPOS_PROJETIL_U8.indexOf(nome) * P, P);
+  const u83 = (nome: (typeof CAMPOS_INIMIGO3_U8)[number]): Uint8Array =>
+    new Uint8Array(buffer, INICIO_INIMIGOS3_U8 + CAMPOS_INIMIGO3_U8.indexOf(nome) * CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_INIMIGOS);
   const V = VAGAS_DE_ARMA;
   const estado: Estado = {
     buffer,
@@ -443,6 +563,9 @@ export function criarEstado(seed: number, dados: DadosDaVigilia, params: Partial
     rng: new Uint32Array(buffer, BYTES_CAB, PALAVRAS_RNG),
     jogador: new Float32Array(buffer, INICIO_JOGADOR, FLOATS_JOGADOR),
     jogadorU8: new Uint8Array(buffer, INICIO_JOGADOR_U8, BYTES_JOGADOR_U8),
+    jogador3: new Float32Array(buffer, INICIO_JOGADOR3, FLOATS_JOGADOR3),
+    jogador3U8: new Uint8Array(buffer, INICIO_JOGADOR3_U8, BYTES_JOGADOR3_U8),
+    jogador3U16: new Uint16Array(buffer, INICIO_JOGADOR3_U16, BYTES_JOGADOR3_U16 / 2),
     build: {
       recarga: new Uint16Array(buffer, INICIO_BUILD, V),
       esperaPulso: new Uint16Array(buffer, INICIO_BUILD + 2 * V, V),
@@ -450,6 +573,8 @@ export function criarEstado(seed: number, dados: DadosDaVigilia, params: Partial
       nivel: new Uint8Array(buffer, INICIO_BUILD + 5 * V, V),
       golpe: new Uint8Array(buffer, INICIO_BUILD + 6 * V, V),
       esperaGolpe: new Uint8Array(buffer, INICIO_BUILD + 7 * V, V),
+      caSeq: new Uint8Array(buffer, INICIO_VAGAS3, V),
+      caEspera: new Uint8Array(buffer, INICIO_VAGAS3 + V, V),
     },
     mundo: new Uint32Array(buffer, INICIO_MUNDO, PALAVRAS_MUNDO),
     pool: viewsDoPool(buffer, INICIO_POOL, CAPACIDADE_DE_INIMIGOS),
@@ -465,6 +590,11 @@ export function criarEstado(seed: number, dados: DadosDaVigilia, params: Partial
       salPct: u8('salPct'),
       salPassos: u8('salPassos'),
       kbPassos: u8('kbPassos'),
+      miraX: new Float32Array(buffer, INICIO_INIMIGOS3_F32, FLOATS_POR_CAMPO),
+      miraY: new Float32Array(buffer, INICIO_INIMIGOS3_F32 + FLOATS_POR_CAMPO * 4, FLOATS_POR_CAMPO),
+      quebradaPassos: u83('quebradaPassos'),
+      ataqueFase: u83('ataqueFase'),
+      ataqueTimer: u83('ataqueTimer'),
     },
     poolDeProjeteis: viewsDoPool(buffer, INICIO_POOL_PROJETEIS, P),
     projeteis: {
@@ -482,6 +612,8 @@ export function criarEstado(seed: number, dados: DadosDaVigilia, params: Partial
       perfuracoes: pu8('perfuracoes'),
       salPct: pu8('salPct'),
       salPassos: pu8('salPassos'),
+      donoSlot: new Uint16Array(buffer, INICIO_PROJETEIS3_U16, P),
+      donoGeracao: new Uint16Array(buffer, INICIO_PROJETEIS3_U16 + P * 2, P),
     },
     progresso: new Uint32Array(buffer, INICIO_PROGRESSAO, PALAVRAS_PROGRESSAO),
     jogador2: new Float32Array(buffer, INICIO_JOGADOR2, FLOATS_JOGADOR2),
@@ -541,6 +673,11 @@ export function reiniciarEstado(e: Estado, seed: number, dados: DadosDaVigilia, 
   if (p.relogioInicial > 0 && p.linhaFixa === LINHA_LIVRE) throw new Error('relógio inicial > 0 exige linha fixa (decisoes-F-005 §7)');
   if (dados.progressao.poolDePickups !== CAPACIDADE_DE_PICKUPS) throw new Error('progressao.json: pool_pickups difere do layout');
   if (p.baus.length > CAPACIDADE_DE_PICKUPS) throw new Error('baús demais no início');
+  const staminaMax = dados.combate.staminaMax;
+  const stamina = p.staminaInicial ?? staminaMax;
+  if (!(stamina >= 0 && stamina <= staminaMax)) throw new Error(`stamina inicial fora de 0 a ${staminaMax}: ${stamina}`);
+  if (p.inimigos.length > CAPACIDADE_DE_INIMIGOS) throw new Error('inimigos demais no início');
+  for (const i of p.inimigos) if (!(Math.abs(i.dx) <= 500 && Math.abs(i.dy) <= 500)) throw new Error('inimigo inicial fora do alcance');
   for (const b of p.baus) if (!(Math.abs(b.dx) <= 500 && Math.abs(b.dy) <= 500)) throw new Error('baú inicial fora do alcance');
   e.bytes.fill(0);
   e.cab[CAB.versao] = VERSAO_LAYOUT;
@@ -560,6 +697,10 @@ export function reiniciarEstado(e: Estado, seed: number, dados: DadosDaVigilia, 
   j[JOGADOR.dirY] = -1;
   j[JOGADOR.hp] = dados.hpInicial;
   e.jogadorU8[JOGADOR_U8.promptMover] = p.tutoriaisVistos & TUTORIAL.mover ? PROMPT.cumprido : PROMPT.aguardando;
+  // F-006: stamina cheia (ou a do cenário) e um prompt por bit de tutorial já visto.
+  e.jogador3[JOGADOR3.stamina] = stamina;
+  e.jogador3U8[JOGADOR3_U8.promptEsquiva] = p.tutoriaisVistos & TUTORIAL.esquiva ? PROMPT.cumprido : PROMPT.aguardando;
+  e.jogador3U8[JOGADOR3_U8.promptAparo] = p.tutoriaisVistos & TUTORIAL.aparo ? PROMPT.cumprido : PROMPT.aguardando;
   e.mundo[MUNDO.intensidade10] = 10;
   esvaziarPool(e.pool);
   esvaziarPool(e.poolDeProjeteis);
@@ -594,7 +735,29 @@ export function reiniciarEstado(e: Estado, seed: number, dados: DadosDaVigilia, 
     e.pickups.valor[s] = indice;
     e.pickups.tipo[s] = b.dourado ? TIPO_DE_PICKUP.bauDourado : TIPO_DE_PICKUP.bauComum;
   }
+  // Inimigos postos à mão (receitas oco_grande_sozinho e novica_sozinha; testes): depois do relógio e da linha fixa, que escalam o HP.
+  for (const i of p.inimigos) postarInimigoInicial(e, dados, i);
   recalcularDano(e, dados);
+}
+
+/**
+ * Nasce um inimigo inicial: a mesma gravação de `nascerInimigo` (inimigos.ts), que
+ * não se importa aqui para não criar um ciclo de valores com o estado. Um teste
+ * confere que as duas dão os mesmos bytes.
+ */
+function postarInimigoInicial(e: Estado, dados: DadosDaVigilia, i: InimigoInicial): void {
+  const codigo = i.codigo;
+  if (dados.tipos.existe[codigo] !== 1) throw new Error(`inimigo inicial: o tipo ${codigo} não nasce nesta Vigília`);
+  const slot = alocar(e.pool);
+  if (slot < 0) throw new Error('inimigos iniciais: sem slot livre');
+  const fixa = e.cab[CAB.linhaFixa]!;
+  const minuto = fixa !== LINHA_LIVRE ? fixa : Math.min(Math.floor(e.cab[CAB.relogio]! / PASSOS_POR_MINUTO), dados.timeline.linhas - 1);
+  const ini = e.inimigos;
+  ini.x[slot] = ini.xAnt[slot] = normalizarNoToro(dados.inicioX + i.dx, LARGURA_DO_MAPA);
+  ini.y[slot] = ini.yAnt[slot] = normalizarNoToro(dados.inicioY + i.dy, ALTURA_DO_MAPA);
+  ini.tipo[slot] = codigo;
+  gravarHpNoSpawn(ini.hp, slot, dados.tipos.hpBase[codigo]!, minuto, e.mundo[MUNDO.intensidade10]!);
+  gravarDanoNoSpawn(ini.dano, slot, dados.tipos.danoBase[codigo]!, minuto);
 }
 
 /** Recusa passivas impossíveis na montagem (como validarBuild). */
@@ -641,6 +804,8 @@ function equiparNaVaga(e: Estado, vaga: number, codigo: number, nivel: number): 
   b.esperaPulso[vaga] = 0;
   b.golpe[vaga] = 0;
   b.esperaGolpe[vaga] = 0;
+  b.caSeq[vaga] = 0;
+  b.caEspera[vaga] = 0;
 }
 
 /**
@@ -672,6 +837,8 @@ export function esvaziarBuild(e: Estado): void {
   b.esperaPulso.fill(0);
   b.golpe.fill(0);
   b.esperaGolpe.fill(0);
+  b.caSeq.fill(0);
+  b.caEspera.fill(0);
 }
 
 /** Deslocamento do fluxo dentro de `estado.rng`. */
@@ -690,7 +857,7 @@ export function hashEstado(e: Estado): number {
  */
 export function hashPorSecao(
   e: Estado,
-): Record<'cabecalho' | 'rng' | 'jogador' | 'mundo' | 'inimigos' | 'projeteis' | 'progressao' | 'pickups' | 'efeitos', number> {
+): Record<'cabecalho' | 'rng' | 'jogador' | 'mundo' | 'inimigos' | 'projeteis' | 'progressao' | 'pickups' | 'efeitos' | 'combate', number> {
   const secao = (inicio: number, fim: number): number => fnv1aBytes(FNV_BASE, new Uint8Array(e.buffer, inicio, fim - inicio));
   return {
     cabecalho: secao(0, BYTES_CAB),
@@ -701,6 +868,7 @@ export function hashPorSecao(
     projeteis: secao(INICIO_POOL_PROJETEIS, BYTES_DO_LAYOUT_4),
     progressao: secao(INICIO_PROGRESSAO, INICIO_POOL_PICKUPS),
     pickups: secao(INICIO_POOL_PICKUPS, INICIO_POOL_EFEITOS),
-    efeitos: secao(INICIO_POOL_EFEITOS, BYTES_ESTADO),
+    efeitos: secao(INICIO_POOL_EFEITOS, BYTES_DO_LAYOUT_5),
+    combate: secao(BYTES_DO_LAYOUT_5, BYTES_ESTADO),
   };
 }

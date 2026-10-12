@@ -44,6 +44,25 @@ export interface InimigoDoJson {
   /** XP da Cinza que o inimigo solta (B §3.6). */
   readonly xp: number;
   readonly comportamento: { readonly tipo: string; readonly para_a_corpos?: number; readonly distancia_corpos?: number };
+  /** Imune (false) ou não à Postura Quebrada (design/decisoes-F-006.md §4.2); ausente = true. */
+  readonly postura_quebrada?: boolean;
+  /** Ataques do tipo; a tabela de combate lê o arco e o projétil (inimigo.schema.json). */
+  readonly ataques?: readonly AtaqueDoJson[];
+}
+
+/** O que a tabela de combate lê de cada ataque de inimigos.json. */
+export interface AtaqueDoJson {
+  readonly id: string;
+  readonly forma: string;
+  readonly aparavel: boolean;
+  readonly dano: number | null;
+  readonly telegrafo: { readonly cor: string; readonly duracao_s: number };
+  readonly angulo_graus?: number;
+  readonly alcance_corpos?: number | null;
+  readonly recuperacao_s?: number | null;
+  readonly intervalo_s?: number | null;
+  readonly projetil?: { readonly velocidade_corpos_s: number; readonly raio_corpos: number | null; readonly vida_s: number | null };
+  readonly aplica?: { readonly status: string; readonly fator_pct: number; readonly duracao_s: number };
 }
 
 /** Dados por código de tipo, montados uma vez (arrays indexados pelo código). */

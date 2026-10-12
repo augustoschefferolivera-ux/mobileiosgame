@@ -19,6 +19,8 @@ function hashDosCamposV3(e: Estado): string {
   // O bit semCinzas da F-005 (decisoes-F-005 §5) não existia no v3: mascarado na palavra 7 do cabeçalho.
   const cab = new Uint32Array(e.cab.slice(1));
   cab[CAB.cenario - 1] = cab[CAB.cenario - 1]! & ~CENARIO.semCinzas;
+  // Desde a F-006 os bits de esquiva e aparo (2 e 4) existem em tutoriaisVistos (decisoes-F-006 ET3): só o bit mover (1) vale.
+  cab[CAB.tutoriaisVistos - 1] = cab[CAB.tutoriaisVistos - 1]! & 1;
   let h = fnv1aBytes(FNV_BASE, new Uint8Array(cab.buffer));
   h = fnv1aBytes(h, b(e.rng.byteOffset, e.rng.byteOffset + e.rng.byteLength));
   h = fnv1aBytes(h, b(e.jogador.byteOffset, e.jogador.byteOffset + 32));

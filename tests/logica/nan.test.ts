@@ -1,6 +1,6 @@
 // Verificação de NaN do ?debug=1 (ADR-0002 §5; design/decisoes-F-003.md §8).
 import { describe, expect, it } from 'vitest';
-import { JOGADOR, criarEstado } from '../../src/logica/nucleo/estado';
+import { JOGADOR3, JOGADOR, criarEstado } from '../../src/logica/nucleo/estado';
 import { verificarNaN } from '../../src/logica/nucleo/nan';
 import { avancar } from '../../src/logica/nucleo/passo';
 import { nascerInimigo, removerInimigo } from '../../src/logica/mundo/inimigos';
@@ -25,5 +25,27 @@ describe('verificarNaN', () => {
     expect(() => verificarNaN(e, 1)).not.toThrow();
     e.jogador[JOGADOR.dirY] = Number.NaN;
     expect(() => verificarNaN(e, 1)).toThrow(/NaN no jogador/);
+  });
+
+  it('acusa NaN na stamina e na direção da esquiva do jogador (F-006)', () => {
+    for (const campo of [JOGADOR3.stamina, JOGADOR3.esquivaDirX, JOGADOR3.esquivaDirY]) {
+      const e = criarEstado(1, D);
+      expect(() => verificarNaN(e, 1)).not.toThrow();
+      e.jogador3[campo] = Number.NaN;
+      expect(() => verificarNaN(e, 1)).toThrow(/NaN no jogador/);
+    }
+  });
+
+  it('acusa NaN na mira do ataque de um inimigo vivo e ignora a de um slot livre (F-006)', () => {
+    const e = criarEstado(1, D);
+    const s = nascerInimigo(e, D, TIPO.oco_grande, 100, 100, false);
+    e.inimigos.miraX[s] = Number.NaN;
+    expect(() => verificarNaN(e, 3)).toThrow(`NaN no inimigo ${s} no passo 0 ou antes (quadro de 3 passos)`);
+    e.inimigos.miraX[s] = 0;
+    e.inimigos.miraY[s] = Number.NaN;
+    expect(() => verificarNaN(e, 3)).toThrow(/NaN no inimigo/);
+    removerInimigo(e, s);
+    e.inimigos.miraY[s] = Number.NaN;
+    expect(() => verificarNaN(e, 3)).not.toThrow();
   });
 });
