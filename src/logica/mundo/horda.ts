@@ -16,7 +16,7 @@
 // em linha, como em consultarGrade, e a colisão lê e escreve COLISAO.
 import { CAPACIDADE_DE_INIMIGOS, JOGADOR, type Estado } from '../nucleo/estado';
 import type { DadosDaVigilia } from './dados';
-import { COLUNAS, LADO_DA_CELULA, LINHAS, criarGrade, reconstruirGrade } from './grade';
+import { COLUNAS, CONSULTA, GRANDES, LADO_DA_CELULA, LINHAS, MAX_GRANDES, consultarGradeComGrandes, criarGrade, reconstruirGrade } from './grade';
 import { RAIO_DO_JOGADOR } from './jogador';
 import { COLISAO, ES, colidirNaCelula } from './obstaculos';
 import { COMPORTAMENTO } from './tipos';
@@ -36,6 +36,30 @@ const movY = new Float64Array(N);
 /** Instrumentação para os testes: o maior empurrão (ao quadrado) do último passo, de cada fonte. */
 export const EMPURRAO = { separacao2: 0, jogador2: 1, obstaculo2: 2, total2: 3 } as const;
 export const empurroesDoPasso = new Float64Array(4);
+
+/** Os slots da massa e dos médios (fora os grandes), em ordem crescente: a lista que a grade recebe (CR10). */
+const massa = new Int32Array(N);
+/** Achados da consulta de separação de um grande. */
+const achadosDoGrande = new Int32Array(N);
+
+/**
+ * Refaz a grade só com a massa e os médios e põe os corpos grandes (raio > 24 px, CR10) na lista `GRANDES`, de `ids[0..n)`
+ * (slots vivos em ordem crescente) com as posições atuais. Até MAX_GRANDES grandes; o nascimento recusa o excedente.
+ */
+export function montarGradeDaMassa(e: Estado, dados: DadosDaVigilia, ids: Int32Array, n: number): void {
+  const grande = dados.tipos.grande;
+  const tipo = e.inimigos.tipo;
+  let m = 0;
+  let g = 0;
+  for (let k = 0; k < n; k++) {
+    const s = ids[k]!;
+    if (grande[tipo[s]!] === 1) {
+      if (g < MAX_GRANDES) GRANDES[g++] = s;
+    } else massa[m++] = s;
+  }
+  reconstruirGrade(grade, e.inimigos.x, e.inimigos.y, massa, m);
+  GRANDES[MAX_GRANDES] = g;
+}
 
 /** Lista os slots vivos em ordem crescente em `vivos` e devolve quantos. */
 export function listarVivos(e: Estado): number {
@@ -62,7 +86,7 @@ export function separarHorda(
 ): void {
   const ini = e.inimigos;
   const t = dados.tipos;
-  reconstruirGrade(grade, ini.x, ini.y, ids, n);
+  montarGradeDaMassa(e, dados, ids, n);
   for (let k = 0; k < n; k++) {
     const s = ids[k]!;
     outX[s] = 0;
@@ -72,6 +96,8 @@ export function separarHorda(
   const { inicio, indices } = grade;
   for (let k = 0; k < n; k++) {
     const a = ids[k]!;
+    // Os grandes (CR10) ficam fora da grade: o par deles com a massa e entre si é resolvido abaixo, dos dois lados.
+    if (t.grande[ini.tipo[a]!] === 1) continue;
     const ra = t.raio[ini.tipo[a]!]!;
     const ax = ini.x[a]!;
     const ay = ini.y[a]!;
@@ -129,6 +155,7 @@ export function separarHorda(
       if (++l === LINHAS) l = 0;
     }
   }
+  separarOsGrandes(e, dados, outX, outY);
   // O limite: a velocidade base do tipo, que é o que deixa a separação anular a perseguição e a horda parar.
   for (let k = 0; k < n; k++) {
     const s = ids[k]!;
@@ -140,6 +167,54 @@ export function separarHorda(
       const fator = v / Math.sqrt(s2);
       outX[s] = sx * fator;
       outY[s] = sy * fator;
+    }
+  }
+}
+
+/**
+ * Separação dos grandes (CR10; partilha igual, D3 S3): cada grande consulta a grade da massa com `r_grande + R_MAX` e empurra
+ * ½ da penetração para cada lado, em slot crescente; depois os pares de grandes entre si. Os dois lados do par recebem.
+ */
+function separarOsGrandes(e: Estado, dados: DadosDaVigilia, outX: Float64Array, outY: Float64Array): void {
+  const ng = GRANDES[MAX_GRANDES]!;
+  if (ng === 0) return;
+  const ini = e.inimigos;
+  const t = dados.tipos;
+  for (let q = 0; q < ng; q++) {
+    const a = GRANDES[q]!;
+    const ra = t.raio[ini.tipo[a]!]!;
+    const ax = ini.x[a]!;
+    const ay = ini.y[a]!;
+    CONSULTA[0] = ax;
+    CONSULTA[1] = ay;
+    CONSULTA[2] = ra + t.raioMaximo;
+    const m = consultarGradeComGrandes(grade, ini.x, ini.y, achadosDoGrande);
+    for (let i = 0; i < m; i++) {
+      const b = achadosDoGrande[i]!;
+      // Pares de grandes: só com o de slot maior, para contar uma vez.
+      if (t.grande[ini.tipo[b]!] === 1 && b <= a) continue;
+      const soma = ra + t.raio[ini.tipo[b]!]!;
+      let dx = ini.x[b]! - ax;
+      if (dx > MEIA_LARGURA_DO_MAPA) dx -= LARGURA_DO_MAPA;
+      if (dx < -MEIA_LARGURA_DO_MAPA) dx += LARGURA_DO_MAPA;
+      let dy = ini.y[b]! - ay;
+      if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
+      if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
+      const d2 = dx * dx + dy * dy;
+      if (d2 >= soma * soma) continue;
+      let nx = 1;
+      let ny = 0;
+      let d = 0;
+      if (d2 > 0) {
+        d = Math.sqrt(d2);
+        nx = dx / d;
+        ny = dy / d;
+      }
+      const meia = (soma - d) / 2;
+      outX[a] = outX[a]! - nx * meia;
+      outY[a] = outY[a]! - ny * meia;
+      outX[b] = outX[b]! + nx * meia;
+      outY[b] = outY[b]! + ny * meia;
     }
   }
 }

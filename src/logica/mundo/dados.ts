@@ -15,6 +15,7 @@ import {
 } from '../progressao/tabela';
 import { PASSOS_POR_MINUTO, compilarTimeline, type LinhaDoJson, type Timeline } from '../diretor/timeline';
 import { PASSOS_POR_SEGUNDO, segundosEmPassos } from '../nucleo/passos';
+import { FOLGA_DOS_GRANDES } from './grade';
 import {
   criarObstaculos,
   criarObstaculosPorCelula,
@@ -441,6 +442,8 @@ function tiposQueNascem(t: TiposDeInimigo, tl: Timeline, marcos: TabelaDeMarcos)
     if (t.grande[c] === 0) raioMaximo = Math.max(raioMaximo, t.raio[c]!);
     raioDeObstaculo = Math.max(raioDeObstaculo, t.raio[c]!);
   }
+  // As consultas somam R_MAX às formas das armas e acrescentam os grandes com a folga fixa de 8 px (CR10): um raio maior que isso não se alcança.
+  if (raioDeObstaculo > raioMaximo + FOLGA_DOS_GRANDES) throw new Error(`corpo grande demais: raio ${raioDeObstaculo} px, o máximo é ${raioMaximo + FOLGA_DOS_GRANDES}`);
   // Fora do conjunto, existe = 0: nascerInimigo recusa o tipo, e nenhum corpo passa do R_MAX da separação e do raio dos obstáculos.
   return { ...t, existe, raioMaximo, raioDeObstaculo };
 }

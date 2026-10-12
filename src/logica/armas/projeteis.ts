@@ -6,7 +6,7 @@ import { CAPACIDADE_DE_PROJETEIS, JOGADOR, JOGADOR3_U8, MUNDO, PERFURACAO_INFINI
 import { FORMA, SEM_ALVO } from '../nucleo/eventos';
 import { alocar, liberar, quantosAtivos } from '../nucleo/pool';
 import type { DadosDaVigilia } from '../mundo/dados';
-import { CONSULTA, consultarGradeDoRascunho } from '../mundo/grade';
+import { CONSULTA, consultarGradeComGrandes, consultarGradeDoRascunho } from '../mundo/grade';
 import { grade } from '../mundo/horda';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../mundo/toro';
 import { ACERTO, ACHADOS, DANO, acertar, alvoAparado, calcularDano } from './acerto';
@@ -202,7 +202,7 @@ export function moverProjeteis(e: Estado, dados: DadosDaVigilia): void {
     CONSULTA[0] = xf;
     CONSULTA[1] = yf;
     CONSULTA[2] = rp + rMax;
-    const m = consultarGradeDoRascunho(grade, ini.x, ini.y, ACHADOS);
+    const m = consultarGradeComGrandes(grade, ini.x, ini.y, ACHADOS);
     const ultimo = pr.ultimoAlvo[p]!;
     let melhor = -1;
     let melhorD2 = 0;

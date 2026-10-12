@@ -14,6 +14,16 @@ export const COLUNAS = Math.ceil(LARGURA_DO_MAPA / LADO_DA_CELULA);
 export const LINHAS = Math.ceil(ALTURA_DO_MAPA / LADO_DA_CELULA);
 export const CELULAS = COLUNAS * LINHAS;
 
+/**
+ * Corpos grandes (raio > 24 px, CR10 da F-008): ficam fora da grade da massa, numa lista própria de até MAX_GRANDES slots,
+ * e as consultas das armas os testam à parte. `GRANDES[0 .. MAX_GRANDES)` são os slots e `GRANDES[MAX_GRANDES]` quantos
+ * há. Quem refaz a grade (`reconstruirGrade`) zera a contagem; `montarGradeDaMassa` (horda.ts) a preenche.
+ */
+export const MAX_GRANDES = 4;
+export const GRANDES = new Int32Array(MAX_GRANDES + 1);
+/** Quanto a consulta com `R + R_MAX` (24) deve somar para alcançar o raio de um grande (32): 8 px. */
+export const FOLGA_DOS_GRANDES = 8;
+
 export interface Grade {
   /** Itens por célula; durante a reconstrução, serve de cursor de escrita. */
   readonly contagem: Int32Array;
@@ -55,6 +65,7 @@ function voltaNoToro(v: number, L: number): number {
  */
 export function reconstruirGrade(g: Grade, xs: Float32Array, ys: Float32Array, ids: Int32Array, n: number): void {
   const { contagem, inicio, indices, celulaDe } = g;
+  GRANDES[MAX_GRANDES] = 0;
   contagem.fill(0);
   for (let k = 0; k < n; k++) {
     const id = ids[k]!;
@@ -114,7 +125,7 @@ export const CONSULTA = new Float64Array(3);
  * das armas, onde um double atravessando a chamada alocaria um HeapNumber no
  * V8 (design/decisoes-F-004.md §4). O intervalo de células vai em linha.
  */
-export function consultarGradeDoRascunho(g: Grade, xs: Float32Array, ys: Float32Array, out: Int32Array): number {
+function consultarGradeDaMassa(g: Grade, xs: Float32Array, ys: Float32Array, out: Int32Array): number {
   const x = CONSULTA[0]!;
   const y = CONSULTA[1]!;
   const r = CONSULTA[2]!;
@@ -155,6 +166,43 @@ export function consultarGradeDoRascunho(g: Grade, xs: Float32Array, ys: Float32
     if (++l === LINHAS) l = 0;
   }
   return achados;
+}
+
+/** A consulta da massa (grade) mais os grandes cujo centro está a ≤ r (CR10); x, y e r vêm de CONSULTA. */
+export function consultarGradeDoRascunho(g: Grade, xs: Float32Array, ys: Float32Array, out: Int32Array): number {
+  const achados = consultarGradeDaMassa(g, xs, ys, out);
+  return achados + acrescentarGrandes(xs, ys, out, achados, 0);
+}
+
+/**
+ * Como consultarGradeDoRascunho, para quem soma `R_MAX` (24) ao alcance da forma e depois confere o raio de cada
+ * alvo: os grandes (raio até 32) entram com a folga de 8 px que falta (CR10).
+ */
+export function consultarGradeComGrandes(g: Grade, xs: Float32Array, ys: Float32Array, out: Int32Array): number {
+  const achados = consultarGradeDaMassa(g, xs, ys, out);
+  return achados + acrescentarGrandes(xs, ys, out, achados, FOLGA_DOS_GRANDES);
+}
+
+/** Os grandes cujo centro está a ≤ r + folga de CONSULTA (x, y, r), acrescentados a `out` a partir de `achados`; devolve quantos. */
+function acrescentarGrandes(xs: Float32Array, ys: Float32Array, out: Int32Array, achados: number, folga: number): number {
+  const n = GRANDES[MAX_GRANDES]!;
+  if (n === 0) return 0;
+  const x = CONSULTA[0]!;
+  const y = CONSULTA[1]!;
+  const lim = CONSULTA[2]! + folga;
+  const lim2 = lim * lim;
+  let novos = 0;
+  for (let k = 0; k < n; k++) {
+    const id = GRANDES[k]!;
+    let dx = xs[id]! - x;
+    if (dx > MEIA_LARGURA) dx -= LARGURA_DO_MAPA;
+    if (dx < -MEIA_LARGURA) dx += LARGURA_DO_MAPA;
+    let dy = ys[id]! - y;
+    if (dy > MEIA_ALTURA) dy -= ALTURA_DO_MAPA;
+    if (dy < -MEIA_ALTURA) dy += ALTURA_DO_MAPA;
+    if (dx * dx + dy * dy <= lim2) out[achados + novos++] = id;
+  }
+  return novos;
 }
 
 /**

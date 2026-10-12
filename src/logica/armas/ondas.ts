@@ -12,7 +12,7 @@ import { CAB, CAPACIDADE_DE_EFEITOS, JOGADOR, JOGADOR3_U8, MUNDO2, PALAVRAS_DO_B
 import { EVENTO, FLOATS_DO_EVENTO, FORMA, gravarEvento } from '../nucleo/eventos';
 import { alocar, liberar, quantosAtivos } from '../nucleo/pool';
 import type { DadosDaVigilia } from '../mundo/dados';
-import { CONSULTA, consultarGradeDoRascunho } from '../mundo/grade';
+import { CONSULTA, consultarGradeComGrandes } from '../mundo/grade';
 import { grade } from '../mundo/horda';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../mundo/toro';
 import { ACERTO, ACHADOS, MIRA, acertar } from './acerto';
@@ -116,7 +116,7 @@ export function rodarOndas(e: Estado, dados: DadosDaVigilia): void {
     CONSULTA[0] = cx;
     CONSULTA[1] = cy;
     CONSULTA[2] = Math.SQRT2 * meia + rMax;
-    const m = consultarGradeDoRascunho(grade, ini.x, ini.y, ACHADOS);
+    const m = consultarGradeComGrandes(grade, ini.x, ini.y, ACHADOS);
     ACERTO[0] = f.dano[o]!;
     // A onda herda o fator da arma (a União tem um só nível; PQ7).
     ACERTO[1] = t.pqFator[indiceDoNivel(codigo, 1)]!;

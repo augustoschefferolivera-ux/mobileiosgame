@@ -10,8 +10,8 @@ import { CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR, type Estado } from '../../logica/
 import { IDS_DE_TIPO } from '../../logica/mundo/tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../../logica/mundo/toro';
 import { ESCALA_DO_CANVAS } from '../escala';
-import { COR_DO_INIMIGO } from '../paleta';
-import { indiceDaMoldura } from './atlas';
+import { COR_DO_INIMIGO, COR_DOS_ELITES } from '../paleta';
+import { NOMES_DAS_MOLDURAS, indiceDaMoldura } from './atlas';
 
 /**
  * Como desenhar um tipo (calculado uma vez, fora do laço): as molduras da arte (índices em NOMES_DAS_MOLDURAS), a
@@ -44,6 +44,9 @@ export function tintOpaco(cor: number): number {
   return (0xff000000 | cor) >>> 0;
 }
 
+/** Lado, em px, do Oco Grande: o molde provisório dos elites sem arte (F-008). */
+const TAMANHO_DO_MOLDE_PROVISORIO = 48;
+
 /** O que se lê de cada inimigo de inimigos.json para desenhar. */
 export interface FormaDoJson {
   readonly id: string;
@@ -63,22 +66,26 @@ export function criarTabelaDeDesenho(inimigos: readonly FormaDoJson[], existe: U
     if (existe[codigo] !== 1) continue;
     const id = IDS_DE_TIPO[codigo]!;
     const i = inimigos.find((x) => x.id === id);
-    const cor = COR_DO_INIMIGO[id];
+    const cor = COR_DO_INIMIGO[id] ?? COR_DOS_ELITES[id];
     if (!i || i.tamanho_px === null || cor === undefined) throw new Error(`desenho: ${id} nasce sem tamanho ou sem cor`);
     const medio = i.forma === 'circulo' ? false : i.forma === 'quadrado' ? true : falha(id, i.forma);
-    const andar = indiceDaMoldura(id);
+    // Elite sem arte própria (o Coroado, F-008; a arte é da F-011): provisório, as molduras do Oco Grande na escala do tamanho
+    // (64 ÷ 48) e tingidas com a cor provisória dos elites. Com a arte do tipo no atlas, vale a arte.
+    const provisorio = COR_DO_INIMIGO[id] === undefined && !NOMES_DAS_MOLDURAS.includes(id);
+    const molde = provisorio ? 'oco_grande' : id;
+    const andar = indiceDaMoldura(molde);
     tabela[codigo] = {
       id,
       medio,
-      escala: ESCALA_DA_GRADE.arte,
+      escala: provisorio ? (ESCALA_DA_GRADE.arte * i.tamanho_px) / TAMANHO_DO_MOLDE_PROVISORIO : ESCALA_DA_GRADE.arte,
       cor,
-      tint: tintOpaco(0xffffff),
-      andar: [andar, indiceDaMoldura(`${id}_2`)],
-      acerto: indiceDaMoldura(`${id}_acerto`),
-      telegrafo: medio ? indiceDaMoldura(`${id}_telegrafo`) : andar,
-      ataque: medio ? indiceDaMoldura(`${id}_ataque`) : andar,
-      branco: medio ? indiceDaMoldura(`${id}_telegrafo_branco`) : -1,
-      cinza: [indiceDaMoldura(`${id}_cinza_0`), indiceDaMoldura(`${id}_cinza_1`), indiceDaMoldura(`${id}_cinza_2`)],
+      tint: tintOpaco(provisorio ? cor : 0xffffff),
+      andar: [andar, indiceDaMoldura(`${molde}_2`)],
+      acerto: indiceDaMoldura(`${molde}_acerto`),
+      telegrafo: medio ? indiceDaMoldura(`${molde}_telegrafo`) : andar,
+      ataque: medio ? indiceDaMoldura(`${molde}_ataque`) : andar,
+      branco: medio ? indiceDaMoldura(`${molde}_telegrafo_branco`) : -1,
+      cinza: [indiceDaMoldura(`${molde}_cinza_0`), indiceDaMoldura(`${molde}_cinza_1`), indiceDaMoldura(`${molde}_cinza_2`)],
     };
   }
   return tabela;

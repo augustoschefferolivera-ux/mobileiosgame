@@ -13,6 +13,7 @@ import { PASSOS_POR_MINUTO } from '../diretor/timeline';
 import { gravarDanoNoSpawn, gravarHpNoSpawn } from './escala';
 import { TIPO } from './tipos';
 import { desmarcarInimigo } from '../armas/ondas';
+import { MAX_GRANDES } from './grade';
 import { soltarAlma, soltarBauDoInimigo, soltarCinza } from '../progressao/pickups';
 
 export { gravarDanoNoSpawn, gravarHpNoSpawn };
@@ -63,12 +64,18 @@ export function nascerInimigo(e: Estado, dados: DadosDaVigilia, codigo: number, 
 export function nascerInimigoDoRascunho(e: Estado, dados: DadosDaVigilia, codigo: number, convertido: boolean): number {
   const x = NASCIMENTO[0]!;
   const y = NASCIMENTO[1]!;
-  const hpDoMarco = NASCIMENTO[2]!;
-  NASCIMENTO[2] = 0;
   const t = dados.tipos;
   if (t.existe[codigo] !== 1) throw new Error(`nascerInimigo: o tipo ${codigo} não nasce nesta feature`);
+  // A lista dos corpos grandes tem MAX_GRANDES lugares (CR10): o excedente não nasce (hoje só o Coroado é grande).
+  if (t.grande[codigo] === 1 && e.fogueiraU8[FOGUEIRA_U8.coroadosVivos]! >= MAX_GRANDES) {
+    NASCIMENTO[2] = 0;
+    return -1;
+  }
   const slot = alocar(e.pool);
-  if (slot < 0) return -1;
+  if (slot < 0) {
+    NASCIMENTO[2] = 0;
+    return -1;
+  }
   const min = minutoDaEscala(e, dados);
   const i10 = e.mundo[MUNDO.intensidade10]!;
   const ini = e.inimigos;
@@ -82,8 +89,11 @@ export function nascerInimigoDoRascunho(e: Estado, dados: DadosDaVigilia, codigo
   ini.ataqueId[slot] = ini.ataqueSeq[slot] = 0;
   // A 1ª convocação vem um período depois do nascimento (CR7); quem não convoca fica em 0.
   ini.convocaEspera[slot] = dados.combate.convocaPassos[codigo]!;
+  // O `hp_base` da linha de marco (CR6), se o chamador o pôs em NASCIMENTO[2]; cada ramo passa o seu double (sem ?: de doubles).
   if (convertido) gravarHpNoSpawn(ini.hp, slot, MASSA_POR_CONVERTIDO * t.hpBase[TIPO.oco_das_lanternas]!, min, i10);
-  else gravarHpNoSpawn(ini.hp, slot, hpDoMarco > 0 ? hpDoMarco : t.hpBase[codigo]!, min, i10);
+  else if (NASCIMENTO[2]! > 0) gravarHpNoSpawn(ini.hp, slot, NASCIMENTO[2]!, min, i10);
+  else gravarHpNoSpawn(ini.hp, slot, t.hpBase[codigo]!, min, i10);
+  NASCIMENTO[2] = 0;
   gravarDanoNoSpawn(ini.dano, slot, t.danoBase[codigo]!, min);
   if (codigo === TIPO.oco_grande_coroado) e.fogueiraU8[FOGUEIRA_U8.coroadosVivos] = e.fogueiraU8[FOGUEIRA_U8.coroadosVivos]! + 1;
   return slot;

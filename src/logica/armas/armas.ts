@@ -14,8 +14,8 @@
 import { CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR, VAGAS_DE_ARMA, type Estado } from '../nucleo/estado';
 import { CAUSA, EVENTO, FLAG, FLOATS_DO_EVENTO, FORMA, gravarEvento } from '../nucleo/eventos';
 import type { DadosDaVigilia } from '../mundo/dados';
-import { CONSULTA, consultarGradeDoRascunho, reconstruirGrade } from '../mundo/grade';
-import { grade, listarVivos, vivos } from '../mundo/horda';
+import { CONSULTA, consultarGradeComGrandes } from '../mundo/grade';
+import { grade, listarVivos, montarGradeDaMassa, vivos } from '../mundo/horda';
 import { matarInimigo } from '../mundo/inimigos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../mundo/toro';
 import { ACERTO, ACHADOS, DANO, MIRA, acertar, alvoAparado, calcularDano } from './acerto';
@@ -34,7 +34,7 @@ const SEN_60 = 0.8660254037844386;
 export function rodarArmas(e: Estado, dados: DadosDaVigilia): void {
   // 7a. Grade e lista de vivos com as posições finais (os mortos do passo anterior já saíram).
   const n = listarVivos(e);
-  reconstruirGrade(grade, e.inimigos.x, e.inimigos.y, vivos, n);
+  montarGradeDaMassa(e, dados, vivos, n);
   // 7b. Projéteis em voo (os disparados em 7c só andam no passo seguinte).
   moverProjeteis(e, dados);
   // 7b'. Ondas de chão (decisoes-F-005 U5; as criadas em 7c só agem no passo seguinte).
@@ -149,7 +149,7 @@ function golpear(e: Estado, dados: DadosDaVigilia, v: number, forma: number, con
   CONSULTA[0] = jx;
   CONSULTA[1] = jy;
   CONSULTA[2] = (estocada ? Math.sqrt(L * L + w * w) : R) + rMax;
-  const m = consultarGradeDoRascunho(grade, e.inimigos.x, e.inimigos.y, ACHADOS);
+  const m = consultarGradeComGrandes(grade, e.inimigos.x, e.inimigos.y, ACHADOS);
   // As bordas do setor: a mira girada ±60°, uma vez por golpe.
   const pX = ux * COS_60 - uy * SEN_60;
   const pY = ux * SEN_60 + uy * COS_60;
@@ -234,7 +234,7 @@ function rodarAura(e: Estado, dados: DadosDaVigilia, v: number): void {
   CONSULTA[0] = jx;
   CONSULTA[1] = jy;
   CONSULTA[2] = R + dados.tipos.raioMaximo;
-  const m = consultarGradeDoRascunho(grade, e.inimigos.x, e.inimigos.y, ACHADOS);
+  const m = consultarGradeComGrandes(grade, e.inimigos.x, e.inimigos.y, ACHADOS);
   const ini = e.inimigos;
   const raio = dados.tipos.raio;
   if (tick || contra) {
@@ -290,6 +290,8 @@ function rodarAura(e: Estado, dados: DadosDaVigilia, v: number): void {
       const d2 = dx * dx + dy * dy;
       const lim = R + raio[ini.tipo[s]!]!;
       if (d2 > lim * lim) continue;
+      // O Coroado é imune ao pulso, como à Postura Quebrada (CR8): o mesmo `postura_quebrada: false`.
+      if (dados.combate.posturaQuebrada[ini.tipo[s]!] === 0) continue;
       // Até a borda: mín(12, ⌈(R + r − d)/8⌉) passos de 8 px; um pulso novo substitui o resto do anterior.
       const kb = Math.ceil((lim - Math.sqrt(d2)) / passo);
       ini.kbPassos[s] = kb < maximo ? kb : maximo;

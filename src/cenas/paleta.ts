@@ -45,3 +45,11 @@ export const COR_DO_INIMIGO: Readonly<Record<string, number>> = {
   oco_grande: 0x9fa39a,
   novica_de_sal: 0x8994b4,
 };
+
+/**
+ * Cor provisória dos elites (F-008; o quadrado de 64 px do Coroado): fora de COR_DO_INIMIGO, que o teste da arte confere
+ * contra os sprites. A arte do Coroado é da F-011.
+ */
+export const COR_DOS_ELITES: Readonly<Record<string, number>> = {
+  oco_grande_coroado: 0xc9a227,
+};
