@@ -18,6 +18,7 @@ import { aplicarContato } from '../mundo/contato';
 import type { DadosDaVigilia } from '../mundo/dados';
 import { rodarFrasco } from '../mundo/frasco';
 import { rodarEtapa } from '../mundo/etapas';
+import { armasAtivas, passoFogueira } from '../mundo/fogueira';
 import { moverHorda } from '../mundo/horda';
 import { atualizarPromptDeMover, moverJogador } from '../mundo/jogador';
 import { encerrarVigilia, rodarApagando, rodarMancha, verificarMorte } from '../mundo/vigilia';
@@ -95,6 +96,11 @@ export function passo(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): v
     passoFora(e, dados, cmd);
     return;
   }
+  // Etapa FOGUEIRA (F-008 FG3): o tempo da Vigília para; o passo é o da Fogueira.
+  if (!armasAtivas(e)) {
+    passoFogueira(e, dados, cmd);
+    return;
+  }
   const congelado = e.jogador3U8[JOGADOR3_U8.congelamento]! > 0;
   passoVivo(e, dados, cmd);
   depoisDoPasso(e, dados);
@@ -124,6 +130,8 @@ export function avancar(e: Estado, dados: DadosDaVigilia, fonte: FonteDeComandos
     if (e.jogador3U8[JOGADOR3_U8.congelamento]! === 0) fonte.comandosDoPasso(e.cab[CAB.passo]!, comandos);
     if (e.jogador4U8[INDICE_DA_FASE]! !== FASE_VIVA || (comandos.acoes[0]! & BIT_ABANDONAR) !== 0) {
       passoFora(e, dados, comandos);
+    } else if (!armasAtivas(e)) {
+      passoFogueira(e, dados, comandos);
     } else {
       const congelado = e.jogador3U8[JOGADOR3_U8.congelamento]! > 0;
       passoVivo(e, dados, comandos);

@@ -1,7 +1,7 @@
 // Etapas da Vigília (design/decisoes-F-008.md AR1 a AR8, FG1, FG7, CR7): a máquina de horas, marcos e Fogueira que roda
 // no fim do passo da fase VIVA, depois da mancha e da morte. Nesta parte: a convocação dos Coroados, o início do marco
 // (arena e Coroados), o fim do marco (baú vem da morte; aqui a arena some e a Fogueira acende), o marco vencido pelo
-// relógio, e o 20:00 e o 23:00 (o gancho da F-009). Entrar na Fogueira, o menu, Descansar, Forjar e Partir são da parte 2b.
+// relógio, e o 20:00 e o 23:00 (o gancho da F-009). Entrar na Fogueira, Descansar, Forjar e Partir moram em fogueira.ts.
 // Sem RNG: o anel da convocação, o ciclo dos ataques e as posições vêm de tabelas. Regra do laço quente: nenhum double
 // atravessa chamada, nem nas funções frias (rascunhos: NASCIMENTO, FLOATS_DO_EVENTO).
 import {
@@ -28,6 +28,7 @@ import { GRANDES, MAX_GRANDES } from './grade';
 import { NASCIMENTO, matarInimigo, nascerInimigoDoRascunho } from './inimigos';
 import { TIPO } from './tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from './toro';
+import { apagarFogueira, verificarRaio } from './fogueira';
 import { encerrarVigilia } from './vigilia';
 
 const N = CAPACIDADE_DE_INIMIGOS;
@@ -55,7 +56,7 @@ function levarAoToro(): void {
 /**
  * Fim do passo da fase VIVA (AR1, ordem do §3): 20:00 e 23:00; a convocação dos Coroados vivos; o fim do marco (os
  * Coroados todos mortos, a morte no passo do vencimento vale); o marco vencido pelo relógio; o início do marco. Com linha
- * fixa de cenário a máquina fica presa em HORA. A Fogueira (etapa FOGUEIRA) é da parte 2b.
+ * fixa de cenário a máquina fica presa em HORA. Na etapa FOGUEIRA o passo é `passoFogueira`.
  */
 export function rodarEtapa(e: Estado, dados: DadosDaVigilia): void {
   // Imunidade ao pulso do Círculo (CR8): o afastamento que a aura gravou neste passo nos corpos grandes imunes é desfeito
@@ -99,6 +100,8 @@ export function rodarEtapa(e: Estado, dados: DadosDaVigilia): void {
       iniciarMarco(e, dados);
     }
   } else if (devido) iniciarMarco(e, dados);
+  // Entrar no raio da Fogueira acesa (FG2), depois do início do marco (que a apaga).
+  if (u8[FOGUEIRA_U8.etapa] === ETAPA.hora) verificarRaio(e, dados);
 }
 
 function zerarEmpurraoDosImunes(e: Estado, dados: DadosDaVigilia): void {
@@ -130,18 +133,6 @@ function emitirMarcoVencido(e: Estado, k: number, cinzas: number): void {
   FLOATS_DO_EVENTO[2] = k;
   FLOATS_DO_EVENTO[3] = cinzas;
   gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.marcoVencido, 0, 0, -1, 0, 0, 0, 0);
-}
-
-/** Apaga a Fogueira acesa (evento 37). */
-function apagarFogueira(e: Estado): void {
-  const u8 = e.fogueiraU8;
-  const f = e.fogueiraF32;
-  u8[FOGUEIRA_U8.fogueiraAcesa] = 0;
-  FLOATS_DO_EVENTO[0] = f[FOGUEIRA_F32.fogueiraX]!;
-  FLOATS_DO_EVENTO[1] = f[FOGUEIRA_F32.fogueiraY]!;
-  FLOATS_DO_EVENTO[2] = u8[FOGUEIRA_U8.fogueiraHora]!;
-  FLOATS_DO_EVENTO[3] = 0;
-  gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.fogueiraApagada, 0, 0, -1, 0, 0, 0, 0);
 }
 
 /**
