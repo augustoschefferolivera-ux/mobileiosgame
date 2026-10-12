@@ -4,7 +4,7 @@
 // (empate: o menor slot), o acerto vale dano × 0,3 e o timer vai a 18. Assim o
 // contato contínuo rende exatamente 5/s no minuto 0, por mais Ocos que encostem.
 import { ARMA } from '../armas/tabela';
-import { CAB, CAPACIDADE_DE_INIMIGOS, CENARIO, JOGADOR, JOGADOR3_U8, JOGADOR_U8, VAGAS_DE_ARMA, type Estado } from '../nucleo/estado';
+import { CAB, CAPACIDADE_DE_INIMIGOS, CENARIO, JOGADOR, JOGADOR3_U8, JOGADOR_U8, PROMPT, VAGAS_DE_ARMA, type Estado } from '../nucleo/estado';
 import { EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import type { DadosDaVigilia } from './dados';
 import { RAIO_DO_JOGADOR } from './jogador';
@@ -43,7 +43,7 @@ export function danoAoJogador(e: Estado, _origem: number): void {
 /**
  * Ponto único de todo acerto no jogador (EP1): contato, golpe e projétil. O
  * dano bruto vem em BRUTO[0] e o atacante em `slot` (−1 = sem alvo). Ordem: aparo
- * (da etapa seguinte) > i-frames da esquiva > dano. Nos i-frames não tira HP,
+ * (resolvido antes, em ataques.ts e aparo.ts) > i-frames da esquiva > dano. Nos i-frames não tira HP,
  * não liga timer algum e devolve DESFECHO.esquivado; o 1º acerto evitado da
  * esquiva é a esquiva perfeita (EP2): evento, congelamento, Poder e faca extra.
  * O contato só conta com `invulContato` = 0 (Q-14), o que a chamada já garante.
@@ -54,6 +54,10 @@ export function resolverAcertoNoJogador(e: Estado, dados: DadosDaVigilia, origem
   const passoDaEsquiva = u8[JOGADOR3_U8.esquivaPasso]!;
   if (passoDaEsquiva < c.esquivaIframesDe || passoDaEsquiva > c.esquivaIframesAte) {
     danoAoJogador(e, origem);
+    // Com o prompt de aparo na tela, o golpe ou o projétil que fere conta como falha do tutorial (AP11 (b)).
+    if (origem !== ORIGEM_DO_DANO.contato && u8[JOGADOR3_U8.promptAparo] === PROMPT.visivel && u8[JOGADOR3_U8.falhasDeAparo]! < 255) {
+      u8[JOGADOR3_U8.falhasDeAparo] = u8[JOGADOR3_U8.falhasDeAparo]! + 1;
+    }
     return DESFECHO.acertou;
   }
   if (u8[JOGADOR3_U8.esquivaPerfeitaDada] === 0 && (origem !== ORIGEM_DO_DANO.contato || e.jogadorU8[JOGADOR_U8.invulContato] === 0)) {
@@ -88,6 +92,8 @@ export function aplicarContato(e: Estado, dados: DadosDaVigilia): number {
     if (pos[s]! < 0) continue;
     const tipo = ini.tipo[s]!;
     if (t.contato[tipo] !== 1) continue;
+    // Atordoado não fere por contato (PQ4).
+    if (ini.quebradaPassos[s]! > 0) continue;
     const alcance = RAIO_DO_JOGADOR + t.raio[tipo]! + FOLGA_DO_CONTATO;
     // O delta de deltaNoToro, em linha (no V8, a chamada devolveria um HeapNumber).
     let dx = ini.x[s]! - jx;

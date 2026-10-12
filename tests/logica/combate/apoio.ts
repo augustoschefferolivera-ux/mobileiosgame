@@ -60,6 +60,8 @@ export interface EventoLido {
   y: number;
   a: number;
   b: number;
+  /** Bits de FLAG (critico, matou, convertido, contra). */
+  flags: number;
 }
 export function eventosDe(e: Estado, tipo: number): EventoLido[] {
   const saida: EventoLido[] = [];
@@ -80,6 +82,7 @@ export function eventosDe(e: Estado, tipo: number): EventoLido[] {
       y: f[i + 5]!,
       a: f[i + 6]!,
       b: f[i + 7]!,
+      flags: (u[i + 3]! >>> 8) & 0xff,
     });
   }
   return saida;

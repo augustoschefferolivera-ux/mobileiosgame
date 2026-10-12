@@ -135,3 +135,6 @@ export function criarTiposDeInimigo(inimigos: readonly InimigoDoJson[]): TiposDe
   }
   return { ...t, raioMaximo };
 }
+
+/** Fase do ataque de um inimigo (`ataqueFase`). */
+export const FASE_DO_ATAQUE = { livre: 0, telegrafo: 1, recuperacao: 2 } as const;

@@ -28,11 +28,11 @@ import { alocar, quantosAtivos } from '../nucleo/pool';
 import { BRUTO, DESFECHO, ORIGEM_DO_DANO, resolverAcertoNoJogador } from './contato';
 import type { DadosDaVigilia } from './dados';
 import { RAIO_DO_JOGADOR } from './jogador';
-import { TIPO } from './tipos';
+import { aparar, cancelarAtaque, concluirAparos } from './aparo';
+import { FASE_DO_ATAQUE, TIPO } from './tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from './toro';
 
-/** Fase do ataque de um inimigo (`ataqueFase`). */
-export const FASE_DO_ATAQUE = { livre: 0, telegrafo: 1, recuperacao: 2 } as const;
+export { FASE_DO_ATAQUE };
 
 /** Desfecho do evento `golpeInimigo`: os três de `DESFECHO` e o golpe que não pegou o jogador (ET10). */
 export const DESFECHO_DO_GOLPE = { ...DESFECHO, errou: 4 } as const;
@@ -60,7 +60,10 @@ export function rodarAtaques(e: Estado, dados: DadosDaVigilia): void {
   const geracaoDoInimigo = e.pool.geracao;
   const posInimigo = e.pool.posicao;
   let ameacas = 0;
-  // A janela do aparo (AP4) é lida aqui, num local, na etapa 2d: `janelaAtiva` antes do laço.
+  // A janela do aparo (AP4) é lida uma vez, num local, antes do laço: todos os aparáveis do passo se resolvem contra ela.
+  const janela = u8[JOGADOR3_U8.aparoJanela]!;
+  const janelaAtiva = janela >= 1 && janela <= u8[JOGADOR3_U8.aparoLimite]!;
+  let aparados = 0;
 
   // Projéteis de Sal em voo (NV4 a NV6): movem, testam o impacto e, se seguem, contam pela trajetória (AP5).
   if (quantosAtivos(e.poolDeProjeteis) > 0) {
@@ -100,8 +103,17 @@ export function rodarAtaques(e: Estado, dados: DadosDaVigilia): void {
         const dono = pr.donoSlot[p]!;
         const donoValido = posInimigo[dono]! >= 0 && geracaoDoInimigo[dono] === pr.donoGeracao[p];
         BRUTO[0] = pr.dano[p]!;
-        // Gancho da 2d: o aparo (janela ativa) vem antes da esquiva e do dano; o aparado não aplica Sal.
-        const desfecho = resolverAcertoNoJogador(e, dados, ORIGEM_DO_DANO.projetil, donoValido ? dono : -1);
+        let desfecho: number;
+        if (janelaAtiva && aparavel === 1) {
+          // Aparo (AP4, AP6): vem antes da esquiva e do dano; o aparado não aplica Sal e o projétil some abaixo.
+          FLOATS_DO_EVENTO[0] = donoValido ? ini.x[dono]! : xf;
+          FLOATS_DO_EVENTO[1] = donoValido ? ini.y[dono]! : yf;
+          aparar(e, dados, aparados, donoValido ? dono : -1, novica);
+          aparados++;
+          desfecho = DESFECHO.aparado;
+        } else {
+          desfecho = resolverAcertoNoJogador(e, dados, ORIGEM_DO_DANO.projetil, donoValido ? dono : -1);
+        }
         if (desfecho === DESFECHO.acertou && !invulneravel) {
           if (pr.salPct[p]! > u8[JOGADOR3_U8.salPct]!) u8[JOGADOR3_U8.salPct] = pr.salPct[p]!;
           if (pr.salPassos[p]! > u8[JOGADOR3_U8.salPassos]!) u8[JOGADOR3_U8.salPassos] = pr.salPassos[p]!;
@@ -137,7 +149,12 @@ export function rodarAtaques(e: Estado, dados: DadosDaVigilia): void {
     const raioDoArco = c.alcanceDoArco[tipo]!;
     const intervalo = c.intervaloPassos[tipo]!;
     if (raioDoArco === 0 && intervalo === 0) continue;
-    // Gancho da 2d: com `quebradaPassos` > 0 o telegrafo é cancelado (sem golpe nem projétil) e a máquina volta ao repouso.
+    // Postura Quebrada (PQ3, OG10): o telegrafo é cancelado (sem golpe nem projétil) e a máquina volta ao início;
+    // o atordoado também deixa de contar como ameaça. O projétil já lançado segue.
+    if (ini.quebradaPassos[s]! > 0) {
+      cancelarAtaque(e, dados, s, tipo);
+      continue;
+    }
     const x = ini.x[s]!;
     const y = ini.y[s]!;
     let dx = jx - x;
@@ -160,8 +177,16 @@ export function rodarAtaques(e: Estado, dados: DadosDaVigilia): void {
           let desfecho: number = DESFECHO_DO_GOLPE.errou;
           if (d2 <= alcance * alcance && dx * mx + dy * my >= COSSENO_DO_ARCO * Math.sqrt(d2)) {
             BRUTO[0] = ini.dano[s]!;
-            // Gancho da 2d: o aparo antes dos i-frames. O golpe ignora `invulContato` e não o liga (OG7).
-            desfecho = resolverAcertoNoJogador(e, dados, ORIGEM_DO_DANO.golpe, s);
+            if (janelaAtiva && c.ataqueAparavel[tipo] === 1) {
+              // Aparo antes dos i-frames (AP4). O golpe ignora `invulContato` e não o liga (OG7).
+              FLOATS_DO_EVENTO[0] = x;
+              FLOATS_DO_EVENTO[1] = y;
+              aparar(e, dados, aparados, s, tipo);
+              aparados++;
+              desfecho = DESFECHO.aparado;
+            } else {
+              desfecho = resolverAcertoNoJogador(e, dados, ORIGEM_DO_DANO.golpe, s);
+            }
           }
           FLOATS_DO_EVENTO[0] = x;
           FLOATS_DO_EVENTO[1] = y;
@@ -247,5 +272,6 @@ export function rodarAtaques(e: Estado, dados: DadosDaVigilia): void {
     }
   }
   e.jogador3U16[JOGADOR3_U16.ameacasAparaveis] = ameacas;
-  // Gancho da 2d, depois do laço: zera `aparoJanela` e aplica a Postura Quebrada em área (AP6).
+  // Depois do laço (AP6): zera `aparoJanela`, arma o Contra-ataque e aplica a Postura Quebrada em área.
+  if (aparados > 0) concluirAparos(e, dados);
 }

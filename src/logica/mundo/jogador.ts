@@ -8,7 +8,7 @@
 // mesma colisão, sem o bloqueio dos inimigos nos i-frames). Também cuida do prompt "Deslize para mover", cujo
 // gatilho é a intenção, e não o deslocamento: um obstáculo não segura o prompt.
 import { ACAO, type ComandosDoPasso } from '../nucleo/comandos';
-import { CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR, JOGADOR3, JOGADOR3_U8, JOGADOR_U8, PROMPT, type Estado } from '../nucleo/estado';
+import { CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR, JOGADOR3, JOGADOR3_U16, JOGADOR3_U8, JOGADOR_U8, PROMPT, type Estado } from '../nucleo/estado';
 import { EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import { segundosEmPassos } from '../nucleo/passos';
 import type { DadosDaVigilia } from './dados';
@@ -24,7 +24,7 @@ export const PASSO_DO_PROMPT_DE_MOVER = segundosEmPassos(10);
  * Timers, comandos e regeneração do jogador (fase 2a a 2c da ordem do passo, ET4):
  * a esquiva sobe de 1 (passo do comando) a 21 e volta a 0; esquiva e aparo só
  * são aceitos fora das três travas, sem buffer; o aparo vence a esquiva no mesmo
- * passo (a ação do aparo é da etapa seguinte); sem stamina para o custo, a ação
+ * passo; o fim da janela decide o aparo falho ou vazio (AP7); sem stamina para o custo, a ação
  * é negada sem mexer em nada (ST3); o passo do gasto não regenera nem decrementa
  * o atraso (ST2). Só mexe em inteiros e grava os floats em rascunhos.
  */
@@ -32,10 +32,34 @@ function rodarTimersEComandos(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoP
   const u8 = e.jogador3U8;
   const c = dados.combate;
   // (a) timers
-  const janela = u8[JOGADOR3_U8.aparoJanela]!;
-  if (janela > 0) u8[JOGADOR3_U8.aparoJanela] = janela - 1;
+  // O passo que decide o desfecho do aparo (c + 12, ou c + 18 na janela estendida) lê o contador de ameaças
+  // do passo anterior (AP5, AP7) e, se for falho, grava o atraso: não regenera nem o decrementa (ST2).
+  let decidiuFalho = 0;
   const falho = u8[JOGADOR3_U8.aparoFalho]!;
   if (falho > 0) u8[JOGADOR3_U8.aparoFalho] = falho - 1;
+  const janela = u8[JOGADOR3_U8.aparoJanela]!;
+  if (janela > 0) {
+    u8[JOGADOR3_U8.aparoJanela] = janela - 1;
+    if (janela === 1) {
+      const j = e.jogador;
+      FLOATS_DO_EVENTO[0] = j[JOGADOR.x]!;
+      FLOATS_DO_EVENTO[1] = j[JOGADOR.y]!;
+      FLOATS_DO_EVENTO[2] = e.jogador3[JOGADOR3.stamina]!;
+      FLOATS_DO_EVENTO[3] = 0;
+      if (e.jogador3U16[JOGADOR3_U16.ameacasAparaveis]! > 0) {
+        decidiuFalho = 1;
+        u8[JOGADOR3_U8.aparoFalho] = c.aparoFalho;
+        if (u8[JOGADOR3_U8.esperaRegen]! < c.aparoFalho) u8[JOGADOR3_U8.esperaRegen] = c.aparoFalho;
+        // Com o prompt de aparo na tela, o aparo falho conta para a janela estendida (AP11 (a)).
+        if (u8[JOGADOR3_U8.promptAparo] === PROMPT.visivel && u8[JOGADOR3_U8.falhasDeAparo]! < 255) {
+          u8[JOGADOR3_U8.falhasDeAparo] = u8[JOGADOR3_U8.falhasDeAparo]! + 1;
+        }
+        gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.aparoFalho, 0, 0, -1, 0, 0, 0, 0);
+      } else {
+        gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.aparoVazio, 0, 0, -1, 0, 0, 0, 0);
+      }
+    }
+  }
   let ep = u8[JOGADOR3_U8.esquivaPasso]!;
   if (ep > 0) {
     ep++;
@@ -45,6 +69,28 @@ function rodarTimersEComandos(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoP
   // (b) comandos
   let gasto = 0;
   const acoes = cmd.acoes[0]!;
+  // Aparo antes da esquiva (ES6); as mesmas travas: fora da esquiva, da janela e do aparo falho (AP8).
+  if ((acoes & ACAO.aparo) !== 0 && ep === 0 && u8[JOGADOR3_U8.aparoJanela] === 0 && u8[JOGADOR3_U8.aparoFalho] === 0) {
+    const j = e.jogador;
+    const j3 = e.jogador3;
+    const stamina = j3[JOGADOR3.stamina]!;
+    if (stamina < c.custoAparo) {
+      FLOATS_DO_EVENTO[0] = j[JOGADOR.x]!;
+      FLOATS_DO_EVENTO[1] = j[JOGADOR.y]!;
+      FLOATS_DO_EVENTO[2] = stamina;
+      FLOATS_DO_EVENTO[3] = c.custoAparo;
+      gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.acaoNegada, 0, ACAO.aparo, -1, 0, 0, 0, 0);
+    } else {
+      j3[JOGADOR3.stamina] = stamina - c.custoAparo;
+      if (u8[JOGADOR3_U8.esperaRegen]! < c.esperaDoGasto) u8[JOGADOR3_U8.esperaRegen] = c.esperaDoGasto;
+      gasto = 1;
+      // Janela estendida (AP11): +6 passos com o prompt de aparo na tela e 2 falhas.
+      const estendida = u8[JOGADOR3_U8.promptAparo] === PROMPT.visivel && u8[JOGADOR3_U8.falhasDeAparo]! >= 2;
+      const limite = estendida ? c.aparoLimiteEstendido : c.aparoLimite;
+      u8[JOGADOR3_U8.aparoLimite] = limite;
+      u8[JOGADOR3_U8.aparoJanela] = limite + 1;
+    }
+  }
   if ((acoes & ACAO.esquiva) !== 0 && (acoes & ACAO.aparo) === 0 && ep === 0 && u8[JOGADOR3_U8.aparoJanela] === 0 && u8[JOGADOR3_U8.aparoFalho] === 0) {
     const j = e.jogador;
     const j3 = e.jogador3;
@@ -88,7 +134,7 @@ function rodarTimersEComandos(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoP
     }
   }
   // (c) regeneração: o passo que gravou o atraso não regenera nem o decrementa.
-  if (gasto === 0) {
+  if (gasto === 0 && decidiuFalho === 0) {
     const espera = u8[JOGADOR3_U8.esperaRegen]!;
     if (espera > 0) {
       u8[JOGADOR3_U8.esperaRegen] = espera - 1;

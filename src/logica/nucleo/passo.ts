@@ -21,7 +21,14 @@ import { atualizarPromptDeMover, moverJogador } from '../mundo/jogador';
 import { confirmarModal, modalAberto } from '../progressao/modal';
 import { rodarPickups } from '../progressao/pickups';
 import { criarComandos, type ComandosDoPasso, type FonteDeComandos } from './comandos';
-import { CAB, CENARIO, JOGADOR3_U8, PROGRESSAO, type Estado } from './estado';
+import { CAB, CAPACIDADE_DE_INIMIGOS, CENARIO, JOGADOR3_U8, PROGRESSAO, type Estado } from './estado';
+
+/** `quebradaPassos` cai 1 em todo inimigo com valor > 0: gravado 121 na fase 6, vale > 0 de h+1 a h+120 (PQ2). */
+function decrementarPostura(e: Estado): void {
+  const q = e.inimigos.quebradaPassos;
+  const pos = e.pool.posicao;
+  for (let s = 0; s < CAPACIDADE_DE_INIMIGOS; s++) if (q[s]! > 0 && pos[s]! >= 0) q[s] = q[s]! - 1;
+}
 
 export function passo(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): void {
   // Fase 0 (ET4, ET7): o passo congelado só decrementa o contador; `passo`, `relogio`
@@ -44,6 +51,8 @@ export function passo(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): v
   // Fase 6 (ET4): ataques dos inimigos e projéteis tipo 2, só com o bit `ataques` (VT1).
   if (e.cab[CAB.cenario]! & CENARIO.ataques) rodarAtaques(e, dados);
   aplicarContato(e, dados);
+  // Fase 8 (ET4): o único decremento da Postura Quebrada, antes da rotação do cenário; passo congelado não chega aqui.
+  decrementarPostura(e);
   aplicarRotacao(e);
   rodarDiretor(e, dados, moveu);
 }

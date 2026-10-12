@@ -186,6 +186,8 @@ export function moverHorda(e: Estado, dados: DadosDaVigilia): void {
       const timer = ini.ataqueTimer[s]!;
       enraizado = fase === 1 ? grande || timer > 1 : grande && timer > 1;
     }
+    // Postura Quebrada (PQ3): o atordoado não persegue nem recua; o pulso, a separação e o bloqueio seguem valendo.
+    if (ini.quebradaPassos[s]! > 0) enraizado = true;
     const kb = ini.kbPassos[s]!;
     if (kb > 0) {
       // Afastamento do pulso (K1), no lugar do comportamento: radial, do jogador para o inimigo, recalculado a cada passo.

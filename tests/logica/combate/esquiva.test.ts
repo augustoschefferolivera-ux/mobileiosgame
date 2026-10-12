@@ -319,13 +319,14 @@ describe('F-006.9: travas e precedência (ES6)', () => {
     expect(stamina(e)).toBe(75);
   });
 
-  it('com os bits de aparo e esquiva no mesmo passo, a esquiva é ignorada e consumida, sem custo', () => {
+  it('com os bits de aparo e esquiva no mesmo passo, o aparo vence: a esquiva é ignorada e consumida, sem custo (só os 15 do aparo)', () => {
     const e = criar();
     avancar(e, D_LIVRE, fonteDeAcoes([{ passo: 0, acoes: ACAO.esquiva | ACAO.aparo, mira: [0, -1] }]), 1);
     expect(eventosDe(e, EVENTO.esquiva)).toHaveLength(0);
     expect(eventosDe(e, EVENTO.acaoNegada)).toHaveLength(0);
     expect(u8(e, 'esquivaPasso')).toBe(0);
-    expect(stamina(e)).toBe(100);
+    expect(u8(e, 'aparoJanela')).toBe(12);
+    expect(stamina(e)).toBe(85);
   });
 
   it('esquiva e janela do aparo nunca coexistem: comando com aparoJanela > 0 não faz nada e não custa', () => {
