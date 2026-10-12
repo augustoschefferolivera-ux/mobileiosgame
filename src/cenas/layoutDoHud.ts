@@ -98,6 +98,47 @@ export function xDaMarcaDeStamina(largura: number, pontos: number, maxima: numbe
   return (largura * pontos) / maxima;
 }
 
+/**
+ * Barra de HP (decisoes-F-007 HB1): a metade esquerda da faixa da barra de XP, na mesma linha da stamina (topo + 56, 10 pt,
+ * vão de 8 pt: x = esquerda + 80 e largura 119 pt com a faixa de 246). O número (`ceil(hp)`) fica logo abaixo, a 2 pt,
+ * em 12 pt de corpo, acima das vagas (topo + 80).
+ */
+export const BARRA_DE_HP = { altura: 10, abaixoDoTopo: 56, vao: 8, numeroAbaixo: 2, corpoDoNumero: 12 } as const;
+/** Retardo da perda (HB2): a barra mostra o HP de antes por 12 passos da simulação, e a vinheta do acerto dura 6 quadros a 0,35. */
+export const RETARDO_DO_HP = { passos: 12 } as const;
+export const VINHETA_DO_ACERTO = { alfa: 0.35, quadros: 6, degraus: 6, borda: 48 } as const;
+
+/** Caixa da barra de HP, escrita em `out` sem alocar. */
+export function caixaDaBarraDeHp(insets: Insets, out: CaixaDaBarra): CaixaDaBarra {
+  const xp = caixaDaBarraDeXp(insets, out);
+  out.largura = Math.max(0, (xp.largura - BARRA_DE_HP.vao) / 2);
+  out.y = insets.topo + BARRA_DE_HP.abaixoDoTopo;
+  out.altura = BARRA_DE_HP.altura;
+  return out;
+}
+
+/** Posição y do número de HP (topo do texto), abaixo da barra. */
+export function yDoNumeroDeHp(caixa: CaixaDaBarra): number {
+  return caixa.y + caixa.altura + BARRA_DE_HP.numeroAbaixo;
+}
+
+/**
+ * Larguras dos trechos da barra de HP, em pt, escritas em `out` [cheio, cura, retardo] sem alocar: o HP atual; a cura
+ * que falta do Frasco (de hp até hp + restante, limitada ao máximo); e o retardo (de hp até o valor de antes). Cada
+ * uma é a largura desde o início da barra até o fim do trecho; o desenho empilha retardo, cura e cheio.
+ */
+export function trechosDaBarraDeHp(largura: number, hp: number, hpMax: number, restante: number, retardo: number, out: Float64Array): Float64Array {
+  out[0] = larguraDaStamina(largura, hp, hpMax);
+  out[1] = larguraDaStamina(largura, Math.min(hpMax, hp + Math.max(0, restante)), hpMax);
+  out[2] = larguraDaStamina(largura, Math.min(hpMax, Math.max(hp, retardo)), hpMax);
+  return out;
+}
+
+/** O número mostrado do HP: `ceil`, então HP > 0 nunca mostra 0 (DM4). */
+export function numeroDoHp(hp: number): number {
+  return hp > 0 ? Math.ceil(hp) : 0;
+}
+
 /** Estados do botão Aparo (AP1, RE2). */
 export const ESTADO_DO_APARO = { normal: 0, pressionado: 1, indisponivel: 2 } as const;
 /** Quadros de render do preenchimento do botão pressionado. */

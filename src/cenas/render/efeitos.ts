@@ -89,7 +89,7 @@ export class EfeitosDaVigilia {
   /** Recusas por pool cheio, desde reiniciar(). `telegrafos` e `projeteisInimigos` são os excedentes não desenhados no último quadro (RE5). */
   readonly recusados = { numeros: 0, mortes: 0, efeitos: 0, telegrafos: 0, projeteisInimigos: 0 };
   /** Eventos de feedback da interface lidos do anel desde reiniciar(): o flash, os sons e o pulso da stamina os consomem (FB2, FB4, RE1). */
-  readonly feedback = { aparo: 0, esquivaPerfeita: 0, acaoNegada: 0 };
+  readonly feedback = { aparo: 0, esquivaPerfeita: 0, acaoNegada: 0, danoRecebido: 0 };
   numerosVivos = 0;
   private numerosLigados = true;
 
@@ -102,7 +102,7 @@ export class EfeitosDaVigilia {
     this.numeroDoSlot.fill(-1);
     this.leitor.reiniciar();
     this.recusados.numeros = this.recusados.mortes = this.recusados.efeitos = this.recusados.telegrafos = this.recusados.projeteisInimigos = 0;
-    this.feedback.aparo = this.feedback.esquivaPerfeita = this.feedback.acaoNegada = 0;
+    this.feedback.aparo = this.feedback.esquivaPerfeita = this.feedback.acaoNegada = this.feedback.danoRecebido = 0;
     this.numerosVivos = 0;
     this.numerosLigados = true;
   }
@@ -149,6 +149,9 @@ export class EfeitosDaVigilia {
         this.feedback.esquivaPerfeita++;
       } else if (tipo === EVENTO.acaoNegada) {
         this.feedback.acaoNegada++;
+      } else if (tipo === EVENTO.danoAoJogador) {
+        // O sinal de acerto só acende com dano líquido ≥ 0,0001 (HB2); esquivado, aparado e invulnerável não emitem o evento.
+        if (f32[i + EV.floats + 2]! >= 0.0001) this.feedback.danoRecebido++;
       } else if (tipo === EVENTO.golpe || tipo === EVENTO.pulso) {
         const ef = this.efeitos;
         let j = 0;

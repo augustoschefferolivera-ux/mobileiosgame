@@ -105,6 +105,12 @@
       "limite_palavras": null
     },
     {
+      "id": "A5.HUD.HP",
+      "texto": "{hp}",
+      "contexto": "HUD: número do HP atual, ceil(hp), 12 pt sob a barra de HP; só o algarismo (design/decisoes-F-007.md HB1; doc 11 §3.1)",
+      "limite_palavras": null
+    },
+    {
       "id": "A5.HUD.ALMAS",
       "texto": "{almas} Almas",
       "contexto": "HUD: Almas da Vigília (doc 11 §3.6)",

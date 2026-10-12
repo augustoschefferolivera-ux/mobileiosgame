@@ -8,21 +8,28 @@
 import Phaser from 'phaser';
 import { alvoDaPausa, alvoDoAparo, areaDoJoystick, type Alvo } from '../entrada/alvos';
 import { RAIO_DO_JOYSTICK_PT, RAIO_DO_PINO_PT } from '../entrada/joystick';
-import { JOGADOR3, JOGADOR3_U8, PROGRESSAO, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, type Estado } from '../logica/nucleo/estado';
+import { CAB, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR3_U8, JOGADOR4, JOGADOR4_U8, PROGRESSAO, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, type Estado } from '../logica/nucleo/estado';
 import { ALTURA_LOGICA, LARGURA_LOGICA, medirSafeArea, type Insets } from '../plataforma/safeArea';
 import type { ContextoDoJogo } from './contexto';
 import { COR, cameraLogica, texto } from './estilo';
 import { IDS_DOS_PROMPTS, promptEmTela } from './prompts';
+import { RetardoDeHp } from './retardoDeHp';
 import {
+  BARRA_DE_HP,
   BARRA_DE_STAMINA,
   BARRA_DE_XP,
+  VINHETA_DO_ACERTO,
   ESTADO_DO_APARO,
   PRIMEIRA_PASSIVA_NO_HUD,
   PULSO_DA_STAMINA,
   QUADROS_DO_APARO_PRESSIONADO,
   STAMINA_DA_ESQUIVA,
   VAGAS_DO_HUD,
+  caixaDaBarraDeHp,
   caixaDaBarraDeStamina,
+  numeroDoHp,
+  trechosDaBarraDeHp,
+  yDoNumeroDeHp,
   caixaDaBarraDeXp,
   estadoDoAparo,
   larguraDaStamina,
@@ -73,6 +80,23 @@ export class Hud extends Phaser.Scene {
   private trilhoDaStamina: Phaser.GameObjects.Image | null = null;
   private preenchimentoDaStamina: Phaser.GameObjects.Image | null = null;
   private marcasDaStamina: Phaser.GameObjects.Graphics | null = null;
+  private trilhoDeHp: Phaser.GameObjects.Image | null = null;
+  private retardoDaBarraDeHp: Phaser.GameObjects.Image | null = null;
+  private curaDaBarraDeHp: Phaser.GameObjects.Image | null = null;
+  private preenchimentoDeHp: Phaser.GameObjects.Image | null = null;
+  private numeroDeHp: Phaser.GameObjects.Text | null = null;
+  /** Criada na 1ª vinheta pedida com "Flashes" ligado; com ele desligado nunca existe (HB2, E7). */
+  private vinheta: Phaser.GameObjects.Graphics | null = null;
+  private alfaDaVinhetaDesenhado = 0;
+  private readonly caixaDeHp: CaixaDaBarra = { x: 0, y: 0, largura: 0, altura: 0 };
+  private readonly retardo = new RetardoDeHp();
+  private readonly trechosDeHp = new Float64Array(3);
+  /** O que a barra de HP já mostra: hp, hpMax, o resto da cura e o retardo; -1 = nada ainda. */
+  private hpDesenhado = -1;
+  private hpMaxDesenhado = -1;
+  private curaDesenhada = -1;
+  private retardoDesenhado = -1;
+  private numeroDeHpDesenhado = -1;
   private botaoDoAparoGrafico: Phaser.GameObjects.Graphics | null = null;
   private flashGrafico: Phaser.GameObjects.Graphics | null = null;
   private readonly caixaDaStamina: CaixaDaBarra = { x: 0, y: 0, largura: 0, altura: 0 };
@@ -114,6 +138,16 @@ export class Hud extends Phaser.Scene {
     this.preenchimento = barra(COR.cinzaAzul, 1).setVisible(false);
     this.nivelTexto = texto(this, 0, 0, 'A5.HUD.NIVEL', 15, COR.osso, { nivel: 1 }).setOrigin(0, 0.5);
     this.vagas = this.add.graphics();
+    // Barra de HP (HB1): trilho, retardo da perda, trecho da cura do Frasco e o HP, empilhados nessa ordem.
+    this.trilhoDeHp = barra(COR.pedra, ALFA_DO_TRILHO);
+    this.retardoDaBarraDeHp = barra(COR.retardoDeHp, 1).setVisible(false);
+    this.curaDaBarraDeHp = barra(COR.brasaClara, 1).setVisible(false);
+    this.preenchimentoDeHp = barra(COR.brasa, 1).setVisible(false);
+    this.numeroDeHp = texto(this, 0, 0, 'A5.HUD.HP', BARRA_DE_HP.corpoDoNumero, COR.osso, { hp: 0 }).setOrigin(0, 0);
+    this.vinheta = null;
+    this.alfaDaVinhetaDesenhado = 0;
+    this.retardo.reiniciar();
+    this.hpDesenhado = this.hpMaxDesenhado = this.curaDesenhada = this.retardoDesenhado = this.numeroDeHpDesenhado = -1;
     this.trilhoDaStamina = barra(COR.pedra, ALFA_DO_TRILHO);
     this.preenchimentoDaStamina = barra(COR.osso, 1).setVisible(false);
     this.marcasDaStamina = this.add.graphics();
@@ -189,6 +223,13 @@ export class Hud extends Phaser.Scene {
     this.preenchimento!.setPosition(c.x, meio);
     this.nivelTexto!.setPosition(c.x + c.largura + BARRA_DE_XP.folgaDoNivel, meio);
     vagasDoHud(ins, this.posicoesDasVagas);
+    // Barra de HP (HB1): a metade esquerda da faixa; o número logo abaixo.
+    const h = caixaDaBarraDeHp(ins, this.caixaDeHp);
+    const meioDoHp = h.y + h.altura / 2;
+    for (const im of [this.trilhoDeHp!, this.retardoDaBarraDeHp!, this.curaDaBarraDeHp!, this.preenchimentoDeHp!]) im.setPosition(h.x, meioDoHp);
+    this.trilhoDeHp!.setScale(escalaPara('quadrado', h.largura), escalaPara('quadrado', h.altura));
+    this.numeroDeHp!.setPosition(h.x, yDoNumeroDeHp(h));
+    this.hpDesenhado = -1;
     // Barra de stamina (RE1): trilho, preenchimento e as 3 marcas de 1 pt em pedra (uma esquiva = 25 pontos).
     const s = caixaDaBarraDeStamina(ins, this.caixaDaStamina);
     const meioDaStamina = s.y + s.altura / 2;
@@ -217,6 +258,8 @@ export class Hud extends Phaser.Scene {
       this.assinaturaDasVagas = -1;
       this.staminaDesenhada = -1;
       this.estadoDoAparoDesenhado = -1;
+      this.hpDesenhado = -1;
+      this.retardo.reiniciar();
     }
     const nivel = e.progresso[PROGRESSAO.nivel]!;
     const xp = e.progresso[PROGRESSAO.xp]!;
@@ -235,6 +278,35 @@ export class Hud extends Phaser.Scene {
     if (assinatura !== this.assinaturaDasVagas) {
       this.assinaturaDasVagas = assinatura;
       this.desenharVagas(e);
+    }
+  }
+
+  /**
+   * Barra de HP (HB1, HB2): o retardo guarda o HP de antes por 12 passos; o trecho da cura vai de hp até hp + o que falta
+   * do Frasco. Só reescreve os quatro trechos e o número quando algum valor muda; nada aloca por quadro.
+   */
+  private atualizarHp(sim: NonNullable<ContextoDoJogo['simulacao']>): void {
+    const e = sim.estado;
+    const hp = e.jogador[JOGADOR.hp]!;
+    const hpMax = e.jogador2[JOGADOR2.hpMax]!;
+    const cura = e.jogador4U8[JOGADOR4_U8.frascoPasso]! > 0 ? e.jogador4[JOGADOR4.frascoRestante]! : 0;
+    this.retardo.atualizar(hp, e.cab[CAB.passo]!);
+    const retardo = this.retardo.valor;
+    if (hp !== this.hpDesenhado || hpMax !== this.hpMaxDesenhado || cura !== this.curaDesenhada || retardo !== this.retardoDesenhado) {
+      this.hpDesenhado = hp;
+      this.hpMaxDesenhado = hpMax;
+      this.curaDesenhada = cura;
+      this.retardoDesenhado = retardo;
+      const tr = trechosDaBarraDeHp(this.caixaDeHp.largura, hp, hpMax, cura, retardo, this.trechosDeHp);
+      const altura = escalaPara('quadrado', BARRA_DE_HP.altura);
+      this.preenchimentoDeHp!.setVisible(tr[0]! > 0).setScale(escalaPara('quadrado', tr[0]!), altura);
+      this.curaDaBarraDeHp!.setVisible(tr[1]! > tr[0]!).setScale(escalaPara('quadrado', tr[1]!), altura);
+      this.retardoDaBarraDeHp!.setVisible(tr[2]! > tr[0]!).setScale(escalaPara('quadrado', tr[2]!), altura);
+    }
+    const numero = numeroDoHp(hp);
+    if (numero !== this.numeroDeHpDesenhado) {
+      this.numeroDeHpDesenhado = numero;
+      this.numeroDeHp!.setText(t('A5.HUD.HP', { hp: numero }));
     }
   }
 
@@ -321,6 +393,30 @@ export class Hud extends Phaser.Scene {
       this.alfaDoFlashDesenhado = alfa;
       this.flashGrafico!.setAlpha(alfa).setVisible(alfa > 0);
     }
+    // Vinheta do acerto (HB2): só existe depois do 1º pedido com "Flashes" ligado; desligado, o objeto nunca é criado.
+    const alfaDaVinheta = fb.vinheta.proximoAlfa(this.ctx.opcoes.flashes, this.ctx.flashSegurar);
+    if (alfaDaVinheta !== this.alfaDaVinhetaDesenhado) {
+      this.alfaDaVinhetaDesenhado = alfaDaVinheta;
+      if (this.vinheta === null && alfaDaVinheta > 0) this.vinheta = this.criarVinheta();
+      this.vinheta?.setAlpha(alfaDaVinheta).setVisible(alfaDaVinheta > 0);
+    }
+  }
+
+  /** Bordas da tela em degraus de alfa decrescente, na cor do retardo; o alfa do conjunto vem de `proximoAlfa` (0,35). */
+  private criarVinheta(): Phaser.GameObjects.Graphics {
+    const { degraus, borda } = VINHETA_DO_ACERTO;
+    const passo = borda / degraus;
+    const g = this.add.graphics().setVisible(false).setAlpha(0);
+    for (let k = 0; k < degraus; k++) {
+      const a = (1 - k / degraus) / 2;
+      const d = k * passo;
+      g.fillStyle(COR.retardoDeHp, a)
+        .fillRect(0, d, LARGURA_LOGICA, passo)
+        .fillRect(0, ALTURA_LOGICA - d - passo, LARGURA_LOGICA, passo)
+        .fillRect(d, d + passo, passo, ALTURA_LOGICA - 2 * (d + passo))
+        .fillRect(LARGURA_LOGICA - d - passo, d + passo, passo, ALTURA_LOGICA - 2 * (d + passo));
+    }
+    return g;
   }
 
   /** Os códigos das armas e das passivas em base 16: o ícone só depende deles (o nível não muda o desenho). */
@@ -359,6 +455,7 @@ export class Hud extends Phaser.Scene {
     if (mostrar !== this.promptMostrado) this.trocarPrompt(mostrar);
     if (sim !== null) {
       this.atualizarProgresso(sim);
+      this.atualizarHp(sim);
       this.atualizarStamina(sim);
       this.atualizarAparo(sim);
       this.atualizarFeedback(sim);

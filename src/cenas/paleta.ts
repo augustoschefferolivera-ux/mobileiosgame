@@ -11,6 +11,13 @@ export const COR = {
   cinzaFrio: 0x2b3340,
   brasa: 0xffb347,
   laranjaQueimado: 0xe2652b,
+  /** Trecho da cura do Frasco na barra de HP (brasa clara; decisoes-F-007 HB1). */
+  brasaClara: 0xffd699,
+  /**
+   * "Retardo" da perda de HP e vinheta do acerto (HB1, HB2): tom próprio medido (CIE76 ΔE: 22,2 contra a Cinza vermelha
+   * #c8324b, 53,1 contra o fundo #1a1f2b; contraste do osso sobre ele 4,86). #c8324b não passa: ΔE 0 contra si mesma.
+   */
+  retardoDeHp: 0x9e3a52,
   osso: 0xe8dcc4,
   sal: 0xdfe8ea,
   /** Branco puro: telegrafo, projétil da Noviça e flash (reservado; design/decisoes-F-006.md RE4 a RE6). */

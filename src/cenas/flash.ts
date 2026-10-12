@@ -7,6 +7,11 @@ export const FLASH = { alfa: 0.35, quadros: 2, porSegundo: 3, janelaMs: 1000 } a
 export class ControladorDeFlash {
   /** Quadros de render que faltam (o que `__GAME_DEBUG__.flash` expõe). */
   quadros = 0;
+  /** O flash branco (2 quadros, 0,35) é o padrão; a vinheta do acerto (F-007 HB2) usa o seu e o mesmo limite de 3 por segundo. */
+  constructor(
+    private readonly duracao: number = FLASH.quadros,
+    private readonly alfa: number = FLASH.alfa,
+  ) {}
   /** Os instantes (ms de render) dos últimos disparos aceitos, em anel. */
   private readonly marcas = new Float64Array(FLASH.porSegundo).fill(-Infinity);
   private proxima = 0;
@@ -17,7 +22,7 @@ export class ControladorDeFlash {
     if (agoraMs - this.marcas[this.proxima]! < FLASH.janelaMs) return false;
     this.marcas[this.proxima] = agoraMs;
     this.proxima = (this.proxima + 1) % FLASH.porSegundo;
-    this.quadros = FLASH.quadros;
+    this.quadros = this.duracao;
     return true;
   }
 
@@ -26,7 +31,7 @@ export class ControladorDeFlash {
    * (?flash=segurar, só no build de debug) não decrementa, para o alfa ficar na captura.
    */
   proximoAlfa(ligado: boolean, segurar: boolean): number {
-    const a = this.quadros > 0 && ligado ? FLASH.alfa : 0;
+    const a = this.quadros > 0 && ligado ? this.alfa : 0;
     if (this.quadros > 0 && !segurar) this.quadros--;
     return a;
   }
