@@ -3,8 +3,9 @@
 // evita os dois; o ciclo fixo Patada, Patada, Grito, sem sorteio. Os testes de fronteira chamam `rodarAtaques` direto,
 // com o Coroado já no último passo do telegrafo; o ciclo roda `avancar`.
 import { describe, expect, it } from 'vitest';
+import { BRUTO } from '../../../src/logica/mundo/contato';
 import { FASE_DO_ATAQUE, rodarAtaques } from '../../../src/logica/mundo/ataques';
-import { CENARIO, FOGUEIRA_F32, FOGUEIRA_U8, JOGADOR, JOGADOR3_U8, MUNDO, type Estado } from '../../../src/logica/nucleo/estado';
+import { CENARIO, FOGUEIRA_F32, FOGUEIRA_U8, JOGADOR, JOGADOR3_U16, JOGADOR3_U8, MUNDO, type Estado } from '../../../src/logica/nucleo/estado';
 import { EVENTO, FORMA } from '../../../src/logica/nucleo/eventos';
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { ARMA } from '../../../src/logica/armas/tabela';
@@ -104,7 +105,8 @@ describe('Patada (CR2)', () => {
     const { e, s } = comCoroado();
     preparar(e, s, 0, 100, 0);
     e.jogador3U8[JOGADOR3_U8.esquivaPasso] = 5;
-    expect(golpe(e).desfecho).toBe(2);
+    const g = golpe(e);
+    expect([g.desfecho, g.dano]).toEqual([2, 0]);
     expect(hp(e)).toBe(150);
   });
 
@@ -131,7 +133,10 @@ describe('Grito (CR3)', () => {
     expect(e.jogador3U8[JOGADOR3_U8.aparoJanela]).toBe(5);
     const fora = comCoroado();
     preparar(fora.e, fora.s, 1, 112.1, 0);
-    expect(golpe(fora.e).desfecho).toBe(4);
+    BRUTO[0] = 99; // resto de uma conta anterior: o evento do Grito que erra não pode levá-lo
+    const errou = golpe(fora.e);
+    // O dano do evento é 0 quando o Grito erra (e não o resto da conta anterior em BRUTO).
+    expect([errou.desfecho, errou.dano]).toEqual([4, 0]);
     expect(e.fogueiraU8[FOGUEIRA_U8.empurraoPassos]).toBe(8);
     expect(fora.e.fogueiraU8[FOGUEIRA_U8.empurraoPassos]).toBe(0);
   });
@@ -182,6 +187,19 @@ describe('Grito (CR3)', () => {
     expect(golpe(e).desfecho).toBe(2);
     expect(hp(e)).toBe(150);
     expect(e.fogueiraU8[FOGUEIRA_U8.empurraoPassos]).toBe(0);
+  });
+});
+
+describe('ameaça aparável (OG11) e o Grito', () => {
+  it('a Patada em telegrafo com o jogador no cone conta como ameaça; o Grito, que não é aparável, não', () => {
+    for (const [id, esperado] of [[0, 1], [1, 0]] as const) {
+      const { e, s } = comCoroado();
+      preparar(e, s, id, 50, 0);
+      e.inimigos.ataqueTimer[s] = 10;
+      rodarAtaques(e, D);
+      expect(e.inimigos.ataqueFase[s]).toBe(FASE_DO_ATAQUE.telegrafo);
+      expect(e.jogador3U16[JOGADOR3_U16.ameacasAparaveis], `ataqueId ${id}`).toBe(esperado);
+    }
   });
 });
 

@@ -8,6 +8,11 @@ import { hpNoSpawn, danoNoSpawn } from '../../../src/logica/mundo/inimigos';
 import { TIPO } from '../../../src/logica/mundo/tipos';
 import { deltaNoToro } from '../../../src/logica/mundo/toro';
 import { ALTURA_DO_MAPA as H, LARGURA_DO_MAPA as W } from '../../../src/logica/mundo/toro';
+import { DIRECAO_X, DIRECAO_Y } from '../../../src/logica/mundo/direcoes';
+import { TIPO_DE_PROJETIL } from '../../../src/logica/nucleo/estado';
+import { criarComandos } from '../../../src/logica/nucleo/comandos';
+import { passo } from '../../../src/logica/nucleo/passo';
+import { JOGADOR3_U8 } from '../../../src/logica/nucleo/estado';
 import { fonteDoRoteiro } from '../../../src/logica/nucleo/comandos';
 import {
   CAB,
@@ -31,7 +36,7 @@ import {
 } from '../../../src/logica/nucleo/estado';
 import { CAUSA, EVENTO } from '../../../src/logica/nucleo/eventos';
 import { avancar } from '../../../src/logica/nucleo/passo';
-import { quantosAtivos } from '../../../src/logica/nucleo/pool';
+import { alocar, quantosAtivos } from '../../../src/logica/nucleo/pool';
 import { DADOS_DA_CHARNECA as D, PARADO } from '../apoio';
 import { eventosDe, posJogador, slotsVivos } from '../combate/apoio';
 
@@ -305,6 +310,65 @@ describe('fim do marco (AR6, FG1, FG7, CR9; F-008.4d)', () => {
     expect(dist(px, py, f(e, 'fogueiraX'), f(e, 'fogueiraY'))).toBeCloseTo(96, 2);
     expect(dist(f(e, 'fogueiraX'), f(e, 'fogueiraY'), 585, 1266 - 96)).toBeGreaterThan(20 + 64);
   });
+
+  /** A direção (0 a 7) em que a Fogueira caiu, com a mira para cima (direção 6) e obstáculos de raio 1 nas `bloqueadas`. */
+  function direcaoEscolhida(bloqueadas: readonly number[]): number {
+    const n = bloqueadas.length;
+    const ox = Float32Array.from(bloqueadas, (m) => 585 + 96 * DIRECAO_X[m * 32]!);
+    const oy = Float32Array.from(bloqueadas, (m) => 1266 + 96 * DIRECAO_Y[m * 32]!);
+    const o = { ...D.obstaculos, n, x: ox, y: oy, r: new Float32Array(n).fill(1) };
+    const D1 = { ...D, obstaculos: o, obstaculosPorCelula: { inicio: new Int32Array(D.obstaculosPorCelula.inicio.length), indices: new Int32Array(0) } };
+    const e = criarEstado(1, D1, { ...BASE, relogioInicial: 17_990, inicioLivre: true });
+    e.jogador[JOGADOR.dirX] = 0;
+    e.jogador[JOGADOR.dirY] = -1;
+    avancar(e, D1, PARADO, 10);
+    for (const s of coroados(e)) e.inimigos.hp[s] = 0;
+    e.obstaculoAtivo.fill(1, 0, n);
+    avancar(e, D1, PARADO, 1);
+    expect(u(e, 'fogueiraAcesa')).toBe(1);
+    const [px, py] = posJogador(e);
+    for (let m = 0; m < 8; m++) {
+      const [cx, cy] = [px + 96 * DIRECAO_X[m * 32]!, py + 96 * DIRECAO_Y[m * 32]!];
+      if (dist(cx, cy, f(e, 'fogueiraX'), f(e, 'fogueiraY')) < 0.05) return m;
+    }
+    return -1;
+  }
+
+  it('a ordem de busca é a da mira, k+1, k−1, k+2, k−2, k+3, k−3, k+4; com as 8 bloqueadas, a da mira', () => {
+    // A mira (0, −1) é a direção 6; as direções são numeradas de 45° em 45°.
+    expect(direcaoEscolhida([])).toBe(6);
+    expect(direcaoEscolhida([6])).toBe(7);
+    expect(direcaoEscolhida([6, 7])).toBe(5);
+    expect(direcaoEscolhida([6, 7, 5])).toBe(0);
+    expect(direcaoEscolhida([6, 7, 5, 0])).toBe(4);
+    expect(direcaoEscolhida([6, 7, 5, 0, 4])).toBe(1);
+    expect(direcaoEscolhida([6, 7, 5, 0, 4, 1])).toBe(3);
+    expect(direcaoEscolhida([6, 7, 5, 0, 4, 1, 3])).toBe(2);
+    expect(direcaoEscolhida([0, 1, 2, 3, 4, 5, 6, 7])).toBe(6);
+  });
+});
+
+describe('a arena e o Sal inimigo (AR4)', () => {
+  it('ao formar, o Sal inimigo dentro do disco é liberado; o de fora e a faca do jogador dentro ficam', () => {
+    const e = aMarco(0);
+    const pôr = (dx: number, tipo: number): number => {
+      const p = alocar(e.poolDeProjeteis);
+      const [x, y] = posJogador(e);
+      e.projeteis.x[p] = e.projeteis.xAnt[p] = x + dx;
+      e.projeteis.y[p] = e.projeteis.yAnt[p] = y + 100;
+      e.projeteis.vida[p] = 600;
+      e.projeteis.tipo[p] = tipo;
+      return p;
+    };
+    const salDentro = pôr(40, TIPO_DE_PROJETIL.sal);
+    const salFora = pôr(300, TIPO_DE_PROJETIL.sal);
+    const facaDentro = pôr(-40, TIPO_DE_PROJETIL.faca);
+    avancar(e, D, PARADO, 10);
+    expect(u(e, 'arenaAtiva')).toBe(1);
+    expect(e.poolDeProjeteis.posicao[salDentro]!).toBeLessThan(0);
+    expect(e.poolDeProjeteis.posicao[salFora]!).toBeGreaterThanOrEqual(0);
+    expect(e.poolDeProjeteis.posicao[facaDentro]!).toBeGreaterThanOrEqual(0);
+  });
 });
 
 describe('marco vencido pelo relógio, 20:00 e 23:00 (AR7, AR8; F-008.4g)', () => {
@@ -326,7 +390,10 @@ describe('marco vencido pelo relógio, 20:00 e 23:00 (AR7, AR8; F-008.4g)', () =
     expect(u(e, 'marcosIniciados')).toBe(2);
     expect(u(e, 'etapa')).toBe(ETAPA.marco);
     expect(u(e, 'fogueiraAcesa')).toBe(0);
-    expect(eventosDe(e, EVENTO.marcoVencido)).toHaveLength(1);
+    const venc = eventosDe(e, EVENTO.marcoVencido);
+    expect(venc).toHaveLength(1);
+    // Evento 30: centro da arena velha, o marco vencido (0 = o 1º) e quantos Coroados viraram cinza.
+    expect([venc[0]!.x, venc[0]!.y, venc[0]!.a, venc[0]!.b]).toEqual([585, 1266, 0, 1]);
     expect(e.pool.posicao[velho]).toBeGreaterThanOrEqual(-1);
     const morte = eventosDe(e, EVENTO.morte).filter((m) => m.alvo !== 0xffffffff);
     expect(morte.length).toBeGreaterThan(0);
@@ -373,6 +440,18 @@ describe('marco vencido pelo relógio, 20:00 e 23:00 (AR7, AR8; F-008.4g)', () =
     expect(coroados(e)).toHaveLength(0);
   });
 
+  it('em 20:00 com um só Coroado (Chefe Menor): o evento 30 leva o marco 2 (índice 1) e 1 cinza', () => {
+    const e = aMarco(1);
+    avancar(e, D, PARADO, 10);
+    expect(coroados(e)).toHaveLength(1);
+    e.cab[CAB.relogio] = 71_999;
+    avancar(e, D, PARADO, 1);
+    const venc = eventosDe(e, EVENTO.marcoVencido);
+    expect(venc).toHaveLength(1);
+    expect([venc[0]!.a, venc[0]!.b]).toEqual([1, 1]);
+    expect(u(e, 'etapa')).toBe(ETAPA.chefe);
+  });
+
   it('a Fogueira da Hora III se apaga em 20:00; qualquer Fogueira acesa se apaga', () => {
     const e = aMarco(2);
     avancar(e, D, PARADO, 10);
@@ -409,5 +488,73 @@ describe('marco vencido pelo relógio, 20:00 e 23:00 (AR7, AR8; F-008.4g)', () =
     avancar(c, D, PARADO, 100);
     expect(c.mundo[MUNDO.spawns]).toBeGreaterThan(0);
     expect(CAPACIDADE_DE_INIMIGOS).toBe(500);
+  });
+});
+
+describe('passo congelado não roda a etapa (ET7)', () => {
+  const noMarco = (): Estado => {
+    const e = aMarco(0);
+    avancar(e, D, PARADO, 10);
+    expect(u(e, 'etapa')).toBe(ETAPA.marco);
+    return e;
+  };
+  const estaticos = (e: Estado): number[] => [e.cab[CAB.relogio]!, e.cab[CAB.passo]!, u(e, 'etapa'), ...coroados(e).map((s) => e.inimigos.convocaEspera[s]!)];
+
+  it('avancar: com o congelamento em 4, a convocação e o relógio ficam parados nesses passos e voltam a andar depois', () => {
+    const e = noMarco();
+    const antes = estaticos(e);
+    e.jogador3U8[JOGADOR3_U8.congelamento] = 4;
+    avancar(e, D, PARADO, 4);
+    expect(e.jogador3U8[JOGADOR3_U8.congelamento]).toBe(0);
+    expect(estaticos(e)).toEqual(antes);
+    avancar(e, D, PARADO, 1);
+    expect(coroados(e).map((s) => e.inimigos.convocaEspera[s]!)).toEqual(antes.slice(3).map((x) => x - 1));
+  });
+
+  it('passo direto: idem', () => {
+    const e = noMarco();
+    const antes = estaticos(e);
+    e.jogador3U8[JOGADOR3_U8.congelamento] = 3;
+    const cmd = criarComandos();
+    for (let k = 0; k < 3; k++) passo(e, D, cmd);
+    expect(estaticos(e)).toEqual(antes);
+    passo(e, D, cmd);
+    expect(coroados(e).map((s) => e.inimigos.convocaEspera[s]!)).toEqual(antes.slice(3).map((x) => x - 1));
+  });
+});
+
+describe('baú no ponto da morte e a borda do 20:00 (CR9, AR8)', () => {
+  const baus = (e: Estado): number[] => {
+    const r: number[] = [];
+    for (let s = 0; s < 512; s++) {
+      if (e.poolDePickups.posicao[s]! >= 0 && (e.pickups.tipo[s] === TIPO_DE_PICKUP.bauComum || e.pickups.tipo[s] === TIPO_DE_PICKUP.bauDourado)) r.push(s);
+    }
+    return r;
+  };
+
+  it('o baú do Coroado cai no x e no y de onde ele morreu (não trocados)', () => {
+    const e = aMarco(0);
+    avancar(e, D, PARADO, 10);
+    const s = coroados(e)[0]!;
+    const [cx, cy] = [e.inimigos.x[s]!, e.inimigos.y[s]!];
+    expect(Math.abs(cx - cy)).toBeGreaterThan(100);
+    e.inimigos.hp[s] = 0;
+    avancar(e, D, PARADO, 1);
+    const b = baus(e);
+    expect(b).toHaveLength(1);
+    expect(Math.abs(e.pickups.x[b[0]!]! - cx)).toBeLessThan(3);
+    expect(Math.abs(e.pickups.y[b[0]!]! - cy)).toBeLessThan(3);
+  });
+
+  it('o último Coroado do marco 3 morre no passo 72.000: o baú sai (a morte vale), mas o 20:00 vem antes (D8 §3): CHEFE e Fogueira apagada', () => {
+    const e = aMarco(2);
+    avancar(e, D, PARADO, 10);
+    for (const s of coroados(e)) e.inimigos.hp[s] = 0;
+    e.cab[CAB.relogio] = 71_999;
+    avancar(e, D, PARADO, 1);
+    expect(e.cab[CAB.relogio]).toBe(72_000);
+    expect(baus(e)).toHaveLength(2);
+    expect([u(e, 'etapa'), u(e, 'fogueiraAcesa'), u(e, 'arenaAtiva'), u(e, 'coroadosVivos')]).toEqual([ETAPA.chefe, 0, 0, 0]);
+    expect(mortes(e)).toBe(2);
   });
 });
