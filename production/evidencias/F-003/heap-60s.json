@@ -10,24 +10,24 @@
   },
   "snapshots": {
     "a": {
-      "passo": 5424,
+      "passo": 4122,
       "vivos": 300,
-      "liberacoes": 900,
-      "spawns": 1200,
-      "bytes": 15104165,
-      "nos": 94617
+      "liberacoes": 680,
+      "spawns": 980,
+      "bytes": 15492542,
+      "nos": 96997
     },
     "b": {
-      "passo": 9111,
+      "passo": 6807,
       "vivos": 300,
-      "liberacoes": 1510,
-      "spawns": 1810,
-      "bytes": 15115562,
-      "nos": 94671
+      "liberacoes": 1130,
+      "spawns": 1430,
+      "bytes": 15502123,
+      "nos": 97042
     },
-    "intervalo_s": 62.3
+    "intervalo_s": 63.6
   },
-  "liberacoes_no_intervalo": 610,
+  "liberacoes_no_intervalo": 450,
   "excluidos": {
     "(code)": "código do JIT, que cresce com a otimização",
     "PerformanceLongTaskTiming": "entradas de desempenho do navegador, que crescem com tarefas longas",
@@ -39,18 +39,18 @@
     "delta_por_grupo": 100,
     "calibracao": "ADR-0005"
   },
-  "delta_bytes": 11397,
-  "delta_nos": 54,
+  "delta_bytes": 9581,
+  "delta_nos": 45,
   "maior_delta_de_grupo": {
     "grupo": "(hidden)",
-    "delta_n": 21,
-    "delta_bytes": 10080
+    "delta_n": 13,
+    "delta_bytes": 8292
   },
   "grupos_que_mudaram": [
     {
       "grupo": "(hidden)",
-      "delta_n": 21,
-      "delta_bytes": 10080
+      "delta_n": 13,
+      "delta_bytes": 8292
     },
     {
       "grupo": "(string)",
@@ -60,7 +60,7 @@
     {
       "grupo": "(object shape)",
       "delta_n": 8,
-      "delta_bytes": 340
+      "delta_bytes": 324
     },
     {
       "grupo": "(array)",
@@ -86,37 +86,32 @@
       "grupo": "Array",
       "delta_n": 1,
       "delta_bytes": 16
-    },
-    {
-      "grupo": "(number)",
-      "delta_n": 1,
-      "delta_bytes": 12
     }
   ],
   "heap_usado_a_cada_10s": [
     {
       "s": 10,
-      "usadoKB": 7827
+      "usadoKB": 8443
     },
     {
       "s": 20,
-      "usadoKB": 7828
+      "usadoKB": 8449
     },
     {
       "s": 30,
-      "usadoKB": 7831
+      "usadoKB": 8450
     },
     {
       "s": 40,
-      "usadoKB": 7835
+      "usadoKB": 8451
     },
     {
       "s": 50,
-      "usadoKB": 7840
+      "usadoKB": 8452
     },
     {
       "s": 60,
-      "usadoKB": 7851
+      "usadoKB": 8454
     }
   ],
   "aprovado": true
