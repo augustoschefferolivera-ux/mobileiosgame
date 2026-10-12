@@ -127,8 +127,10 @@ export function moverJogador(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPa
       mx /= m;
       my /= m;
     }
-    dx = mx * dados.velocidadePorPasso;
-    dy = my * dados.velocidadePorPasso;
+    // Sal (NV7): só a caminhada, com o salPassos do começo do passo; sem Sal o fator é 1 (exato).
+    const fator = e.jogador3U8[JOGADOR3_U8.salPassos]! > 0 ? (100 - e.jogador3U8[JOGADOR3_U8.salPct]!) / 100 : 1;
+    dx = mx * dados.velocidadePorPasso * fator;
+    dy = my * dados.velocidadePorPasso * fator;
   }
   // Esquiva (ES2, ES5): nos 21 passos o deslocamento dela substitui o da caminhada, na direção fixada.
   const ep = e.jogador3U8[JOGADOR3_U8.esquivaPasso]!;
@@ -154,6 +156,12 @@ export function moverJogador(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPa
   if (ny >= ALTURA_DO_MAPA) ny = Math.fround(ny - ALTURA_DO_MAPA);
   j[JOGADOR.x] = nx;
   j[JOGADOR.y] = ny;
+  // O Sal cai uma vez por passo, também na esquiva, logo depois do deslocamento (NV7): ativo em H+1 a H+180.
+  const salPassos = e.jogador3U8[JOGADOR3_U8.salPassos]!;
+  if (salPassos > 0) {
+    e.jogador3U8[JOGADOR3_U8.salPassos] = salPassos - 1;
+    if (salPassos === 1) e.jogador3U8[JOGADOR3_U8.salPct] = 0;
+  }
   return temIntencao;
 }
 

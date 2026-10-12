@@ -106,6 +106,8 @@ export interface TabelaDeCombate {
   readonly projetilPorPasso: Float64Array;
   readonly projetilRaio: Float64Array;
   readonly projetilVida: Int32Array;
+  /** Por tipo: alcance de tiro em px, de centro a centro (0 = sem tiro; NV2). */
+  readonly alcanceDeTiro: Float64Array;
   readonly salPct: Uint8Array;
   readonly salPassos: Int32Array;
 }
@@ -174,6 +176,7 @@ export function criarTabelaDeCombate(c: CombateDoJson, staminaMax: number, inimi
   const projetilPorPasso = new Float64Array(n);
   const projetilRaio = new Float64Array(n);
   const projetilVida = new Int32Array(n);
+  const alcanceDeTiro = new Float64Array(n);
   const salPct = new Uint8Array(n);
   const salPassos = new Int32Array(n);
   for (const i of inimigos) {
@@ -189,6 +192,7 @@ export function criarTabelaDeCombate(c: CombateDoJson, staminaMax: number, inimi
         projetilPorPasso[codigo] = (a.projetil.velocidade_corpos_s * CORPO_PX) / PASSOS_POR_SEGUNDO;
         projetilRaio[codigo] = a.projetil.raio_corpos * CORPO_PX;
         projetilVida[codigo] = segundosEmPassos(a.projetil.vida_s);
+        if (i.id === 'novica_de_sal') alcanceDeTiro[codigo] = c.ataques_dos_inimigos.alcance_de_tiro_novica_corpos * CORPO_PX;
         if (a.aplica?.status === 'sal') {
           salPct[codigo] = a.aplica.fator_pct;
           salPassos[codigo] = segundosEmPassos(a.aplica.duracao_s);
@@ -232,6 +236,7 @@ export function criarTabelaDeCombate(c: CombateDoJson, staminaMax: number, inimi
     projetilPorPasso,
     projetilRaio,
     projetilVida,
+    alcanceDeTiro,
     salPct,
     salPassos,
   };

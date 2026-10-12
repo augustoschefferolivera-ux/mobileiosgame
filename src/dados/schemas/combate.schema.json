@@ -14,6 +14,7 @@
     "poder_da_esquiva_perfeita",
     "postura_quebrada",
     "contra_ataque_passos",
+    "ataques_dos_inimigos",
     "gestos"
   ],
   "properties": {
@@ -129,6 +130,19 @@
         "duracao_passos": {
           "type": "integer",
           "minimum": 1
+        }
+      }
+    },
+    "ataques_dos_inimigos": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "alcance_de_tiro_novica_corpos"
+      ],
+      "properties": {
+        "alcance_de_tiro_novica_corpos": {
+          "type": "number",
+          "exclusiveMinimum": 0
         }
       }
     },

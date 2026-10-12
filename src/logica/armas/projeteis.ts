@@ -165,7 +165,8 @@ export function moverProjeteis(e: Estado, dados: DadosDaVigilia): void {
   const rMax = dados.tipos.raioMaximo;
   const geracao = e.pool.geracao;
   for (let p = 0; p < NP; p++) {
-    if (pos[p]! < 0) continue;
+    // O projétil de Sal dos inimigos (tipo 2) é da fase 6: nenhuma arma o acerta (NV5, NV6).
+    if (pos[p]! < 0 || pr.tipo[p] === TIPO_DE_PROJETIL.sal) continue;
     const x0 = pr.x[p]!;
     const y0 = pr.y[p]!;
     pr.xAnt[p] = x0;

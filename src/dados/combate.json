@@ -29,6 +29,9 @@
     "raio_px": 64
   },
   "contra_ataque_passos": 90,
+  "ataques_dos_inimigos": {
+    "alcance_de_tiro_novica_corpos": 6
+  },
   "gestos": {
     "swipe": {
       "velocidade_min_pt_s": 400,

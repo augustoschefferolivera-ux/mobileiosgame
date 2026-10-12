@@ -178,6 +178,14 @@ export function moverHorda(e: Estado, dados: DadosDaVigilia): void {
       ini.salPassos[s] = salPassos - 1;
       if (salPassos === 1) ini.salPct[s] = 0;
     }
+    // Enraizado pelo ataque (OG2, NV1): o Oco Grande de T a T+125, a Noviça de T a T+29; só o comportamento para.
+    let enraizado = false;
+    const fase = ini.ataqueFase[s]!;
+    if (fase !== 0) {
+      const grande = dados.combate.alcanceDoArco[tipo]! > 0;
+      const timer = ini.ataqueTimer[s]!;
+      enraizado = fase === 1 ? grande || timer > 1 : grande && timer > 1;
+    }
     const kb = ini.kbPassos[s]!;
     if (kb > 0) {
       // Afastamento do pulso (K1), no lugar do comportamento: radial, do jogador para o inimigo, recalculado a cada passo.
@@ -187,7 +195,7 @@ export function moverHorda(e: Estado, dados: DadosDaVigilia): void {
         my = (-dy / d) * empurrao;
       } else mx = empurrao;
       ini.kbPassos[s] = kb - 1;
-    } else if (d > 0) {
+    } else if (d > 0 && !enraizado) {
       const vBase = t.velocidade[tipo]!;
       const v = salPct > 0 ? (vBase * (100 - salPct)) / 100 : vBase;
       const comportamento = t.comportamento[tipo]!;

@@ -5,12 +5,14 @@
 // jogador (bloqueado pelos inimigos e pelos obstáculos) e prompt; horda
 // (comportamento com Sal e afastamento, grade, separação, jogador e
 // obstáculos); armas (grade das posições finais, projéteis, vagas e mortes);
-// pickups (decisoes-F-005 §5: Cinzas, baús, níveis e a oferta); contato, só
+// pickups (decisoes-F-005 §5: Cinzas, baús, níveis e a oferta); ataques dos
+// inimigos (fase 6, com o bit `ataques`); contato, só
 // com os sobreviventes; rotação do cenário; diretor. Com modal aberto (nível
 // pendente ou baú por fechar), nenhum passo roda: `avancar` para e só volta
 // depois de confirmarModal (decisoes-F-005 M1 e M2).
 import { rodarArmas } from '../armas/armas';
 import { rodarDiretor } from '../diretor/diretor';
+import { rodarAtaques } from '../mundo/ataques';
 import { aplicarRotacao } from '../mundo/cenario';
 import { aplicarContato } from '../mundo/contato';
 import type { DadosDaVigilia } from '../mundo/dados';
@@ -19,7 +21,7 @@ import { atualizarPromptDeMover, moverJogador } from '../mundo/jogador';
 import { confirmarModal, modalAberto } from '../progressao/modal';
 import { rodarPickups } from '../progressao/pickups';
 import { criarComandos, type ComandosDoPasso, type FonteDeComandos } from './comandos';
-import { CAB, JOGADOR3_U8, PROGRESSAO, type Estado } from './estado';
+import { CAB, CENARIO, JOGADOR3_U8, PROGRESSAO, type Estado } from './estado';
 
 export function passo(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): void {
   // Fase 0 (ET4, ET7): o passo congelado só decrementa o contador; `passo`, `relogio`
@@ -39,6 +41,8 @@ export function passo(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): v
   const poder = e.jogador3U8[JOGADOR3_U8.poderPassos]!;
   if (poder > 0) e.jogador3U8[JOGADOR3_U8.poderPassos] = poder - 1;
   rodarPickups(e, dados);
+  // Fase 6 (ET4): ataques dos inimigos e projéteis tipo 2, só com o bit `ataques` (VT1).
+  if (e.cab[CAB.cenario]! & CENARIO.ataques) rodarAtaques(e, dados);
   aplicarContato(e, dados);
   aplicarRotacao(e);
   rodarDiretor(e, dados, moveu);
