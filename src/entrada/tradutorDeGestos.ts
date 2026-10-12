@@ -76,6 +76,8 @@ export class TradutorDeGestos {
   joystickCriados = 0;
   /** Pedido de pausa deste frame (botão ou gesto), lido pela Vigília depois de traduzir. */
   pedidoDePausa: OrigemDaPausa | null = null;
+  /** Toques que acionaram o botão Aparo desde a criação; o Hud o lê para o preenchimento de 4 quadros (RE2). */
+  aparoApertos = 0;
   /** No modo pausa: o alvo da tela de pausa acionado neste frame (começou e soltou dentro). */
   toqueNaPausa: string | null = null;
   /** 'vigilia': joystick, botão e gesto; 'pausa': só os alvos da tela de pausa (P8); 'modal': só os do modal (M5). */
@@ -308,6 +310,7 @@ export class TradutorDeGestos {
       // Aparo (AP1): dispara no touchstart, uma vez por toque; segurar não repete.
       this.papel[s] = PAPEL.botao;
       this.qualBotao[s] = BOTAO.aparo;
+      this.aparoApertos++;
       if (this.saida) this.saida.acoes[0] = this.saida.acoes[0]! | ACAO.aparo;
     } else if (this.dono < 0 && contem(this.area, x, y)) {
       // Toque duplo (GE2): dispara no touchstart do 2º toque, que segue como dono do joystick.

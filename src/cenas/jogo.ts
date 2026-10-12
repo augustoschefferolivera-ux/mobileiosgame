@@ -18,6 +18,7 @@ import { criarDadosDaCharneca } from '../plataforma/dadosDaVigilia';
 import { RegistroDeTelemetria } from '../plataforma/telemetria';
 import { suportaWebGL } from '../plataforma/webgl';
 import { Acender } from './Acender';
+import { FeedbackDaInterface } from './feedback';
 import { Boot } from './Boot';
 import { Hud } from './Hud';
 import { Pausa } from './Pausa';
@@ -90,7 +91,10 @@ export function iniciarJogo(): Phaser.Game | null {
     sondaDoTeto,
     cenario: params.cenario === null ? null : { id: params.cenario, parametros: parametrosDoCenario(params.cenario) },
     render: { modo: params.render, origem: 'parametro', bufferDinamico: params.bufferDinamico, aquecido: false },
-    opcoes: { numerosDeDano: true },
+    opcoes: { numerosDeDano: true, som: true, flashes: true },
+    feedback: new FeedbackDaInterface(),
+    sfx: null,
+    flashSegurar: params.flashSegurar,
     debug: params.debug,
     medidor: new MedidorDeQuadros(),
   };

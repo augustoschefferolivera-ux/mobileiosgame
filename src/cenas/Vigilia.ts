@@ -12,7 +12,7 @@ import Phaser from 'phaser';
 import { alfa, criarAcumulador } from '../logica/nucleo/acumulador';
 import { criarComandos, fonteConstante, fonteDoRoteiro } from '../logica/nucleo/comandos';
 import { rodarFrameComPausas } from '../logica/nucleo/driver';
-import { CAB, CENARIO, TIPO_DE_CARTA, TODOS_OS_TUTORIAIS, criarEstado, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
+import { CAB, CENARIO, JOGADOR3_U8, TIPO_DE_CARTA, TODOS_OS_TUTORIAIS, criarEstado, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
 import { EVENTO, EV, eventosEscritos, inicioDoEvento } from '../logica/nucleo/eventos';
 import { IDS_DE_ARMA } from '../logica/armas/tabela';
 import { modalAberto } from '../logica/progressao/modal';
@@ -131,6 +131,8 @@ export class Vigilia extends Phaser.Scene {
     if (trad.pedidoDePausa !== null && !sim.pausa.ativa) this.abrirPausa(trad.pedidoDePausa);
     else if (sim.pausa.ativa && trad.toqueNaPausa === 'continuar') this.fecharPausa();
     else if (sim.pausa.ativa && trad.toqueNaPausa === 'numeros') this.ctx.opcoes.numerosDeDano = !this.ctx.opcoes.numerosDeDano;
+    else if (sim.pausa.ativa && trad.toqueNaPausa === 'som') this.ctx.opcoes.som = !this.ctx.opcoes.som;
+    else if (sim.pausa.ativa && trad.toqueNaPausa === 'flashes') this.ctx.opcoes.flashes = !this.ctx.opcoes.flashes;
     else if (trad.modo === 'modal') this.tratarToquesDoModal();
     const t0 = performance.now();
     const n = rodarFrameComPausas(sim.estado, sim.dados, sim.acumulador, this.game.loop.rawDelta, sim.fonte, sim.pausa.ativa, sim.pausada);
@@ -154,6 +156,8 @@ export class Vigilia extends Phaser.Scene {
     sim.pausa.alfa = alfa(sim.acumulador);
     this.ctx.entrada.fila.pedirSoltarTodos();
     this.ctx.entrada.tradutor.mudarModo('pausa');
+    // A pausa cala tudo (FB4, RE11): os SFX são AudioBufferSourceNode que o `pauseAll` não toca, mas o `setMute` sim.
+    this.game.sound.setMute(true);
     (this.scene.get('Pausa') as Pausa).mostrar();
   }
 
@@ -217,6 +221,8 @@ export class Vigilia extends Phaser.Scene {
     sim.pausa.origem = null;
     this.ctx.entrada.fila.pedirSoltarTodos();
     this.ctx.entrada.tradutor.mudarModo('vigilia');
+    // Som desligado na pausa continua mudo depois do Continuar.
+    this.game.sound.setMute(!this.ctx.opcoes.som);
     (this.scene.get('Pausa') as Pausa).esconder();
   }
 
@@ -233,7 +239,9 @@ export class Vigilia extends Phaser.Scene {
     if (!sim || !this.render) return;
     // Pausada pelo debug, desenha o estado atual: a imagem depende só da seed e do passo (decisoes-F-003 §8).
     // Na pausa do jogador, o alfa fica o do instante em que ela abriu (P4).
-    const a = sim.pausada ? 1 : sim.pausa.ativa ? sim.pausa.alfa : alfa(sim.acumulador);
+    // Durante o congelamento (FB1) o render usa alfa 1: senão xAnt e x interpolariam vai-e-volta com o passo parado.
+    const congelado = sim.estado.jogador3U8[JOGADOR3_U8.congelamento]! > 0;
+    const a = sim.pausada || congelado ? 1 : sim.pausa.ativa ? sim.pausa.alfa : alfa(sim.acumulador);
     centroDaCamera(sim.estado, a, sim.camera);
     this.render.sincronizar(sim.estado, a, sim.camera.x, sim.camera.y);
     this.cameras.main.centerOn(sim.camera.x, sim.camera.y);

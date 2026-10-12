@@ -20,6 +20,7 @@ import { armadura, poderPct } from '../logica/progressao/dano';
 import { bauNaFrente, modalAberto } from '../logica/progressao/modal';
 import { completaUniao } from '../logica/progressao/oferta';
 import { MEMBROS_DAS_ARMAS, MEMBROS_DOS_DIGITOS } from './render/armas';
+import { MEMBROS_DOS_MEDIOS, MEMBROS_DOS_PROJETEIS_INIMIGOS, MEMBROS_DOS_TELEGRAFOS } from './render/ataques';
 import { MEMBROS_DO_MUNDO } from './render/pickups';
 import { CAPACIDADE_DE_MORTES } from './render/efeitos';
 import { alvoDaLinha, convertidosVivos, linhaCorrente, vivosEquivalentes } from '../logica/diretor/diretor';
@@ -43,9 +44,14 @@ const TIPOS_VIVOS = [
 ] as const;
 type TipoVivo = (typeof TIPOS_VIVOS)[number];
 
-/** Bytes do atlas (512² RGBA) e dos buffers de instâncias das camadas GPU (membros × 168, na CPU e na GPU). */
+/**
+ * Bytes do atlas (512² RGBA) e dos buffers de instâncias das camadas GPU (membros × 168, na CPU e na GPU). Desde a
+ * F-006 entram a 2ª camada de médios (500), os telegrafos (64) e os projéteis inimigos (128; RE8).
+ */
 const BYTES_DO_ATLAS = 512 * 512 * 4;
-export const MEMBROS_DAS_CAMADAS = MEMBROS_DO_MUNDO + CAPACIDADE_DE_INIMIGOS + CAPACIDADE_DE_MORTES + CAPACIDADE_DE_INIMIGOS + MEMBROS_DAS_ARMAS + MEMBROS_DOS_DIGITOS;
+export const MEMBROS_DAS_CAMADAS =
+  MEMBROS_DO_MUNDO + CAPACIDADE_DE_INIMIGOS + CAPACIDADE_DE_MORTES + CAPACIDADE_DE_INIMIGOS + MEMBROS_DAS_ARMAS + MEMBROS_DOS_DIGITOS +
+  MEMBROS_DOS_MEDIOS + MEMBROS_DOS_TELEGRAFOS + MEMBROS_DOS_PROJETEIS_INIMIGOS;
 const BYTES_DAS_CAMADAS = 2 * MEMBROS_DAS_CAMADAS * FLOATS_POR_MEMBRO * 4;
 
 export const NOMES_DOS_EVENTOS = [
@@ -311,7 +317,7 @@ export interface GameDebug {
   /** Quadros medidos desde o boot (para recortar o anel de quadros() numa janela, F-003.4). */
   readonly quadrosContados: number;
   readonly passos_perdidos: number;
-  readonly recusados: { inimigos: number; projeteis: number; efeitos: number; pickups: number; efeitosDeChao: number; numeros: number; mortes: number };
+  readonly recusados: { inimigos: number; projeteis: number; efeitos: number; pickups: number; efeitosDeChao: number; numeros: number; mortes: number; telegrafos: number; projeteisInimigos: number };
   /** Armas da build, na ordem das vagas (recarga em passos), e as passivas (F-005). */
   readonly build: ReturnType<typeof buildDe>;
   /** Números de dano vivos no pool do render (não membros de dígito); 0 com a opção desligada. */
@@ -324,7 +330,9 @@ export interface GameDebug {
   readonly mortes: number;
   /** Pausa do jogador (fora do estado; o estado de jogo continua VIGILIA). */
   readonly pausa: { ativa: boolean; origem: 'botao' | 'gesto' | null };
-  readonly opcoes: { numerosDeDano: boolean };
+  readonly opcoes: { numerosDeDano: boolean; som: boolean; flashes: boolean };
+  /** Quadros de render que faltam do flash branco (decisoes-F-006 RE3); só leitura. */
+  readonly flash: number;
   readonly memoriaEstimadaMB: number;
   readonly seed: number;
   /** Insets da safe-area em pt lógicos, como a cena ativa os mediu. */
@@ -459,6 +467,8 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
         efeitosDeChao: e?.mundo2[MUNDO2.efeitosRecusados] ?? 0,
         numeros: ef?.recusados.numeros ?? 0,
         mortes: ef?.recusados.mortes ?? 0,
+        telegrafos: ef?.recusados.telegrafos ?? 0,
+        projeteisInimigos: ef?.recusados.projeteisInimigos ?? 0,
       };
     },
     get build() {
@@ -481,7 +491,10 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
       return { ativa: p?.ativa ?? false, origem: p?.origem ?? null };
     },
     get opcoes() {
-      return { numerosDeDano: ctx.opcoes.numerosDeDano };
+      return { numerosDeDano: ctx.opcoes.numerosDeDano, som: ctx.opcoes.som, flashes: ctx.opcoes.flashes };
+    },
+    get flash() {
+      return ctx.feedback.flash.quadros;
     },
     get memoriaEstimadaMB() {
       bytesBackbuffer ??= bytesDoCanvas(jogo);

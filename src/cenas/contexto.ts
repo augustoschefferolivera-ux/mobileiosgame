@@ -21,6 +21,7 @@ export interface SondaPendente {
   readonly identidade: IdentidadeDoCache;
 }
 import type { MedidorDeQuadros } from './medidas';
+import type { FeedbackDaInterface } from './feedback';
 import type { EfeitosDaVigilia } from './render/efeitos';
 import type { EscritorDaHorda } from './render/escritores';
 
@@ -96,8 +97,14 @@ export interface ContextoDoJogo {
   /** ?cenario (só no build de debug): o id e os parâmetros da Vigília que ele impõe. */
   readonly cenario: { readonly id: string; readonly parametros: ParametrosDoCenario } | null;
   readonly render: RenderDaHorda;
-  /** Opções do jogador, em memória, fora da simulação (design/decisoes-F-004.md N8); o meta da F-007 as grava. */
-  readonly opcoes: { numerosDeDano: boolean };
+  /** Opções do jogador, em memória, fora da simulação (design/decisoes-F-004.md N8 e F-006 RE11); o meta da F-007 as grava. */
+  readonly opcoes: { numerosDeDano: boolean; som: boolean; flashes: boolean };
+  /** Flash, sons e pulso da stamina: a interface lida do anel (decisoes-F-006 FB2, FB4 e RE3), fora do estado. */
+  readonly feedback: FeedbackDaInterface;
+  /** Toca um dos 3 sons sintetizados no boot (índice de SFX); null sem WebAudio (decisoes-F-006 RE12). */
+  sfx: { tocar(sfx: number): void } | null;
+  /** ?flash=segurar (só no build de debug): o Hud não decrementa o contador do flash (decisoes-F-006 RE3). */
+  readonly flashSegurar: boolean;
   /** ?debug=1 (só no build de debug): painel e verificação de NaN. */
   readonly debug: boolean;
   readonly medidor: MedidorDeQuadros;

@@ -2,7 +2,7 @@
 // produção ignora todos. Existem ?seed=N (F-001), ?tutorial=0 (F-002) e, desde
 // a F-003 (design/decisoes-F-003.md §5, §7 e §8), ?teto=300|500,
 // ?render=gpu|image, ?buffer=dinamico, ?cenario=<id> e ?debug=1, e desde a
-// F-004 (design/decisoes-F-004.md §5) ?sonda=0; ?inicio entra com a F-006.
+// F-004 (design/decisoes-F-004.md §5) ?sonda=0; na F-006, ?flash=segurar (RE3); ?inicio entra com a F-006.
 
 export type ModoDeRender = 'gpu' | 'image';
 
@@ -23,6 +23,8 @@ export interface Parametros {
   debug: boolean;
   /** ?sonda=0 desliga a sonda do TETO (os testes não dependem da máquina); no build de produção, sempre ligada. */
   sonda: boolean;
+  /** ?flash=segurar: o Hud não decrementa o contador do flash, para o alfa 0,35 ficar na captura (decisoes-F-006 RE3). */
+  flashSegurar: boolean;
 }
 
 const PRODUCAO: Parametros = {
@@ -34,6 +36,7 @@ const PRODUCAO: Parametros = {
   cenario: null,
   debug: false,
   sonda: true,
+  flashSegurar: false,
 };
 
 export function lerParametros(busca: string, ehBuildDeDebug: boolean): Parametros {
@@ -53,6 +56,7 @@ export function lerParametros(busca: string, ehBuildDeDebug: boolean): Parametro
     cenario: cenario === null || cenario === '' ? null : cenario,
     debug: p.get('debug') === '1',
     sonda: p.get('sonda') !== '0',
+    flashSegurar: p.get('flash') === 'segurar',
   };
 }
 

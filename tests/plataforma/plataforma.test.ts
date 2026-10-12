@@ -194,7 +194,15 @@ describe('parâmetros de URL (ADR-0002 §14)', () => {
       cenario: null,
       debug: false,
       sonda: true,
+      flashSegurar: false,
     });
+  });
+
+  it('?flash=segurar só vale no build de debug (decisoes-F-006 RE3)', () => {
+    expect(lerParametros('?flash=segurar', true).flashSegurar).toBe(true);
+    expect(lerParametros('?flash=1', true).flashSegurar).toBe(false);
+    expect(lerParametros('', true).flashSegurar).toBe(false);
+    expect(lerParametros('?flash=segurar', false).flashSegurar).toBe(false);
   });
 
   it('build de debug: ?sonda=0 desliga a sonda do TETO; qualquer outro valor a deixa ligada (decisoes-F-004 §5)', () => {

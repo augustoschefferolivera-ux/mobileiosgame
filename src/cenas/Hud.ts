@@ -6,18 +6,27 @@
 // e R5). Mede a safe-area em create e resize e passa as áreas ao tradutor. Os demais
 // elementos entram com as suas features.
 import Phaser from 'phaser';
-import { alvoDaPausa, areaDoJoystick, type Alvo } from '../entrada/alvos';
+import { alvoDaPausa, alvoDoAparo, areaDoJoystick, type Alvo } from '../entrada/alvos';
 import { RAIO_DO_JOYSTICK_PT, RAIO_DO_PINO_PT } from '../entrada/joystick';
-import { JOGADOR_U8, PROGRESSAO, PROMPT, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, type Estado } from '../logica/nucleo/estado';
-import { medirSafeArea, type Insets } from '../plataforma/safeArea';
+import { JOGADOR3, JOGADOR3_U8, JOGADOR_U8, PROGRESSAO, PROMPT, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, type Estado } from '../logica/nucleo/estado';
+import { ALTURA_LOGICA, LARGURA_LOGICA, medirSafeArea, type Insets } from '../plataforma/safeArea';
 import type { ContextoDoJogo } from './contexto';
 import { COR, cameraLogica, texto } from './estilo';
 import {
+  BARRA_DE_STAMINA,
   BARRA_DE_XP,
+  ESTADO_DO_APARO,
   PRIMEIRA_PASSIVA_NO_HUD,
+  PULSO_DA_STAMINA,
+  QUADROS_DO_APARO_PRESSIONADO,
+  STAMINA_DA_ESQUIVA,
   VAGAS_DO_HUD,
+  caixaDaBarraDeStamina,
   caixaDaBarraDeXp,
+  estadoDoAparo,
+  larguraDaStamina,
   larguraDoPreenchimento,
+  xDaMarcaDeStamina,
   vagasDoHud,
   type CaixaDaBarra,
   type VagaDoHud,
@@ -38,6 +47,8 @@ const FOLGA_DO_PAINEL = { x: 16, y: 10 };
 const ICONE_DA_PAUSA = { disco: 44, barraLargura: 8, barraAltura: 24, entre: 6 } as const;
 /** Trilho da barra de XP: #0b0e14 a 35% (R4). */
 const ALFA_DO_TRILHO = 0.35;
+/** Botão Aparo (AP1, RE2): anel osso de 3 pt (diâmetro de 64 pt) com o glifo ⟲ em arco, sem texto. */
+const BOTAO_DO_APARO_DESENHO = { raioDoAnel: 32, traco: 3, raioDoGlifo: 14, tracoDoGlifo: 3, alfaPressionado: 0.35, alfaIndisponivel: 0.35, arco: [4.2, -0.6] as const } as const;
 /** Vaga vazia: contorno de 1 pt em osso a 30% (R5). */
 const ALFA_DA_VAGA_VAZIA = 0.3;
 
@@ -53,6 +64,21 @@ export class Hud extends Phaser.Scene {
   private preenchimento: Phaser.GameObjects.Image | null = null;
   private nivelTexto: Phaser.GameObjects.Text | null = null;
   private vagas: Phaser.GameObjects.Graphics | null = null;
+  private trilhoDaStamina: Phaser.GameObjects.Image | null = null;
+  private preenchimentoDaStamina: Phaser.GameObjects.Image | null = null;
+  private marcasDaStamina: Phaser.GameObjects.Graphics | null = null;
+  private botaoDoAparoGrafico: Phaser.GameObjects.Graphics | null = null;
+  private flashGrafico: Phaser.GameObjects.Graphics | null = null;
+  private readonly caixaDaStamina: CaixaDaBarra = { x: 0, y: 0, largura: 0, altura: 0 };
+  private readonly botaoDoAparo: Alvo = { id: 'aparo', x: 0, y: 0, largura: 0, altura: 0 };
+  /** Toca um SFX (criado uma vez; o closure não se refaz por quadro). */
+  private readonly tocarSfx = (i: number): void => this.ctx.sfx?.tocar(i);
+  private staminaDesenhada = -1;
+  private alfaDaStaminaDesenhado = -1;
+  private estadoDoAparoDesenhado = -1;
+  private apertosVistos = 0;
+  private quadrosDoAparoPressionado = 0;
+  private alfaDoFlashDesenhado = 0;
   private readonly caixaDaBarra: CaixaDaBarra = { x: 0, y: 0, largura: 0, altura: 0 };
   private readonly posicoesDasVagas: VagaDoHud[] = [];
   /** Último estado lido e o que já foi desenhado dele; -1 = nada ainda. */
@@ -81,6 +107,15 @@ export class Hud extends Phaser.Scene {
     this.preenchimento = barra(COR.cinzaAzul, 1).setVisible(false);
     this.nivelTexto = texto(this, 0, 0, 'A5.HUD.NIVEL', 15, COR.osso, { nivel: 1 }).setOrigin(0, 0.5);
     this.vagas = this.add.graphics();
+    this.trilhoDaStamina = barra(COR.pedra, ALFA_DO_TRILHO);
+    this.preenchimentoDaStamina = barra(COR.osso, 1).setVisible(false);
+    this.marcasDaStamina = this.add.graphics();
+    this.botaoDoAparoGrafico = this.add.graphics();
+    this.staminaDesenhada = -1;
+    this.alfaDaStaminaDesenhado = -1;
+    this.estadoDoAparoDesenhado = -1;
+    this.apertosVistos = this.ctx.entrada.tradutor.aparoApertos;
+    this.quadrosDoAparoPressionado = 0;
     this.estadoVisto = null;
     this.nivelDesenhado = -1;
     this.xpDesenhado = -1;
@@ -88,6 +123,11 @@ export class Hud extends Phaser.Scene {
     this.painel = this.add.graphics().setAlpha(0).setVisible(false);
     this.prompt = texto(this, 0, 0, 'A2.TUTORIAL.01', 18, COR.osso).setOrigin(0.5).setAlpha(0).setVisible(false);
     this.promptMostrado = false;
+    // O flash por último: acima do mundo e de tudo o que o Hud desenha (FB2, RE3). Branco cheio; o alfa muda por quadro.
+    this.flashGrafico = this.add.graphics().setVisible(false).setAlpha(0);
+    this.flashGrafico.fillStyle(COR.branco, 1).fillRect(0, 0, LARGURA_LOGICA, ALTURA_LOGICA);
+    this.alfaDoFlashDesenhado = 0;
+    this.ctx.feedback.reiniciar();
     this.diagramar();
     this.scale.on(Phaser.Scale.Events.RESIZE, this.diagramar, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -132,6 +172,20 @@ export class Hud extends Phaser.Scene {
     this.preenchimento!.setPosition(c.x, meio);
     this.nivelTexto!.setPosition(c.x + c.largura + BARRA_DE_XP.folgaDoNivel, meio);
     vagasDoHud(ins, this.posicoesDasVagas);
+    // Barra de stamina (RE1): trilho, preenchimento e as 3 marcas de 1 pt em pedra (uma esquiva = 25 pontos).
+    const s = caixaDaBarraDeStamina(ins, this.caixaDaStamina);
+    const meioDaStamina = s.y + s.altura / 2;
+    this.trilhoDaStamina!.setPosition(s.x, meioDaStamina).setScale(escalaPara('quadrado', s.largura), escalaPara('quadrado', s.altura));
+    this.preenchimentoDaStamina!.setPosition(s.x, meioDaStamina);
+    const maxima = this.ctx.simulacao?.dados.combate.staminaMax ?? 100;
+    const marcas = this.marcasDaStamina!.clear().fillStyle(COR.pedra, 1);
+    for (const pontos of BARRA_DE_STAMINA.marcas) {
+      marcas.fillRect(s.x + xDaMarcaDeStamina(s.largura, pontos, maxima) - BARRA_DE_STAMINA.larguraDaMarca / 2, s.y, BARRA_DE_STAMINA.larguraDaMarca, s.altura);
+    }
+    this.staminaDesenhada = -1;
+    this.alfaDaStaminaDesenhado = -1;
+    alvoDoAparo(ins, this.botaoDoAparo);
+    this.estadoDoAparoDesenhado = -1;
     this.xpDesenhado = -1;
     this.assinaturaDasVagas = -1;
   }
@@ -144,6 +198,8 @@ export class Hud extends Phaser.Scene {
       this.nivelDesenhado = -1;
       this.xpDesenhado = -1;
       this.assinaturaDasVagas = -1;
+      this.staminaDesenhada = -1;
+      this.estadoDoAparoDesenhado = -1;
     }
     const nivel = e.progresso[PROGRESSAO.nivel]!;
     const xp = e.progresso[PROGRESSAO.xp]!;
@@ -162,6 +218,91 @@ export class Hud extends Phaser.Scene {
     if (assinatura !== this.assinaturaDasVagas) {
       this.assinaturaDasVagas = assinatura;
       this.desenharVagas(e);
+    }
+  }
+
+  /**
+   * Barra de stamina (RE1): o preenchimento só é reescrito quando a stamina muda (osso; laranja abaixo de 25, em que a
+   * esquiva é negada), e o pulso da ação negada leva o alfa a 0,3 por 12 quadros. Nada aloca por quadro.
+   */
+  private atualizarStamina(sim: NonNullable<ContextoDoJogo['simulacao']>): void {
+    const st = sim.estado.jogador3[JOGADOR3.stamina]!;
+    if (st !== this.staminaDesenhada) {
+      this.staminaDesenhada = st;
+      const l = larguraDaStamina(this.caixaDaStamina.largura, st, sim.dados.combate.staminaMax);
+      this.preenchimentoDaStamina!
+        .setVisible(l > 0)
+        .setTint(st < STAMINA_DA_ESQUIVA ? COR.laranjaQueimado : COR.osso)
+        .setScale(escalaPara('quadrado', l), escalaPara('quadrado', BARRA_DE_STAMINA.altura));
+    }
+    const fb = this.ctx.feedback;
+    const alfa = fb.pulsoDaStamina > 0 ? PULSO_DA_STAMINA.alfa : 1;
+    if (fb.pulsoDaStamina > 0) fb.pulsoDaStamina--;
+    if (alfa !== this.alfaDaStaminaDesenhado) {
+      this.alfaDaStaminaDesenhado = alfa;
+      this.preenchimentoDaStamina!.setAlpha(alfa);
+    }
+  }
+
+  /** Botão Aparo (RE2): redesenhado só quando o estado muda (normal, pressionado por 4 quadros, indisponível). */
+  private atualizarAparo(sim: NonNullable<ContextoDoJogo['simulacao']>): void {
+    const apertos = this.ctx.entrada.tradutor.aparoApertos;
+    if (apertos !== this.apertosVistos) {
+      if (apertos > this.apertosVistos) this.quadrosDoAparoPressionado = QUADROS_DO_APARO_PRESSIONADO;
+      this.apertosVistos = apertos;
+    }
+    const e = sim.estado;
+    const u8 = e.jogador3U8;
+    const estado = estadoDoAparo(
+      this.quadrosDoAparoPressionado,
+      e.jogador3[JOGADOR3.stamina]!,
+      sim.dados.combate.custoAparo,
+      u8[JOGADOR3_U8.esquivaPasso]!,
+      u8[JOGADOR3_U8.aparoJanela]!,
+      u8[JOGADOR3_U8.aparoFalho]!,
+    );
+    if (this.quadrosDoAparoPressionado > 0) this.quadrosDoAparoPressionado--;
+    if (estado !== this.estadoDoAparoDesenhado) {
+      this.estadoDoAparoDesenhado = estado;
+      this.desenharAparo(estado);
+    }
+  }
+
+  private desenharAparo(estado: number): void {
+    const d = BOTAO_DO_APARO_DESENHO;
+    const b = this.botaoDoAparo;
+    const bx = b.x + b.largura / 2;
+    const by = b.y + b.altura / 2;
+    const g = this.botaoDoAparoGrafico!;
+    g.clear().setAlpha(estado === ESTADO_DO_APARO.indisponivel ? d.alfaIndisponivel : 1);
+    g.fillStyle(COR.pedra, ALFA_DA_BASE).fillCircle(bx, by, d.raioDoAnel);
+    if (estado === ESTADO_DO_APARO.pressionado) g.fillStyle(COR.osso, d.alfaPressionado).fillCircle(bx, by, d.raioDoAnel);
+    g.lineStyle(d.traco, COR.osso, 1).strokeCircle(bx, by, d.raioDoAnel);
+    // Glifo ⟲: arco no sentido anti-horário com a ponta de seta no fim, desenhado (sem texto).
+    const [inicio, fim] = d.arco;
+    g.lineStyle(d.tracoDoGlifo, COR.osso, 1).beginPath().arc(bx, by, d.raioDoGlifo, inicio, fim, true).strokePath();
+    const px = bx + d.raioDoGlifo * Math.cos(fim);
+    const py = by + d.raioDoGlifo * Math.sin(fim);
+    const tx = Math.sin(fim);
+    const ty = -Math.cos(fim);
+    const nx = Math.cos(fim);
+    const ny = Math.sin(fim);
+    g.fillStyle(COR.osso, 1).fillTriangle(px + tx * 8, py + ty * 8, px + nx * 5, py + ny * 5, px - nx * 5, py - ny * 5);
+  }
+
+  /**
+   * O flash branco de tela inteira (FB2, RE3): o consumidor do anel dispara ao ler o aparo ou a esquiva perfeita; o
+   * alfa de cada quadro vem do controlador (2 quadros de 0,35, no máximo 3 por segundo, opção "Flashes"). Os sons
+   * tocam pelo mesmo consumidor (RE12). Tudo fora do estado e do hash.
+   */
+  private atualizarFeedback(sim: NonNullable<ContextoDoJogo['simulacao']>): void {
+    const fb = this.ctx.feedback;
+    const ef = sim.efeitos;
+    if (ef !== null) fb.atualizar(ef.feedback, performance.now(), this.ctx.opcoes, this.tocarSfx);
+    const alfa = fb.flash.proximoAlfa(this.ctx.opcoes.flashes, this.ctx.flashSegurar);
+    if (alfa !== this.alfaDoFlashDesenhado) {
+      this.alfaDoFlashDesenhado = alfa;
+      this.flashGrafico!.setAlpha(alfa).setVisible(alfa > 0);
     }
   }
 
@@ -199,7 +340,12 @@ export class Hud extends Phaser.Scene {
     const sim = this.ctx.simulacao;
     const mostrar = sim !== null && sim.estado.jogadorU8[JOGADOR_U8.promptMover] === PROMPT.visivel;
     if (mostrar !== this.promptMostrado) this.fadeDoPrompt(mostrar);
-    if (sim !== null) this.atualizarProgresso(sim);
+    if (sim !== null) {
+      this.atualizarProgresso(sim);
+      this.atualizarStamina(sim);
+      this.atualizarAparo(sim);
+      this.atualizarFeedback(sim);
+    }
   }
 
   private fadeDoPrompt(mostrar: boolean): void {
