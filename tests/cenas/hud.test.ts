@@ -1,13 +1,21 @@
 // HUD e pausa da F-005 sem Phaser (design/decisoes-F-005.md R4, R5, R6 e "Pausa"):
 // a geometria da barra de XP e das 12 vagas, a proporção do preenchimento, os
 // ids de texto da pausa e os ícones.
+import { readFileSync } from 'node:fs';
 import type Phaser from 'phaser';
 import { describe, expect, it } from 'vitest';
 import {
+  BARRA_DE_STAMINA,
+  ESTADO_DO_APARO,
   LARGURA_DA_LINHA_DE_VAGAS,
+  STAMINA_DA_ESQUIVA,
   TOTAL_DE_VAGAS_DO_HUD,
+  caixaDaBarraDeStamina,
   caixaDaBarraDeXp,
+  estadoDoAparo,
+  larguraDaStamina,
   larguraDoPreenchimento,
+  xDaMarcaDeStamina,
   vagasDoHud,
   type CaixaDaBarra,
   type VagaDoHud,
@@ -40,6 +48,54 @@ describe('barra de XP (R4)', () => {
     expect(larguraDoPreenchimento(246, 10, 10)).toBe(246);
     expect(larguraDoPreenchimento(246, 12, 10)).toBe(246);
     expect(larguraDoPreenchimento(246, 3, 0)).toBe(0);
+  });
+});
+
+describe('barra de stamina (decisoes-F-006 RE1)', () => {
+  const stamina = (i: Insets): CaixaDaBarra => caixaDaBarraDeStamina(i, { x: 0, y: 0, largura: 0, altura: 0 });
+
+  it('10 pt em topo + 56, na metade direita da faixa da barra de XP: x = esquerda + 207, largura 119', () => {
+    expect(stamina(insetsZerados())).toEqual({ x: 207, y: 56, largura: 119, altura: 10 });
+    expect(stamina(IPHONE)).toEqual({ x: 207, y: 115, largura: 119, altura: 10 });
+    expect(stamina({ topo: 47, direita: 0, baixo: 34, esquerda: 0 })).toEqual({ x: 207, y: 103, largura: 119, altura: 10 });
+    // Com insets laterais a metade direita acompanha a barra de XP (100 a 316: 216 pt).
+    expect(stamina(LATERAIS)).toEqual({ x: 20 + 80 + 104 + 8, y: 103, largura: 104, altura: 10 });
+  });
+
+  it('fica dentro da banda de 72 pt do botão de pausa e acima das vagas (topo + 80)', () => {
+    const c = stamina(IPHONE);
+    expect(c.y + c.altura).toBeLessThanOrEqual(IPHONE.topo + 72);
+    expect(c.y + c.altura).toBeLessThan(vagas(IPHONE)[0]!.y);
+    expect(c.x).toBeGreaterThan(barra(IPHONE).x + (barra(IPHONE).largura - 8) / 2);
+  });
+
+  it('largura do preenchimento para stamina 0, 24,5, 25 e 100 (1,19 pt por ponto)', () => {
+    expect([0, 24.5, 25, 100].map((s) => larguraDaStamina(119, s, 100))).toEqual([0, 29.155, 29.75, 119].map((v) => expect.closeTo(v, 9)));
+    expect(larguraDaStamina(119, 130, 100)).toBe(119);
+    expect(larguraDaStamina(119, -3, 100)).toBe(0);
+  });
+
+  it('três marcas de 1 pt a 25, 50 e 75 (29,75, 59,5 e 89,25 pt)', () => {
+    expect(BARRA_DE_STAMINA.marcas).toEqual([25, 50, 75]);
+    expect(BARRA_DE_STAMINA.larguraDaMarca).toBe(1);
+    expect(BARRA_DE_STAMINA.marcas.map((m) => xDaMarcaDeStamina(119, m, 100))).toEqual([29.75, 59.5, 89.25]);
+  });
+
+  it('o limite de uma esquiva é 25: laranja só abaixo dele', () => {
+    expect(STAMINA_DA_ESQUIVA).toBe(25);
+  });
+});
+
+describe('estado do botão Aparo (decisoes-F-006 AP1 e RE2)', () => {
+  it('normal; pressionado tem a vez; indisponível com stamina < 15, em esquiva, em janela ou em aparo falho', () => {
+    const E = ESTADO_DO_APARO;
+    expect(estadoDoAparo(0, 100, 15, 0, 0, 0)).toBe(E.normal);
+    expect(estadoDoAparo(0, 15, 15, 0, 0, 0)).toBe(E.normal);
+    expect(estadoDoAparo(0, 14.5, 15, 0, 0, 0)).toBe(E.indisponivel);
+    expect(estadoDoAparo(0, 100, 15, 7, 0, 0)).toBe(E.indisponivel);
+    expect(estadoDoAparo(0, 100, 15, 0, 5, 0)).toBe(E.indisponivel);
+    expect(estadoDoAparo(0, 100, 15, 0, 0, 3)).toBe(E.indisponivel);
+    expect(estadoDoAparo(3, 100, 15, 0, 5, 3)).toBe(E.pressionado);
   });
 });
 
@@ -139,5 +195,19 @@ describe('ícones (R6)', () => {
     ]);
     expect([PASSIVA.vazia, PASSIVA.elmo_sem_rosto, PASSIVA.luvas_de_fole].map(iconeDaPassiva)).toEqual([null, 'elmo', 'luvas']);
     expect(iconeDaArma(99)).toBeNull();
+  });
+});
+
+describe('textos da pausa e do Hud da F-006 (RE13)', () => {
+  it('Som e Flashes vêm de t(id) e do pt-BR.json; o botão Aparo e a barra de stamina não têm texto', () => {
+    expect([t('A6.PAUSA.SOM'), t('A6.PAUSA.FLASHES')]).toEqual(['Som', 'Flashes']);
+    const pausa = readFileSync('src/cenas/Pausa.ts', 'utf8');
+    expect(pausa).toContain("'A6.PAUSA.SOM'");
+    expect(pausa).toContain("'A6.PAUSA.FLASHES'");
+    expect(pausa).not.toMatch(/'(Som|Flashes)'/);
+    // O Hud só cria texto para o nível e o prompt (ids); nada para a barra de stamina nem para o Aparo.
+    const hud = readFileSync('src/cenas/Hud.ts', 'utf8');
+    expect([...hud.matchAll(/texto\(this, [^,]+, [^,]+, '([^']+)'/g)].map((m) => m[1])).toEqual(['A5.HUD.NIVEL', 'A2.TUTORIAL.01']);
+    expect(hud).not.toMatch(/add\.text\(/);
   });
 });

@@ -64,3 +64,51 @@ export function vagasDoHud(insets: Insets, out: VagaDoHud[]): VagaDoHud[] {
   }
   return out;
 }
+
+/**
+ * Barra de stamina (decisoes-F-006 RE1): 10 pt de altura em topo + 56, na metade direita da faixa da barra de XP
+ * (vão de 8 pt; a esquerda fica para o HP da F-007). Com a faixa de 246 pt (80 a 326): x = esquerda + 207 e
+ * largura 119 pt, isto é, 1,19 pt por ponto de stamina.
+ */
+export const BARRA_DE_STAMINA = { altura: 10, abaixoDoTopo: 56, vao: 8, marcas: [25, 50, 75] as readonly number[], larguraDaMarca: 1 } as const;
+/** Abaixo disto a esquiva é negada (o custo de uma esquiva, ST1): o preenchimento passa a laranja. */
+export const STAMINA_DA_ESQUIVA = 25;
+/** Quadros de render do pulso da ação negada (≈ 0,2 s a 60 fps; abaixo de 3 Hz) e o alfa do preenchimento nele. */
+export const PULSO_DA_STAMINA = { quadros: 12, alfa: 0.3 } as const;
+
+/** Caixa da barra de stamina, escrita em `out` sem alocar. */
+export function caixaDaBarraDeStamina(insets: Insets, out: CaixaDaBarra): CaixaDaBarra {
+  const xp = caixaDaBarraDeXp(insets, out);
+  const largura = Math.max(0, (xp.largura - BARRA_DE_STAMINA.vao) / 2);
+  out.x = xp.x + largura + BARRA_DE_STAMINA.vao;
+  out.y = insets.topo + BARRA_DE_STAMINA.abaixoDoTopo;
+  out.largura = largura;
+  out.altura = BARRA_DE_STAMINA.altura;
+  return out;
+}
+
+/** Largura do preenchimento: stamina / máxima da largura total, limitada a [0, largura]. */
+export function larguraDaStamina(largura: number, stamina: number, maxima: number): number {
+  if (!(maxima > 0) || !(stamina > 0)) return 0;
+  return stamina >= maxima ? largura : (largura * stamina) / maxima;
+}
+
+/** Posição x (relativa ao início da barra) da marca de `pontos` pontos de stamina, no centro da marca de 1 pt. */
+export function xDaMarcaDeStamina(largura: number, pontos: number, maxima: number): number {
+  return (largura * pontos) / maxima;
+}
+
+/** Estados do botão Aparo (AP1, RE2). */
+export const ESTADO_DO_APARO = { normal: 0, pressionado: 1, indisponivel: 2 } as const;
+/** Quadros de render do preenchimento do botão pressionado. */
+export const QUADROS_DO_APARO_PRESSIONADO = 4;
+
+/**
+ * Estado do botão Aparo: pressionado (preenchido por 4 quadros) tem a vez; indisponível quando falta stamina
+ * (< 15), em esquiva, em janela ou em aparo falho; senão, normal.
+ */
+export function estadoDoAparo(quadrosPressionado: number, stamina: number, custoDoAparo: number, esquivaPasso: number, aparoJanela: number, aparoFalho: number): number {
+  if (quadrosPressionado > 0) return ESTADO_DO_APARO.pressionado;
+  if (stamina < custoDoAparo || esquivaPasso > 0 || aparoJanela > 0 || aparoFalho > 0) return ESTADO_DO_APARO.indisponivel;
+  return ESTADO_DO_APARO.normal;
+}

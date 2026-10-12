@@ -13,6 +13,10 @@ export const COR = {
   laranjaQueimado: 0xe2652b,
   osso: 0xe8dcc4,
   sal: 0xdfe8ea,
+  /** Branco puro: telegrafo, projétil da Noviça e flash (reservado; design/decisoes-F-006.md RE4 a RE6). */
+  branco: 0xffffff,
+  /** Número crítico e estrela do atordoado (Q-27; decisoes-F-006 RE9 e RE10). */
+  amarelo: 0xffd166,
   /** Cinzas por faixa de valor (Q-27; design/decisoes-F-005.md R2): azul abaixo de 5 (também a barra de XP, R4), verde de 5 a 24, vermelha a partir de 25. */
   cinzaAzul: 0x5aa9e6,
   cinzaVerde: 0x6cc57c,
