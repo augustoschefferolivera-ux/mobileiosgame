@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+test-results/
+playwright-report/
+.vite/
+*.log
+.DS_Store
+.verify/
+dist-debug/
+!production/evidencias/**/*.log
+__pycache__/
+.claude/worktrees/

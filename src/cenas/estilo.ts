@@ -1,0 +1,50 @@
+// Paleta provisória (brief §5.15: fundo #1a1f2b e brasa #ffb347; base do
+// doc 13 §1.3 pela Q-27) e helpers de desenho das cenas. Formas geométricas
+// até a arte, depois da F-010.
+import Phaser from 'phaser';
+import { ALTURA_LOGICA, LARGURA_LOGICA } from '../plataforma/safeArea';
+import { ESCALA_DO_CANVAS } from './escala';
+import { t, type Parametros } from './textos';
+
+export { ESCALA_DO_CANVAS };
+
+export { COR, COR_DO_INIMIGO } from './paleta';
+
+export const FONTE = 'system-ui, -apple-system, sans-serif';
+
+/** Hex CSS de uma cor da paleta. */
+export function css(cor: number): string {
+  return `#${cor.toString(16).padStart(6, '0')}`;
+}
+
+/** Câmera em pt lógicos: o canvas de 780 × 1688 com zoom 2 mostra 390 × 844. */
+export function cameraLogica(cena: Phaser.Scene): void {
+  cena.cameras.main.setZoom(ESCALA_DO_CANVAS).centerOn(LARGURA_LOGICA / 2, ALTURA_LOGICA / 2);
+}
+
+/**
+ * Texto da tela a partir de um id de pt-BR.json, com resolução 2 para a
+ * câmera em zoom 2. O id fica no objeto para __GAME_DEBUG__.textoAtivo.
+ * Com `larguraMax` (pt), o texto quebra linha nessa largura (prompts, TU11).
+ */
+export function texto(
+  cena: Phaser.Scene,
+  x: number,
+  y: number,
+  id: string,
+  tamanho: number,
+  cor: number,
+  params?: Parametros,
+  larguraMax?: number,
+): Phaser.GameObjects.Text {
+  const obj = cena.add.text(x, y, t(id, params), {
+    fontFamily: FONTE,
+    fontSize: `${tamanho}px`,
+    color: css(cor),
+    align: 'center',
+    resolution: 2,
+    ...(larguraMax === undefined ? {} : { wordWrap: { width: larguraMax } }),
+  });
+  obj.setData('idTexto', id);
+  return obj;
+}

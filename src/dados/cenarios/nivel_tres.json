@@ -1,0 +1,17 @@
+{
+  "id": "nivel_tres",
+  "versao": 1,
+  "linha_fixa": null,
+  "jogador": { "invulneravel": false },
+  "diretor_desligado": true,
+  "tutoriais_vistos": true,
+  "rotacao": 0,
+  "armas": [
+    { "arma": "espada_longa_do_juramento", "nivel": 1 }
+  ],
+  "cinzas": true,
+  "passivas": [],
+  "baus": [],
+  "xp_inicial": 29,
+  "relogio_inicial_s": 0
+}

@@ -1,0 +1,52 @@
+{
+  "versao": 1,
+  "stamina": {
+    "custo_esquiva": 25,
+    "custo_aparo": 15,
+    "regeneracao_por_passo": 0.5,
+    "espera_regeneracao_passos": 30,
+    "devolucao_do_aparo": 30
+  },
+  "esquiva": {
+    "duracao_passos": 21,
+    "iframes_primeiro_passo": 2,
+    "iframes_ultimo_passo": 13,
+    "recuperacao_passos": 3,
+    "distancia_px": 80
+  },
+  "aparo": {
+    "janela_passos": 11,
+    "janela_tutorial_extra_passos": 6,
+    "falho_passos": 24
+  },
+  "congelamento_passos": 5,
+  "poder_da_esquiva_perfeita": {
+    "pct": 15,
+    "duracao_passos": 120
+  },
+  "postura_quebrada": {
+    "duracao_passos": 120,
+    "raio_px": 64,
+    "dano_pct": 200
+  },
+  "contra_ataque_passos": 90,
+  "contra_ataque_fator": 2,
+  "ataques_dos_inimigos": {
+    "alcance_de_tiro_novica_corpos": 6
+  },
+  "gestos": {
+    "swipe": {
+      "velocidade_min_pt_s": 400,
+      "janela_ms": 100,
+      "dt_min_ms": 16,
+      "distancia_min_pt": 24,
+      "amostras": 16
+    },
+    "toque_duplo": {
+      "intervalo_max_ms": 250,
+      "duracao_max_ms": 200,
+      "distancia_entre_toques_max_pt": 40,
+      "deslocamento_max_pt": 10
+    }
+  }
+}

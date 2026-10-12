@@ -1,0 +1,177 @@
+{
+  "versao": 1,
+  "chefes": [
+    {
+      "id": "o_lanterneiro",
+      "nome_id": "E1.LANTERNEIRO.NOME",
+      "titulo_id": "E1.LANTERNEIRO.TITULO",
+      "tipo": "chefe_da_regiao",
+      "regiao": "charneca_das_lanternas",
+      "forma": "retangulo",
+      "tamanho_px": null,
+      "hp_base": 6500,
+      "hp_escala_por_nivel": 0.04,
+      "velocidade": null,
+      "almas": 200,
+      "arena": {
+        "raio_corpos": 7
+      },
+      "postura": {
+        "max": 100,
+        "ganho_aparo": 25,
+        "ganho_esquiva_perfeita": 10,
+        "ganho_acerto_espada": 2,
+        "ganho_acerto_pesada": 5,
+        "quebra_s": 3,
+        "quebra_mult_dano": 2,
+        "regen_por_s": 20,
+        "regen_duracao_s": 5
+      },
+      "postura_firme_reducao_pct": 40,
+      "transicao_fase_s": 1.5,
+      "fases": [
+        {
+          "fase": 1,
+          "limiar_hp_pct": 100,
+          "ataques": [
+            {
+              "id": "vara_horizontal",
+              "telegrafo": {
+                "cor": "branco",
+                "duracao_s": 0.7
+              },
+              "forma": "arco",
+              "aparavel": true,
+              "dano": null,
+              "angulo_graus": 180,
+              "alcance_corpos": null
+            },
+            {
+              "id": "bater_a_vara",
+              "telegrafo": {
+                "cor": "branco",
+                "duracao_s": 0.6
+              },
+              "forma": "linha",
+              "aparavel": true,
+              "dano": null,
+              "alcance_corpos": 6,
+              "largura_corpos": null
+            },
+            {
+              "id": "luz_cega",
+              "telegrafo": {
+                "cor": "vermelho",
+                "duracao_s": 1.0
+              },
+              "forma": "cone",
+              "aparavel": false,
+              "dano": null,
+              "dano_por_s": 8,
+              "angulo_graus": 60,
+              "alcance_corpos": 6,
+              "efeito_tela": "inverte_cores",
+              "duracao_efeito_s": 2
+            }
+          ]
+        },
+        {
+          "fase": 2,
+          "limiar_hp_pct": 60,
+          "transicao_texto_id": "E3.LANTERNEIRO.FASE2",
+          "escurecer_arena_pct": 40,
+          "ataques": [
+            {
+              "id": "lanterna_arremessada",
+              "telegrafo": {
+                "cor": "vermelho",
+                "duracao_s": null
+              },
+              "forma": "area_circular",
+              "aparavel": false,
+              "dano": null,
+              "raio_corpos": 2,
+              "dano_por_s": 6,
+              "duracao_efeito_s": 6
+            }
+          ],
+          "convoca": {
+            "inimigo": "oco_das_lanternas",
+            "quantidade": 10,
+            "intervalo_s": null,
+            "ilumina_raio_corpos": 3
+          }
+        },
+        {
+          "fase": 3,
+          "limiar_hp_pct": 25,
+          "transicao_texto_id": "E3.LANTERNEIRO.FASE3",
+          "ataques": [
+            {
+              "id": "explosao_de_luz",
+              "telegrafo": {
+                "cor": "vermelho",
+                "duracao_s": null
+              },
+              "forma": "anel_expansivo",
+              "aparavel": false,
+              "dano": null,
+              "raio_inicial_corpos": 1,
+              "raio_final_corpos": 6,
+              "expansao_s": 1,
+              "intervalo_s": 12
+            },
+            {
+              "id": "agarrar",
+              "telegrafo": {
+                "cor": "branco",
+                "duracao_s": 0.8
+              },
+              "forma": "agarrar",
+              "aparavel": true,
+              "dano": null,
+              "raio_corpos": 2,
+              "agarrar": {
+                "dano_hp_pct": 20,
+                "preso_s": 1,
+                "aparo_quebra_imediata": true
+              }
+            }
+          ]
+        }
+      ],
+      "furia": {
+        "apos_s": 300,
+        "dano_pct": 5,
+        "intervalo_s": 10
+      },
+      "pendentes": {
+        "tamanho_px": "F-009",
+        "velocidade": "F-009",
+        "fases[0].ataques[0].dano": "F-009",
+        "fases[0].ataques[0].alcance_corpos": "F-009",
+        "fases[0].ataques[1].dano": "F-009",
+        "fases[0].ataques[1].largura_corpos": "F-009",
+        "fases[0].ataques[2].dano": "F-009",
+        "fases[1].ataques[0].telegrafo.duracao_s": "F-009",
+        "fases[1].convoca.intervalo_s": "F-009",
+        "fases[2].ataques[0].telegrafo.duracao_s": "F-009",
+        "fases[2].ataques[0].dano": "F-009"
+      },
+      "pendencias": [
+        "F-009: dano de Vara Horizontal, Bater a Vara e Explosão de Luz; se a Luz Cega tem dano de acerto além dos 8/s (brief §11.3)",
+        "F-009: alcance da Vara Horizontal e largura de Bater a Vara (brief §11.3)",
+        "F-009: duração do telegrafo vermelho da Lanterna Arremessada e da Explosão de Luz (B: 0,8 a 1,2 s)",
+        "F-009: velocidade, IA de escolha de ataque e frequência da convocação da fase 2 (brief §11.3)",
+        "F-009: se cada fase mantém os ataques das anteriores",
+        "F-009: se o dano do chefe escala por minuto; sentido de 'zera e regenera 20/s por 5 s' (brief §11.3)",
+        "F-009: Postura gerada por Facas, Círculo, Lâmina e onda; aparo comum no chefe (brief §11.3)",
+        "F-009: tamanho (doc 06 §2.2: 4 corpos de altura; doc 13 §1.2: 128 a 192 px)",
+        "F-009: se a luz do jogador (doc 13 §1.4: raio de 5 corpos) e a dos Ocos convocados (ilumina_raio_corpos 3) entram no MVP (brief §11.3; Q-28)",
+        "F-008/F-009: se o escurecimento de 40% da fase 2 (escurecer_arena_pct) soma com os 10%/min da Hora IV e se atinge telegrafos e HUD (brief §11.3)",
+        "F-009: raio de nascimento dos convocados dentro da arena (ADR-0002 §9)",
+        "Fúria inalcançável no MVP (A Fome às 23:00), mantida e testada isoladamente (Q-05)"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1062 @@
+{
+  "versao": 1,
+  "fonte": "design/gdd/18-briefing-tecnico.md §4 (colunas escopo_b, criterio_b e evidencia_b copiadas literalmente)",
+  "pronto": {
+    "comando": "scripts/verify.sh --feature F-xxx",
+    "exige": [
+      "build verde",
+      "Vitest verde",
+      "Playwright verde com --taps-game e --seed",
+      "evidência em production/evidencias/F-xxx/ conforme evidencia_b",
+      "crítico independente ≥ 7 (subagente revisor, nota 0 a 10; Q-33)",
+      "commit descritivo"
+    ],
+    "observacao": "Criterios com origem diferente de 'B §4' vêm do escopo de B, do brief aprovado ou do ADR-0002, e também fazem parte do Pronto."
+  },
+  "features": [
+    {
+      "id": "F-001",
+      "nome": "Esqueleto e loop",
+      "status": "pronta",
+      "escopo_b": "Phaser em retrato, resolução lógica 390×844 @2×, canvas fixo, safe-area, simulação pura em `src/logica/` com passo fixo 60 Hz, acumulador, RNG com seed, `window.__GAME_DEBUG__` (fps, passo, entidades vivas, passos perdidos), tela \"Toque para acender a Chama\", bloqueio de pull-to-refresh e zoom",
+      "criterio_b": "Teste: mesma seed + 1.000 passos = estado idêntico (hash). Playwright: screenshot 390×844 sem barras de rolagem; `__GAME_DEBUG__.passo` avança; áudio em estado `running` após o toque simulado",
+      "evidencia_b": "Screenshot; log do teste de determinismo",
+      "criterios": [
+        {
+          "id": "F-001.1",
+          "descricao": "Mesma seed + 1.000 passos = estado idêntico (hash).",
+          "verificacao": "vitest",
+          "como": "tests/logica/determinismo.test.ts: duas execuções com a mesma seed e os mesmos comandos; hash FNV-1a (ADR-0002 §5) igual no passo 1.000.",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-001.2",
+          "descricao": "Screenshot 390×844 sem barras de rolagem.",
+          "verificacao": "playwright",
+          "como": "viewport 390×844 com hasTouch/isMobile; document.scrollingElement.scrollHeight ≤ innerHeight e scrollWidth ≤ innerWidth; screenshot salva.",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-001.3",
+          "descricao": "__GAME_DEBUG__.passo avança.",
+          "verificacao": "__GAME_DEBUG__",
+          "como": "Playwright lê window.__GAME_DEBUG__.passo depois do toque e de novo depois de pelo menos um requestAnimationFrame; o segundo valor é maior.",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-001.4",
+          "descricao": "Áudio em estado running após o toque simulado.",
+          "verificacao": "playwright",
+          "como": "Chromium com --autoplay-policy=document-user-activation-required (corrigido na F-001: com user-gesture-required o AudioContext do Chromium 141 já nasce 'running'); __GAME_DEBUG__.audio() é 'suspended' antes e 'running' depois do toque na Tela de Acender, com o unlock automático do Phaser desligado no preBoot, um toque fora do botão mantém 'suspended', e depois do toque no botão __GAME_DEBUG__.desbloqueioDoAudio = 'running' e somTravado = false (ADR-0002 §12; ADR-0003 §1).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-001.5",
+          "descricao": "1 passo por frame e 5 passos por frame dão o mesmo hash; o excedente acima de 5 passos é descartado e conta em passos_perdidos.",
+          "verificacao": "vitest",
+          "como": "driver de teste do acumulador com deltas sintéticos (ADR-0002 §3).",
+          "origem": "ADR-0002 §3 e §5"
+        },
+        {
+          "id": "F-001.6",
+          "descricao": "Canvas com backing store fixo 780×1688: não muda depois de resize/orientationchange.",
+          "verificacao": "playwright",
+          "como": "canvas.width/height antes e depois de page.setViewportSize; iguais (ADR-0002 §11).",
+          "origem": "ADR-0002 §11; B §3.2"
+        },
+        {
+          "id": "F-001.7",
+          "descricao": "Safe-area: viewport-fit=cover e insets lidos pela sonda CSS chegam ao HUD em pt lógicos.",
+          "verificacao": "vitest",
+          "como": "função pura de conversão de inset (ADR-0002 §12) testada com letterbox e sem letterbox. No Playwright, o meta viewport do DOM contém viewport-fit=cover.",
+          "origem": "ADR-0002 §12; B §3.14"
+        },
+        {
+          "id": "F-001.8",
+          "descricao": "Pull-to-refresh e zoom bloqueados: touchmove não passivo com preventDefault no canvas e no document; touch-action: none.",
+          "verificacao": "playwright",
+          "como": "evento touchmove sintético retorna defaultPrevented; estilo computado do canvas tem touch-action none.",
+          "origem": "ADR-0002 §12; B §3.5 e §3.14"
+        },
+        {
+          "id": "F-001.9",
+          "descricao": "RNG xoshiro128** confere com os vetores de referência e os fluxos (diretor, levelup e os da ADR) são independentes.",
+          "verificacao": "vitest",
+          "como": "tests/logica/rng.test.ts.",
+          "origem": "ADR-0002 §5"
+        },
+        {
+          "id": "F-001.10",
+          "descricao": "Lint de fronteiras: src/logica não importa phaser, src/cenas, src/entrada nem src/plataforma; não usa window, document, performance, Date, requestAnimationFrame, setTimeout, Math.random, sin/cos/tan/asin/acos/atan/atan2/exp/expm1/log*/pow/hypot/cbrt nem o operador **; só src/cenas importa phaser.",
+          "verificacao": "lint",
+          "como": "eslint com no-restricted-imports/globals/properties/syntax (ADR-0002 §2).",
+          "origem": "ADR-0002 §2 e §5"
+        },
+        {
+          "id": "F-001.11",
+          "descricao": "Mesmo hash de referência da seed N no passo 1.000 no Vitest (Node) e no Playwright (Chromium).",
+          "verificacao": "playwright",
+          "como": "o Vitest grava o hash de referência; o Playwright roda a mesma seed e os mesmos comandos com a simulação avançada por avancar(n) e compara.",
+          "origem": "ADR-0002 §5"
+        },
+        {
+          "id": "F-001.12",
+          "descricao": "Tabela de conversões de segundos em passos.",
+          "verificacao": "vitest",
+          "como": "uma asserção por conversão usada (ex.: 0,5 s = 30; 0,6 s = 36; 1,5 s = 90; 2 s = 120; 80 ms = 5) (ADR-0002 §3).",
+          "origem": "ADR-0002 §3"
+        },
+        {
+          "id": "F-001.13",
+          "descricao": "Com insets de safe-area não nulos, nenhum alvo de toque cai dentro deles.",
+          "verificacao": "vitest",
+          "como": "tabela de hit-test com insets sintéticos (ADR-0002 §12).",
+          "origem": "ADR-0002 §12"
+        },
+        {
+          "id": "F-001.14",
+          "descricao": "Campo privado unlocked do som coberto por teste.",
+          "verificacao": "vitest",
+          "como": "o desbloqueio marca unlocked quando o Phaser continua locked depois do resume (ADR-0002 §12 e §16).",
+          "origem": "ADR-0002 §12 e §16"
+        },
+        {
+          "id": "F-001.15",
+          "descricao": "Telemetria local.",
+          "verificacao": "playwright",
+          "como": "__GAME_DEBUG__.eventos recebe os eventos do doc 10 §6 que existem no MVP, e nenhuma requisição de rede sai por eles.",
+          "origem": "Q-30"
+        }
+      ],
+      "evidencias": [
+        {
+          "arquivo": "production/evidencias/F-001/screenshot-390x844.png",
+          "descricao": "Screenshot (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-001/determinismo.log",
+          "descricao": "Log do teste de determinismo (B)"
+        }
+      ],
+      "pendencias_antes_de_comecar": [
+        "Criar scripts/verify.sh e scripts/novo-modulo.sh (doc 19; ADR-0002 §14)",
+        "Lista exata dos eventos e campos do doc 10 §6 no MVP ('anuncio' e 'compra' ficam fora) (Q-30)"
+      ]
+    },
+    {
+      "id": "F-002",
+      "nome": "Movimento e mapa",
+      "status": "pronta",
+      "escopo_b": "joystick flutuante (zona morta 0,15, raio 60 pt, reposiciona por toque), jogador a 4,5 corpos/s, mapa 3×3 telas com wrap, 4 a 8 obstáculos por tela com colisão, câmera",
+      "criterio_b": "Teste: vetor do joystick com zona morta; wrap de posição. Playwright `--taps-game`: arrasto move o jogador; dois toques em lugares diferentes criam o joystick em lugares diferentes",
+      "evidencia_b": "Vídeo curto ou 3 screenshots sequenciais",
+      "criterios": [
+        {
+          "id": "F-002.1",
+          "descricao": "Vetor do joystick com zona morta.",
+          "verificacao": "vitest",
+          "como": "zona morta 0,15 e raio 60 pt (B §3.5): vetor nulo abaixo de 0,15 × 60 pt, saturado em 1 no raio.",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-002.2",
+          "descricao": "Wrap de posição.",
+          "verificacao": "vitest",
+          "como": "posição normalizada no toro 1.170×2.532; interpolação com delta toroidal na costura em x e em y (ADR-0002 §3); wrap relativo à câmera com % corrigido (ADR-0002 §11).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-002.3",
+          "descricao": "Arrasto move o jogador (Playwright --taps-game).",
+          "verificacao": "playwright",
+          "como": "toques reais por CDP ou __GAME_DEBUG__.entrada.injetar; __GAME_DEBUG__.jogador.x/y muda na direção do arrasto.",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-002.4",
+          "descricao": "Dois toques em lugares diferentes criam o joystick em lugares diferentes.",
+          "verificacao": "playwright",
+          "como": "__GAME_DEBUG__.entrada.joystick.origemX/Y difere entre os dois toques.",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-002.5",
+          "descricao": "Jogador a 4,5 corpos/s (144 px/s) com o joystick saturado.",
+          "verificacao": "vitest",
+          "como": "deslocamento em 60 passos = 144 px (60 × 2,4), com tolerância [proposta de teste: ±1%].",
+          "origem": "B §3.3 (escopo da F-002)"
+        },
+        {
+          "id": "F-002.6",
+          "descricao": "4 a 8 obstáculos por tela, fixos no JSON da região, com colisão para jogador e inimigos.",
+          "verificacao": "vitest",
+          "como": "contagem por tela no JSON; jogador empurrado contra um obstáculo não o atravessa.",
+          "origem": "B §4 (escopo); Q-04; ADR-0002 §6"
+        },
+        {
+          "id": "F-002.7",
+          "descricao": "Nenhum alvo de toque com menos de 72 pt.",
+          "verificacao": "vitest",
+          "como": "tabela de alvos da UI (ADR-0002 §12).",
+          "origem": "B §3.5"
+        },
+        {
+          "id": "F-002.8",
+          "descricao": "Prompt de mover aos 0:10.",
+          "verificacao": "playwright",
+          "como": "A2.TUTORIAL.01 aparece no passo de relógio 600 e some ao mover (doc 11 §4); não aparece com ?tutorial=0 nem depois de cumprido na mesma Vigília (Q-26); mover = 1º passo com vetor fora da zona morta, desde 0:00 (design/decisoes-F-002.md §7). A persistência entre Vigílias chega com o meta (F-007).",
+          "origem": "brief §5.12; doc 11 §4"
+        }
+      ],
+      "evidencias": [
+        {
+          "arquivo": "production/evidencias/F-002/movimento.webm",
+          "descricao": "Vídeo curto (B), 390 × 844, com o roteiro de design/decisoes-F-002.md §8"
+        },
+        {
+          "arquivo": "production/evidencias/F-002/movimento-1-390x844.png",
+          "descricao": "Screenshot sequencial 1 de 3 (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-002/movimento-2-390x844.png",
+          "descricao": "Screenshot sequencial 2 de 3 (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-002/movimento-3-390x844.png",
+          "descricao": "Screenshot sequencial 3 de 3 (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-002/mapa-585x1266.png",
+          "descricao": "Mapa 3 × 3 com os obstáculos, o início, a zona livre e o corredor, para revisão (design/decisoes-F-002.md §2), a 1/2"
+        }
+      ],
+      "pendencias_antes_de_comecar": [
+        "Resolvidas em design/decisoes-F-002.md (por delegação do usuário, 2026-10-11): tamanho e forma dos obstáculos, hitboxes, contorno e bloqueio de projéteis (§2 e §3); cores (Q-27 e §5)"
+      ]
+    },
+    {
+      "id": "F-003",
+      "nome": "Hordas",
+      "status": "pronta",
+      "escopo_b": "diretor por timeline (JSON da seção 3.7), pools SoA pré-alocados, grade espacial própria, Oco das Lanternas, dano de contato com invulnerabilidade de 18 passos, HP/dano escalando por minuto, teto de entidades e conversão de excedente",
+      "criterio_b": "Teste: grade retorna os mesmos vizinhos que força bruta em 1.000 casos aleatórios; diretor repõe até o mínimo; conversão de excedente ao passar o teto. Playwright: 300 inimigos vivos e `__GAME_DEBUG__.fps` ≥ 55 por 30 s em desktop com throttling de CPU 4×",
+      "evidencia_b": "Captura do debug com 300 vivos; relatório de alocações (heap snapshot sem crescimento em 60 s)",
+      "criterios": [
+        {
+          "id": "F-003.1",
+          "descricao": "Grade retorna os mesmos vizinhos que força bruta em 1.000 casos aleatórios.",
+          "verificacao": "vitest",
+          "como": "inclui casos fixos na costura: (x=10, r=30) precisa da coluna 17; (y=10, r=50) precisa da linha 38 (ADR-0002 §6).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-003.2",
+          "descricao": "Diretor repõe até o mínimo.",
+          "verificacao": "vitest",
+          "como": "a cada intervalo efetivo, com alvo = ⌈min × I⌉ em inteiros e vivosEq = slots + 9 × convertidos, entra alvo − vivosEq, até os slots livres do TETO; a espera não reinicia na troca de linha; a 1ª reposição é no 1º passo (r = 1); os testes removem inimigos com removerInimigo (Q-07; ADR-0002 §8; design/decisoes-F-003.md §4).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-003.3",
+          "descricao": "Conversão de excedente ao passar o teto.",
+          "verificacao": "vitest",
+          "como": "TETO 300, 0 vivos, alvo 330 → 297 do roster + 3 Ocos Grandes convertidos; slots nunca passam de 300 (ADR-0002 §8.7).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-003.4",
+          "descricao": "300 inimigos vivos e __GAME_DEBUG__.fps ≥ 55 por 30 s em desktop com throttling de CPU 4×.",
+          "verificacao": "playwright",
+          "como": "?cenario=horda&teto=300&debug=1 no taps-game, CDP Emulation.setCPUThrottlingRate 4, 10 s de aquecimento e 30 s de medida (ADR-0002 §14; design/decisoes-F-003.md §8, E1). Sempre: 300 vivos nas 30 leituras, p95 de um passo + p95 do resto do quadro até PRE_RENDER < 10 ms e draw calls ≤ 150. Só com GPU de hardware, também fps ≥ 55 nas 30 leituras, Δ quadros ÷ 30 s ≥ 55 e o quadro inteiro < 10 ms. Com WebGL por software (o contêiner), o fps fica 'não conferido' e o F-003.4 literal pendente, com dono no build de teste do iPhone da F-006 (Q-29).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-003.5",
+          "descricao": "Dano de contato com invulnerabilidade de 18 passos.",
+          "verificacao": "vitest",
+          "como": "dano bruto de cada acerto de contato = 5 × 0,3 = 1,5 no minuto 0 (Q-13 (a)), medido antes da armadura e da Brasa Firme (ou com A = 0 e stamina ≤ 50, em que a Brasa Firme não reduz); cada acerto abre 18 passos sem dano de contato (Q-14).",
+          "origem": "B §3.3 e §4 (escopo)"
+        },
+        {
+          "id": "F-003.6",
+          "descricao": "HP e dano escalam por minuto, fixados no spawn.",
+          "verificacao": "vitest",
+          "como": "HP = 12 × (1 + 0,12·min) × I; dano = 5 × (1 + 0,05·min) (B §3.6; Q-10).",
+          "origem": "B §3.6 (escopo)"
+        },
+        {
+          "id": "F-003.7",
+          "descricao": "Heap sem crescimento em 60 s.",
+          "verificacao": "playwright",
+          "como": "?cenario=horda_rotativa&teto=300 (10 removidos e repostos a cada 60 passos), 300 vivos, 90 s de aquecimento; HeapProfiler.collectGarbage + takeHeapSnapshot, 60 s, outro snapshot; aprovado com Δ dos bytes próprios ≤ 32.768 B no total e Δ ≤ 100 objetos em cada construtor, fora da lista fechada de exclusões ((code), PerformanceLongTaskTiming, TaskAttributionTiming); limites confirmados em 3 rodadas de calibração (ADR-0005 §7) (ADR-0002 §11; design/decisoes-F-003.md §8, E2).",
+          "origem": "B §4 (evidência)"
+        },
+        {
+          "id": "F-003.8",
+          "descricao": "Nenhum spawn nos 30 s antes de um marco.",
+          "verificacao": "vitest",
+          "como": "seed fixa: zero spawns do diretor, inclusive de reposição, nos passos de relógio 16.200 ≤ r < 18.000, 34.200 ≤ r < 36.000 e 52.200 ≤ r < 54.000 (4:30–5:00, 9:30–10:00, 14:30–15:00); entre 19:30 e 20:00 a reposição continua (Q-11; ADR-0002 §8, passo 3; design/decisoes-F-003.md §1).",
+          "origem": "B §3.7 (escopo)"
+        },
+        {
+          "id": "F-003.9",
+          "descricao": "Anel de spawn com viés oposto ao movimento.",
+          "verificacao": "vitest",
+          "como": "toda posição de spawn do diretor fica a 468–624 px do jogador, em distância no toro (Q-06), conferida em [468 − 1e-3; 624 + 1e-3]; com o jogador em movimento, 60% caem no semicírculo oposto, medidos na direção sorteada antes da busca de ponto livre; parado, distribuição uniforme (Q-07). Tolerância: N = 10.000 por caso, seeds 1 a 5, fração oposta em [0,58; 0,62] em 4 direções; parado, cada quadrante em [0,233; 0,267] e cada meio-plano em [0,48; 0,52] (design/decisoes-F-003.md §4, R8).",
+          "origem": "B §3.7 (escopo)"
+        },
+        {
+          "id": "F-003.10",
+          "descricao": "TETO com fallback 300.",
+          "verificacao": "vitest",
+          "como": "sem ?teto, sem vdc.teto e sem resultado da sonda, com uma tela fora da classe antiga (DPR 3, 390 × 844), o TETO é 300 e __GAME_DEBUG__.teto.origem = 'fallback' (ADR-0002 §13; design/decisoes-F-003.md §5, T1).",
+          "origem": "B §3.7 (escopo)"
+        },
+        {
+          "id": "F-003.11",
+          "descricao": "Offsets do SpriteGPULayer conferidos via getMemberData(), inclusive no caminho DYNAMIC_DRAW.",
+          "verificacao": "vitest",
+          "como": "cria um membro com addMember e confere stride 42 e os offsets usados pelo sincronizador (ADR-0002 §11).",
+          "origem": "ADR-0002 §11"
+        }
+      ],
+      "evidencias": [
+        {
+          "arquivo": "production/evidencias/F-003/debug-300-vivos-390x844.png",
+          "descricao": "Captura do debug com 300 vivos (B), no passo 1.800 do cenário horda, pausado (design/decisoes-F-003.md §8, E3)"
+        },
+        {
+          "arquivo": "production/evidencias/F-003/heap-60s.json",
+          "descricao": "Relatório de alocações: heap snapshot sem crescimento em 60 s (B; design/decisoes-F-003.md §8, E2)"
+        },
+        {
+          "arquivo": "production/evidencias/F-003/desempenho-30s.json",
+          "descricao": "Medida do F-003.4: tempos, vivos, draw calls, renderer e se o fps foi conferido (design/decisoes-F-003.md §8, E1)"
+        }
+      ],
+      "pendencias_antes_de_comecar": [
+        "Resolvidas em design/decisoes-F-003.md (por delegação do usuário, 2026-10-11): força de separação (§2, S1 a S3); render da horda com SpriteGPULayer e plano B ?render=image (§7); tolerâncias do heap de 60 s (§8, E2) e do viés de 60% do anel (§4, R8); recomendações da F-002: inimigos sólidos (S4), spawn sobre obstáculo (R7), 'parado' no viés (R6), teste de contorno (S8) e cores (V1)"
+      ]
+    },
+    {
+      "id": "F-004",
+      "nome": "Armas automáticas",
+      "status": "pronta",
+      "escopo_b": "arquétipos de alvo (direção do movimento, mais próximo, aura), Espada Longa, Facas de Sal, Círculo de Sal com níveis 1 a 8, fórmula de dano com escala por atributo, status Sal, números de dano na tela (desligáveis)",
+      "criterio_b": "Teste por arma: dano em cada nível bate com a tabela 3.8 (±1%); Sal reduz velocidade em 50% por 3 s; aura acerta a 2 corpos e não a 2,1. Playwright: inimigos morrem sem input",
+      "evidencia_b": "Screenshots das três armas ativas; tabela de dano gerada pelo teste",
+      "criterios": [
+        {
+          "id": "F-004.1",
+          "descricao": "Teste por arma: dano em cada nível bate com a tabela 3.8 (±1%).",
+          "verificacao": "vitest",
+          "como": "Espada, Facas e Círculo nos níveis 1 a 8 com Aldric (FOR 6 / DES 3 / FÉ 3, Poder 0), só a arma em teste, contra um Oco Grande parado a 48 px na mira; fórmula Dano = Base × (1 + Poder) × Escala (B §3.8), com a soma dos +20%. O esperado é a tabela literal da §3 de design/decisoes-F-004.md, escrita no próprio teste (6,75 no nv1 da Espada, não o \"≈ 7\" de B), com |erro| ≤ 1%; medida pelo valor de cada evento acerto (= fround(esperado), erro relativo ≤ 1e-6) e pela queda do HP; golpes por ciclo 1, 1, 2, 2, 2, 2, 3, 4 e facas por salva 2, 3, 3, 3, 4, 4, 4, 5; o Círculo pelo valor do tick × 2; gera a tabela de dano da evidência (design/decisoes-F-004.md §8, E4).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-004.2",
+          "descricao": "Sal reduz velocidade em 50% por 3 s.",
+          "verificacao": "vitest",
+          "como": "aplicação direta (ADR-0002 §15 item 12): uma única aplicação reduz a velocidade em 50% por exatamente 180 passos, e depois a velocidade volta ao normal.",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-004.3",
+          "descricao": "Aura acerta a 2 corpos e não a 2,1.",
+          "verificacao": "vitest",
+          "como": "pela hitbox (W3), com a rotina da aura chamada direto e o tick vencido: um Oco com centro a 80 px (borda a 64 px, 2 corpos) leva dano e a 83,2 px (borda a 67,2 px, 2,1 corpos) não; um médio a 88 px leva e a 91,2 px não; nos 4 eixos, cruzando a costura e, por nível, a R + r − 1/16 leva e a R + r + 1/16 não (design/decisoes-F-004.md §8).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-004.4",
+          "descricao": "Inimigos morrem sem input (Playwright).",
+          "verificacao": "playwright",
+          "como": "Vigília normal (só a Espada nv1), ?seed=<VDC_SEED>&teto=300, só o toque obrigatório em Acender, driver real: a 1ª morte em __GAME_DEBUG__.ultimosEventos tem passo ≤ 1.800 (os 30 s da proposta de teste, em passos de jogo; timeout real de 120 s); o passo e o hash do estado nesse passo são os de .verify/referencia-f004.json (Node × Chromium); joystick.criados = 0, pausa.ativa = false e toquesPerdidos = 0 em todas as leituras (design/decisoes-F-004.md §8, E3).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-004.5",
+          "descricao": "Números de dano na tela, desligáveis na pausa.",
+          "verificacao": "playwright",
+          "como": "?seed=<VDC_SEED>&cenario=tres_armas&teto=300; depois do Acender, avança até o 1º acerto em ultimosEventos e só então pausa; com o toggle A6.PAUSA.NUMEROS desligado na tela de pausa, __GAME_DEBUG__.numerosDeDano (vivos no pool de render) fica em 0 por 120 passos depois do Continuar, enquanto ultimosEventos registra pelo menos 1 acerto com passo maior que o fim da pausa; religado, numerosDeDano > 0 em até 60 passos (design/decisoes-F-004.md §8).",
+          "origem": "B §4 (escopo); Q-25"
+        },
+        {
+          "id": "F-004.6",
+          "descricao": "Botão e gesto de pausa e tela de pausa mínima.",
+          "verificacao": "playwright",
+          "como": "botão superior (alvo de 72 pt) e dois dedos parados 0,5 s pausam (no teste, os dedos ficam 1.000 ms; com 300 ms, não pausa); o passo, o relógio e o hash ficam parados (B §3.1) e a tela de pausa mínima aparece no textoAtivo; Continuar retoma, e passos_perdidos sobe menos de 60 em 3 s de pausa, limite fora do ruído do contêiner a 8 fps (a mutação do acumulador dá ≈ 175) (Q-25; design/decisoes-F-004.md §7 e §8).",
+          "origem": "Q-25"
+        }
+      ],
+      "evidencias": [
+        {
+          "arquivo": "production/evidencias/F-004/tres-armas-390x844.png",
+          "descricao": "Screenshots das três armas ativas (B): cenário tres_armas no 1º passo ≥ 600 com golpe, faca em voo e número vivo (design/decisoes-F-004.md §8, E7)"
+        },
+        {
+          "arquivo": "production/evidencias/F-004/tabela-de-dano.md",
+          "descricao": "Tabela de dano gerada pelo teste (B)"
+        }
+      ],
+      "pendencias_antes_de_comecar": [
+        "Resolvidas em design/decisoes-F-004.md (por delegação do usuário, 2026-10-11): armas, alvos, golpes, facas, tick, knockback e os números da União (§2, W1 a W18, e §3, K1); soma dos +20% (§3, DN2); Sal reaplicado (§3, S1); __GAME_DEBUG__ (§8); recomendações das F-002 e F-003 (§2 a §5). Exceto a ordem dos multiplicadores, adiada para as F-006 e F-009 (§3, DN3)"
+      ]
+    },
+    {
+      "id": "F-005",
+      "nome": "XP, level up, passivas e União",
+      "status": "pronta",
+      "escopo_b": "Cinzas com Ímã, curva de XP, modal de 3 cartas com confirmação por segundo toque, regra de 60% de upgrades, Elmo Sem Rosto e Luvas de Fole, baú com 1/3/5 itens, União Lâmina do Juramento Eterno em baú após o min 10",
+      "criterio_b": "Teste: `XP(10) = 130 ±1`, `XP(20) = 380 ±2`; sorteio respeita vagas e 60%; baú após min 10 com Espada nv8 + Elmo contém a União em 100% dos casos. Playwright: subir a nível 3 e escolher carta via toques",
+      "evidencia_b": "Screenshot do modal; screenshot da União",
+      "criterios": [
+        {
+          "id": "F-005.1",
+          "descricao": "XP(10) = 130 ±1, XP(20) = 380 ±2.",
+          "verificacao": "vitest",
+          "como": "Tabela literal do custo ⌈XP(n)⌉ de n = 1 a 30 (10, 19, 29, 40, 52, …, 131 no nv10, …, 379 no nv20), escrita no teste sem importar a fórmula; XP(n) = 10 + 8(n−1) + 0,6(n−1)², custo para ir do nível n ao n+1 (Q-22); XP inteira (design/decisoes-F-005.md §2, X1).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-005.2",
+          "descricao": "Sorteio respeita vagas e 60%.",
+          "verificacao": "vitest",
+          "como": "Seeds 1 a 10.000 numa build de 3 itens melhoráveis (Espada nv2, Facas nv1, Luvas nv1) e 2 novos (Círculo, Elmo), relógio 0 e 13:00: (a) melhorias em 0,60 ± 1,5 p.p. nas cartas 1 e 2 e 0,664 ± 2 p.p. na 3; (b) nenhuma oferta repete item (Q-22 (1)); (c) com dados de 2 vagas de arma cheias, nenhuma arma nova; (d) a 13:00 com a Espada nv8, Elmo na carta 1 em ≥ 35% (piso, L3), às 11:59 a oferta é a da regra desligada, sem vaga de passiva nunca forçado; (e) limiares exatos por valor injetado nas funções puras; (f) 7 u32 por oferta também com o Elmo forçado (design/decisoes-F-005.md §3 e §8).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-005.3",
+          "descricao": "Baú após min 10 com Espada nv8 + Elmo contém a União em 100% dos casos.",
+          "verificacao": "vitest",
+          "como": "1.000 baús com seeds diferentes, relógio ≥ 36.000 passos (10:00, Q-23), Espada nv8 e Elmo: União em 100%; a 35.999, nunca; um baú solto antes das 10:00 e aberto depois também dá a União (design/decisoes-F-005.md §4, B2).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-005.4",
+          "descricao": "Subir a nível 3 e escolher carta via toques (Playwright).",
+          "verificacao": "playwright",
+          "como": "Cenário nivel_tres (XP inicial 29: nível 3 e duas ofertas no passo 1): esperar levelUp.aberto e o hash/cartas de .verify/referencia-f005.json; passo parado e pausa/joystick sem efeito com o modal; toque na carta seleciona, toque em outra troca, fora não faz nada, 2º toque na selecionada confirma (B §3.5); a 2ª oferta confirmada com a pausa do debug; __GAME_DEBUG__.jogador.nivel = 3, build com os itens das duas cartas e o hash depois das escolhas igual ao da referência (design/decisoes-F-005.md §8).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-005.5",
+          "descricao": "Cinzas com Ímã de 1,5 corpo; baú com 1 (70%), 3 (25%) ou 5 (5%) itens; carta Bolsa de Almas quando os itens se esgotam.",
+          "verificacao": "vitest",
+          "como": "Ímã a 48 px atrai e a 48 + 1/16 não, de centro a centro (o critério aprovado dizia 49 px; 48 + 1/16 prova o ≤ sem ε); limiares exatos dos baús (a = 69 → 1, 70 → 3, 94 → 3, 95 → 5) e a distribuição 70/25/5 em 10.000 sorteios com ±1,5/±1,5/±0,8 p.p.; com todos os itens no máximo, as cartas viram Bolsa de Almas (+50 Almas) em 1.000 seeds, e com um item restante, 1 carta e 2 Bolsas (Q-22 (3); Q-23; design/decisoes-F-005.md §2 e §4).",
+          "origem": "B §3.9 (escopo)"
+        },
+        {
+          "id": "F-005.6",
+          "descricao": "Lâmina do Juramento Eterno bate com a tabela 3.8 e ocupa a vaga da Espada.",
+          "verificacao": "vitest",
+          "como": "Base da Lâmina 21 = base da Espada nv8 (14) × 1,5 (±1%) e golpe de 17,325 com FOR 6 (escala FOR B / DES C; 1,83 vezes a Espada nv8); recarga de 60 passos; os 4 golpes e as formas do nv8 com 12 passos entre eles; exatamente 1 evento onda por golpe, com dano 6,6 (8 × escala da União, W18); arma sintética de 1 golpe com bloco onda: 1 acerto de onda por inimigo em 15 passos, a 128 px de centro leva e a 128 + 1/16 não; com a Lâmina real, nenhuma onda acerta o mesmo inimigo duas vezes; a 65ª onda com o pool cheio é recusada (efeitosRecusados); a União na vaga da Espada, com o Elmo equipado (design/decisoes-F-005.md §4 e §8).",
+          "origem": "B §3.8 (escopo da F-005); brief §5.9"
+        },
+        {
+          "id": "F-005.7",
+          "descricao": "Baú e União no navegador: encostar no baú depois das 10:00 com a Espada nv8 e o Elmo forma a União na vaga da Espada.",
+          "verificacao": "playwright",
+          "como": "Cenário bau_uniao: andar até o baú pelo roteiro; ultimosEventos com bau e uniao; o modal com A10.BAU.TITULO; depois do Continuar, build.armas[0] é a Lâmina e build.passivas tem o Elmo; o passo e o hash do 1º golpe da Lâmina, lidos com a pausa do debug, são os da referência Node × Chromium (design/decisoes-F-005.md §8).",
+          "origem": "B §4 (evidência \"screenshot da União\"); design/decisoes-F-005.md"
+        }
+      ],
+      "evidencias": [
+        {
+          "arquivo": "production/evidencias/F-005/modal-390x844.png",
+          "descricao": "Screenshot do modal (B): a 1ª oferta do cenário nivel_tres com a carta do meio selecionada, depois do fade (design/decisoes-F-005.md §8)"
+        },
+        {
+          "arquivo": "production/evidencias/F-005/uniao-390x844.png",
+          "descricao": "Screenshot da União (B): cenário bau_uniao depois do Continuar, no passo da referência, com a Lâmina, a onda em brasa e os números (design/decisoes-F-005.md §8)"
+        }
+      ],
+      "pendencias_antes_de_comecar": [
+        "Resolvidas em design/decisoes-F-005.md (aprovadas pelo usuário sem veto, 2026-10-11): teto de FOR e HP por nível (§2, P1 e P2); level up solta os dedos (§3, M5); camada GPU mundo e forma das Cinzas (§6, R1 e R2); hpMax (§2, P3); União com os números da W18 e a geometria da onda (§4, U1 a U7); Cinzas em matarInimigo (§2, X3); atributos, Poder e recálculo do dano (§2, P4 e P5); simulação de 20 min como medida (§2, P6); ícones das vagas, passivas na pausa e pausa sem efeito no modal (§6, R5; §3, M5); HUD numérico (§6, R4)"
+      ]
+    },
+    {
+      "id": "F-006",
+      "nome": "Stamina, esquiva e aparo",
+      "status": "pronta",
+      "escopo_b": "barra de stamina, esquiva por swipe (> 400 pt/s) com 12 passos de i-frames e 3 de recuperação, esquiva perfeita (+15% Poder 2 s), botão de Aparo com janela de 11 passos, aparo falho (24 passos), Postura Quebrada em área, Contra-ataque, Oco Grande e Noviça de Sal com telegrafos brancos (0,6 s / 0,5 s), feedback (flash 2 frames + congelamento 80 ms + som placeholder), prompts de tutorial nos min 1 e 3",
+      "criterio_b": "Teste: acerto no passo 2 e no 13 da esquiva não causa dano, no passo 14 causa; aparo no passo 11 após o toque funciona, no 12 não; aparo falho bloqueia regen por 24 passos; Contra-ataque dispara todas as armas uma vez. Playwright: swipe sintético gera esquiva; toque no botão durante o telegrafo gera aparo",
+      "evidencia_b": "Vídeo de 10 s com esquiva perfeita e aparo; log dos testes de janela",
+      "criterios": [
+        {
+          "id": "F-006.1",
+          "descricao": "Acerto no passo 2 e no 13 da esquiva não causa dano, no passo 14 causa.",
+          "verificacao": "vitest",
+          "como": "Vigília com `TODOS_OS_TUTORIAIS` (7) e HP cheio. Base `sem_horda` com `inimigos` por parâmetro. Um Oco das Lanternas é posto para encostar no jogador (parado, esquiva pedida no passo T, que é o passo 1) exatamente no passo-alvo K: posição gravada em K−1 e `invulContato` = 0, com a distância de encosto 16 + 16 + 1/16 (`contato.ts`), já descontando o deslocamento da esquiva no passo K (3,8095 px) e a perseguição do Oco (1,32 px) que a horda faz antes do contato, para o contato cair exatamente no passo K. Tabela dos passos K = 1 a 22, uma execução por K: nos passos 1 e 14 a 21 o contato causa o dano de contato (5 × 0,3 = 1,5) e liga `invulContato` (18); nos passos 2 a 13 não causa dano, não liga o timer e dá exatamente 1 evento `esquivaPerfeita` (só a primeira); K = 22 (T+21, o 1º passo livre) é o controle e causa dano. Tabela de 24 linhas (T a T+23) com `esquivaPasso`, i-frames (só 2 a 13) e se aceita ação (só de T+21 em diante). Motivo do Oco posto: um acerto no passo 1 liga o timer de 18 passos e esconderia o dano do passo 14. Reprova: i-frames em 1 a 12 ou 3 a 14, recuperação fora dos 21, timer ligado nos i-frames. (design/decisoes-F-006.md §9, VT8)",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-006.2",
+          "descricao": "Aparo no passo 11 após o toque funciona, no 12 não.",
+          "verificacao": "vitest",
+          "como": "Tutoriais vistos (7) e prompt de aparo cumprido (sem a janela de +0,1 s, Q-26), jogador sem `jogadorInvulneravel`, stamina 100, cenário `oco_grande_sozinho`. O golpe tem `h` = T+36, lido do evento `golpeInimigo`. Matriz de `c` de `h−13` a `h`: aparam exatamente os `c` com `h − c` entre 1 e 11 (evento `aparo` e HP intacto); `h − c` = 0 (o mesmo passo) e `h − c` ≥ 12 levam o dano do golpe. Quadros de 1 e de 5 passos dão o mesmo resultado. Variante com `promptAparo` = visível e `falhasDeAparo` = 2: aparam `h − c` de 1 a 17, e 18 não. Reprova: janela que grava 11 (protege 10), que grava 13, o comando que protege, janela de 10 ou de 12, ataques antes do jogador na ordem do passo (o golpe no passo 14 da esquiva daria 'esquivado', OG5 (c)). (design/decisoes-F-006.md §9, VT8)",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-006.3",
+          "descricao": "Aparo falho bloqueia regen por 24 passos.",
+          "verificacao": "vitest",
+          "como": "Tutoriais vistos. G = passo do toque (gasto de 15). Provocar o aparo falho tocando com o telegrafo do Oco Grande em curso e o golpe a mais de 11 passos: a janela G+1..G+11 termina sem aparar, P0 = c+12 = G+12 e `ameacasAparaveis` do passo anterior é > 0. Asserção 1: a stamina é constante de P0 a P0+24 (25 valores) e a 1ª regeneração é em P0+25 = G+37; esquiva e aparo são ignorados (sem custo) de P0 a P0+23 e aceitos em P0+24. Asserção 2: o intervalo passa de G+30, o último passo sem regeneração do atraso normal de 0,5 s (B §3.4), em 6 passos (3 pontos de stamina). Controle: no mesmo estado, o toque sem nenhuma ameaça aparável a 36 passos ou menos do impacto (aparo vazio, evento `aparoVazio`) volta a regenerar em G+31, e o caso falho, em G+37. Caso `novica_sozinha`: com o projétil da Noviça a `h − c` = 30 e 47 passos do impacto o toque é falho; a 48 e a 60, vazio; projétil que errou o jogador ou já passou: vazio. Caso de linha alta: 40 Noviças em telegrafo ao fundo e nenhum projétil a caminho: toque errado = vazio. Oco Grande com o jogador fora do arco no telegrafo: vazio. Reprova: `esperaRegen += 24` (regeneração em ≈ G+67), `= 24` sem `max`, falho sem prazo, vazio que bloqueia. (design/decisoes-F-006.md §9, VT8)",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-006.4",
+          "descricao": "Contra-ataque dispara todas as armas uma vez.",
+          "verificacao": "vitest",
+          "como": "`oco_grande_sozinho` com Espada nv8, Facas nv8 e Círculo nv8 por parâmetros e o `hp` do aparado posto em 9.999 depois do spawn (o Oco Grande tem 100 de HP no minuto 0, e o 2º golpe da Espada nv8, 113,4 contra o aparado, o mataria; como `uniao.test.ts` faz com 5.000; CA5 mantém um teste próprio com HP baixo). Com o aparo bem-sucedido em `h` (congelamento de 5 passos, `passo` parado), no 1º passo vivo (t0+1, com t0 = h) todas disparam exatamente **uma** salva extra, com `FLAG.contra` nos eventos: a Espada, 4 golpes em t0+1, t0+13, t0+25 e t0+37, mirados no aparado sem sobrescrever a direção do jogador; as Facas, `nf` facas no mesmo passo, todas no aparado, com `dano × 2` gravado no disparo; o Círculo, 1 tick extra ×2, sem pulso. Tudo em até 90 passos. `recarga`, `golpe` e `esperaPulso` ficam como numa execução sem aparo (hash dos cooldowns igual). Com a Lâmina na vaga da Espada: 4 golpes e 4 ondas com `danoOnda × 2`. O dano contra o aparado é o produto dos fatores (×4, ×6 com o nv4 da Espada). Com só a Espada nv1 (o padrão de `oco_grande_sozinho`): 1 golpe com ×2 e as vagas vazias sem erro; União durante a sequência: `caSeq` da vaga em 0. Reprova: Círculo sem asserção, Contra-ataque que mexe nos cooldowns, mira que sobrescreve `dirX/dirY`, `new Float32Array(2)` na salva. (design/decisoes-F-006.md §9, VT8)",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-006.5",
+          "descricao": "Swipe sintético gera esquiva (Playwright).",
+          "verificacao": "playwright",
+          "como": "Build de debug, `?seed=N`, `pausar()`. `__GAME_DEBUG__.entrada.injetar('inicio', id, x, y, t0)` na área do joystick e `injetar('move', id, x+50, y, t0+80)`, com `t0 = Math.round(performance.now())` (as marcas ficam a menos de 60 s do relógio do quadro; D4 P3): deslocamento de 50 pt em 80 ms = 625 pt/s (≥ 24 pt e > 400 pt/s). Entre o `injetar` e o `avancar`, esperar 2 quadros: `await page.evaluate(() => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))))`, porque o `traduzir` só roda dentro do passo do quadro (`Vigilia.aoStep`) e o `injetar` só empurra na fila. `avancar(1)`: `jogador.stamina` cai de 100 para 75 no passo da esquiva, `esquivaPasso` sai de 0 e `ultimosEventos` traz `esquiva`. Contraprova: 50 pt em 130 ms (385 pt/s) não gera esquiva; a igualdade exata em 400 pt/s fica no Vitest, com milissegundos inteiros (`tradutor.test.ts`). Segundo caso: dois toques de 100 ms, 150 ms entre eles e a 20 pt, geram esquiva na última direção (toque duplo). (design/decisoes-F-006.md §9, VT8)",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-006.6",
+          "descricao": "Toque no botão durante o telegrafo gera aparo (Playwright).",
+          "verificacao": "playwright",
+          "como": "`?seed=N&tutorial=0&inicio=01:00`, jogador parado, build de debug, `pausar()`. Com `avancar(1)` em passos curtos, esperar em `ultimosEventos` o 1º `telegrafo` de **qualquer** Oco Grande (nascem 3 já no passo 1; guardar o handle do evento e o passo T); a espera é pelo evento e não por tempo (limite de 1.500 passos). `avancar(n)` até o golpe (T+36) ficar de 1 a 11 passos à frente (por exemplo T+30); ler a stamina (100); tocar o botão Aparo (toque real por CDP, e uma segunda execução por `injetar`) e esperar 2 quadros (como no F-006.5: o `traduzir` só roda dentro do passo do quadro); `avancar(1)`: stamina = 85 (custo exato, sem regeneração no passo do gasto); `avancar` até depois de T+36 comparando `CAB.passo` (o congelamento para o passo). Confirmação: evento `aparo` com o handle daquele Oco, evento `golpeInimigo` do mesmo handle com desfecho 3 (aparado) e a stamina = `min(100, antes − 15 + 30)` = 100. Complemento em vitest: `antes` = 60 dá 75 e `antes` = 95 dá 100, por `staminaInicial`. (design/decisoes-F-006.md §9, VT8)",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-006.7",
+          "descricao": "Esquiva perfeita dá +15% Poder por 2 s; feedback de flash de 2 frames + congelamento de 80 ms (5 passos) + som placeholder.",
+          "verificacao": "vitest",
+          "como": "O que a simulação prova (vitest): o Poder vale nas fases de armas N+1 a N+120 (120 fases; 119 e 121 reprovam), soma com as Luvas, renova sem acumular, e as duas tabelas de dano vivo são iguais ao `recalcularDano` por força bruta (uma faca já disparada mantém o dano); a spec lê `poderPassos` ao fim de cada passo: 120 no passo N da perfeita, 1 em N+119 e 0 em N+120 (o decremento depois do contato daria 119 em N); o congelamento dura 5 passos com `CAB.passo` e `CAB.relogio` parados e o hash igual, salvo o byte do contador; o 6º passo anda. O que é de render (vitest da cena, sem Phaser): função pura do flash (alfa 0,35, 0,35, 0; opção desligada dá 0; no máximo 3 por segundo) e síntese do som por hash, com 1 disparo por evento. Os testes comparam `passo`, nunca `inicio + n`. (design/decisoes-F-006.md §9, VT8)",
+          "origem": "B §3.4 e §4 (escopo)"
+        },
+        {
+          "id": "F-006.8",
+          "descricao": "Prompts de tutorial nos minutos 1 e 3.",
+          "verificacao": "playwright",
+          "como": "Contexto limpo, sem `?tutorial`. (a) `?inicio=01:00&visto=mover` (o relógio em 3.600 liga o prompt de mover com o jogador parado), jogador parado, `pausar()`: antes do 1º `telegrafo` de Oco Grande, `textoAtivo` **não** contém `A2.TUTORIAL.02` (mesmo com o relógio em 3.700); `avancar` até o evento e rodar um quadro: contém; sem esquiva do jogador o prompt continua visível depois do golpe; depois de uma esquiva por swipe sintético, deixa de conter. (b) `?inicio=03:00&visto=mover,esquiva`: `A2.TUTORIAL.03` aparece depois do 1º `telegrafo` de uma Noviça, não antes; com o projétil dentro da janela de aparo (anel sólido), tocar o botão: evento `aparo` com sucesso e `A2.TUTORIAL.03` deixa de estar em `textoAtivo`. (c) `?tutorial=0`: nenhum dos dois, mesmo com telegrafos acontecendo. Em vitest: duas falhas de aparo ligam a janela de 17 passos (aparo em 17 funciona, em 18 não) só com o prompt visível; com o prompt cumprido o passo 12 não funciona; a câmera lenta roda 15 passos em 500 ms de tempo real. A prioridade dos três prompts (TU4) e o texto do aparo dentro da tela (TU11) entram no teste da cena (Vitest), não no Playwright. (design/decisoes-F-006.md §9, VT8)",
+          "origem": "B §4 (escopo)"
+        },
+        {
+          "id": "F-006.9",
+          "descricao": "Custos e regeneração de stamina.",
+          "verificacao": "vitest",
+          "como": "A esquiva custa 25 (100 → 75, exato mesmo com a regeneração ativa: 50 → 25) e desloca 2,5 corpos em 21 passos: 80 ± 0,005 px no campo livre, maior passo ≤ 4 px (80/21 = 3,81); o caso cortado por obstáculo fica à parte (nenhum passo acima de 32 px, sem dano ao jogador). O aparo custa 15 (−15 exato). A regeneração (0,5 por passo = 30/s) só volta depois de 30 passos sem gasto: no passo do gasto G não há regeneração nem decremento; G+1 a G+30 mantêm a stamina e a 1ª regeneração é em **G+31**. Teto 100, piso 0; com stamina menor que o custo a ação é negada (nada muda, o comando é consumido, 1 evento `acaoNegada`). Reprova: `<` por `<=` na regeneração, regeneração antes do gasto (−24,5), teto ausente (115). (design/decisoes-F-006.md §9, VT8)",
+          "origem": "B §3.4 e §4 (escopo)"
+        },
+        {
+          "id": "F-006.10",
+          "descricao": "Aparo bem-sucedido.",
+          "verificacao": "vitest",
+          "como": "stamina = `min(100, antes − 15 + 30)`; `quebradaPassos` = 121 no passo do sucesso (120 depois dele) e 0 em `h+121`; parada, ×2, ausência de ataque e de contato valem de `h+1` a `h+120`; dano recebido ×2 (×3 contra a Espada nv4 ou mais), no atacante (qualquer distância) e em todos os inimigos cuja hitbox está a `d ≤ 64 + r` do **centro do jogador** (Oco das Lanternas 80 px, médios 88 px; a 80 + 1/16 e a 88 + 1/16 não), em coordenadas Float32 exatas e pelo toro, com `rodarAtaques(e, D)` chamada direto (por `passo()` um Oco parado a 80 + 1/16 chegaria a 78,7). O atordoado não persegue, é separado e empurrado, não ataca (cancela o telegrafo e o golpe pendente) e o Oco das Lanternas atordoado não fere por contato de `h+1` a `h+120` (volta em `h+121`); renova sem acumular; tipo com `postura_quebrada: false` ignora a área e o atacante. Reprova: centro no atacante, raio de 64 do centro, soma no lugar do produto. (design/decisoes-F-006.md §9, VT8)",
+          "origem": "B §3.4 e §4 (escopo)"
+        },
+        {
+          "id": "F-006.11",
+          "descricao": "Duração dos telegrafos brancos.",
+          "verificacao": "vitest",
+          "como": "Pelos eventos: do `telegrafo` no passo T ao `golpeInimigo` do Oco Grande em **T+36** (nem 35 nem 37) e ao `projetilLancado` da Noviça em **T+30**; as durações vêm de `inimigos.json` (0,6 s e 0,5 s × 60). Recuperação do Oco Grande de 90 passos (o próximo telegrafo só em T+126 com o jogador parado) e período de 180 da Noviça (3 lançamentos em 540 passos); mira fixada em T; o Sal e o pulso não mexem nos timers; um Oco Grande morto pela Espada em T+36 não golpeia. Gatilho: com `rodarAtaques` chamada direto, o Oco a 79,9 px telegrafa e a 80,1 px não; por `passo()`, só com margem ≥ 0,1 px depois de somar 1,68 px por passo. (design/decisoes-F-006.md §9, VT8)",
+          "origem": "B §3.4 e §4 (escopo)"
+        },
+        {
+          "id": "F-006.12",
+          "descricao": "Contato durante os i-frames conta como esquiva perfeita.",
+          "verificacao": "vitest",
+          "como": "Base `sem_horda` com 10 Ocos por `inimigos`. Contato de Ocos das Lanternas nos passos 2 a 13 da esquiva, **só com `invulContato` = 0**: HP intacto, timer não ligado, exatamente 1 evento `esquivaPerfeita` por esquiva (10 Ocos nos i-frames dão 1 evento, 1 congelamento de 5 passos, `poderPassos` = 120), e duas esquivas encadeadas dão 2. +15% de Poder por 120 passos e +1 faca na salva seguinte **só com Facas na build** e só na salva que dispara de fato (nv1 dispara 3, e o flag zera; nv8, 6); sem Facas o flag não liga. Golpe e projétil nos i-frames contam mesmo com `invulContato` > 0; o contato com `invulContato` > 0 não. Os 12 passos de i-frames terminam. Reprova: tirar a guarda 'uma por esquiva' (10 Ocos dariam 12 eventos). (design/decisoes-F-006.md §9, VT8)",
+          "origem": "Q-15"
+        }
+      ],
+      "evidencias": [
+        {
+          "arquivo": "production/evidencias/F-006/esquiva-e-aparo.webm",
+          "descricao": "Vídeo de 10 s com esquiva perfeita e aparo (B); roteiro e seed fixos em .verify/referencia-f006.json (design/decisoes-F-006.md §9, VT9)"
+        },
+        {
+          "arquivo": "production/evidencias/F-006/janelas.log",
+          "descricao": "Log dos testes de janela (B): 16 linhas iguais=true (esquiva, aparo, regeneração, aparo falho e controle, Contra-ataque, congelamento) (design/decisoes-F-006.md §9, VT9)"
+        },
+        {
+          "arquivo": "production/evidencias/F-006/telegrafos-390x844.png",
+          "descricao": "Captura de revisão: a cunha do Oco Grande no fim do telegrafo, a faixa e o projétil da Noviça, uma faca no ar, o botão Aparo e a barra de stamina (design/decisoes-F-006.md §9, VT9)"
+        },
+        {
+          "arquivo": "production/evidencias/F-006/esquiva-perfeita-390x844.png",
+          "descricao": "Captura de revisão: o flash da esquiva perfeita, com ?flash=segurar (design/decisoes-F-006.md §9, VT9)"
+        },
+        {
+          "arquivo": "production/evidencias/F-006/tutorial-esquiva-390x844.png",
+          "descricao": "Captura de revisão: o prompt de esquiva no 1º telegrafo de um Oco Grande (design/decisoes-F-006.md §6 e §9)"
+        },
+        {
+          "arquivo": "production/evidencias/F-006/tutorial-aparo-390x844.png",
+          "descricao": "Captura de revisão: o prompt de aparo no 1º telegrafo de uma Noviça, com o glifo ⟲ conferido (design/decisoes-F-006.md §6 e §9)"
+        }
+      ],
+      "pendencias_antes_de_comecar": [
+        "Resolvidas em design/decisoes-F-006.md (aprovadas pelo usuário sem veto, 2026-10-12): brief §11.3 (OG3, NV4, ES1, GE1, GE2, FB5, PQ1, AP5, AP7, AP8, AP10, ST3, AP9); build do iPhone (VT10); aura no Contra-ataque (CA4); recomendações da D2 §9 (ES3, AP2, ET6, GE1), da D3 §9 (ES7, EP1, TU1, TU7, PQ3, RE8, RE4, VT10), da D4 §9 (PQ6, PQ2, PQ8, PQ7, CA2 a CA4, EP4, NV5, NV6, RE6, NV7, OG9, RE5, FB3, RE11, FB2) e da D5 §9 (AP2, GE3, FB1, EP3, CA2, ET10)"
+      ]
+    },
+    {
+      "id": "F-007",
+      "nome": "HP, Frascos, armadura, Apagar e Cinzas Perdidas",
+      "status": "pendente",
+      "escopo_b": "HP com Brasa Firme, redução `A/(A+20)`, Frasco (40% em 2 s, interrompível, botão 72 pt), Apagar com câmera lenta 1 s, tela de resultado (tempo, nível, mortes, Almas), 30% das Almas viram mancha com posição e Hora, mancha reaparece na próxima Vigília e devolve ao encostar",
+      "criterio_b": "Teste: redução de armadura em 5 casos; Frasco interrompe com golpe > 15% HP; mancha salva e restaurada entre duas Vigílias com seeds diferentes. Playwright: morrer de propósito e ver a tela de resultado",
+      "evidencia_b": "Screenshot do resultado; screenshot da mancha na Vigília seguinte",
+      "criterios": [
+        {
+          "id": "F-007.1",
+          "descricao": "Redução de armadura em 5 casos.",
+          "verificacao": "vitest",
+          "como": "A/(A+20) com teto de 75%: A = 0, 4, 20, 60 e 100.",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-007.2",
+          "descricao": "Frasco interrompe com golpe > 15% HP.",
+          "verificacao": "vitest",
+          "como": "golpe de 15% não interrompe; de 15% + 1 interrompe.",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-007.3",
+          "descricao": "Mancha salva e restaurada entre duas Vigílias com seeds diferentes.",
+          "verificacao": "vitest",
+          "como": "Apagar com seed A grava a mancha no meta; Vigília com seed B a recria na mesma posição; encostar devolve as Almas (Q-04).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-007.4",
+          "descricao": "Morrer de propósito e ver a tela de resultado (Playwright).",
+          "verificacao": "playwright",
+          "como": "?inicio=19:00&seed=N sem nenhum toque até o HP chegar a 0: __GAME_DEBUG__.estado passa por APAGANDO e chega a FIM (apagar); textoAtivo contém A4.APAGAR.01 e a tela de Resultado aparece.",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-007.5",
+          "descricao": "Abandonar Vigília: Almas ×0,5, sem mancha.",
+          "verificacao": "vitest",
+          "como": "FIM(abandonar) (ADR-0002 §9; Q-25).",
+          "origem": "Q-25; ADR-0002 §9"
+        },
+        {
+          "id": "F-007.6",
+          "descricao": "Brasa Firme.",
+          "verificacao": "vitest",
+          "como": "hpMax inicial de Aldric = 150 (B §3.3); com A = 0, o golpe recebido sai × 0,8 com stamina 51 e × 1,0 com stamina 50 ('enquanto stamina > 50%').",
+          "origem": "B §3.3 (escopo da F-007)"
+        },
+        {
+          "id": "F-007.7",
+          "descricao": "Frasco.",
+          "verificacao": "vitest",
+          "como": "um Frasco não interrompido cura 40% do HP máximo ao longo de 120 passos, sem passar do máximo, e suspende a regeneração de stamina por 120 passos (doc 02 §5.2).",
+          "origem": "B §3.3 e §4 (escopo)"
+        },
+        {
+          "id": "F-007.8",
+          "descricao": "Divisão das Almas no Apagar.",
+          "verificacao": "vitest",
+          "como": "Apagar com N Almas grava na mancha 30% de N, com posição e Hora, e o resto vai ao Santuário (B §3.12).",
+          "origem": "B §3.12 (escopo)"
+        }
+      ],
+      "evidencias": [
+        {
+          "arquivo": "production/evidencias/F-007/resultado.png",
+          "descricao": "Screenshot do resultado (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-007/mancha.png",
+          "descricao": "Screenshot da mancha na Vigília seguinte (B)"
+        }
+      ],
+      "pendencias_antes_de_comecar": [
+        "brief §11.3 F-007: câmera lenta do Apagar, carga do Frasco interrompido, 'segurar' cancela, ações durante o Frasco, ordem armadura × Brasa Firme, 15% antes ou depois da redução",
+        "Arredondamento de 0,3 × N Almas da mancha (nenhuma fonte dá)",
+        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): mancha no ponto livre mais próximo; gravar no meta o tutorial de mover cumprido (Q-26)",
+        "Recomendações da F-003 a fechar (design/decisoes-F-003.md §9): barra de HP e sinal do acerto; F-003.5 com stamina ≤ 50; arredondamento do HP com Brasa Firme e Frasco; dano_recebido do contato na telemetria",
+        "O que \"mortes causadas\" conta (convertido 1 ou 10, massa da arena, Coroados que viram cinza): derivado de mortes e da flag do evento, ou outro contador (design/decisoes-F-004.md §9)",
+        "Estatísticas e Abandonar na pausa; como o Abandonar chega a FIM(abandonar) com a pausa fora da máquina (design/decisoes-F-004.md §9)",
+        "Gravar opcoes.numerosDeDano no meta (design/decisoes-F-004.md §9)",
+        "Com HP 0 (APAGANDO) e no A_FOME: nenhuma arma ativa, facas em voo somem e nenhuma morte nova soma em mortes, XP ou Almas (design/decisoes-F-004.md §9)",
+        "Redução A/(A+20) com a Armadura derivada do Elmo (4 por nível) e a ordem com a Brasa Firme; o hpMax da F-005 (⌊(base × (100 + Σ%) + 50)/100⌋) é a base da Brasa Firme e do Frasco (design/decisoes-F-005.md §9)",
+        "Almas dos inimigos e pickup de Alma no contador almas da F-005 e no pool de 512 com tipo próprio; junção por tipo (sem vizinho do mesmo tipo, a nova é descartada e conta); o baú nunca é descartado; HUD de Almas em topo + 116 com os glifos da N4 e \".\" (design/decisoes-F-005.md §9)",
+        "APAGANDO: nenhuma morte nova solta Cinza nem soma XP; morte do jogador e modal no mesmo passo: a morte vale primeiro e a fila de modais é descartada; o Resultado mostra o nível do estado (design/decisoes-F-005.md §9)",
+        "a armadura A/(A + 20) e a Brasa Firme entram em `danoAoJogador`, depois do aparo e dos i-frames de `resolverAcertoNoJogador`; valem para o golpe (20 a 39; 39 passa de 15% de 150 e interrompe o Frasco) e para o projétil (18 a 35). A Brasa Firme lê `stamina > 50%` estritamente (≥ 50,5) do registro novo (design/decisoes-F-006.md §10)",
+        "o F-003.5 continua medindo o dano bruto; com a Brasa Firme, o teste fixa stamina ≤ 50 ou afirma o valor bruto (design/decisoes-F-006.md §10)",
+        "o bit `ACAO.frasco` durante a esquiva e o aparo: a F-006 não o liga e a validação o recusa; a F-007 decide se ele é ignorado, guardado ou cancela a ação (brief §11.3 F-007) (design/decisoes-F-006.md §10)",
+        "o Frasco usa o bit `ACAO.frasco` (4) e `esperaRegen = max(esperaRegen, 120)`; nada mais zera o relógio da regeneração; o \"vulnerável\" do aparo falho não o bloqueia (a trava de ações é só de esquiva e aparo) (design/decisoes-F-006.md §10)",
+        "em APAGANDO: zerar `congelamento`, `esquivaPasso`, `aparoJanela`, `aparoFalho` e as bordas travadas; esquiva e aparo são ignorados sem custo; nenhuma máquina de ataque age e os projéteis em voo somem (D4 §9) (design/decisoes-F-006.md §10)",
+        "custos vindos de passivas saem em múltiplo de 0,5 (Passo Leve −30% = 17,5); \"+stamina máxima\" por Vigor lê o teto de `vigilantes.json` (design/decisoes-F-006.md §10)",
+        "gravar no meta os bits de tutorial (`tutoriaisCumpridos(e)`) e as opções Som e Flashes, junto de `numerosDeDano` (design/decisoes-F-006.md §10)",
+        "a câmera lenta do Apagar reaproveita a escala do `deltaMs` (FB5) (design/decisoes-F-006.md §10)",
+        "as estatísticas da pausa e do Resultado (\"aparos\", \"esquivas perfeitas\") não têm contadores no estado: leem o anel ou a telemetria, ou a F-007 acrescenta os contadores num layout v7; a política de agregação da telemetria `aparo` junto de `dano_recebido` (só os golpes e o projétil), dentro das 1.024 entradas, é dela (design/decisoes-F-006.md §10)",
+        "o sinal de acerto no jogador não usa branco nem `#ff2a2a` e respeita \"Flashes\" (design/decisoes-F-006.md §10)",
+        "a caixa do Frasco (72 pt, 16 pt acima do Aparo) já está reservada (design/decisoes-F-006.md §10)"
+      ]
+    },
+    {
+      "id": "F-008",
+      "nome": "Horas, marcos e Fogueira",
+      "status": "pendente",
+      "escopo_b": "Oco Grande Coroado (patada branca, grito vermelho, convoca Ocos, baú), marcos 5/10/15, Fogueira (relógio para, inimigos viram cinza, Descansar com `I` = 1,1, Forjar União com custo por Hora, Partir), autosave na Fogueira e a cada 60 s, **retomada após fechar a aba** (\"Continuar da Fogueira da Hora N\")",
+      "criterio_b": "Teste: save versionado serializa e restaura build/nível/Almas/Frascos/`I`; migração de versão. Playwright: fechar a página na Hora II e reabrir mostra a oferta de retomada e restaura o estado",
+      "evidencia_b": "Vídeo da retomada; JSON do save",
+      "criterios": [
+        {
+          "id": "F-008.1",
+          "descricao": "Save versionado serializa e restaura build/nível/Almas/Frascos/I.",
+          "verificacao": "vitest",
+          "como": "restaurar o vigilia dá o mesmo hash do estado gravado (ADR-0002 §10).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-008.2",
+          "descricao": "Migração de versão.",
+          "verificacao": "vitest",
+          "como": "o teste exercita pelo menos uma função vN → vN+1 de src/logica/save/migracoes.ts. Se a versão atual ainda for 1, o teste registra, só no seu escopo, uma migração v1 → v2 que acrescenta ou renomeia um campo, migra um save v1 sintético e confere campo a campo e a validação no schema de destino. Com versões reais acima de 1, há um teste por versão (ADR-0002 §10).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-008.3",
+          "descricao": "Fechar a página na Hora II e reabrir mostra a oferta de retomada e restaura o estado (Playwright).",
+          "verificacao": "playwright",
+          "como": "?cenario=fogueira_hora1; Partir; fechar a página na Hora II; reabrir: textoAtivo contém A1.ACENDER.RETOMAR; tocar Continuar; __GAME_DEBUG__.hash() = __GAME_DEBUG__.save.hash (ADR-0002 §10).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-008.4a",
+          "descricao": "HP do Coroado escalado.",
+          "verificacao": "vitest",
+          "como": "HP do Coroado com I = 1,0: 960 às 5:00, 2.200 às 10:00 e 1.680 cada às 15:00 (Q-12).",
+          "origem": "B §4 (escopo)"
+        },
+        {
+          "id": "F-008.4b",
+          "descricao": "Convocação do Coroado.",
+          "verificacao": "vitest",
+          "como": "cada Coroado convoca 10 Ocos das Lanternas a cada 600 passos, dentro da arena, respeitando o TETO e a regra de excedente (B §3.6; Q-08; ADR-0002 §8 item 7 e §9).",
+          "origem": "B §4 (escopo)"
+        },
+        {
+          "id": "F-008.4c",
+          "descricao": "Arena do marco.",
+          "verificacao": "vitest",
+          "como": "centro no jogador, raio de 224 px; obstáculos dentro com ativo = 0, massa dentro morta e diretor sem spawn (Q-02; Q-09; ADR-0002 §9).",
+          "origem": "B §4 (escopo)"
+        },
+        {
+          "id": "F-008.4d",
+          "descricao": "Fim do marco.",
+          "verificacao": "vitest",
+          "como": "último Coroado morto: 1 baú por Coroado e a Fogueira acende a 96 px do jogador (B §3.10).",
+          "origem": "B §4 (escopo)"
+        },
+        {
+          "id": "F-008.4e",
+          "descricao": "Fogueira: Descansar e Forjar.",
+          "verificacao": "vitest",
+          "como": "dentro do raio de 64 px, relógio e inimigos param; Descansar → HP 100%, 3 Frascos e I = 1,1; Forjar, com Espada nv8 + Elmo, cobra 150, 250 ou 400 Almas na Fogueira da Hora I, II ou III (B §3.10).",
+          "origem": "B §4 (escopo)"
+        },
+        {
+          "id": "F-008.4f",
+          "descricao": "Fogueira: sair e ignorar.",
+          "verificacao": "vitest",
+          "como": "sair do raio = Partir: grava o vigilia e apaga a Fogueira; sem entrar, ela fica acesa até o próximo marco; a da Hora III se apaga às 20:00 (Q-24; ADR-0002 §15 item 8).",
+          "origem": "Q-24; ADR-0002 §9 e §15"
+        },
+        {
+          "id": "F-008.4g",
+          "descricao": "Marco vencido pelo relógio.",
+          "verificacao": "vitest",
+          "como": "Guardião I vivo até 10:00 → MARCO(chefe_menor); Guardião II vivo até 20:00 → CHEFE; 23:00 → A_FOME (ADR-0002 §9 e §15 item 7).",
+          "origem": "Q-24; ADR-0002 §9 e §15"
+        },
+        {
+          "id": "F-008.5",
+          "descricao": "Autosave na Fogueira e a cada 60 s; FIM atômico (idVigilia/ultimaEncerrada).",
+          "verificacao": "vitest",
+          "como": "armazenamento simulado; a mesma Vigília nunca é creditada e oferecida de novo (ADR-0002 §10).",
+          "origem": "B §3.10; ADR-0002 §10"
+        },
+        {
+          "id": "F-008.6",
+          "descricao": "Salvar no meio e continuar dá o mesmo hash.",
+          "verificacao": "vitest",
+          "como": "salvar no passo 500, restaurar e continuar até o 1.000 dá o mesmo hash que sem salvar (ADR-0002 §5).",
+          "origem": "ADR-0002 §5"
+        }
+      ],
+      "evidencias": [
+        {
+          "arquivo": "production/evidencias/F-008/retomada.webm",
+          "descricao": "Vídeo da retomada (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-008/save.json",
+          "descricao": "JSON do save (B)"
+        }
+      ],
+      "pendencias_antes_de_comecar": [
+        "brief §11.3 F-008: Patada, Grito, cadência e tamanho do Coroado; escurecimento",
+        "Raio, em volta do Coroado, em que nascem os convocados dentro da arena (ADR-0002 §9)",
+        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): obstáculos da arena (quais e até quando); Fogueira e baús sem colisão e direção da Fogueira; save com outra disposição; Grito com obstáculos e no máximo 32 px por passo",
+        "Recomendações da F-003 a fechar (design/decisoes-F-003.md §9): diretor com relógio parado e arena (R2); Fogueira congela a horda; convocações; corpos grandes e R_MAX; obstáculos inativos na lista por célula; Grito; cenário como vigilia; save do pool; escurecimento",
+        "Fogueira: armas sem dano nem knockback e timers parados, atrás de um teste único de \"armas ativas\"; o Sal corre ou congela (design/decisoes-F-004.md §9)",
+        "Save da build (codigo, nivel, recarga, golpe, esperaGolpe, esperaPulso), dos projéteis vivos e dos metadados dos dois pools; o anel fica fora (design/decisoes-F-004.md §9)",
+        "Coroado imune ao pulso, e se ele leva Sal; consultas das armas com o raio da forma + R_MAX ou a lista de corpos grandes (design/decisoes-F-004.md §9)",
+        "Massa morta pela arena e Coroados que viram cinza por matarInimigo com causa própria; se dão XP, Almas e contagem (design/decisoes-F-004.md §9)",
+        "Coroado chama soltarBau na morte (dourado às 10:00) e solta Cinza de 25; massa morta pela arena e Coroados do marco vencido não soltam Cinza nem baú; a Forja usa uniaoDisponivel e aplicarUniao (design/decisoes-F-005.md §9)",
+        "Fogueira: a fase de pickups continua e um level up pode abrir, antes das ações da Fogueira; baú no disco da arena alcançável (design/decisoes-F-005.md §9)",
+        "Save grava o buffer v5 inteiro (progressão, atributos, passivas, oferta, fila de baús, pickups, efeitos de chão) e chama sincronizarDerivados; modal aberto reabre na retomada antes de qualquer passo (design/decisoes-F-005.md §9)",
+        "Medida U7: sem elites, a 1ª União só às 10:00 ou às 15:00 (contra os minutos 12 a 15 do doc 10 §3.1); relógio no HUD com os glifos da N4 e \":\" (design/decisoes-F-005.md §9)",
+        "o save grava o buffer v6 inteiro (estado de ataque, pool com o dono, Sal, prompts, `quebradaPassos`, `caSeq`, `caEspera`, `alvoAparado`, `congelamento`); a migração de `vigilia` v5 para v6 põe a stamina em 100 e os contadores em 0; a carga chama `sincronizarDerivados`, que refaz as **duas** tabelas de dano vivo, e reabre o modal antes de qualquer passo (design/decisoes-F-006.md §10)",
+        "na Fogueira o passo roda e o relógio para: stamina, regeneração e congelamento andam; os timers do Contra-ataque (`caSeq`, `caEspera`) ficam parados junto com os das armas (D4 §9); \"ninguém ataca\" e os marcos vencidos congelam a fase 6, cancelam o telegrafo e decidem o projétil em voo (design/decisoes-F-006.md §10)",
+        "o Coroado reusa a máquina de ataque por dados (Patada branca em cone) e acrescenta o Grito vermelho (`aparavel: false`, empurrão); define `postura_quebrada`; a convocação não nasce atordoada; cunha e brilho para corpos de 64 a 128 px; seta de telegrafo na borda da tela quando o atacante está fora de vista (doc 11 §3.6; brief §5.12), que a F-006 deixou de fora: nenhum telegrafo seu nasce fora da vista, mas a Noviça pode sair da vista durante os 30 passos do telegrafo (§0.A) (design/decisoes-F-006.md §10)"
+      ]
+    },
+    {
+      "id": "F-009",
+      "nome": "O Lanterneiro, Amanhecer e A Fome",
+      "status": "pendente",
+      "escopo_b": "arena com névoa (raio 7), HP por nível, Postura (ganhos da seção 3.11, Quebra 3 s, Postura Firme −40%), 3 fases com transição invulnerável, 7 ataques (brancos e vermelhos), Fúria após 5 min, Amanhecer (10 s de céu clareando, Almas ×1,5, Brasa), A Fome aos 23:00",
+      "criterio_b": "Teste: Postura enche com 4 aparos; dano fora de Quebra reduzido em 40%; fases trocam em 60% e 25%; aos 23:00 com chefe vivo → derrota. Playwright com seed fixa e script de inputs: lutar 60 s e verificar barra de Postura no debug",
+      "evidencia_b": "Vídeo de 30 s da luta; screenshot do Amanhecer; screenshot de A Fome",
+      "criterios": [
+        {
+          "id": "F-009.1",
+          "descricao": "Postura enche com 4 aparos.",
+          "verificacao": "vitest",
+          "como": "4 × 25 = 100 → Quebra de 3 s (180 passos).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-009.2",
+          "descricao": "Dano fora de Quebra reduzido em 40%.",
+          "verificacao": "vitest",
+          "como": "Postura Firme: dano × 0,6 fora da Quebra; × 2 dentro dela.",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-009.3",
+          "descricao": "Fases trocam em 60% e 25%.",
+          "verificacao": "vitest",
+          "como": "transição de 90 passos com o relógio parado e o chefe sem dano (ADR-0002 §9).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-009.4",
+          "descricao": "Aos 23:00 com chefe vivo → derrota.",
+          "verificacao": "vitest",
+          "como": "A_FOME → FIM(apagar, causa = a_fome), com mancha (brief §5.11).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-009.5",
+          "descricao": "Lutar 60 s com seed fixa e script de inputs e verificar a barra de Postura no debug (Playwright).",
+          "verificacao": "playwright",
+          "como": "?cenario=lanterneiro&seed=N; __GAME_DEBUG__.chefe.postura muda durante a luta.",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-009.6",
+          "descricao": "Fúria após 5 min (+5% de dano a cada 10 s), testada isoladamente com A Fome desligada.",
+          "verificacao": "vitest",
+          "como": "Q-05.",
+          "origem": "B §3.11; Q-05"
+        },
+        {
+          "id": "F-009.7",
+          "descricao": "Amanhecer: 10 s de céu clareando, Almas ×1,5 (com as 200 do chefe antes), 1 Brasa.",
+          "verificacao": "vitest",
+          "como": "Q-35; brief §5.11.",
+          "origem": "B §4 (escopo)"
+        },
+        {
+          "id": "F-009.8",
+          "descricao": "HP do Lanterneiro por nível.",
+          "verificacao": "vitest",
+          "como": "no cenário lanterneiro (nível 29), hpMax = 6.500 × (1 + 0,04 × 29) = 14.040, com o nível do momento em que ele surge (B §3.11; Q-10).",
+          "origem": "B §3.11 (escopo)"
+        },
+        {
+          "id": "F-009.9",
+          "descricao": "Arena do Lanterneiro.",
+          "verificacao": "vitest",
+          "como": "ao formar a arena (raio de 224 px), obstáculos dentro dela com ativo = 0, massa dentro morta e diretor sem spawn (B §3.11; Q-09; ADR-0002 §9).",
+          "origem": "B §3.11 (escopo)"
+        },
+        {
+          "id": "F-009.10",
+          "descricao": "A névoa prende o jogador.",
+          "verificacao": "vitest",
+          "como": "o jogador não sai do círculo de 224 px (ADR-0002 §15 item 14).",
+          "origem": "ADR-0002 §15 item 14"
+        },
+        {
+          "id": "F-009.11",
+          "descricao": "Postura por esquiva perfeita só contra o Lanterneiro.",
+          "verificacao": "vitest",
+          "como": "esquiva perfeita contra golpe do Lanterneiro soma +10 de Postura; contra Oco convocado, 0 (Q-15).",
+          "origem": "Q-15"
+        }
+      ],
+      "evidencias": [
+        {
+          "arquivo": "production/evidencias/F-009/luta.webm",
+          "descricao": "Vídeo de 30 s da luta (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-009/amanhecer.png",
+          "descricao": "Screenshot do Amanhecer (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-009/a-fome.png",
+          "descricao": "Screenshot de A Fome (B)"
+        }
+      ],
+      "pendencias_antes_de_comecar": [
+        "brief §11.3 F-009 e chefes.json pendencias: danos, alcances, IA, convocação, telegrafos vermelhos, herança de ataques entre fases, Postura das outras armas, tamanho",
+        "brief §11.3 F-009: luz do jogador (5 corpos) e dos Ocos convocados (3 corpos) no MVP; raio de nascimento dos convocados (ADR-0002 §9); o que o HUD mostra entre 20:00 e 23:00 (não há Hora)",
+        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): caixa do Lanterneiro; borda da arena contém o chefe; raio do Coroado",
+        "Recomendações da F-003 a fechar (design/decisoes-F-003.md §9): o Lanterneiro no R_MAX ou na lista de corpos grandes, S1 e S4 para a caixa, camada e cor",
+        "Lanterneiro imune ao pulso, e se ele leva Sal; acerto contra a caixa pela distância da forma (setor, retângulo, círculo) à caixa (design/decisoes-F-004.md §9)",
+        "Postura: +2 por golpe da Espada que acerta o chefe, inclusive a estocada; \"atingida\" = qualquer acerto de arma com dano > 0, inclusive o tick; todo dano de arma por um ponto único (design/decisoes-F-004.md §9)",
+        "Ordem de empilhamento da Quebra ×2 e da Postura Firme −40% (exclusivas, B §3.11) com o multStatus da F-006 (DN3; design/decisoes-F-004.md §9)",
+        "Multiplicador por alvo: Quebra e Postura Firme são estados do chefe e entram por acerto, não pela tabela por (arma, nível) (DN1; design/decisoes-F-004.md §9)",
+        "Armas no Amanhecer e na TRANSICAO_FASE, com o chefe sem dano (design/decisoes-F-004.md §9)",
+        "HP do Lanterneiro lê o nível do estado (com os pendentes) no passo em que a arena se forma; a onda da União é acerto de arma (Postura +2) e testa o retângulo contra a caixa; A_FOME e Lanterneiro com código próprio em CAUSA, sem Cinza (design/decisoes-F-005.md §9)",
+        "o +10 de Postura só quando a esquiva perfeita vem de golpe do Lanterneiro (origem 2 no evento; Q-15); a Postura do chefe lê os eventos `aparo`, `esquivaPerfeita` e `posturaQuebrada`; `ameacasAparaveis` passa a contar os ataques brancos do chefe (design/decisoes-F-006.md §10)",
+        "o aparo no chefe soma +25 de Postura; se também atordoa fica a decidir (o valor provisório é `postura_quebrada: false`; para o Coroado, o doc 02 §5.4 (\"no atacante\") sugere `true`; para o Lanterneiro, o brief §11.3 deixa em aberto); o \"Agarrar\" branco aparado causa a Quebra imediata (design/decisoes-F-006.md §10)",
+        "a Quebra ×2 e a Postura Firme −40% são exclusivas e entram por acerto, em produto com a PQ6; os dígitos críticos da Quebra usam a mesma `FLAG.critico` (design/decisoes-F-006.md §10)",
+        "os ataques do Lanterneiro reusam a máquina e a camada de silhuetas, em vermelho `#ff2a2a`; a regra do vermelho (AP10) vale sem mudança; a imunidade ao pulso, ao Sal e à Postura Quebrada é daqui (design/decisoes-F-006.md §10)",
+        "o 3º som (quebra) já é sintetizado no boot e toca na Quebra de Postura (design/decisoes-F-006.md §10)"
+      ]
+    },
+    {
+      "id": "F-010",
+      "nome": "Santuário mínimo e PWA",
+      "status": "pendente",
+      "escopo_b": "cena do Santuário (Acender, Iselda, botão Vigília), árvore de Fundação com 8 nós de estatística e reembolso, 300 Almas garantidas após o primeiro Apagar, save meta versionado, todos os textos em `pt-BR.json` por ID (nenhuma string no código, verificado por lint), manifest + service worker + convite \"Adicionar à Tela de Início\", overlay de paisagem, pausa em `visibilitychange`, **teste em iPhone real** (11 ou 12 e 14+) com vídeo",
+      "criterio_b": "Teste: custo dos nós segue a fórmula; reembolso zera; lint de strings passa. Playwright: fluxo completo Acender → Vigília → Apagar → Santuário → comprar nó → nova Vigília. iPhone real: Hora IV com ≥ 55 fps médio e sem recarga da aba em 3 Vigílias seguidas",
+      "evidencia_b": "Vídeo em iPhone real; captura de memória do Safari Web Inspector (< 150 MB); relatório do lint",
+      "criterios": [
+        {
+          "id": "F-010.1",
+          "descricao": "Custo dos nós segue a fórmula.",
+          "verificacao": "vitest",
+          "como": "300 × 1,12^(rank−1) × (1 + 0,015 × ranks_globais), inteiro mais próximo (Q-19), com potência por multiplicação iterativa (ADR-0002 §5).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-010.2",
+          "descricao": "Reembolso zera.",
+          "verificacao": "vitest",
+          "como": "ranks da árvore e fator global da árvore voltam a 0; Almas devolvidas.",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-010.3",
+          "descricao": "Lint de strings passa.",
+          "verificacao": "lint",
+          "como": "regra t(id) do ADR-0002 §11 em src/cenas, src/entrada e src/plataforma; relatório salvo.",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-010.4",
+          "descricao": "Fluxo completo Acender → Vigília → Apagar → Santuário → comprar nó → nova Vigília (Playwright).",
+          "verificacao": "playwright",
+          "como": "--taps-game --seed; 300 Almas garantidas depois do 1º Apagar (Q-20).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-010.5",
+          "descricao": "iPhone real: Hora IV com ≥ 55 fps médio e sem recarga da aba em 3 Vigílias seguidas.",
+          "verificacao": "iphone_real",
+          "como": "iPhone 11 ou 12 e iPhone 14+, Low Power Mode desligado, overlay de fps do build de debug (ADR-0002 §14); feito pelo usuário (Q-29).",
+          "origem": "B §4"
+        },
+        {
+          "id": "F-010.6",
+          "descricao": "Manifest + service worker + convite 'Adicionar à Tela de Início', overlay de paisagem e pausa em visibilitychange.",
+          "verificacao": "playwright",
+          "como": "manifest válido; SW registrado; convite depois da 1ª Vigília; visibilitychange pausa a simulação (ADR-0002 §12). Em paisagem (viewport com largura > altura), aparece o overlay DOM 'gire o aparelho' e a simulação pausa (ADR-0002 §12).",
+          "origem": "B §4 (escopo)"
+        },
+        {
+          "id": "F-010.7",
+          "descricao": "Nós sem efeito ficam bloqueados.",
+          "verificacao": "vitest",
+          "como": "O peso do martelo do seu pai, Pés plantados e Ferro frio aparecem bloqueados e a compra é recusada (Q-16; Q-17).",
+          "origem": "Q-16; Q-17"
+        },
+        {
+          "id": "F-010.8",
+          "descricao": "Mãos de aprendiz.",
+          "verificacao": "vitest",
+          "como": "com Mãos de aprendiz no rank r, a Espada Longa começa no nível 1 + r (máx. 4); a União não é afetada (Q-18).",
+          "origem": "Q-18"
+        },
+        {
+          "id": "F-010.9",
+          "descricao": "Save meta versionado.",
+          "verificacao": "vitest",
+          "como": "meta com versao, seq e soma; migração com teste por versão (ADR-0002 §10).",
+          "origem": "B §4 (escopo); ADR-0002 §10"
+        },
+        {
+          "id": "F-010.10",
+          "descricao": "Lint de palavras proibidas.",
+          "verificacao": "lint",
+          "como": "as 11 palavras de B §3.15 bloqueiam em código, dados e textos (palavra inteira, fora de node_modules e design/); as extras da Q-31 viram aviso só em pt-BR.json; relatório junto com o do lint de strings em production/evidencias/F-010/lint.txt.",
+          "origem": "Q-31; ADR-0002 §11"
+        }
+      ],
+      "evidencias": [
+        {
+          "arquivo": "production/evidencias/F-010/iphone-11-ou-12.mp4",
+          "descricao": "Vídeo em iPhone real: iPhone 11 ou 12 (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-010/iphone-14.mp4",
+          "descricao": "Vídeo em iPhone real: iPhone 14 ou mais novo (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-010/memoria-safari.png",
+          "descricao": "Captura de memória do Safari Web Inspector (< 150 MB) (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-010/lint.txt",
+          "descricao": "Relatório do lint (B)"
+        }
+      ],
+      "pendencias_antes_de_comecar": [
+        "brief §11.3 F-010: Bigorna no peito × armadura",
+        "Hospedagem HTTPS de teste no GitHub Pages (Q-29)",
+        "Calibrar o limiar da sonda do TETO em iPhone 12 e 14 (ADR-0002 §13)",
+        "Recomendação da F-002 a fechar (design/decisoes-F-002.md §9): pausa automática e overlay de paisagem liberam os dedos e escondem o joystick",
+        "Recomendações da F-003 a fechar (design/decisoes-F-003.md §9): Casco e Bigorna no contato; critério da degradação de nível 3; sonda calibrada no iPhone; fps médio por Hora no painel do debug",
+        "\"Mãos de aprendiz\" (Q-18): o nível inicial da Espada pela lista armas dos parâmetros da Vigília, já no hash pela build (design/decisoes-F-004.md §9)",
+        "Rebaixamento do TETO junto com a degradação de nível 3 (E2; design/decisoes-F-004.md §9)",
+        "Pausa automática reusa a tela e o flag da pausa, com o motivo automatica e A6.PAUSA.TOQUE_PARA_CONTINUAR (design/decisoes-F-004.md §9)",
+        "Nível 1 da degradação corta o pool de mortes para 150 (design/decisoes-F-004.md §9)",
+        "Pausa automática com o modal aberto não faz nada e solta os dedos ao voltar; nó de HP no Σ% do hpMax; Mãos de aprendiz pelos parâmetros de progresso inicial; toque único e swipe só com a tela de Opções; som do level up só se B §2 mudar; animação da União e faísca da barra com a arte (design/decisoes-F-005.md §9)",
+        "Balanceamento: Facas e Círculo não escalam com DES e FÉ em 3; níveis-alvo do doc 10 por comportamento (ajustar XP por inimigo ou mínimo na tela, nunca a curva); 1ª União só às 10:00 ou às 15:00 (design/decisoes-F-005.md §9)",
+        "calibrar no aparelho o swipe (100 ms, 16 ms, 24 pt, 400 pt/s), o toque duplo (250, 200, 40 e 10), a janela do aparo, o perfil da esquiva (80/21 contra 80/18), a trava durante o falho (≈ 0,6 s; o alívio é a esquiva cancelar a janela) e o buffer de 3 passos; perguntar pela \"esquiva sem querer\" e pelo toque duplo seguido de arrasto (doc 12 §2.6) (design/decisoes-F-006.md §10)",
+        "conferir o `TouchEvent.timeStamp` do Safari (se a diferença para o `performance.now()` passar de 60.000 ms, swipe e toque duplo não funcionam no aparelho; a saída é o listener gravar `performance.now()`, decisão desta feature), a câmera lenta a 30 fps (Low Power Mode), o brilho por `tintBlend`, a cunha, a 2ª camada de médios, se 64 membros de telegrafo bastam e o indício do anel sólido (183 ms: ajuda a antecipar, não a reagir; AP12) (design/decisoes-F-006.md §10)",
+        "a esquiva com uma mão (joystick e Aparo pedem dois polegares; doc 02 §4 diz \"uma mão\"); o botão dedicado de esquiva e o aparo por segundo dedo dependem da tela de Opções; reavaliar a margem de 24 pt e uma área de toque maior que 80 pt (design/decisoes-F-006.md §10)",
+        "persistir os bits de tutorial e as opções no meta; pausa automática com `setMute`; reaproveitar o workflow do Pages (design/decisoes-F-006.md §10)",
+        "a janela do aparo é uma constante única, para o modo acessível (doc 10) poder alterá-la (design/decisoes-F-006.md §10)",
+        "Arte e áudio finais (depois da F-010): o rastro de brasas e os 4 quadros de contorno da esquiva perfeita (doc 11 §5), o \"sopro\" (doc 13 §2.2), o som real do aparo, o \"inspirar\" do telegrafo (doc 02 §5.4; doc 13 §2), o aperto de câmera de 2% no aparo, o flash de acerto no inimigo (se o acerto parecer \"mole\"), a reflexão do projétil aparado e o 4º estado \"janela ativa\" do botão; mostrar a duração do Poder, se o HUD pedir (design/decisoes-F-006.md §10)",
+        "Balanceamento, depois da F-010: um jogador em movimento quase não é atingido pela Noviça (5 a 14%): se o tutorial do aparo precisar de mais acertos, aumentar a vida ou a velocidade do projétil, ou mirar à frente, sem mudar B (design/decisoes-F-006.md §10)",
+        "Balanceamento, depois da F-010: quem anda em linha pode nunca ser telegrafado por um Oco Grande (na seed 6, nada em 1.500 passos) e ver o prompt de esquiva só muito depois (design/decisoes-F-006.md §10)",
+        "Balanceamento, depois da F-010: reavaliar o dano dos médios (20 a 39) contra o HP de 150 com 100 Grandes e 80 a 125 Noviças vivos na linha 19 (design/decisoes-F-006.md §10)",
+        "Balanceamento, depois da F-010: o aparo falho custa só 3 pontos de stamina (AP7): se a punição não for sentida, somar os 24 passos (design/decisoes-F-006.md §10)"
+      ]
+    }
+  ]
+}

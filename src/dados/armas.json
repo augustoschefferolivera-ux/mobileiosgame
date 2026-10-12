@@ -1,0 +1,388 @@
+{
+  "versao": 1,
+  "armas": [
+    {
+      "id": "espada_longa_do_juramento",
+      "nome_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NOME",
+      "lore_id": "F1.ESPADA_LONGA_DO_JURAMENTO.LORE",
+      "deus": "orun",
+      "arquetipo": "direcao_movimento",
+      "escala": [
+        {
+          "atributo": "FOR",
+          "grau": "C"
+        },
+        {
+          "atributo": "DES",
+          "grau": "C"
+        }
+      ],
+      "pesada": false,
+      "uniao": false,
+      "nivel_max": 8,
+      "base": {
+        "dano": 10,
+        "cooldown_s": 1.2,
+        "golpes": 1,
+        "arco_graus": 120,
+        "alcance_corpos": 2,
+        "intervalo_golpes_s": 0.2,
+        "estocada": {
+          "comprimento_corpos": 3,
+          "meia_largura_corpos": 0.5
+        }
+      },
+      "niveis": [
+        {
+          "nivel": 1,
+          "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV1",
+          "efeitos": []
+        },
+        {
+          "nivel": 2,
+          "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV2",
+          "efeitos": [
+            {
+              "tipo": "dano_pct",
+              "valor": 20
+            }
+          ]
+        },
+        {
+          "nivel": 3,
+          "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV3",
+          "efeitos": [
+            {
+              "tipo": "golpes_extra",
+              "valor": 1,
+              "forma": "volta"
+            }
+          ]
+        },
+        {
+          "nivel": 4,
+          "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV4",
+          "marco": true,
+          "efeitos": [
+            {
+              "tipo": "dano_pct_vs_postura_quebrada",
+              "valor": 50
+            }
+          ]
+        },
+        {
+          "nivel": 5,
+          "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV5",
+          "efeitos": [
+            {
+              "tipo": "area_pct",
+              "valor": 20
+            }
+          ]
+        },
+        {
+          "nivel": 6,
+          "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV6",
+          "efeitos": [
+            {
+              "tipo": "dano_pct",
+              "valor": 20
+            }
+          ]
+        },
+        {
+          "nivel": 7,
+          "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV7",
+          "marco": true,
+          "efeitos": [
+            {
+              "tipo": "golpes_extra",
+              "valor": 1,
+              "forma": "estocada"
+            }
+          ]
+        },
+        {
+          "nivel": 8,
+          "texto_id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV8",
+          "efeitos": [
+            {
+              "tipo": "golpes_extra",
+              "valor": 1,
+              "forma": "ida"
+            }
+          ]
+        }
+      ],
+      "pendencias": [
+        "F-006: ordem de empilhamento dos multiplicadores (Contra-ataque ×2, Postura Quebrada ×2, nv4 +50%) e da Quebra e Postura Firme na F-009 (brief §11.3; design/decisoes-F-004.md D3)"
+      ]
+    },
+    {
+      "id": "facas_de_sal",
+      "nome_id": "F1.FACAS_DE_SAL.NOME",
+      "lore_id": "F1.FACAS_DE_SAL.LORE",
+      "deus": "selide",
+      "arquetipo": "mais_proximo",
+      "escala": [
+        {
+          "atributo": "DES",
+          "grau": "B"
+        }
+      ],
+      "pesada": false,
+      "uniao": false,
+      "nivel_max": 8,
+      "base": {
+        "dano": 6,
+        "projeteis": 2,
+        "cooldown_s": 0.9,
+        "velocidade_projetil_corpos_s": 12,
+        "alcance_corpos": 6,
+        "projeteis_extra_esquiva_perfeita": 1,
+        "raio_projetil_corpos": 0.25,
+        "espacamento_lateral_corpos": 0.25
+      },
+      "niveis": [
+        {
+          "nivel": 1,
+          "texto_id": "F1.FACAS_DE_SAL.NV1",
+          "efeitos": []
+        },
+        {
+          "nivel": 2,
+          "texto_id": "F1.FACAS_DE_SAL.NV2",
+          "efeitos": [
+            {
+              "tipo": "projeteis_extra",
+              "valor": 1
+            }
+          ]
+        },
+        {
+          "nivel": 3,
+          "texto_id": "F1.FACAS_DE_SAL.NV3",
+          "efeitos": [
+            {
+              "tipo": "dano_pct",
+              "valor": 20
+            }
+          ]
+        },
+        {
+          "nivel": 4,
+          "texto_id": "F1.FACAS_DE_SAL.NV4",
+          "marco": true,
+          "efeitos": [
+            {
+              "tipo": "aplica_sal",
+              "aplica": {
+                "status": "sal",
+                "fator_pct": 50,
+                "duracao_s": 3
+              }
+            }
+          ]
+        },
+        {
+          "nivel": 5,
+          "texto_id": "F1.FACAS_DE_SAL.NV5",
+          "efeitos": [
+            {
+              "tipo": "projeteis_extra",
+              "valor": 1
+            }
+          ]
+        },
+        {
+          "nivel": 6,
+          "texto_id": "F1.FACAS_DE_SAL.NV6",
+          "efeitos": [
+            {
+              "tipo": "velocidade_projetil_pct",
+              "valor": 20
+            }
+          ]
+        },
+        {
+          "nivel": 7,
+          "texto_id": "F1.FACAS_DE_SAL.NV7",
+          "marco": true,
+          "efeitos": [
+            {
+              "tipo": "perfura",
+              "valor": 1
+            }
+          ]
+        },
+        {
+          "nivel": 8,
+          "texto_id": "F1.FACAS_DE_SAL.NV8",
+          "efeitos": [
+            {
+              "tipo": "projeteis_extra",
+              "valor": 1
+            }
+          ]
+        }
+      ],
+      "pendencias": []
+    },
+    {
+      "id": "circulo_de_sal",
+      "nome_id": "F1.CIRCULO_DE_SAL.NOME",
+      "lore_id": "F1.CIRCULO_DE_SAL.LORE",
+      "deus": "ama_nhu",
+      "arquetipo": "aura",
+      "escala": [
+        {
+          "atributo": "FE",
+          "grau": "A"
+        }
+      ],
+      "pesada": false,
+      "uniao": false,
+      "nivel_max": 8,
+      "base": {
+        "dano_por_s": 4,
+        "cooldown_s": null,
+        "raio_corpos": 2,
+        "intervalo_tick_s": 0.5,
+        "aplica": {
+          "status": "sal",
+          "fator_pct": 50,
+          "duracao_s": 3
+        }
+      },
+      "niveis": [
+        {
+          "nivel": 1,
+          "texto_id": "F1.CIRCULO_DE_SAL.NV1",
+          "efeitos": []
+        },
+        {
+          "nivel": 2,
+          "texto_id": "F1.CIRCULO_DE_SAL.NV2",
+          "efeitos": [
+            {
+              "tipo": "raio_pct",
+              "valor": 15
+            }
+          ]
+        },
+        {
+          "nivel": 3,
+          "texto_id": "F1.CIRCULO_DE_SAL.NV3",
+          "efeitos": [
+            {
+              "tipo": "dano_pct",
+              "valor": 20
+            }
+          ]
+        },
+        {
+          "nivel": 4,
+          "texto_id": "F1.CIRCULO_DE_SAL.NV4",
+          "marco": true,
+          "efeitos": [
+            {
+              "tipo": "sal_reducao_pct",
+              "valor": 60
+            }
+          ]
+        },
+        {
+          "nivel": 5,
+          "texto_id": "F1.CIRCULO_DE_SAL.NV5",
+          "efeitos": [
+            {
+              "tipo": "raio_pct",
+              "valor": 15
+            }
+          ]
+        },
+        {
+          "nivel": 6,
+          "texto_id": "F1.CIRCULO_DE_SAL.NV6",
+          "efeitos": [
+            {
+              "tipo": "dano_pct",
+              "valor": 20
+            }
+          ]
+        },
+        {
+          "nivel": 7,
+          "texto_id": "F1.CIRCULO_DE_SAL.NV7",
+          "marco": true,
+          "efeitos": [
+            {
+              "tipo": "pulso_knockback",
+              "intervalo_s": 5,
+              "velocidade_corpos_s": 15,
+              "duracao_max_s": 0.2
+            }
+          ]
+        },
+        {
+          "nivel": 8,
+          "texto_id": "F1.CIRCULO_DE_SAL.NV8",
+          "efeitos": [
+            {
+              "tipo": "raio_pct",
+              "valor": 20
+            }
+          ]
+        }
+      ],
+      "pendencias": []
+    },
+    {
+      "id": "lamina_do_juramento_eterno",
+      "nome_id": "F2.LAMINA_DO_JURAMENTO_ETERNO.NOME",
+      "lore_id": "F2.LAMINA_DO_JURAMENTO_ETERNO.LORE",
+      "deus": "orun",
+      "arquetipo": "direcao_movimento",
+      "escala": [
+        {
+          "atributo": "FOR",
+          "grau": "B"
+        },
+        {
+          "atributo": "DES",
+          "grau": "C"
+        }
+      ],
+      "pesada": false,
+      "uniao": true,
+      "nivel_max": 1,
+      "base": {
+        "dano_de": {
+          "arma": "espada_longa_do_juramento",
+          "nivel": 8,
+          "mult": 1.5
+        },
+        "golpes_de": {
+          "arma": "espada_longa_do_juramento",
+          "nivel": 8
+        },
+        "intervalo_golpes_s": 0.2,
+        "cooldown_s": 1.0,
+        "onda": {
+          "comprimento_corpos": 3,
+          "dano": 8,
+          "largura_corpos": 1,
+          "velocidade_corpos_s": 12
+        }
+      },
+      "niveis": [
+        {
+          "nivel": 1,
+          "texto_id": "F2.LAMINA_DO_JURAMENTO_ETERNO.EFEITO",
+          "efeitos": []
+        }
+      ],
+      "pendencias": []
+    }
+  ]
+}

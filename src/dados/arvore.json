@@ -1,0 +1,136 @@
+{
+  "versao": 1,
+  "arvores": [
+    {
+      "id": "fundacao",
+      "nome_id": "G1.FUNDACAO.NOME",
+      "reembolso_id": "G3.FUNDACAO.REEMBOLSO",
+      "deus": "orun",
+      "custo": {
+        "multiplicador_por_rank": 1.12,
+        "fator_global": 0.015,
+        "arredondamento": "inteiro_mais_proximo"
+      },
+      "nos": [
+        {
+          "id": "o_peso_do_martelo_do_seu_pai",
+          "nome_id": "G1.O_PESO_DO_MARTELO_DO_SEU_PAI.NOME",
+          "efeito_id": "G1.O_PESO_DO_MARTELO_DO_SEU_PAI.EFEITO",
+          "memoria_id": "G2.O_PESO_DO_MARTELO_DO_SEU_PAI.MEMORIA",
+          "tipo": "estatistica",
+          "ranks": 5,
+          "custo_base": 300,
+          "efeito": {
+            "tipo": "poder_pct_armas_pesadas",
+            "valor_por_rank": 4
+          },
+          "no_mvp": "bloqueado",
+          "motivo_bloqueio": "não há arma pesada no MVP (Q-17)"
+        },
+        {
+          "id": "pele_que_esqueceu_de_sangrar",
+          "nome_id": "G1.PELE_QUE_ESQUECEU_DE_SANGRAR.NOME",
+          "efeito_id": "G1.PELE_QUE_ESQUECEU_DE_SANGRAR.EFEITO",
+          "memoria_id": "G2.PELE_QUE_ESQUECEU_DE_SANGRAR.MEMORIA",
+          "tipo": "estatistica",
+          "ranks": 5,
+          "custo_base": 300,
+          "efeito": {
+            "tipo": "armadura",
+            "valor_por_rank": 2
+          },
+          "no_mvp": "ativo"
+        },
+        {
+          "id": "folego_de_forja",
+          "nome_id": "G1.FOLEGO_DE_FORJA.NOME",
+          "efeito_id": "G1.FOLEGO_DE_FORJA.EFEITO",
+          "memoria_id": "G2.FOLEGO_DE_FORJA.MEMORIA",
+          "tipo": "estatistica",
+          "ranks": 5,
+          "custo_base": 300,
+          "efeito": {
+            "tipo": "hp_max_pct",
+            "valor_por_rank": 5
+          },
+          "no_mvp": "ativo"
+        },
+        {
+          "id": "pes_plantados",
+          "nome_id": "G1.PES_PLANTADOS.NOME",
+          "efeito_id": "G1.PES_PLANTADOS.EFEITO",
+          "memoria_id": "G2.PES_PLANTADOS.MEMORIA",
+          "tipo": "estatistica",
+          "ranks": 3,
+          "custo_base": 300,
+          "efeito": {
+            "tipo": "poise_pct",
+            "valor_por_rank": 10
+          },
+          "no_mvp": "bloqueado",
+          "motivo_bloqueio": "Poise fica fora do MVP (Q-16)"
+        },
+        {
+          "id": "casco",
+          "nome_id": "G1.CASCO.NOME",
+          "efeito_id": "G1.CASCO.EFEITO",
+          "memoria_id": "G2.CASCO.MEMORIA",
+          "tipo": "estatistica",
+          "ranks": 3,
+          "custo_base": 300,
+          "efeito": {
+            "tipo": "invulnerabilidade_pos_acerto_s",
+            "valor_por_rank": 0.05
+          },
+          "no_mvp": "ativo"
+        },
+        {
+          "id": "bigorna_no_peito",
+          "nome_id": "G1.BIGORNA_NO_PEITO.NOME",
+          "efeito_id": "G1.BIGORNA_NO_PEITO.EFEITO",
+          "memoria_id": "G2.BIGORNA_NO_PEITO.MEMORIA",
+          "tipo": "estatistica",
+          "ranks": 3,
+          "custo_base": 300,
+          "efeito": {
+            "tipo": "reducao_dano_contato_pct",
+            "valor_por_rank": 3
+          },
+          "no_mvp": "ativo",
+          "pendencias": [
+            "F-010: como os +3% de Bigorna no peito se combinam com a redução de armadura A/(A+20) (multiplicativa?) (brief §11.3)"
+          ]
+        },
+        {
+          "id": "ferro_frio",
+          "nome_id": "G1.FERRO_FRIO.NOME",
+          "efeito_id": "G1.FERRO_FRIO.EFEITO",
+          "memoria_id": "G2.FERRO_FRIO.MEMORIA",
+          "tipo": "estatistica",
+          "ranks": 3,
+          "custo_base": 300,
+          "efeito": {
+            "tipo": "custo_stamina_esquiva_pesada_pct",
+            "valor_por_rank": -5
+          },
+          "no_mvp": "bloqueado",
+          "motivo_bloqueio": "não há esquiva pesada no MVP (Q-17)"
+        },
+        {
+          "id": "maos_de_aprendiz",
+          "nome_id": "G1.MAOS_DE_APRENDIZ.NOME",
+          "efeito_id": "G1.MAOS_DE_APRENDIZ.EFEITO",
+          "memoria_id": "G2.MAOS_DE_APRENDIZ.MEMORIA",
+          "tipo": "estatistica",
+          "ranks": 3,
+          "custo_base": 300,
+          "efeito": {
+            "tipo": "nivel_inicial_armas_orun",
+            "valor_por_rank": 1
+          },
+          "no_mvp": "ativo"
+        }
+      ]
+    }
+  ]
+}

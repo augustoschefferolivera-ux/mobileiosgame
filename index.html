@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#1a1f2b" />
+    <title></title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #1a1f2b;
+        overscroll-behavior: none;
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-text-size-adjust: 100%;
+      }
+      #jogo {
+        position: fixed;
+        inset: 0;
+        height: 100dvh;
+        overflow: hidden;
+        touch-action: none;
+      }
+      #jogo canvas {
+        touch-action: none;
+        display: block;
+      }
+      .sem-webgl {
+        margin: 40dvh 24px 0;
+        color: #e8dcc4;
+        font: 16px/1.4 system-ui, -apple-system, sans-serif;
+        text-align: center;
+      }
+      /* Painel do ?debug=1 (só no build de debug; design/decisoes-F-003.md §8): abaixo do botão de pausa, da barra de XP e das vagas (decisoes-F-005 R5, que muda a P2 da F-004). */
+      .painel-debug {
+        position: fixed;
+        top: calc(env(safe-area-inset-top) + 144px);
+        left: calc(env(safe-area-inset-left) + 4px);
+        margin: 0;
+        padding: 4px 6px;
+        color: #e8dcc4;
+        background: rgba(11, 14, 20, 0.6);
+        font: 11px/1.3 ui-monospace, Menlo, monospace;
+        pointer-events: none;
+        z-index: 2;
+      }
+      #sonda-safe-area {
+        position: fixed;
+        inset: 0;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        visibility: hidden;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="jogo"></div>
+    <div id="sonda-safe-area" aria-hidden="true"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

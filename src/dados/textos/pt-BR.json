@@ -1,0 +1,918 @@
+{
+  "idioma": "pt-BR",
+  "versao": 1,
+  "textos": [
+    {
+      "id": "A1.ACENDER.BOTAO",
+      "texto": "Toque para acender a Chama",
+      "contexto": "Tela de Acender: botão único; o toque desbloqueia o áudio (doc 11 §3.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A1.ACENDER.FRASE",
+      "texto": "…",
+      "contexto": "Tela de Acender: frase sob o botão (doc 17 A1); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A1.ACENDER.AVISO_AUDIO",
+      "texto": "Se não ouvir nada, verifique a chave de silêncio.",
+      "contexto": "Tela de Acender: aviso discreto (doc 11 §3.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A1.ACENDER.RETOMAR",
+      "texto": "Continuar da Fogueira da Hora {hora}",
+      "contexto": "Tela de Acender: oferta de retomada (B §3.10); {hora} em algarismo romano; só quando o save é de uma Fogueira (brief §5.4)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A1.ACENDER.RETOMAR_INICIO",
+      "texto": "Continuar do início da Vigília",
+      "contexto": "Tela de Acender: oferta de retomada quando a aba morreu na Hora I, antes da primeira Fogueira; o ponto de retomada é o save do passo 0 (Q-03; ADR-0002 §10); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A1.ACENDER.RECUSAR",
+      "texto": "Abandonar Vigília",
+      "contexto": "Tela de Acender: recusar a retomada = Abandonar (Q-03)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A2.TUTORIAL.01",
+      "texto": "Deslize para mover",
+      "contexto": "Prompt aos 0:10, some ao mover (doc 11 §4)",
+      "limite_palavras": 12
+    },
+    {
+      "id": "A2.TUTORIAL.02",
+      "texto": "Deslize rápido para esquivar",
+      "contexto": "No 1º telegrafo de um Oco Grande (a partir das 1:00) (doc 11 §4)",
+      "limite_palavras": 12
+    },
+    {
+      "id": "A2.TUTORIAL.03",
+      "texto": "Toque em ⟲ no momento do brilho para aparar",
+      "contexto": "No 1º telegrafo de uma Noviça (a partir das 3:00) (doc 11 §4)",
+      "limite_palavras": 12
+    },
+    {
+      "id": "A2.TUTORIAL.04",
+      "texto": "…",
+      "contexto": "Primeira Fogueira: tour de 3 balões, puláveis (doc 11 §4); placeholder até o roteiro (doc 17)",
+      "limite_palavras": 12
+    },
+    {
+      "id": "A2.TUTORIAL.05",
+      "texto": "…",
+      "contexto": "Primeiro Apagar: balão que explica as Cinzas Perdidas (doc 11 §4); placeholder até o roteiro (doc 17)",
+      "limite_palavras": 12
+    },
+    {
+      "id": "A2.TUTORIAL.06",
+      "texto": "…",
+      "contexto": "Santuário: Iselda apresenta a árvore (doc 11 §4); placeholder até o roteiro (doc 17)",
+      "limite_palavras": 12
+    },
+    {
+      "id": "A4.APAGAR.01",
+      "texto": "Você se apaga.",
+      "contexto": "Tela de Apagar (doc 02 §8; doc 11 §3.10)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A4.AMANHECER.01",
+      "texto": "Amanhecer.",
+      "contexto": "Tela de Amanhecer, depois dos 10 s de céu clareando (doc 11 §3.11)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A4.A_FOME.01",
+      "texto": "A Fome desce.",
+      "contexto": "Tela de A Fome às 23:00 com o chefe vivo (B §2)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A5.HUD.HORA",
+      "texto": "Hora {hora}",
+      "contexto": "HUD: Hora atual, de 0:00 a 20:00; {hora} em algarismo romano (doc 11 §3.6). De 20:00 a 23:00 não há Hora (brief §5.4; doc 02 §3): o que o HUD mostra nesse trecho fica pendente para a F-009",
+      "limite_palavras": null
+    },
+    {
+      "id": "A5.HUD.NIVEL",
+      "texto": "Nv {nivel}",
+      "contexto": "HUD: nível (doc 11 §3.6)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A5.HUD.ALMAS",
+      "texto": "{almas} Almas",
+      "contexto": "HUD: Almas da Vigília (doc 11 §3.6)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A5.HUD.QUEBRADO",
+      "texto": "QUEBRADO",
+      "contexto": "HUD: Quebra de Postura do chefe, 0,5 s (doc 11 §5)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A6.PAUSA.TITULO",
+      "texto": "Vigília em pausa",
+      "contexto": "Tela de pausa: título (doc 11 §3.9); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A6.PAUSA.CONTINUAR",
+      "texto": "Continuar",
+      "contexto": "Tela de pausa: voltar à Vigília",
+      "limite_palavras": null
+    },
+    {
+      "id": "A6.PAUSA.TOQUE_PARA_CONTINUAR",
+      "texto": "Toque para continuar",
+      "contexto": "Pausa automática (visibilidade ou interrupção de áudio): a retomada é só por toque (ADR-0002 §12)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A6.PAUSA.SOM",
+      "texto": "Som",
+      "contexto": "Tela de pausa: opção rápida (doc 11 §3.9)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A6.PAUSA.FLASHES",
+      "texto": "Flashes",
+      "contexto": "Tela de pausa: opção rápida (doc 11 §3.9)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A6.PAUSA.NUMEROS",
+      "texto": "Números de dano",
+      "contexto": "Tela de pausa: opção rápida (doc 11 §3.9; B F-004)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A6.PAUSA.NIVEL",
+      "texto": "Nível {nivel}",
+      "contexto": "Tela de pausa: nível de cada arma da build (design/decisoes-F-004.md P5)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A6.PAUSA.ABANDONAR",
+      "texto": "Abandonar Vigília",
+      "contexto": "Tela de pausa: abandonar (doc 02 §3.2)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A6.PAUSA.ABANDONAR_AVISO",
+      "texto": "Você leva metade das Almas.",
+      "contexto": "Tela de pausa: confirmação de Abandonar, Almas ×0,5 (doc 02 §3.2); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A7.RESULTADO.TEMPO",
+      "texto": "Tempo",
+      "contexto": "Resultado: rótulo (doc 11 §3.12)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A7.RESULTADO.NIVEL",
+      "texto": "Nível",
+      "contexto": "Resultado: rótulo (doc 11 §3.12)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A7.RESULTADO.MORTES",
+      "texto": "Mortes causadas",
+      "contexto": "Resultado: rótulo (doc 11 §3.12); fica até o roteiro propor outro (Q-31)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A7.RESULTADO.CHEFE",
+      "texto": "Chefe mais longe",
+      "contexto": "Resultado: rótulo (doc 11 §3.12)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A7.RESULTADO.ALMAS",
+      "texto": "Almas",
+      "contexto": "Resultado: rótulo (doc 11 §3.12)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A7.RESULTADO.BRASAS",
+      "texto": "Brasas",
+      "contexto": "Resultado: rótulo (doc 11 §3.12)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A7.RESULTADO.MANCHA",
+      "texto": "{almas} Almas ficaram na Hora {hora}",
+      "contexto": "Resultado: mancha de Cinzas Perdidas (doc 11 §3.12)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A7.RESULTADO.MANCHA_A_FOME",
+      "texto": "{almas} Almas ficaram em A Fome",
+      "contexto": "Resultado: mancha de um Apagar entre 20:00 e 23:00; 'A Fome' é o nome do trecho (doc 02 §3) no lugar da Hora (Q-04); as Almas seguem recuperáveis na mancha (B §2); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A7.RESULTADO.VOLTAR",
+      "texto": "Voltar ao Santuário",
+      "contexto": "Resultado: botão (doc 11 §3.12)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A7.RESULTADO.REPETIR",
+      "texto": "Repetir Vigília",
+      "contexto": "Resultado: botão (doc 11 §3.12)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A8.SISTEMA.GIRE",
+      "texto": "Gire o aparelho",
+      "contexto": "Overlay em paisagem (B §3.14)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A8.SISTEMA.CONVITE_PWA",
+      "texto": "Adicionar à Tela de Início para guardar sua Brasa",
+      "contexto": "Convite depois da 1ª Vigília completa (doc 11 §4)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A8.SISTEMA.AGORA_NAO",
+      "texto": "Agora não",
+      "contexto": "Convite PWA: recusar (repete após 5 Vigílias, doc 11 §4)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A8.SISTEMA.TITULO",
+      "texto": "Vigília das Cinzas",
+      "contexto": "Título da página (document.title) e, na F-010, nome do app instalado (doc 00)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A8.SISTEMA.SEM_WEBGL",
+      "texto": "Não foi possível acender a Chama: este navegador não abriu o WebGL. Feche outras abas, atualize o iOS e recarregue a página.",
+      "contexto": "Aviso no lugar do jogo quando não há contexto WebGL; o render depende dele (ADR-0004 §6)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A9.SANTUARIO.VIGILIA",
+      "texto": "Vigília",
+      "contexto": "Santuário: botão grande que inicia a Vigília (doc 11 §3.2)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A9.SANTUARIO.ISELDA",
+      "texto": "Iselda",
+      "contexto": "Santuário: rótulo da Guardiã da Chama (doc 01 §4.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A9.SANTUARIO.ARVORE",
+      "texto": "Árvore de Pesquisa",
+      "contexto": "Santuário: título do painel de Iselda (doc 11 §3.13)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A9.SANTUARIO.RANK",
+      "texto": "Rank {rank}/{max}",
+      "contexto": "Árvore: tooltip do nó (doc 11 §3.13)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A9.SANTUARIO.CUSTO",
+      "texto": "{custo} Almas",
+      "contexto": "Árvore: tooltip do nó (doc 11 §3.13)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A9.SANTUARIO.PESQUISAR",
+      "texto": "Toque de novo para pesquisar",
+      "contexto": "Árvore: o segundo toque compra a Pesquisa (doc 11 §3.13)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A9.SANTUARIO.BLOQUEADO",
+      "texto": "Ainda esquecida",
+      "contexto": "Árvore: nó sem efeito no MVP (Q-17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A9.SANTUARIO.REEMBOLSAR",
+      "texto": "Reembolsar árvore",
+      "contexto": "Árvore: botão (doc 11 §3.13)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A9.SANTUARIO.REEMBOLSAR_CONFIRMA",
+      "texto": "Esquecer o que esta árvore lembra?",
+      "contexto": "Árvore: confirmação do reembolso (doc 11 §3.13); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A10.LEVELUP.CONFIRMAR",
+      "texto": "Toque de novo para escolher",
+      "contexto": "Level up: confirmação por segundo toque (B §3.5)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A10.LEVELUP.COMPLETA_UNIAO",
+      "texto": "Completa: {uniao}",
+      "contexto": "Level up: carta que completa uma União, borda dourada (doc 11 §3.7)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A10.BAU.TITULO",
+      "texto": "Baú",
+      "contexto": "Modal do baú: título, acima dos itens que ele deu",
+      "limite_palavras": 1
+    },
+    {
+      "id": "A10.BAU.UNIAO",
+      "texto": "{uniao} se forma.",
+      "contexto": "Modal do baú: a União formada ({uniao} = nome da União)",
+      "limite_palavras": 8
+    },
+    {
+      "id": "A10.LEVELUP.NOVO",
+      "texto": "Novo",
+      "contexto": "Level up: item que o jogador ainda não tem",
+      "limite_palavras": null
+    },
+    {
+      "id": "A10.LEVELUP.NIVEL",
+      "texto": "Nível {nivel}",
+      "contexto": "Level up: nível que o item atinge",
+      "limite_palavras": null
+    },
+    {
+      "id": "A10.LEVELUP.BOLSA_DE_ALMAS_NOME",
+      "texto": "Bolsa de Almas",
+      "contexto": "Level up: carta quando os itens se esgotam (Q-22)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A10.LEVELUP.BOLSA_DE_ALMAS_EFEITO",
+      "texto": "+50 Almas",
+      "contexto": "Level up: carta quando os itens se esgotam (Q-22; doc 02 §7)",
+      "limite_palavras": null
+    },
+    {
+      "id": "C1.ALDRIC.NOME",
+      "texto": "Aldric",
+      "contexto": "Vigilante: nome (doc 03 §3.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "C1.ALDRIC.EPITETO",
+      "texto": "o Portador da Brasa",
+      "contexto": "Vigilante: epíteto (doc 03 §3.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "C1.ALDRIC.PASSIVA_NOME",
+      "texto": "Brasa Firme",
+      "contexto": "Vigilante: passiva (doc 03 §3.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "C1.ALDRIC.PASSIVA_EFEITO",
+      "texto": "+15% de HP máximo. Recebe 20% menos dano com a stamina acima de 50%.",
+      "contexto": "Vigilante: linha funcional da passiva (B §3.3)",
+      "limite_palavras": null
+    },
+    {
+      "id": "C1.ALDRIC.MALDICAO_NOME",
+      "texto": "Juramento Pesado",
+      "contexto": "Vigilante: Maldição (doc 03 §3.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "C1.ALDRIC.MALDICAO_EFEITO",
+      "texto": "No máximo 5 armas. A 6ª vaga vira uma Relíquia.",
+      "contexto": "Vigilante: linha funcional da Maldição (doc 03 §3.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "D1.CHARNECA.NOME",
+      "texto": "Charneca das Lanternas",
+      "contexto": "Região: nome (doc 01 §5.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "D2.CHARNECA.01",
+      "texto": "…",
+      "contexto": "Região: frase de entrada nos primeiros 3 s (doc 17 D2); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "E1.LANTERNEIRO.NOME",
+      "texto": "O Lanterneiro",
+      "contexto": "Chefe da Região: nome (doc 06 §2.2)",
+      "limite_palavras": null
+    },
+    {
+      "id": "E1.LANTERNEIRO.TITULO",
+      "texto": "O Lanterneiro, Que Nunca Parou",
+      "contexto": "Chefe: título quando a arena fecha (exemplo do doc 17 E1); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "E3.LANTERNEIRO.FASE2",
+      "texto": "…",
+      "contexto": "Chefe: transição para a fase 2, lida em 1,5 s (doc 17 E3); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "E3.LANTERNEIRO.FASE3",
+      "texto": "…",
+      "contexto": "Chefe: transição para a fase 3, lida em 1,5 s (doc 17 E3); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.ESPADA_LONGA_DO_JURAMENTO.NOME",
+      "texto": "Espada Longa do Juramento",
+      "contexto": "Arma: nome (doc 04)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.ESPADA_LONGA_DO_JURAMENTO.LORE",
+      "texto": "…",
+      "contexto": "Arma: lore de 1 a 2 linhas na carta de level up (doc 17 F1); placeholder até o roteiro (doc 17)",
+      "limite_palavras": 60
+    },
+    {
+      "id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV1",
+      "texto": "Arco de 120° à frente, 1 golpe.",
+      "contexto": "Arma: linha funcional do nível 1 na carta (doc 04 §1.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV2",
+      "texto": "+20% de dano.",
+      "contexto": "Arma: linha funcional do nível 2 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV3",
+      "texto": "+1 golpe (volta).",
+      "contexto": "Arma: linha funcional do nível 3 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV4",
+      "texto": "Golpes em Postura Quebrada causam +50%.",
+      "contexto": "Arma: linha funcional do nível 4 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV5",
+      "texto": "+20% de área.",
+      "contexto": "Arma: linha funcional do nível 5 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV6",
+      "texto": "+20% de dano.",
+      "contexto": "Arma: linha funcional do nível 6 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV7",
+      "texto": "3º golpe: estocada perfurante.",
+      "contexto": "Arma: linha funcional do nível 7 na carta (B §3.8); o nv7 acrescenta a estocada como 3º golpe da sequência (design/decisoes-F-004.md W5)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.ESPADA_LONGA_DO_JURAMENTO.NV8",
+      "texto": "+1 golpe. Pronta para a União.",
+      "contexto": "Arma: linha funcional do nível 8 na carta (B §3.8; doc 04 §1.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.FACAS_DE_SAL.NOME",
+      "texto": "Facas de Sal",
+      "contexto": "Arma: nome (doc 04)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.FACAS_DE_SAL.LORE",
+      "texto": "…",
+      "contexto": "Arma: lore de 1 a 2 linhas na carta de level up (doc 17 F1); placeholder até o roteiro (doc 17)",
+      "limite_palavras": 60
+    },
+    {
+      "id": "F1.FACAS_DE_SAL.NV1",
+      "texto": "2 facas por salva.",
+      "contexto": "Arma: linha funcional do nível 1 na carta (B §3.8; doc 04 §3); com mais facas que alvos, as facas se revezam entre os alvos (design/decisoes-F-004.md W10)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.FACAS_DE_SAL.NV2",
+      "texto": "+1 faca.",
+      "contexto": "Arma: linha funcional do nível 2 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.FACAS_DE_SAL.NV3",
+      "texto": "+20% de dano.",
+      "contexto": "Arma: linha funcional do nível 3 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.FACAS_DE_SAL.NV4",
+      "texto": "As facas aplicam Sal.",
+      "contexto": "Arma: linha funcional do nível 4 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.FACAS_DE_SAL.NV5",
+      "texto": "+1 faca.",
+      "contexto": "Arma: linha funcional do nível 5 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.FACAS_DE_SAL.NV6",
+      "texto": "+20% de velocidade das facas.",
+      "contexto": "Arma: linha funcional do nível 6 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.FACAS_DE_SAL.NV7",
+      "texto": "As facas atravessam 1 inimigo.",
+      "contexto": "Arma: linha funcional do nível 7 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.FACAS_DE_SAL.NV8",
+      "texto": "+1 faca.",
+      "contexto": "Arma: linha funcional do nível 8 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.CIRCULO_DE_SAL.NOME",
+      "texto": "Círculo de Sal",
+      "contexto": "Arma: nome (doc 04)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.CIRCULO_DE_SAL.LORE",
+      "texto": "…",
+      "contexto": "Arma: lore de 1 a 2 linhas na carta de level up (doc 17 F1); placeholder até o roteiro (doc 17)",
+      "limite_palavras": 60
+    },
+    {
+      "id": "F1.CIRCULO_DE_SAL.NV1",
+      "texto": "Aura de 2 corpos: dano e Sal.",
+      "contexto": "Arma: linha funcional do nível 1 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.CIRCULO_DE_SAL.NV2",
+      "texto": "+15% de raio.",
+      "contexto": "Arma: linha funcional do nível 2 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.CIRCULO_DE_SAL.NV3",
+      "texto": "+20% de dano.",
+      "contexto": "Arma: linha funcional do nível 3 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.CIRCULO_DE_SAL.NV4",
+      "texto": "Sal mais forte (−60%).",
+      "contexto": "Arma: linha funcional do nível 4 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.CIRCULO_DE_SAL.NV5",
+      "texto": "+15% de raio.",
+      "contexto": "Arma: linha funcional do nível 5 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.CIRCULO_DE_SAL.NV6",
+      "texto": "+20% de dano.",
+      "contexto": "Arma: linha funcional do nível 6 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.CIRCULO_DE_SAL.NV7",
+      "texto": "Pulso que empurra a cada 5 s.",
+      "contexto": "Arma: linha funcional do nível 7 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F1.CIRCULO_DE_SAL.NV8",
+      "texto": "+20% de raio.",
+      "contexto": "Arma: linha funcional do nível 8 na carta (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F2.LAMINA_DO_JURAMENTO_ETERNO.NOME",
+      "texto": "Lâmina do Juramento Eterno",
+      "contexto": "União: nome (doc 04 §2)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F2.LAMINA_DO_JURAMENTO_ETERNO.EFEITO",
+      "texto": "Cada golpe gera uma onda de brasa no chão.",
+      "contexto": "União: linha funcional (B §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F2.LAMINA_DO_JURAMENTO_ETERNO.LORE",
+      "texto": "…",
+      "contexto": "União: lore que liga a arma e a passiva (doc 17 F2); placeholder até o roteiro (doc 17)",
+      "limite_palavras": 60
+    },
+    {
+      "id": "F3.ELMO_SEM_ROSTO.NOME",
+      "texto": "Elmo Sem Rosto",
+      "contexto": "Passiva: nome (doc 04 §7)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F3.ELMO_SEM_ROSTO.EFEITO",
+      "texto": "+4 de Armadura.",
+      "contexto": "Passiva: linha funcional por nível (B §2)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F3.ELMO_SEM_ROSTO.LORE",
+      "texto": "…",
+      "contexto": "Passiva: lore de 1 linha (doc 17 F3); placeholder até o roteiro (doc 17)",
+      "limite_palavras": 60
+    },
+    {
+      "id": "F3.LUVAS_DE_FOLE.NOME",
+      "texto": "Luvas de Fole",
+      "contexto": "Passiva: nome (doc 04 §7)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F3.LUVAS_DE_FOLE.EFEITO",
+      "texto": "+8% de Poder.",
+      "contexto": "Passiva: linha funcional por nível (B §2)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F3.LUVAS_DE_FOLE.LORE",
+      "texto": "…",
+      "contexto": "Passiva: lore de 1 linha (doc 17 F3); placeholder até o roteiro (doc 17)",
+      "limite_palavras": 60
+    },
+    {
+      "id": "F4.SAL.NOME",
+      "texto": "Sal",
+      "contexto": "Status: nome (doc 04 §8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F4.SAL.DESCRICAO",
+      "texto": "−50% de velocidade por 3 s.",
+      "contexto": "Status: descrição (doc 04 §8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F4.POSTURA_QUEBRADA.NOME",
+      "texto": "Postura Quebrada",
+      "contexto": "Status: nome (doc 04 §8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "F4.POSTURA_QUEBRADA.DESCRICAO",
+      "texto": "Atordoado por 2 s; recebe dano ×2.",
+      "contexto": "Status: descrição (B §3.4)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G1.FUNDACAO.NOME",
+      "texto": "Fundação",
+      "contexto": "Árvore de Orun: nome (doc 08 §2)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G3.FUNDACAO.REEMBOLSO",
+      "texto": "…",
+      "contexto": "Árvore: texto de reembolso, 2 linhas (doc 17 G3); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G1.O_PESO_DO_MARTELO_DO_SEU_PAI.NOME",
+      "texto": "O peso do martelo do seu pai",
+      "contexto": "Nó de estatística da Fundação: nome-frase (doc 08 §4.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G1.O_PESO_DO_MARTELO_DO_SEU_PAI.EFEITO",
+      "texto": "+4% de Poder de armas pesadas por rank.",
+      "contexto": "Nó: efeito numérico no tooltip (doc 08 §4.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G2.O_PESO_DO_MARTELO_DO_SEU_PAI.MEMORIA",
+      "texto": "…",
+      "contexto": "Nó: linha de Memória no tooltip (doc 17 G2); placeholder até o roteiro (doc 17)",
+      "limite_palavras": 20
+    },
+    {
+      "id": "G1.PELE_QUE_ESQUECEU_DE_SANGRAR.NOME",
+      "texto": "Pele que esqueceu de sangrar",
+      "contexto": "Nó de estatística da Fundação: nome-frase (doc 08 §4.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G1.PELE_QUE_ESQUECEU_DE_SANGRAR.EFEITO",
+      "texto": "+2 de Armadura por rank.",
+      "contexto": "Nó: efeito numérico no tooltip (doc 08 §4.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G2.PELE_QUE_ESQUECEU_DE_SANGRAR.MEMORIA",
+      "texto": "…",
+      "contexto": "Nó: linha de Memória no tooltip (doc 17 G2); placeholder até o roteiro (doc 17)",
+      "limite_palavras": 20
+    },
+    {
+      "id": "G1.FOLEGO_DE_FORJA.NOME",
+      "texto": "Fôlego de forja",
+      "contexto": "Nó de estatística da Fundação: nome-frase (doc 08 §4.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G1.FOLEGO_DE_FORJA.EFEITO",
+      "texto": "+5% de HP máximo por rank.",
+      "contexto": "Nó: efeito numérico no tooltip (doc 08 §4.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G2.FOLEGO_DE_FORJA.MEMORIA",
+      "texto": "…",
+      "contexto": "Nó: linha de Memória no tooltip (doc 17 G2); placeholder até o roteiro (doc 17)",
+      "limite_palavras": 20
+    },
+    {
+      "id": "G1.PES_PLANTADOS.NOME",
+      "texto": "Pés plantados",
+      "contexto": "Nó de estatística da Fundação: nome-frase (doc 08 §4.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G1.PES_PLANTADOS.EFEITO",
+      "texto": "+10% de Poise por rank.",
+      "contexto": "Nó: efeito numérico no tooltip (doc 08 §4.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G2.PES_PLANTADOS.MEMORIA",
+      "texto": "…",
+      "contexto": "Nó: linha de Memória no tooltip (doc 17 G2); placeholder até o roteiro (doc 17)",
+      "limite_palavras": 20
+    },
+    {
+      "id": "G1.CASCO.NOME",
+      "texto": "Casco",
+      "contexto": "Nó de estatística da Fundação: nome-frase (doc 08 §4.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G1.CASCO.EFEITO",
+      "texto": "Invulnerabilidade após acerto +0,05 s por rank.",
+      "contexto": "Nó: efeito numérico no tooltip (doc 08 §4.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G2.CASCO.MEMORIA",
+      "texto": "…",
+      "contexto": "Nó: linha de Memória no tooltip (doc 17 G2); placeholder até o roteiro (doc 17)",
+      "limite_palavras": 20
+    },
+    {
+      "id": "G1.BIGORNA_NO_PEITO.NOME",
+      "texto": "Bigorna no peito",
+      "contexto": "Nó de estatística da Fundação: nome-frase (doc 08 §4.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G1.BIGORNA_NO_PEITO.EFEITO",
+      "texto": "+3% de redução de dano de contato por rank.",
+      "contexto": "Nó: efeito numérico no tooltip (doc 08 §4.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G2.BIGORNA_NO_PEITO.MEMORIA",
+      "texto": "…",
+      "contexto": "Nó: linha de Memória no tooltip (doc 17 G2); placeholder até o roteiro (doc 17)",
+      "limite_palavras": 20
+    },
+    {
+      "id": "G1.FERRO_FRIO.NOME",
+      "texto": "Ferro frio",
+      "contexto": "Nó de estatística da Fundação: nome-frase (doc 08 §4.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G1.FERRO_FRIO.EFEITO",
+      "texto": "−5% de custo de stamina da esquiva pesada por rank.",
+      "contexto": "Nó: efeito numérico no tooltip (doc 08 §4.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G2.FERRO_FRIO.MEMORIA",
+      "texto": "…",
+      "contexto": "Nó: linha de Memória no tooltip (doc 17 G2); placeholder até o roteiro (doc 17)",
+      "limite_palavras": 20
+    },
+    {
+      "id": "G1.MAOS_DE_APRENDIZ.NOME",
+      "texto": "Mãos de aprendiz",
+      "contexto": "Nó de estatística da Fundação: nome-frase (doc 08 §4.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G1.MAOS_DE_APRENDIZ.EFEITO",
+      "texto": "Por rank, armas de Orun começam 1 nível acima.",
+      "contexto": "Nó: efeito numérico no tooltip (doc 08 §4.1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "G2.MAOS_DE_APRENDIZ.MEMORIA",
+      "texto": "…",
+      "contexto": "Nó: linha de Memória no tooltip (doc 17 G2); placeholder até o roteiro (doc 17)",
+      "limite_palavras": 20
+    },
+    {
+      "id": "H1.OCO_DAS_LANTERNAS.NOME",
+      "texto": "Oco das Lanternas",
+      "contexto": "Inimigo: nome (doc 05 §3)",
+      "limite_palavras": null
+    },
+    {
+      "id": "H1.OCO_GRANDE.NOME",
+      "texto": "Oco Grande",
+      "contexto": "Inimigo: nome (doc 05 §3)",
+      "limite_palavras": null
+    },
+    {
+      "id": "H1.NOVICA_DE_SAL.NOME",
+      "texto": "Noviça de Sal",
+      "contexto": "Inimigo: nome (doc 05 §4)",
+      "limite_palavras": null
+    },
+    {
+      "id": "H1.OCO_GRANDE_COROADO.NOME",
+      "texto": "Oco Grande Coroado",
+      "contexto": "Inimigo: placeholder de Guardião e Chefe Menor (B §2)",
+      "limite_palavras": null
+    },
+    {
+      "id": "I1.FOGUEIRA.DESCANSAR",
+      "texto": "Descansar",
+      "contexto": "Fogueira: ação (B §3.10)",
+      "limite_palavras": null
+    },
+    {
+      "id": "I1.FOGUEIRA.DESCANSAR_EFEITO",
+      "texto": "Frascos cheios. A noite fica 10% mais densa.",
+      "contexto": "Fogueira: consequência em 1 linha (doc 11 §3.8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "I1.FOGUEIRA.FORJAR",
+      "texto": "Forjar União",
+      "contexto": "Fogueira: ação (B §3.10)",
+      "limite_palavras": null
+    },
+    {
+      "id": "I1.FOGUEIRA.FORJAR_EFEITO",
+      "texto": "{custo} Almas",
+      "contexto": "Fogueira: custo da forja por Hora (B §3.10)",
+      "limite_palavras": null
+    },
+    {
+      "id": "I1.FOGUEIRA.PARTIR",
+      "texto": "Partir",
+      "contexto": "Fogueira: ação (B §3.10)",
+      "limite_palavras": null
+    },
+    {
+      "id": "I1.FOGUEIRA.PARTIR_EFEITO",
+      "texto": "…",
+      "contexto": "Fogueira: consequência em 1 linha (doc 17 I1); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "I1.FOGUEIRA.GUARDADA",
+      "texto": "Vigília guardada",
+      "contexto": "Fogueira: aviso de autosave ao Partir (doc 11 §3.8)",
+      "limite_palavras": null
+    }
+  ]
+}

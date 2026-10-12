@@ -1,0 +1,13 @@
+{
+  "versao": 1,
+  "forja_custo_almas_por_hora": { "1": 150, "2": 250, "3": 400 },
+  "unioes": [
+    {
+      "id": "uniao_lamina_do_juramento_eterno",
+      "arma": "espada_longa_do_juramento",
+      "arma_nivel": 8,
+      "passiva": "elmo_sem_rosto",
+      "resultado": "lamina_do_juramento_eterno"
+    }
+  ]
+}

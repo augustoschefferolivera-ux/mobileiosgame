@@ -1,0 +1,341 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "arma.schema.json",
+  "title": "Armas (src/dados/armas.json)",
+  "description": "Armas automáticas por arquétipo de alvo (doc 04 §1; ADR-0002 §7). Uniões são armas com uniao: true.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "versao",
+    "armas"
+  ],
+  "properties": {
+    "versao": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "armas": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/arma"
+      }
+    }
+  },
+  "$defs": {
+    "arma": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "nome_id",
+        "lore_id",
+        "deus",
+        "arquetipo",
+        "escala",
+        "pesada",
+        "uniao",
+        "nivel_max",
+        "base",
+        "niveis",
+        "pendencias"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "comum.schema.json#/$defs/idConteudo"
+        },
+        "nome_id": {
+          "$ref": "comum.schema.json#/$defs/idTexto"
+        },
+        "lore_id": {
+          "$ref": "comum.schema.json#/$defs/idTexto"
+        },
+        "deus": {
+          "$ref": "comum.schema.json#/$defs/deus"
+        },
+        "arquetipo": {
+          "enum": [
+            "direcao_movimento",
+            "mais_proximo",
+            "aura",
+            "aleatorio",
+            "mais_distante",
+            "orbital",
+            "no_chao"
+          ]
+        },
+        "escala": {
+          "$ref": "comum.schema.json#/$defs/escala"
+        },
+        "pesada": {
+          "type": "boolean"
+        },
+        "uniao": {
+          "type": "boolean"
+        },
+        "nivel_max": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "base": {
+          "$ref": "#/$defs/base"
+        },
+        "niveis": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/nivel"
+          }
+        },
+        "pendencias": {
+          "$ref": "comum.schema.json#/$defs/pendencias"
+        },
+        "pendentes": {
+          "$ref": "comum.schema.json#/$defs/pendentes"
+        }
+      }
+    },
+    "base": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cooldown_s"
+      ],
+      "properties": {
+        "dano": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "dano_de": {
+          "description": "Dano derivado de outra arma (Lâmina: Espada nv8 × 1,5, B §3.8).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "arma",
+            "nivel",
+            "mult"
+          ],
+          "properties": {
+            "arma": {
+              "$ref": "comum.schema.json#/$defs/idConteudo"
+            },
+            "nivel": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8
+            },
+            "mult": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "dano_por_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "cooldown_s": {
+          "description": "Segundos entre salvas; null = contínuo (aura).",
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "golpes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "intervalo_golpes_s": {
+          "$ref": "comum.schema.json#/$defs/positivoOuPendente"
+        },
+        "arco_graus": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 360
+        },
+        "alcance_corpos": {
+          "$ref": "comum.schema.json#/$defs/positivoOuPendente"
+        },
+        "projeteis": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "velocidade_projetil_corpos_s": {
+          "$ref": "comum.schema.json#/$defs/positivoOuPendente"
+        },
+        "raio_corpos": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "intervalo_tick_s": {
+          "$ref": "comum.schema.json#/$defs/positivoOuPendente"
+        },
+        "aplica": {
+          "$ref": "comum.schema.json#/$defs/status"
+        },
+        "onda": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "comprimento_corpos",
+            "dano",
+            "largura_corpos",
+            "velocidade_corpos_s"
+          ],
+          "properties": {
+            "comprimento_corpos": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "dano": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "largura_corpos": {
+              "$ref": "comum.schema.json#/$defs/positivoOuPendente"
+            },
+            "velocidade_corpos_s": {
+              "$ref": "comum.schema.json#/$defs/positivoOuPendente"
+            }
+          }
+        },
+        "projeteis_extra_esquiva_perfeita": {
+          "description": "Facas de Sal: esquiva perfeita adiciona 1 faca (doc 04 §3; doc 02 §5.3).",
+          "type": "integer",
+          "minimum": 1
+        },
+        "golpes_de": {
+          "description": "Golpes, formas e intervalo herdados de outra arma num nível (União: Espada nv8; design/decisoes-F-004.md W18).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "arma",
+            "nivel"
+          ],
+          "properties": {
+            "arma": {
+              "$ref": "comum.schema.json#/$defs/idConteudo"
+            },
+            "nivel": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8
+            }
+          }
+        },
+        "estocada": {
+          "description": "Retângulo da estocada a partir do centro do jogador, ao longo da mira (design/decisoes-F-004.md W8).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "comprimento_corpos",
+            "meia_largura_corpos"
+          ],
+          "properties": {
+            "comprimento_corpos": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "meia_largura_corpos": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "raio_projetil_corpos": {
+          "description": "Raio da hitbox do projétil (design/decisoes-F-004.md W9).",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "espacamento_lateral_corpos": {
+          "description": "Distância lateral entre projéteis da mesma salva no mesmo alvo (W11).",
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "nivel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nivel",
+        "texto_id",
+        "efeitos"
+      ],
+      "properties": {
+        "nivel": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "texto_id": {
+          "$ref": "comum.schema.json#/$defs/idTexto"
+        },
+        "marco": {
+          "type": "boolean"
+        },
+        "efeitos": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/efeito"
+          }
+        }
+      }
+    },
+    "efeito": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tipo"
+      ],
+      "properties": {
+        "tipo": {
+          "enum": [
+            "dano_pct",
+            "golpes_extra",
+            "dano_pct_vs_postura_quebrada",
+            "area_pct",
+            "projeteis_extra",
+            "aplica_sal",
+            "velocidade_projetil_pct",
+            "perfura",
+            "raio_pct",
+            "sal_reducao_pct",
+            "pulso_knockback"
+          ]
+        },
+        "valor": {
+          "type": "number",
+          "description": "sal_reducao_pct: redução da velocidade em % (60 = −60%)."
+        },
+        "intervalo_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "forma": {
+          "description": "Forma do golpe extra; a ordem dos efeitos dá a posição na sequência (design/decisoes-F-004.md W5).",
+          "enum": [
+            "ida",
+            "volta",
+            "estocada"
+          ]
+        },
+        "aplica": {
+          "$ref": "comum.schema.json#/$defs/status"
+        },
+        "velocidade_corpos_s": {
+          "description": "Pulso: velocidade do afastamento (W/K1).",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "duracao_max_s": {
+          "description": "Pulso: duração máxima do afastamento (K1).",
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    }
+  }
+}

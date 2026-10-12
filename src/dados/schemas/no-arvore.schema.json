@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "no-arvore.schema.json",
+  "title": "Árvores de Pesquisa e seus nós (src/dados/arvore.json)",
+  "description": "Custo de uma Pesquisa = custo_base × multiplicador_por_rank^(rank−1) × (1 + fator_global × ranks_globais) (B §3.12; doc 08 §3).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "versao",
+    "arvores"
+  ],
+  "properties": {
+    "versao": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "arvores": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "nome_id",
+          "reembolso_id",
+          "deus",
+          "custo",
+          "nos"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "comum.schema.json#/$defs/idConteudo"
+          },
+          "nome_id": {
+            "$ref": "comum.schema.json#/$defs/idTexto"
+          },
+          "reembolso_id": {
+            "$ref": "comum.schema.json#/$defs/idTexto"
+          },
+          "deus": {
+            "$ref": "comum.schema.json#/$defs/deus"
+          },
+          "custo": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "multiplicador_por_rank",
+              "fator_global",
+              "arredondamento"
+            ],
+            "properties": {
+              "multiplicador_por_rank": {
+                "type": "number",
+                "exclusiveMinimum": 1
+              },
+              "fator_global": {
+                "type": "number",
+                "minimum": 0
+              },
+              "arredondamento": {
+                "const": "inteiro_mais_proximo"
+              }
+            }
+          },
+          "nos": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/$defs/no"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "no": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "nome_id",
+        "efeito_id",
+        "memoria_id",
+        "tipo",
+        "ranks",
+        "custo_base",
+        "efeito",
+        "no_mvp"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "comum.schema.json#/$defs/idConteudo"
+        },
+        "nome_id": {
+          "$ref": "comum.schema.json#/$defs/idTexto"
+        },
+        "efeito_id": {
+          "$ref": "comum.schema.json#/$defs/idTexto"
+        },
+        "memoria_id": {
+          "$ref": "comum.schema.json#/$defs/idTexto"
+        },
+        "tipo": {
+          "enum": [
+            "estatistica",
+            "desbloqueio",
+            "modificador",
+            "par_exclusivo",
+            "no_chave"
+          ]
+        },
+        "ranks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "custo_base": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "efeito": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tipo",
+            "valor_por_rank"
+          ],
+          "properties": {
+            "tipo": {
+              "enum": [
+                "poder_pct_armas_pesadas",
+                "armadura",
+                "hp_max_pct",
+                "poise_pct",
+                "invulnerabilidade_pos_acerto_s",
+                "reducao_dano_contato_pct",
+                "custo_stamina_esquiva_pesada_pct",
+                "nivel_inicial_armas_orun"
+              ]
+            },
+            "valor_por_rank": {
+              "type": "number"
+            }
+          }
+        },
+        "no_mvp": {
+          "description": "ativo = compra disponível; bloqueado = visível como \"ainda esquecida\" (Q-17).",
+          "enum": [
+            "ativo",
+            "bloqueado"
+          ]
+        },
+        "motivo_bloqueio": {
+          "type": "string",
+          "minLength": 3
+        },
+        "pendencias": {
+          "$ref": "comum.schema.json#/$defs/pendencias"
+        }
+      },
+      "if": {
+        "properties": {
+          "no_mvp": {
+            "const": "bloqueado"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "motivo_bloqueio"
+        ],
+        "properties": {
+          "motivo_bloqueio": {
+            "type": "string",
+            "minLength": 3
+          }
+        }
+      }
+    }
+  }
+}

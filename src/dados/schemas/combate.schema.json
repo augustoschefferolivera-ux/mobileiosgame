@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "combate.schema.json",
+  "title": "Combate (src/dados/combate.json)",
+  "description": "Só o que nenhum outro JSON tem: stamina, esquiva, aparo, congelamento, Poder, Postura Quebrada, Contra-ataque e gestos (design/decisoes-F-006.md ET9; B §3.4 e §3.5). Durações em passos de 60 Hz, exatas como em B; os gestos em ms e pt.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "versao",
+    "stamina",
+    "esquiva",
+    "aparo",
+    "congelamento_passos",
+    "poder_da_esquiva_perfeita",
+    "postura_quebrada",
+    "contra_ataque_passos",
+    "contra_ataque_fator",
+    "ataques_dos_inimigos",
+    "gestos"
+  ],
+  "properties": {
+    "versao": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "stamina": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "custo_esquiva",
+        "custo_aparo",
+        "regeneracao_por_passo",
+        "espera_regeneracao_passos",
+        "devolucao_do_aparo"
+      ],
+      "properties": {
+        "custo_esquiva": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "custo_aparo": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "regeneracao_por_passo": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "espera_regeneracao_passos": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "devolucao_do_aparo": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "esquiva": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "duracao_passos",
+        "iframes_primeiro_passo",
+        "iframes_ultimo_passo",
+        "recuperacao_passos",
+        "distancia_px"
+      ],
+      "properties": {
+        "duracao_passos": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "iframes_primeiro_passo": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "iframes_ultimo_passo": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "recuperacao_passos": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "distancia_px": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "aparo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "janela_passos",
+        "janela_tutorial_extra_passos",
+        "falho_passos"
+      ],
+      "properties": {
+        "janela_passos": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "janela_tutorial_extra_passos": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "falho_passos": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "congelamento_passos": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "poder_da_esquiva_perfeita": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pct",
+        "duracao_passos"
+      ],
+      "properties": {
+        "pct": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "duracao_passos": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "ataques_dos_inimigos": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "alcance_de_tiro_novica_corpos"
+      ],
+      "properties": {
+        "alcance_de_tiro_novica_corpos": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "postura_quebrada": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "duracao_passos",
+        "raio_px",
+        "dano_pct"
+      ],
+      "properties": {
+        "duracao_passos": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "raio_px": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "dano_pct": {
+          "type": "integer",
+          "minimum": 100
+        }
+      }
+    },
+    "contra_ataque_passos": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "contra_ataque_fator": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "gestos": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "swipe",
+        "toque_duplo"
+      ],
+      "properties": {
+        "swipe": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "velocidade_min_pt_s",
+            "janela_ms",
+            "dt_min_ms",
+            "distancia_min_pt",
+            "amostras"
+          ],
+          "properties": {
+            "velocidade_min_pt_s": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "janela_ms": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "dt_min_ms": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "distancia_min_pt": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "amostras": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64
+            }
+          }
+        },
+        "toque_duplo": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "intervalo_max_ms",
+            "duracao_max_ms",
+            "distancia_entre_toques_max_pt",
+            "deslocamento_max_pt"
+          ],
+          "properties": {
+            "intervalo_max_ms": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "duracao_max_ms": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "distancia_entre_toques_max_pt": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "deslocamento_max_pt": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        }
+      }
+    }
+  }
+}

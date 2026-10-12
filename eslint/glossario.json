@@ -1,0 +1,17 @@
+{
+  "fonte": "Sessão 1 (regras do usuário) e Q-31 do brief: as 11 palavras proibidas bloqueiam; as de a_evitar só geram aviso em pt-BR.json",
+  "proibidas_palavra": [
+    "run", "runs", "checkpoint", "checkpoints", "zumbi", "zumbis", "roguelike", "roguelikes",
+    "upgrade", "upgrades", "gema", "gemas", "fusao", "fusoes", "mutator", "mutators"
+  ],
+  "proibidas_expressao": [
+    "\\bgame\\s*over\\b",
+    "\\bmenus?\\s*principa(l|is)\\b",
+    "\\bng\\s*(\\+|plus\\b)",
+    "\\bcheck\\s+points?\\b"
+  ],
+  "a_evitar": [
+    "vitoria", "vitorias", "morte", "mortes", "menu", "partida", "partidas", "save", "ouro",
+    "moeda", "moedas", "handicap", "evolucao", "diamante"
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "criterio": "F-003.7 (design/decisoes-F-003.md §8, E2)",
+  "identificacao": {
+    "seed": 1,
+    "url": "?seed=1&cenario=horda_rotativa&teto=300",
+    "teto": 300,
+    "render": "gpu",
+    "navegador": "chromium",
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+  },
+  "snapshots": {
+    "a": {
+      "passo": 4122,
+      "vivos": 300,
+      "liberacoes": 680,
+      "spawns": 980,
+      "bytes": 15492542,
+      "nos": 96997
+    },
+    "b": {
+      "passo": 6807,
+      "vivos": 300,
+      "liberacoes": 1130,
+      "spawns": 1430,
+      "bytes": 15502123,
+      "nos": 97042
+    },
+    "intervalo_s": 63.6
+  },
+  "liberacoes_no_intervalo": 450,
+  "excluidos": {
+    "(code)": "código do JIT, que cresce com a otimização",
+    "PerformanceLongTaskTiming": "entradas de desempenho do navegador, que crescem com tarefas longas",
+    "TaskAttributionTiming": "entradas de desempenho do navegador, que crescem com tarefas longas"
+  },
+  "aquecimento_s": 90,
+  "limites": {
+    "delta_bytes": 32768,
+    "delta_por_grupo": 100,
+    "calibracao": "ADR-0005"
+  },
+  "delta_bytes": 9581,
+  "delta_nos": 45,
+  "maior_delta_de_grupo": {
+    "grupo": "(hidden)",
+    "delta_n": 13,
+    "delta_bytes": 8292
+  },
+  "grupos_que_mudaram": [
+    {
+      "grupo": "(hidden)",
+      "delta_n": 13,
+      "delta_bytes": 8292
+    },
+    {
+      "grupo": "(string)",
+      "delta_n": 13,
+      "delta_bytes": 396
+    },
+    {
+      "grupo": "(object shape)",
+      "delta_n": 8,
+      "delta_bytes": 324
+    },
+    {
+      "grupo": "(array)",
+      "delta_n": 2,
+      "delta_bytes": 144
+    },
+    {
+      "grupo": "PerformanceLongAnimationFrameTiming",
+      "delta_n": 1,
+      "delta_bytes": 144
+    },
+    {
+      "grupo": "system / ExternalStringData",
+      "delta_n": 2,
+      "delta_bytes": 141
+    },
+    {
+      "grupo": "WebGLDebugRendererInfo",
+      "delta_n": 5,
+      "delta_bytes": 124
+    },
+    {
+      "grupo": "Array",
+      "delta_n": 1,
+      "delta_bytes": 16
+    }
+  ],
+  "heap_usado_a_cada_10s": [
+    {
+      "s": 10,
+      "usadoKB": 8443
+    },
+    {
+      "s": 20,
+      "usadoKB": 8449
+    },
+    {
+      "s": 30,
+      "usadoKB": 8450
+    },
+    {
+      "s": 40,
+      "usadoKB": 8451
+    },
+    {
+      "s": 50,
+      "usadoKB": 8452
+    },
+    {
+      "s": 60,
+      "usadoKB": 8454
+    }
+  ],
+  "aprovado": true
+}

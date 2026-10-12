@@ -1,0 +1,16 @@
+{
+  "id": "horda_com_ataques",
+  "versao": 1,
+  "linha_fixa": 19,
+  "jogador": { "invulneravel": true },
+  "diretor_desligado": false,
+  "tutoriais_vistos": true,
+  "rotacao": 0,
+  "armas": [],
+  "cinzas": false,
+  "passivas": [],
+  "baus": [],
+  "xp_inicial": 0,
+  "relogio_inicial_s": 0,
+  "ataques_inimigos": true
+}
