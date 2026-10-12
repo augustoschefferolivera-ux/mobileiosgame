@@ -2,7 +2,7 @@
 
 ## Sessão 8 — F-011 "Arte do jogo (até a F-007)"
 
-### Estado: etapas 1 e 2 prontas (style card aprovado em 2026-10-12, "Aprovo o style card, pode seguir para a etapa 2"); a etapa 2 aguarda a aprovação do usuário; etapas 3 e 4 não começadas
+### Estado: F-011 pronta (aguarda o teste no iPhone, itens A1 a A12 do roteiro); style card aprovado ("Aprovo o style card, pode seguir para a etapa 2") e produção aprovada ao pedir as etapas 3 e 4 ("Faça a etapa 3 e 4 por favor"), 2026-10-12
 
 Branch `claude/clever-galileo-26bjed`, criada de `origin/claude/f006-esquiva-weodg1`. Pedido do usuário (2026-10-12): arte 100% por código (grade de índices da paleta do doc 13 e efeitos procedurais), personagem 24 × 24, o resto do menor tamanho que funcione, muitos detalhes de efeitos e de armas, só apresentação, em 4 etapas com parada para aprovação ao fim da 1 e da 2.
 
@@ -14,8 +14,8 @@ Branch `claude/clever-galileo-26bjed`, criada de `origin/claude/f006-esquiva-weo
   - **render:** `src/arte/catalogo.ts` → atlas 1024 (NEAREST depois do `refresh`), quadro por passo da simulação (pausado, a imagem só depende do estado), inimigos virados para o jogador, GPU e Image idênticos no pixel; HUD em pixel (joystick, Aparo, Frasco, pausa), Aldric respirando no Acender e a mancha com anel, Alma e seta;
   - **testes:** `tests/arte/` (paleta, contorno fechado, tamanhos, linha dos pés, cor quente, cor de identidade no centro, atlas) e `tests/cenas/` (465 verdes, alocação ≤ 16 B por passo); `e2e/f011.spec.ts` grava as 6 capturas 390 × 844 em `production/evidencias/F-011/`, e `tests/arte/folhas.test.ts` a folha de todas as molduras.
   - **branch compartilhada:** outra sessão faz a F-008 na mesma branch; cada envio foi rebaseado sobre o dela, e os conflitos em `src/cenas/render/horda.ts` mantiveram o `COR_DOS_ELITES` e o molde provisório dela, com a arte do Coroado por cima. Decisões da produção no style card §11.
-- [ ] Etapa 3, revisão de consistência por subagente.
-- [ ] Etapa 4, capturas 390 × 844 de cada cena, roteiro do iPhone e `verify.sh` completo.
+- [x] **Etapa 3, revisão de consistência:** subagente independente (só leitura) comparou as molduras com o style card pela folha, pelas capturas e pelas grades; 8 divergências, cada uma conferida antes de corrigir. Aplicadas 7: o passo do Aldric (o corpo desce 1 px nos quadros de contato), as dobras contínuas do Oco das Lanternas, o fio Y do golpe, rachaduras em D e o musgo em capa nas rochas, a luz da brasa mais forte (alfa 18 a 110) e as vagas e as Almas legíveis sobre a horda. Não aplicada: baixar o alfa da cunha sólida do telegrafo (é o sinal da janela do aparo, decisoes-F-006 RE5); vai para o iPhone. Registro em `design/arte/revisao-F-011.md`.
+- [x] **Etapa 4, teste em jogo:** as 6 capturas 390 × 844 regeradas e conferidas uma a uma (resultado no mesmo registro); itens A1 a A12 da arte no `docs/roteiro-iphone.md`; o teste do `feature_list.json` passou a aceitar features de fora do B §4 (a F-011 quebrava os 4 testes dele desde a etapa 1, pego só agora pelo Vitest completo); `scripts/verify.sh --feature F-011 --taps-game --seed 1` completo uma vez no fim (em execução; o resultado entra aqui).
 
 ## Sessão 7 — F-007 "HP, Frascos, armadura, Apagar e Cinzas Perdidas"
 
@@ -309,7 +309,7 @@ Branch `claude/clever-galileo-26bjed`, criada de `origin/claude/f006-esquiva-weo
 - **Sessão 5:** fechou na F-005.
 - **Sessão 6:** fechou na F-006.
 - **Sessão 7:** fecha na F-007, que aguarda a revisão do usuário. A F-008 não foi começada.
-- **Sessão 8 (F-011, arte):** parou ao fim da etapa 2, à espera da aprovação do usuário. Para retomar: ler `design/arte/style-card.md` (§0, §10 e §11) e a F-011 no `feature_list.json`; seguem a etapa 3 (revisão de consistência por subagente, contra as capturas e a folha em `production/evidencias/F-011/`) e a 4.
+- **Sessão 8 (F-011, arte):** fecha na F-011 pronta, à espera do teste no iPhone (itens A1 a A12 do roteiro). Para mexer na arte: `design/arte/style-card.md` (§10 e §11), `design/arte/revisao-F-011.md`, `src/arte/` e `node scripts/arte/rodar.mjs previa|folhas|amostras`.
 - **Próxima sessão (F-008), com o mesmo método:**
   - ler este arquivo, o ADR-0009, `design/decisoes-F-007.md` (sobretudo a §13, as recomendações para as F-008 a F-010) e a entrada da F-008 no `feature_list.json`;
   - antes de implementar, fechar as pendências da F-008 (levantamento, revisão adversarial e §0 para veto), e só então a Etapa 2;
