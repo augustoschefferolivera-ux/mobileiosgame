@@ -4,24 +4,28 @@
 // dos inimigos estão desligados (o padrão). A palavra 4 do cabeçalho
 // (tutoriaisVistos) é mascarada com `& 1` (o v5 só tinha o bit mover). Os
 // valores foram gravados com o código do commit bc999b3 (o da F-005, antes de
-// qualquer mudança da F-006). O caso com ataques ligados vem na etapa dos
-// ataques.
+// qualquer mudança da F-006). O último caso liga os ataques dos inimigos: até o
+// passo anterior ao 1º telegrafo os campos do v5 ainda coincidem (o bit 8 da
+// palavra do cenário é mascarado).
 import { describe, expect, it } from 'vitest';
 import { fonteDoRoteiro } from '../../../src/logica/nucleo/comandos';
 import { FNV_BASE, fnv1aBytes, hex8 } from '../../../src/logica/nucleo/hash';
-import { BYTES_DO_LAYOUT_5, CAB, PROGRESSAO, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
+import { BYTES_DO_LAYOUT_5, CAB, CENARIO, PROGRESSAO, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { PASSOS_REFERENCIA, ROTEIRO_REFERENCIA } from '../../../src/logica/nucleo/referencia';
 import { confirmarModal, modalAberto } from '../../../src/logica/progressao/modal';
 import { parametrosDoCenario } from '../../../src/plataforma/cenarios';
+import { EVENTO } from '../../../src/logica/nucleo/eventos';
 import { DADOS_DA_CHARNECA as D, PARADO } from '../apoio';
+import { eventosDe } from './apoio';
 
 /** Os 67.488 bytes do v5 a partir do byte 4, com a palavra 4 mascarada em `& 1`. */
-function hashDosCamposV5(e: Estado): string {
+function hashDosCamposV5(e: Estado, mascararAtaques = false): string {
   expect(BYTES_DO_LAYOUT_5).toBe(67_488);
   const copia = e.bytes.slice(4, BYTES_DO_LAYOUT_5);
   const cab = new Uint32Array(copia.buffer, 0, 15);
   cab[CAB.tutoriaisVistos - 1] = cab[CAB.tutoriaisVistos - 1]! & 1;
+  if (mascararAtaques) cab[CAB.cenario - 1] = cab[CAB.cenario - 1]! & ~CENARIO.ataques;
   return hex8(fnv1aBytes(FNV_BASE, copia));
 }
 
@@ -35,7 +39,10 @@ const V5 = {
   nivelTresFim: { 1: 'b207b53a', 424242: 'fe399427' },
   bauUniaoBau: '52625e62',
   bauUniao285: '5a5e7cb4',
+  /** Cenário horda (v5) no passo 117, gravado com bc999b3; com ataques, o 1º telegrafo é no passo 118. */
+  ataquesLigados: { 1: 'b656a335', 424242: '1d42f65b' },
 } as const;
+const PASSO_ANTES_DO_PRIMEIRO_TELEGRAFO = 117;
 
 describe('os campos do v5 evoluem como na F-005 enquanto os ataques estão desligados', () => {
   for (const seed of [1, 424242] as const) {
@@ -96,4 +103,19 @@ describe('os campos do v5 evoluem como na F-005 enquanto os ataques estão desli
     expect(e.cab[CAB.passo]).toBe(285);
     expect(hashDosCamposV5(e)).toBe(V5.bauUniao285);
   });
+
+  for (const seed of [1, 424242] as const) {
+    it(`seed ${seed}: com os ataques ligados (horda_com_ataques), os campos do v5 coincidem até o passo anterior ao 1º telegrafo`, () => {
+      const e = criarEstado(seed, D, { ...parametrosDoCenario('horda_com_ataques'), teto: 300 });
+      expect(e.cab[CAB.cenario]! & CENARIO.ataques).toBe(CENARIO.ataques);
+      avancar(e, D, PARADO, PASSO_ANTES_DO_PRIMEIRO_TELEGRAFO);
+      expect(e.cab[CAB.passo]).toBe(PASSO_ANTES_DO_PRIMEIRO_TELEGRAFO);
+      expect(eventosDe(e, EVENTO.telegrafo)).toHaveLength(0);
+      expect(hashDosCamposV5(e, true)).toBe(V5.ataquesLigados[seed]);
+      avancar(e, D, PARADO, 1);
+      const ev = eventosDe(e, EVENTO.telegrafo);
+      expect(ev).toHaveLength(1);
+      expect(ev[0]!.passo).toBe(PASSO_ANTES_DO_PRIMEIRO_TELEGRAFO + 1);
+    });
+  }
 });

@@ -57,7 +57,7 @@ const PASSOS_DA_VOLTA = 1200;
 const PASSOS_ENTRE_MIRAS = 30;
 
 /** Vigília normal: diretor ligado, tutoriais vistos, jogador invulnerável, Cinzas ligadas. */
-const PARAMETROS: Partial<ParametrosDaVigilia> = { tutoriaisVistos: TODOS_OS_TUTORIAIS, cenario: CENARIO.jogadorInvulneravel };
+const PARAMETROS: Partial<ParametrosDaVigilia> = { tutoriaisVistos: TODOS_OS_TUTORIAIS, cenario: CENARIO.jogadorInvulneravel | CENARIO.ataques };
 
 /** Rumo unitário ao inimigo vivo mais próximo pelo delta toroidal; (0, 0) sem inimigo. */
 function mirarNoMaisProximo(e: Estado, out: ComandosDoPasso): void {

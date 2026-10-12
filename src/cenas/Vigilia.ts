@@ -12,7 +12,7 @@ import Phaser from 'phaser';
 import { alfa, criarAcumulador } from '../logica/nucleo/acumulador';
 import { criarComandos, fonteConstante, fonteDoRoteiro } from '../logica/nucleo/comandos';
 import { rodarFrameComPausas } from '../logica/nucleo/driver';
-import { CAB, TIPO_DE_CARTA, TODOS_OS_TUTORIAIS, criarEstado, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
+import { CAB, CENARIO, TIPO_DE_CARTA, TODOS_OS_TUTORIAIS, criarEstado, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
 import { EVENTO, EV, eventosEscritos, inicioDoEvento } from '../logica/nucleo/eventos';
 import { IDS_DE_ARMA } from '../logica/armas/tabela';
 import { modalAberto } from '../logica/progressao/modal';
@@ -51,7 +51,8 @@ export class Vigilia extends Phaser.Scene {
     const comandosAoVivo = criarComandos();
     // Os tutoriais vistos vêm do meta a partir da F-007; até lá, de ?tutorial=0 ou do cenário.
     const params: Partial<ParametrosDaVigilia> = {
-      ...this.ctx.cenario?.parametros,
+      // Sem ?cenario, a Vigília de produção, com os ataques dos inimigos (VT1); com ele, quem decide é a receita.
+      ...(this.ctx.cenario ? this.ctx.cenario.parametros : { cenario: CENARIO.ataques }),
       teto: this.ctx.teto.valor,
       ...(this.ctx.pularTutoriais ? { tutoriaisVistos: TODOS_OS_TUTORIAIS } : {}),
     };

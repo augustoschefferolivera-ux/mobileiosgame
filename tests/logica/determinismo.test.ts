@@ -37,14 +37,14 @@ import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, deltaNoToro } from '../../src/logica/m
 import type { DadosDaVigilia } from '../../src/logica/mundo/dados';
 import charneca from '../../src/dados/regioes/charneca_das_lanternas.json';
 import { parametrosDoCenario } from '../../src/plataforma/cenarios';
-import { DADOS_DA_CHARNECA as D, PARADO, SEM_ARMAS, SEM_HORDA, dadosDe } from './apoio';
+import { DADOS_DA_CHARNECA as D, PARADO, PRODUCAO, SEM_ARMAS, SEM_HORDA, dadosDe } from './apoio';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SEED = Number(process.env['VDC_SEED'] ?? SEED_PADRAO);
 const log: string[] = [];
 
-function executar(seed: number, n: number, roteiro: Roteiro = ROTEIRO_REFERENCIA, dados: DadosDaVigilia = D): number {
-  const e = criarEstado(seed, dados);
+function executar(seed: number, n: number, roteiro: Roteiro = ROTEIRO_REFERENCIA, dados: DadosDaVigilia = D, params: Partial<ParametrosDaVigilia> = {}): number {
+  const e = criarEstado(seed, dados, params);
   avancar(e, dados, fonteDoRoteiro(roteiro), n);
   return hashEstado(e);
 }
@@ -60,8 +60,8 @@ function executarHorda(seed: number): number {
 }
 
 /** Frames com o delta dado, pelo driver de produção (rodarFrame), até chegar a `n` passos. */
-function executarPorFrames(seed: number, n: number, deltaMs: number): { hash: number; frames: number; max: number } {
-  const e = criarEstado(seed, D);
+function executarPorFrames(seed: number, n: number, deltaMs: number, params: Partial<ParametrosDaVigilia> = {}): { hash: number; frames: number; max: number } {
+  const e = criarEstado(seed, D, params);
   const acc = criarAcumulador();
   const fonte = fonteDoRoteiro(ROTEIRO_REFERENCIA);
   let frames = 0;
@@ -241,15 +241,15 @@ describe('determinismo (F-001.1)', () => {
 });
 
 describe('1 contra 5 passos por frame (F-001.5)', () => {
-  it('mesmo hash no passo 1.000', () => {
-    const um = executarPorFrames(SEED, PASSOS_REFERENCIA, PASSO_MS);
-    const cinco = executarPorFrames(SEED, PASSOS_REFERENCIA, 5 * PASSO_MS);
+  it('mesmo hash no passo 1.000, na Vigília de produção (com os ataques dos inimigos)', () => {
+    const um = executarPorFrames(SEED, PASSOS_REFERENCIA, PASSO_MS, PRODUCAO);
+    const cinco = executarPorFrames(SEED, PASSOS_REFERENCIA, 5 * PASSO_MS, PRODUCAO);
     expect(um.max).toBe(1);
     expect(cinco.max).toBe(5);
     expect(um.frames).toBe(PASSOS_REFERENCIA);
     expect(cinco.frames).toBe(PASSOS_REFERENCIA / 5);
     expect(cinco.hash).toBe(um.hash);
-    expect(um.hash).toBe(executar(SEED, PASSOS_REFERENCIA));
+    expect(um.hash).toBe(executar(SEED, PASSOS_REFERENCIA, ROTEIRO_REFERENCIA, D, PRODUCAO));
     log.push(
       `1 passo/frame: ${um.frames} frames hash=${hex8(um.hash)}; 5 passos/frame: ${cinco.frames} frames hash=${hex8(cinco.hash)}; iguais=${um.hash === cinco.hash}`,
     );
@@ -258,7 +258,8 @@ describe('1 contra 5 passos por frame (F-001.5)', () => {
 
 afterAll(() => {
   if (process.env['VDC_EVIDENCIAS'] !== '1') return;
-  const hash = executar(SEED, PASSOS_REFERENCIA);
+  // A Playwright roda a Vigília de produção sem ?cenario, que liga os ataques (ET3, VT1).
+  const hash = executar(SEED, PASSOS_REFERENCIA, ROTEIRO_REFERENCIA, D, PRODUCAO);
   mkdirSync(join(RAIZ, '.verify'), { recursive: true });
   writeFileSync(
     join(RAIZ, '.verify', 'referencia-f001.json'),
