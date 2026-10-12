@@ -14,19 +14,25 @@
 // pelo delta toroidal, arredondada para o pixel do canvas como a câmera. Nada é
 // alocado por frame.
 import type Phaser from 'phaser';
-import { CAPACIDADE_DE_INIMIGOS, JOGADOR, type Estado } from '../../logica/nucleo/estado';
+import { CAB, CAPACIDADE_DE_INIMIGOS, FASE, JOGADOR, JOGADOR3, JOGADOR3_U8, JOGADOR4_U8, type Estado } from '../../logica/nucleo/estado';
 import type { DadosDaVigilia } from '../../logica/mundo/dados';
-import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, copiaMaisProxima, interpolarNoToro } from '../../logica/mundo/toro';
-import { COR } from '../estilo';
-import { CHAVE_DO_ATLAS, escalaPara } from './atlas';
+import { ALTURA_DA_TELA, ALTURA_DO_MAPA, LARGURA_DA_TELA, LARGURA_DO_MAPA, copiaMaisProxima, interpolarNoToro } from '../../logica/mundo/toro';
+import { ESCALA_DA_GRADE } from '../../arte/catalogo';
+import { aldricEspelhado, quadroDoAldric } from './aldric';
+import { ORIGEM_X, ORIGEM_Y, direcao16 } from './arte';
+import { CHAVE_DO_ATLAS, CHAVE_DO_CHAO, NOMES_DAS_MOLDURAS, indiceDaMoldura } from './atlas';
 import { arredondarParaOPixel } from './camera';
 import { MEMBROS_DAS_ARMAS, MEMBROS_DOS_DIGITOS, prepararArmas, prepararMortes, prepararNumeros, prepararStatus } from './armas';
 import { MEMBROS_DOS_MEDIOS, MEMBROS_DOS_PROJETEIS_INIMIGOS, MEMBROS_DOS_TELEGRAFOS, prepararMedios, prepararProjeteisInimigos, prepararTelegrafos } from './ataques';
 import { criarSaidaDeSprites, type EscritorDeSprites, type SaidaDeSprites } from './camadas';
 import { CAPACIDADE_DE_MORTES, EfeitosDaVigilia } from './efeitos';
 import type { EscritorDaHorda } from './escritores';
-import { membrosDoMundo, prepararMundo } from './pickups';
+import { membrosDoMundo, molduraDaRocha, prepararMundo } from './pickups';
 import { criarSaidaDaHorda, prepararHorda, prepararQuadrosDaHorda, type DesenhoDoTipo } from './horda';
+/** Molduras do marcador de direção nos 4 ângulos desenhados. */
+const MARCADORES = [0, 1, 2, 3].map((k) => indiceDaMoldura(`marcador_${k}`));
+const indiceDoMarcador = (base: number): number => MARCADORES[base]!;
+
 /** Sem o consumidor do anel (testes do render só com a horda), ninguém foi acertado. */
 const SEM_ACERTOS = new Float64Array(CAPACIDADE_DE_INIMIGOS).fill(-1e9);
 
@@ -54,16 +60,25 @@ interface Camada {
   readonly saida: SaidaDeSprites;
 }
 
-/** Triângulo do jogador: base e altura de 48 px (design/decisoes-F-002.md §5). */
-const BASE_DO_TRIANGULO = 48;
-const ALTURA_DO_TRIANGULO = 48;
-/** Incentro: r = área ÷ semiperímetro ≈ 14,83 px acima da base; é a posição (x, y) e o pivô da rotação (§3). */
-const LADO_DO_TRIANGULO = Math.sqrt((BASE_DO_TRIANGULO / 2) ** 2 + ALTURA_DO_TRIANGULO ** 2);
-const INRAIO = (BASE_DO_TRIANGULO * ALTURA_DO_TRIANGULO) / (BASE_DO_TRIANGULO + 2 * LADO_DO_TRIANGULO);
-/** Origem do sprite com a ponta para cima: (0,5; ≈ 0,691). */
-export const ORIGEM_Y_DO_JOGADOR = (ALTURA_DO_TRIANGULO - INRAIO) / ALTURA_DO_TRIANGULO;
+/** Escala da grade de arte (2 pt por px) e o tamanho do TileSprite do chão em px de textura (a tela e 32 px de folga). */
+const ESCALA = ESCALA_DA_GRADE.arte;
+const MEIA_LARGURA_DO_CHAO = LARGURA_DA_TELA / ESCALA / 2 + 16;
+const MEIA_ALTURA_DO_CHAO = ALTURA_DA_TELA / ESCALA / 2 + 16;
+/** Phaser.BlendModes.ADD (o módulo importa o Phaser só como tipo): a luz da brasa é aditiva (doc 13 §1.4). */
+const ADITIVO = 1;
+/** Marcador de direção a 22 pt do centro do Aldric, nas 16 direções (style card E5). */
+const DISTANCIA_DO_MARCADOR_PT = 22;
+/** Rastros da esquiva: 2 cópias atrás, a 8 e 16 pt, com alfa 0,35 e 0,18, entre o 2º e o 18º passo. */
+const RASTROS = [
+  { atras: 8, alfa: 0.35 },
+  { atras: 16, alfa: 0.18 },
+] as const;
+const RASTRO_DE = 2;
+const RASTRO_ATE = 18;
+/** Passos do APAGANDO (a luz da brasa se apaga junto). */
+const PASSOS_DO_APAGAR = 30;
 
-/** Ângulo do triângulo para a direção (dirX, dirY): 0 aponta para cima. */
+/** Ângulo da direção (dirX, dirY) na tela: 0 aponta para cima, positivo no sentido horário. */
 export function anguloDoJogador(dirX: number, dirY: number): number {
   return Math.atan2(dirY, dirX) + Math.PI / 2;
 }
@@ -71,7 +86,13 @@ export function anguloDoJogador(dirX: number, dirY: number): number {
 export class RenderDaVigilia implements RenderDoMundo {
   private readonly obstaculos: Phaser.GameObjects.Image[] = [];
   private readonly mundo: Camada | null = null;
+  private readonly chao: Phaser.GameObjects.TileSprite;
   private readonly jogador: Phaser.GameObjects.Image;
+  private readonly brilho: Phaser.GameObjects.Image;
+  private readonly marcador: Phaser.GameObjects.Image;
+  private readonly rastros: Phaser.GameObjects.Image[];
+  private quadroDesenhado = -1;
+  private readonly direcao = { base: 0, rotacao: 0 };
   /** O escritor da horda (null nos testes do render de obstáculos e jogador). */
   readonly horda: EscritorDaHorda | null;
   private readonly tabela: readonly (DesenhoDoTipo | null)[];
@@ -92,7 +113,9 @@ export class RenderDaVigilia implements RenderDoMundo {
     horda: HordaDoRender | null,
     private readonly armas: ArmasDoRender | null = null,
   ) {
-    cena.add.layer(); // chão: vazio até a arte (§5, C1)
+    // Chão (F-011): o ladrilho de 64 × 64 px repetido, a 2 pt por px, que acompanha a câmera.
+    this.chao = cena.add.tileSprite(dados.inicioX, dados.inicioY, 2 * MEIA_LARGURA_DO_CHAO, 2 * MEIA_ALTURA_DO_CHAO, CHAVE_DO_CHAO).setScale(ESCALA);
+    cena.add.layer([this.chao]);
     const camada = (capacidade: number): Camada => ({ escritor: armas!.criar(cena, capacidade), saida: criarSaidaDeSprites(capacidade) });
     const o = dados.obstaculos;
     if (armas) {
@@ -101,10 +124,7 @@ export class RenderDaVigilia implements RenderDoMundo {
     } else {
       const camadaDosObstaculos = cena.add.layer();
       for (let i = 0; i < o.n; i++) {
-        const img = cena.add
-          .image(o.x[i]!, o.y[i]!, CHAVE_DO_ATLAS, 'circulo')
-          .setTint(COR.cinzaFrio)
-          .setScale(escalaPara('circulo', o.r[i]! * 2));
+        const img = cena.add.image(o.x[i]!, o.y[i]!, CHAVE_DO_ATLAS, NOMES_DAS_MOLDURAS[molduraDaRocha(o.r[i]!, i)]!).setScale(ESCALA);
         camadaDosObstaculos.add(img);
         this.obstaculos.push(img);
       }
@@ -120,12 +140,15 @@ export class RenderDaVigilia implements RenderDoMundo {
       this.armasCamada = camada(MEMBROS_DAS_ARMAS);
       this.projeteisInimigos = camada(MEMBROS_DOS_PROJETEIS_INIMIGOS);
     }
-    this.jogador = cena.add
-      .image(dados.inicioX, dados.inicioY, CHAVE_DO_ATLAS, 'triangulo')
-      .setTint(COR.brasa)
-      .setOrigin(0.5, ORIGEM_Y_DO_JOGADOR)
-      .setScale(escalaPara('triangulo', BASE_DO_TRIANGULO));
-    cena.add.layer([this.jogador]);
+    // O Aldric (F-011): a luz da brasa por baixo (aditiva, acima da horda: aquece quem chega perto), o marcador
+    // de direção, os rastros da esquiva e o corpo.
+    const x0 = dados.inicioX;
+    const y0 = dados.inicioY;
+    this.brilho = cena.add.image(x0, y0, CHAVE_DO_ATLAS, 'brilho').setScale(ESCALA).setBlendMode(ADITIVO);
+    this.marcador = cena.add.image(x0, y0, CHAVE_DO_ATLAS, 'marcador_0').setAlpha(0.8);
+    this.rastros = RASTROS.map((r) => cena.add.image(x0, y0, CHAVE_DO_ATLAS, 'aldric_rolando').setAlpha(r.alfa).setVisible(false));
+    this.jogador = cena.add.image(x0, y0, CHAVE_DO_ATLAS, 'aldric_parado').setScale(ESCALA);
+    cena.add.layer([this.brilho, this.marcador, ...this.rastros, this.jogador]);
     if (armas) this.digitos = camada(MEMBROS_DOS_DIGITOS);
   }
 
@@ -167,8 +190,50 @@ export class RenderDaVigilia implements RenderDoMundo {
       prepararNumeros(ef, e, alfa, camX, camY, this.digitos.saida);
       this.digitos.escritor.escrever(this.digitos.saida);
     }
-    this.jogador.setPosition(jx, jy);
-    this.jogador.setRotation(anguloDoJogador(j[JOGADOR.dirX]!, j[JOGADOR.dirY]!));
+    this.chao.setPosition(camX, camY).setTilePosition(camX / ESCALA - MEIA_LARGURA_DO_CHAO, camY / ESCALA - MEIA_ALTURA_DO_CHAO);
+    this.desenharAldric(e, jx, jy);
+  }
+
+  /** O Aldric pelo estado (src/cenas/render/aldric.ts), a luz da brasa, o marcador de direção e os rastros da esquiva. */
+  private desenharAldric(e: Estado, jx: number, jy: number): void {
+    const j = e.jogador;
+    const u3 = e.jogador3U8;
+    const u4 = e.jogador4U8;
+    const passo = e.cab[CAB.passo]!;
+    const quadro = quadroDoAldric(e);
+    const escalaX = aldricEspelhado(e) ? -ESCALA : ESCALA;
+    if (quadro !== this.quadroDesenhado) {
+      this.quadroDesenhado = quadro;
+      this.jogador.setFrame(NOMES_DAS_MOLDURAS[quadro]!);
+    }
+    this.jogador.setPosition(jx, jy).setScale(escalaX, ESCALA);
+    const viva = u4[JOGADOR4_U8.fase] === FASE.viva;
+    // A brasa respira devagar (±10% de alfa, 2 s); no Apagar, se apaga com o corpo.
+    const apagando = viva ? 1 : Math.max(0, 1 - u4[JOGADOR4_U8.apagandoPassos]! / PASSOS_DO_APAGAR);
+    this.brilho.setPosition(jx, jy).setAlpha(apagando * (0.9 + 0.1 * Math.cos((passo * Math.PI) / 60)));
+    this.marcador.setVisible(viva);
+    if (viva) {
+      const dx = j[JOGADOR.dirX]!;
+      const dy = j[JOGADOR.dirY]!;
+      direcao16(anguloDoJogador(dx, dy), this.direcao);
+      const m = indiceDoMarcador(this.direcao.base);
+      this.marcador
+        .setFrame(NOMES_DAS_MOLDURAS[m]!)
+        .setOrigin(ORIGEM_X[m]!, ORIGEM_Y[m]!)
+        .setRotation(this.direcao.rotacao)
+        .setPosition(Math.round((jx + dx * DISTANCIA_DO_MARCADOR_PT) * 2) / 2, Math.round((jy + dy * DISTANCIA_DO_MARCADOR_PT) * 2) / 2);
+    }
+    const esquiva = u3[JOGADOR3_U8.esquivaPasso]!;
+    const comRastro = viva && esquiva >= RASTRO_DE && esquiva <= RASTRO_ATE;
+    for (let k = 0; k < RASTROS.length; k++) {
+      const r = this.rastros[k]!;
+      r.setVisible(comRastro);
+      if (!comRastro) continue;
+      const atras = RASTROS[k]!.atras;
+      r.setFrame(NOMES_DAS_MOLDURAS[quadro]!)
+        .setScale(escalaX, ESCALA)
+        .setPosition(Math.round((jx - e.jogador3[JOGADOR3.esquivaDirX]! * atras) * 2) / 2, Math.round((jy - e.jogador3[JOGADOR3.esquivaDirY]! * atras) * 2) / 2);
+    }
   }
 
   liberar(): void {

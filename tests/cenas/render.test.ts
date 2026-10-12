@@ -1,19 +1,59 @@
-// Render do mundo e câmera sem Phaser (design/decisoes-F-002.md §3 e §5): origem
-// do triângulo no incentro, ângulo pela direção, molduras do atlas e câmera
-// arredondada para 0,5 pt, contínua na costura.
+// Render do mundo e câmera sem Phaser (design/decisoes-F-002.md §3 e §5; F-011):
+// o quadro do Aldric pelo estado, o ângulo da direção em 16 passos, as molduras
+// do atlas e a câmera arredondada para 0,5 pt, contínua na costura.
 import { describe, expect, it } from 'vitest';
 import { MOLDURA, escalaPara, type NomeDaMoldura } from '../../src/cenas/render/atlas';
 import { arredondarParaOPixel, centroDaCamera } from '../../src/cenas/render/camera';
-import { ORIGEM_Y_DO_JOGADOR, RenderDaVigilia, anguloDoJogador } from '../../src/cenas/render/mundo';
+import { RenderDaVigilia, anguloDoJogador } from '../../src/cenas/render/mundo';
+import { QUADROS_DO_ALDRIC, aldricEspelhado, quadroDoAldric } from '../../src/cenas/render/aldric';
+import { direcao16 } from '../../src/cenas/render/arte';
 import type Phaser from 'phaser';
-import { JOGADOR as J, criarEstado } from '../../src/logica/nucleo/estado';
+import { CAB, FASE, JOGADOR as J, JOGADOR3, JOGADOR3_U8, JOGADOR4_U8, criarEstado } from '../../src/logica/nucleo/estado';
 import { LARGURA_DO_MAPA as W, deltaNoToro } from '../../src/logica/mundo/toro';
 import { DADOS_SEM_OBSTACULOS as D, dadosDe } from '../logica/apoio';
 
-describe('triângulo do jogador', () => {
-  it('a origem é o incentro: (0,5; ≈ 0,691), ≈ 14,83 px acima da base', () => {
-    expect(ORIGEM_Y_DO_JOGADOR).toBeCloseTo(0.691, 3);
-    expect(48 * (1 - ORIGEM_Y_DO_JOGADOR)).toBeCloseTo(14.83, 2);
+describe('Aldric (F-011)', () => {
+  it('o quadro pelo estado: parado, andar, esquiva, aparo, Frasco e Apagar', () => {
+    const e = criarEstado(1, D);
+    e.cab[CAB.passo] = 0;
+    expect(quadroDoAldric(e)).toBe(QUADROS_DO_ALDRIC.parado[0]);
+    e.cab[CAB.passo] = 32;
+    expect(quadroDoAldric(e)).toBe(QUADROS_DO_ALDRIC.parado[1]);
+    e.jogador[J.x] = e.jogador[J.xAnt]! + 2;
+    e.cab[CAB.passo] = 8;
+    expect(quadroDoAldric(e)).toBe(QUADROS_DO_ALDRIC.andar[1]);
+    e.jogador4U8[JOGADOR4_U8.frascoPasso] = 5;
+    expect(quadroDoAldric(e)).toBe(QUADROS_DO_ALDRIC.frasco[0]);
+    e.jogador3U8[JOGADOR3_U8.aparoJanela] = 12;
+    expect(QUADROS_DO_ALDRIC.aparo).toContain(quadroDoAldric(e));
+    for (const [passo, quadro] of [[1, QUADROS_DO_ALDRIC.agachado], [10, QUADROS_DO_ALDRIC.rolando], [21, QUADROS_DO_ALDRIC.agachado]] as const) {
+      e.jogador3U8[JOGADOR3_U8.esquivaPasso] = passo;
+      expect(quadroDoAldric(e)).toBe(quadro);
+    }
+    e.jogador4U8[JOGADOR4_U8.fase] = FASE.apagando;
+    for (const [p, q] of [[0, 0], [12, 1], [20, 2], [29, 3]] as const) {
+      e.jogador4U8[JOGADOR4_U8.apagandoPassos] = p;
+      expect(quadroDoAldric(e)).toBe(QUADROS_DO_ALDRIC.apagar[q]);
+    }
+  });
+
+  it('espelhado para a esquerda pela última direção, ou pela direção da esquiva em curso', () => {
+    const e = criarEstado(1, D);
+    e.jogador[J.dirX] = -1;
+    expect(aldricEspelhado(e)).toBe(true);
+    e.jogador[J.dirX] = 0;
+    expect(aldricEspelhado(e)).toBe(false);
+    e.jogador3U8[JOGADOR3_U8.esquivaPasso] = 3;
+    e.jogador3[JOGADOR3.esquivaDirX] = -0.7;
+    expect(aldricEspelhado(e)).toBe(true);
+  });
+
+  it('a direção em 16 passos: o desenho de 0 a 3 e o giro em múltiplos de 90°', () => {
+    const d = { base: 0, rotacao: 0 };
+    for (const [ang, base, quartos] of [[0, 0, 0], [Math.PI / 8, 1, 0], [Math.PI / 2, 0, 1], [(3 * Math.PI) / 4 + 0.01, 2, 1], [-Math.PI / 8, 3, 3], [Math.PI, 0, 2]] as const) {
+      direcao16(ang, d);
+      expect([d.base, d.rotacao], `${ang}`).toEqual([base, (quartos * Math.PI) / 2]);
+    }
   });
 
   it.each([
@@ -93,10 +133,18 @@ describe('render do mundo: obstáculos e jogador (cópia mais próxima da câmer
           setScale: () => img,
           setOrigin: () => img,
           setRotation: () => img,
+          setFrame: () => img,
+          setAlpha: () => img,
+          setVisible: () => img,
+          setBlendMode: () => img,
           setPosition: (nx: number, ny: number) => Object.assign(img, { x: nx, y: ny }),
         };
         imagens.push(img);
         return img;
+      },
+      tileSprite: () => {
+        const t = { setScale: () => t, setPosition: () => t, setTilePosition: () => t };
+        return t;
       },
     };
     return { cena: { add } as unknown as Phaser.Scene, imagens };
@@ -110,6 +158,8 @@ describe('render do mundo: obstáculos e jogador (cópia mais próxima da câmer
     e.jogador[J.x] = e.jogador[J.xAnt] = 1150.2;
     render.sincronizar(e, 0, 1150, 2520);
     expect(imagens[0]).toMatchObject({ x: 1210, y: 2542 });
+    // Depois dos obstáculos: a luz da brasa, o marcador, os 2 rastros e o corpo do Aldric, no pixel da câmera.
     expect(imagens[1]).toMatchObject({ x: 1150, y: 2520 });
+    expect(imagens[5]).toMatchObject({ x: 1150, y: 2520 });
   });
 });

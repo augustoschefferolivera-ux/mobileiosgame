@@ -27,7 +27,7 @@ const BRANCO = 0xffffff;
 const ESCALA = ESCALA_DA_GRADE.arte;
 
 /** Moldura da rocha mais próxima do raio de um obstáculo (px de arte = raio em pt ÷ 2), nas 2 sementes alternadas. */
-function molduraDaRocha(raioPt: number, i: number): number {
+export function molduraDaRocha(raioPt: number, i: number): number {
   let melhor: number = RAIOS_DAS_ROCHAS[0];
   for (const r of RAIOS_DAS_ROCHAS) if (Math.abs(r - raioPt / ESCALA) < Math.abs(melhor - raioPt / ESCALA)) melhor = r;
   return indiceDaMoldura(nomeDaRocha(melhor, SEMENTES_DAS_ROCHAS[i % SEMENTES_DAS_ROCHAS.length]!));
