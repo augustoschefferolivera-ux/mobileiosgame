@@ -168,7 +168,8 @@ describe('telemetria local (F-001.15; Q-30)', () => {
 
   it('guarda no máximo a capacidade, descartando os mais antigos', () => {
     const r = new RegistroDeTelemetria();
-    for (let i = 0; i < CAPACIDADE_DA_TELEMETRIA + 5; i++) r.registrar('frasco', i, { minuto: 0, hp_antes: 1 });
+    // `fogueira` não tem teto por fonte (o `frasco` tem: 128, decisoes-F-007 TL1).
+    for (let i = 0; i < CAPACIDADE_DA_TELEMETRIA + 5; i++) r.registrar('fogueira', i, { hora: 0, descansou: false, forjou: false, oferenda: false });
     const e = r.eventos();
     expect(e.length).toBe(CAPACIDADE_DA_TELEMETRIA);
     expect(e[0]?.passo).toBe(5);
