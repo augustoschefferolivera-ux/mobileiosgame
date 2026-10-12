@@ -1,4 +1,4 @@
-// Estado v7 (design/decisoes-F-007.md LY1, LY3, LY4, MC6, AG4): versão, tamanho, cada deslocamento e o
+// Estado v7, dentro do v8 (design/decisoes-F-007.md LY1, LY3, LY4, MC6, AG4): versão, tamanho, cada deslocamento e o
 // alinhamento, a lista canônica de campos, as constantes novas, o início da fase, do Frasco e da mancha, a seção
 // `vigilia` do hash, os parâmetros novos (`mancha`, `almasIniciais`) e a tabela de combate com as constantes da F-007.
 // Nenhum comportamento novo ainda: o bloco v7 fica como nasceu enquanto a Vigília roda.
@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { ACAO } from '../../../src/logica/nucleo/comandos';
 import {
   BYTES_DO_LAYOUT_6,
+  BYTES_DO_LAYOUT_7,
   BYTES_ESTADO,
   CAUSA_DO_FIM,
   CENARIO,
@@ -26,30 +27,30 @@ import { avancar } from '../../../src/logica/nucleo/passo';
 import { DADOS_DA_CHARNECA as D, PARADO, PRODUCAO } from '../apoio';
 
 describe('layout v7 (LY1)', () => {
-  it('versão 7, 74.680 bytes; o v6 (74.636) no mesmo lugar e o bloco novo em ordem, cada deslocamento literal', () => {
-    expect(VERSAO_LAYOUT).toBe(7);
+  it('o bloco do v7 (74.680 bytes no fim do v7); o v6 (74.636) no mesmo lugar e o bloco novo em ordem, cada deslocamento literal', () => {
+    expect(VERSAO_LAYOUT).toBe(8);
     expect(BYTES_DO_LAYOUT_6).toBe(74_636);
-    expect(BYTES_ESTADO).toBe(74_680);
-    expect(BYTES_ESTADO - BYTES_DO_LAYOUT_6).toBe(5 * 4 + 4 * 4 + 8);
+    expect(BYTES_DO_LAYOUT_7).toBe(74_680);
+    expect(BYTES_DO_LAYOUT_7 - BYTES_DO_LAYOUT_6).toBe(5 * 4 + 4 * 4 + 8);
     expect({
       fimDoV6: LAYOUT.fimDoV6,
       jogador4: LAYOUT.jogador4,
       jogador4U32: LAYOUT.jogador4U32,
       jogador4U8: LAYOUT.jogador4U8,
-      fim: LAYOUT.fim,
-    }).toEqual({ fimDoV6: 74_636, jogador4: 74_636, jogador4U32: 74_656, jogador4U8: 74_672, fim: 74_680 });
+      fimDoV7: LAYOUT.fimDoV7,
+    }).toEqual({ fimDoV6: 74_636, jogador4: 74_636, jogador4U32: 74_656, jogador4U8: 74_672, fimDoV7: 74_680 });
     expect(LAYOUT.projeteis3U16 + 2 * 400 * 2).toBe(BYTES_DO_LAYOUT_6);
     expect(Object.values(LAYOUT).every((o) => o % 4 === 0)).toBe(true);
   });
 
-  it('as três views novas estão alinhadas, contíguas e terminam no fim do buffer; a folga de 2 bytes fica em zero', () => {
+  it('as três views novas estão alinhadas, contíguas e terminam no fim do v7; a folga de 2 bytes fica em zero', () => {
     const e = criarEstado(1, D);
     const fim = (v: ArrayBufferView): number => v.byteOffset + v.byteLength;
     expect(e.jogador4.byteOffset).toBe(BYTES_DO_LAYOUT_6);
     expect(e.jogador4.byteOffset % 4).toBe(0);
     expect(fim(e.jogador4)).toBe(e.jogador4U32.byteOffset);
     expect(fim(e.jogador4U32)).toBe(e.jogador4U8.byteOffset);
-    expect(fim(e.jogador4U8)).toBe(BYTES_ESTADO);
+    expect(fim(e.jogador4U8)).toBe(BYTES_DO_LAYOUT_7);
     expect(e.bytes.length).toBe(BYTES_ESTADO);
     expect(e.jogador4.length).toBe(5);
     expect(e.jogador4U32.length).toBe(4);
@@ -78,7 +79,7 @@ describe('layout v7 (LY1)', () => {
     expect(hashEstado(e)).not.toBe(h0);
     // O último byte do buffer (a folga) também entra no hash.
     e.jogador4U8[JOGADOR4_U8.fase] = FASE.viva;
-    e.bytes[BYTES_ESTADO - 1] = 1;
+    e.bytes[BYTES_DO_LAYOUT_7 - 1] = 1;
     expect(hashPorSecao(e).vigilia).not.toBe(antes.vigilia);
     expect(hashPorSecao(e).combate).toBe(antes.combate);
   });
@@ -105,9 +106,9 @@ describe('o bloco v7 ao nascer e sem comportamento novo', () => {
 
   it('1.000 passos da Vigília de produção, parada e invulnerável, não mexem no bloco v7 (o dano e o Frasco são da F-007 3b)', () => {
     const e = criarEstado(1, D, { ...PRODUCAO, cenario: (PRODUCAO.cenario ?? 0) | CENARIO.jogadorInvulneravel });
-    const antes = e.bytes.slice(BYTES_DO_LAYOUT_6);
+    const antes = e.bytes.slice(BYTES_DO_LAYOUT_6, BYTES_DO_LAYOUT_7);
     avancar(e, D, PARADO, 1000);
-    expect(e.bytes.slice(BYTES_DO_LAYOUT_6)).toEqual(antes);
+    expect(e.bytes.slice(BYTES_DO_LAYOUT_6, BYTES_DO_LAYOUT_7)).toEqual(antes);
   });
 });
 

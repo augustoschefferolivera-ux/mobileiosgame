@@ -13,7 +13,7 @@ import {
   type TabelaDeProgressao,
   type VigilanteDaProgressao,
 } from '../progressao/tabela';
-import { compilarTimeline, type LinhaDoJson, type Timeline } from '../diretor/timeline';
+import { PASSOS_POR_MINUTO, compilarTimeline, type LinhaDoJson, type Timeline } from '../diretor/timeline';
 import { PASSOS_POR_SEGUNDO, segundosEmPassos } from '../nucleo/passos';
 import {
   criarObstaculos,
@@ -53,8 +53,34 @@ export interface DadosDaVigilia {
   /** XP, Cinzas, level up, baús, passivas e Uniões (design/decisoes-F-005.md). */
   readonly progressao: TabelaDeProgressao;
   readonly timeline: Timeline;
+  /** Os marcos de 5, 10 e 15 minutos, o 20:00 e o 23:00 (design/decisoes-F-008.md AR1 e AR8). */
+  readonly marcos: TabelaDeMarcos;
   /** Stamina, esquiva, aparo, congelamento, Poder, Postura Quebrada e os ataques dos inimigos (design/decisoes-F-006.md ET9). */
   readonly combate: TabelaDeCombate;
+}
+
+/** O que se lê de `marco` numa linha da região (regiao.schema.json). */
+export interface MarcoDoJson {
+  readonly tipo: string;
+  readonly indice: number;
+  readonly inimigos: readonly { readonly inimigo: string; readonly hp_base: number; readonly quantidade: number }[];
+  readonly bau: string;
+}
+
+/**
+ * Os marcos da região, compilados uma vez (AR1): o relógio em que cada um começa (minuto da linha × 3.600), quantos
+ * Coroados nascem, o `hp_base` da linha de marco (CR6) e se o baú é dourado, mais o 20:00 (a linha com `chefe`, AR8)
+ * e o 23:00 (`a_fome_em_s`) do gancho da F-009. Vetores indexados pelo marco k (0 a 2).
+ */
+export interface TabelaDeMarcos {
+  readonly n: number;
+  readonly limiar: Uint32Array;
+  readonly coroados: Uint8Array;
+  readonly hpBase: Uint16Array;
+  readonly dourado: Uint8Array;
+  /** Relógio em que a etapa vira CHEFE (20:00 = 72.000) e em que vira A_FOME (23:00 = 82.800). */
+  readonly chefeEm: number;
+  readonly aFomeEm: number;
 }
 
 /**
@@ -148,6 +174,8 @@ export interface RegiaoDoJson {
   readonly inicio_jogador: { readonly x: number; readonly y: number };
   readonly obstaculos: readonly ObstaculoDoJson[];
   readonly sem_spawn_antes_do_marco_s: number;
+  /** Segundos de relógio em que começa A Fome (23:00 = 1.380). */
+  readonly a_fome_em_s: number;
   readonly linhas: readonly LinhaDoJson[];
 }
 
@@ -196,7 +224,37 @@ export function criarDadosDaVigilia(
     armas: tabelaDeArmas,
     progressao: criarTabelaDeProgressao(progressao, vigilante, tabelaDeArmas),
     timeline,
+    marcos: criarTabelaDeMarcos(regiao),
     combate: criarTabelaDeCombate(combate, vigilante, inimigos),
+  };
+}
+
+export function criarTabelaDeMarcos(regiao: RegiaoDoJson): TabelaDeMarcos {
+  const limiar: number[] = [];
+  const coroados: number[] = [];
+  const hpBase: number[] = [];
+  const dourado: number[] = [];
+  let chefeEm = -1;
+  for (const l of regiao.linhas) {
+    if (l.chefe !== undefined && chefeEm < 0) chefeEm = l.minuto * PASSOS_POR_MINUTO;
+    const m = l.marco as MarcoDoJson | undefined;
+    if (m === undefined || m === null) continue;
+    if (m.inimigos.length !== 1 || m.inimigos[0]!.inimigo !== 'oco_grande_coroado') throw new Error(`marco da linha ${l.minuto}: só o Coroado nasce na F-008`);
+    limiar.push(l.minuto * PASSOS_POR_MINUTO);
+    coroados.push(m.inimigos[0]!.quantidade);
+    hpBase.push(m.inimigos[0]!.hp_base);
+    dourado.push(m.bau === 'dourado' ? 1 : 0);
+  }
+  if (limiar.length > 3) throw new Error('marcos: a máquina de etapas tem 3 marcos (marcosIniciados, 0 a 3)');
+  if (chefeEm < 0) throw new Error('região sem linha de chefe: falta o 20:00 (AR8)');
+  return {
+    n: limiar.length,
+    limiar: Uint32Array.from(limiar),
+    coroados: Uint8Array.from(coroados),
+    hpBase: Uint16Array.from(hpBase),
+    dourado: Uint8Array.from(dourado),
+    chefeEm,
+    aFomeEm: regiao.a_fome_em_s * PASSOS_POR_SEGUNDO,
   };
 }
 

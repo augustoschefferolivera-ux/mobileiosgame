@@ -43,15 +43,29 @@ export const EVENTO = {
   manchaRecuperada: 27,
   /** Dano líquido (depois da armadura e da Brasa Firme) em `FLOATS_DO_EVENTO[0]`. */
   danoAoJogador: 28,
+  // F-008 (design/decisoes-F-008.md LY2); os códigos só crescem no fim.
+  marcoIniciado: 29,
+  marcoVencido: 30,
+  marcoConcluido: 31,
+  fogueiraAcesa: 32,
+  fogueiraAberta: 33,
+  descansou: 34,
+  forjou: 35,
+  fogueiraPartiu: 36,
+  fogueiraApagada: 37,
+  convocacao: 38,
 } as const;
 /** Formas de ataque do evento; os códigos só crescem no fim. */
-/** 7 e 8 (F-006): o arco do Oco Grande e o projétil de Sal da Noviça. */
-export const FORMA = { ida: 1, volta: 2, estocada: 3, faca: 4, tick: 5, onda: 6, arcoInimigo: 7, projetilSal: 8 } as const;
+/** 7 e 8 (F-006): o arco do Oco Grande e o projétil de Sal da Noviça; 9 e 10 (F-008): a Patada (cone) e o Grito (círculo) do Coroado. */
+export const FORMA = { ida: 1, volta: 2, estocada: 3, faca: 4, tick: 5, onda: 6, arcoInimigo: 7, projetilSal: 8, coneInimigo: 9, gritoInimigo: 10 } as const;
 /** Bits de flags. */
 /** `contra` (F-006): evento `golpe` ou `acerto` de uma salva extra do Contra-ataque. */
 export const FLAG = { critico: 1, matou: 2, convertido: 4, contra: 8 } as const;
-/** Causa de morte (as F-008 e F-009 acrescentam as suas). */
-export const CAUSA = { arma: 1 } as const;
+/**
+ * Causa de morte (a F-009 acrescenta as suas). Só `arma` solta Cinza, Alma, baú e soma `mortes`; `arena` é a massa e os
+ * médios mortos ao formar a arena (AR4) e `cinza` os Coroados do marco vencido ou do 20:00 (AR7, AR8).
+ */
+export const CAUSA = { arma: 1, arena: 2, cinza: 3 } as const;
 /** Handle de "sem alvo". */
 export const SEM_ALVO = 0xffffffff;
 
@@ -84,6 +98,12 @@ export const EV = {
    * 0; apagou: x, y, Almas, 0; fimDaVigilia: x, y, Almas na mancha, Almas ao
    * Santuário (a causa na forma); manchaRecuperada: x, y, Almas, 0;
    * danoAoJogador: x, y, dano líquido, hp depois.
+   * F-008 (LY2): marcoIniciado: x, y do centro da arena, k do marco (0 a 2), Coroados que nasceram;
+   * marcoVencido: x, y do centro da arena, k do marco, Coroados que viraram cinza;
+   * marcoConcluido: x, y do jogador, k do marco, 0; fogueiraAcesa: x, y da Fogueira, hora (1 a 3), 0;
+   * fogueiraApagada: x, y da Fogueira, hora, 0; convocacao: x, y do Coroado, quantos entraram, quantos
+   * foram descartados (TETO ou obstáculo); golpeInimigo e telegrafo com a forma 9 ou 10 levam os mesmos
+   * floats do arco. Os eventos 33 a 36 (Fogueira aberta, Descansar, Forjar, Partir) são da parte 2b.
    */
   floats: 4,
 } as const;

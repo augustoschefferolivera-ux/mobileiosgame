@@ -14,6 +14,8 @@ export interface LinhaDoJson {
   readonly intervalo_s: number | null;
   readonly garantidos?: readonly { readonly inimigo: string; readonly quantidade: number }[];
   readonly marco?: unknown;
+  /** O Lanterneiro (linha 20, F-009): só o 20:00 do gancho da F-008 lê a presença. */
+  readonly chefe?: unknown;
 }
 
 export interface Timeline {

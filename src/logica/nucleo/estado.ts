@@ -14,7 +14,9 @@
 // por vaga, os ataques dos inimigos e o dono dos projéteis. Na F-007
 // (VERSAO_LAYOUT 7; design/decisoes-F-007.md LY1), mais uma vez só no fim,
 // depois dos 74.636 bytes do v6: a fase da Vigília, o Frasco, a mancha das
-// Cinzas Perdidas e os contadores da pausa e do Resultado.
+// Cinzas Perdidas e os contadores da pausa e do Resultado. Na F-008 (VERSAO_LAYOUT 8;
+// design/decisoes-F-008.md §1), outra vez só no fim, depois dos 74.680 bytes do v7: a etapa e os marcos, a
+// arena, a Fogueira, o empurrão do Grito, os obstáculos ativos e, por inimigo, o ataque e a convocação do Coroado.
 import type { DadosDaVigilia } from '../mundo/dados';
 import { criarAnel, esvaziarAnel, type AnelDeEventos } from './eventos';
 import { fnv1aBytes, FNV_BASE } from './hash';
@@ -26,7 +28,7 @@ import { PASSOS_POR_MINUTO } from '../diretor/timeline';
 import { gravarDanoNoSpawn, gravarHpNoSpawn } from '../mundo/escala';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, normalizarNoToro } from '../mundo/toro';
 
-export const VERSAO_LAYOUT = 7;
+export const VERSAO_LAYOUT = 8;
 
 /** Palavras do cabeçalho (Uint32). As não usadas ficam em zero e entram no hash. */
 export const CAB = {
@@ -172,6 +174,12 @@ export interface CamposDosInimigos {
   /** Direção do golpe ou do lançamento, fixada no início do telegrafo. */
   readonly miraX: Float32Array;
   readonly miraY: Float32Array;
+  /** Ataque em curso do Coroado: 0 Patada, 1 Grito (CR4). */
+  readonly ataqueId: Uint8Array;
+  /** Ataques já telegrafados pelo Coroado; `ataqueSeq` mod 3 = 2 é o Grito (CR4). */
+  readonly ataqueSeq: Uint8Array;
+  /** Passos até a próxima convocação do Coroado (CR7); 0 nos outros tipos. */
+  readonly convocaEspera: Uint16Array;
 }
 
 /** Capacidade física do pool de projéteis nos dois TETOs (ADR-0002 §4 e §15 item 2). */
@@ -475,6 +483,52 @@ export const JOGADOR4_U8 = {
 } as const;
 const BYTES_JOGADOR4_U8 = 8;
 
+/** Etapas da Vigília (decisoes-F-008 AR1): a máquina de horas, marcos e Fogueira. */
+export const ETAPA = { hora: 0, marco: 1, fogueira: 2, chefe: 3, aFome: 4 } as const;
+/** Registro da F-008, Float32 (6 campos, 24 B; decisoes-F-008 §1): a Fogueira, o centro da arena e o empurrão do Grito. */
+export const FOGUEIRA_F32 = {
+  fogueiraX: 0,
+  fogueiraY: 1,
+  arenaX: 2,
+  arenaY: 3,
+  /** Deslocamento por passo do empurrão do Grito, aplicado ao jogador enquanto `empurraoPassos` > 0 (CR3). */
+  empurraoX: 4,
+  empurraoY: 5,
+} as const;
+const FLOATS_FOGUEIRA = 6;
+/** Registro da F-008, Uint32 (2 campos, 8 B; ambos < 2^30). */
+export const FOGUEIRA_U32 = {
+  /** Identificador da Vigília no meta (SV4, parte 2b). */
+  idVigilia: 0,
+  /** Convocações já feitas por todos os Coroados da Vigília; gira o anel da próxima (CR7). */
+  convocacoes: 1,
+} as const;
+const PALAVRAS_FOGUEIRA_U32 = 2;
+/** Registro da F-008, Uint8 (8 campos usados e 4 de folga em zero, 12 B). */
+export const FOGUEIRA_U8 = {
+  /** ETAPA. */
+  etapa: 0,
+  /** Marcos já iniciados, 0 a 3 (AR1). */
+  marcosIniciados: 1,
+  /** 1 enquanto a arena existe (AR2). */
+  arenaAtiva: 2,
+  /** Coroados vivos; sobe no nascimento e cai em qualquer causa de morte (CR9). */
+  coroadosVivos: 3,
+  /** 1 enquanto a Fogueira está acesa (FG1). */
+  fogueiraAcesa: 4,
+  /** Hora da Fogueira acesa, 1 a 3: o marco que a acendeu (FG5). */
+  fogueiraHora: 5,
+  /** Bit 1: já descansou; bit 2: já forjou (FG4, FG5). */
+  fogueiraAcoes: 6,
+  /** Passos que faltam do empurrão do Grito (CR3). */
+  empurraoPassos: 7,
+} as const;
+const BYTES_FOGUEIRA_U8 = 12;
+/** Obstáculos que cabem no registro `obstaculoAtivo` (AR3); mais que isso é erro no boot. */
+export const OBSTACULOS_MAXIMOS = 64;
+/** Campos Uint8 novos dos inimigos (F-008): qual ataque do Coroado está em curso e o contador do ciclo (CR4). */
+const CAMPOS_INIMIGO8_U8 = ['ataqueId', 'ataqueSeq'] as const;
+
 const PALAVRAS_RNG = FLUXOS.length * PALAVRAS_POR_FLUXO;
 const BYTES_CAB = PALAVRAS_CAB * 4;
 const BYTES_RNG = PALAVRAS_RNG * 4;
@@ -533,7 +587,16 @@ export const BYTES_DO_LAYOUT_6 = INICIO_PROJETEIS3_U16 + CAMPOS_PROJETIL3_U16.le
 const INICIO_JOGADOR4 = BYTES_DO_LAYOUT_6;
 const INICIO_JOGADOR4_U32 = INICIO_JOGADOR4 + FLOATS_JOGADOR4 * 4;
 const INICIO_JOGADOR4_U8 = INICIO_JOGADOR4_U32 + PALAVRAS_JOGADOR4_U32 * 4;
-export const BYTES_ESTADO = INICIO_JOGADOR4_U8 + BYTES_JOGADOR4_U8;
+/** Fim do layout v7 da F-007 (a regressão v7 compara os bytes até aqui). */
+export const BYTES_DO_LAYOUT_7 = INICIO_JOGADOR4_U8 + BYTES_JOGADOR4_U8;
+// F-008: tudo depois de BYTES_DO_LAYOUT_7, em múltiplos de 4 bytes (decisoes-F-008 §1).
+const INICIO_FOGUEIRA = BYTES_DO_LAYOUT_7;
+const INICIO_FOGUEIRA_U32 = INICIO_FOGUEIRA + FLOATS_FOGUEIRA * 4;
+const INICIO_FOGUEIRA_U8 = INICIO_FOGUEIRA_U32 + PALAVRAS_FOGUEIRA_U32 * 4;
+const INICIO_OBSTACULO_ATIVO = INICIO_FOGUEIRA_U8 + BYTES_FOGUEIRA_U8;
+const INICIO_INIMIGOS8_U8 = INICIO_OBSTACULO_ATIVO + OBSTACULOS_MAXIMOS;
+const INICIO_INIMIGOS8_U16 = INICIO_INIMIGOS8_U8 + CAMPOS_INIMIGO8_U8.length * CAPACIDADE_DE_INIMIGOS;
+export const BYTES_ESTADO = INICIO_INIMIGOS8_U16 + CAPACIDADE_DE_INIMIGOS * 2;
 
 /** Deslocamento de cada seção no buffer (o teste de layout trava todos e o alinhamento de cada view). */
 export const LAYOUT = {
@@ -578,6 +641,13 @@ export const LAYOUT = {
   jogador4: INICIO_JOGADOR4,
   jogador4U32: INICIO_JOGADOR4_U32,
   jogador4U8: INICIO_JOGADOR4_U8,
+  fimDoV7: BYTES_DO_LAYOUT_7,
+  fogueira: INICIO_FOGUEIRA,
+  fogueiraU32: INICIO_FOGUEIRA_U32,
+  fogueiraU8: INICIO_FOGUEIRA_U8,
+  obstaculoAtivo: INICIO_OBSTACULO_ATIVO,
+  inimigos8U8: INICIO_INIMIGOS8_U8,
+  inimigos8U16: INICIO_INIMIGOS8_U16,
   fim: BYTES_ESTADO,
 } as const;
 
@@ -604,6 +674,14 @@ export interface Estado {
   readonly jogador4U32: Uint32Array;
   /** Fase, causa do fim, Apagar, cargas e passo do Frasco e mancha ativa, pelos índices de JOGADOR4_U8 (F-007). */
   readonly jogador4U8: Uint8Array;
+  /** Fogueira, centro da arena e empurrão do Grito, pelos índices de FOGUEIRA_F32 (F-008). */
+  readonly fogueiraF32: Float32Array;
+  /** `idVigilia` e `convocacoes`, pelos índices de FOGUEIRA_U32 (F-008). */
+  readonly fogueiraU32: Uint32Array;
+  /** Etapa, marcos, arena, Coroados vivos, Fogueira e empurrão, pelos índices de FOGUEIRA_U8 (F-008). */
+  readonly fogueiraU8: Uint8Array;
+  /** 1 = o obstáculo i (na ordem do JSON da região) colide; 0 = tirado pela arena (AR3). Nasce em 1 nos `n` primeiros. */
+  readonly obstaculoAtivo: Uint8Array;
   /** Build: as 5 vagas de arma. */
   readonly build: Build;
   /** Bloco do mundo e do diretor, pelos índices de MUNDO. */
@@ -664,6 +742,10 @@ export function criarEstado(seed: number, dados: DadosDaVigilia, params: Partial
     jogador4: new Float32Array(buffer, INICIO_JOGADOR4, FLOATS_JOGADOR4),
     jogador4U32: new Uint32Array(buffer, INICIO_JOGADOR4_U32, PALAVRAS_JOGADOR4_U32),
     jogador4U8: new Uint8Array(buffer, INICIO_JOGADOR4_U8, BYTES_JOGADOR4_U8),
+    fogueiraF32: new Float32Array(buffer, INICIO_FOGUEIRA, FLOATS_FOGUEIRA),
+    fogueiraU32: new Uint32Array(buffer, INICIO_FOGUEIRA_U32, PALAVRAS_FOGUEIRA_U32),
+    fogueiraU8: new Uint8Array(buffer, INICIO_FOGUEIRA_U8, BYTES_FOGUEIRA_U8),
+    obstaculoAtivo: new Uint8Array(buffer, INICIO_OBSTACULO_ATIVO, OBSTACULOS_MAXIMOS),
     build: {
       recarga: new Uint16Array(buffer, INICIO_BUILD, V),
       esperaPulso: new Uint16Array(buffer, INICIO_BUILD + 2 * V, V),
@@ -693,6 +775,9 @@ export function criarEstado(seed: number, dados: DadosDaVigilia, params: Partial
       quebradaPassos: u83('quebradaPassos'),
       ataqueFase: u83('ataqueFase'),
       ataqueTimer: u83('ataqueTimer'),
+      ataqueId: new Uint8Array(buffer, INICIO_INIMIGOS8_U8, CAPACIDADE_DE_INIMIGOS),
+      ataqueSeq: new Uint8Array(buffer, INICIO_INIMIGOS8_U8 + CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_INIMIGOS),
+      convocaEspera: new Uint16Array(buffer, INICIO_INIMIGOS8_U16, CAPACIDADE_DE_INIMIGOS),
     },
     poolDeProjeteis: viewsDoPool(buffer, INICIO_POOL_PROJETEIS, P),
     projeteis: {
@@ -820,6 +905,15 @@ export function reiniciarEstado(e: Estado, seed: number, dados: DadosDaVigilia, 
     e.jogador4U32[JOGADOR4_U32.manchaAlmas] = p.mancha.almas;
   }
   e.mundo[MUNDO.intensidade10] = 10;
+  // F-008: obstáculos ativos e a etapa de partida (decisoes-F-008 AR1, ADR-0010 §1): os marcos que o relógio
+  // inicial já passou contam como iniciados (um ?inicio=19:00 não abre os marcos de 5, 10 e 15), e de 20:00 em diante é CHEFE.
+  if (dados.obstaculos.n > OBSTACULOS_MAXIMOS) throw new Error(`obstáculos demais: ${dados.obstaculos.n} > ${OBSTACULOS_MAXIMOS}`);
+  e.obstaculoAtivo.fill(1, 0, dados.obstaculos.n);
+  const marcos = dados.marcos;
+  let passados = 0;
+  while (passados < marcos.n && marcos.limiar[passados]! <= p.relogioInicial) passados++;
+  e.fogueiraU8[FOGUEIRA_U8.marcosIniciados] = passados;
+  e.fogueiraU8[FOGUEIRA_U8.etapa] = p.relogioInicial >= marcos.chefeEm ? ETAPA.chefe : ETAPA.hora;
   esvaziarPool(e.pool);
   esvaziarPool(e.poolDeProjeteis);
   esvaziarAnel(e.eventos);
@@ -976,7 +1070,7 @@ export function hashEstado(e: Estado): number {
  */
 export function hashPorSecao(
   e: Estado,
-): Record<'cabecalho' | 'rng' | 'jogador' | 'mundo' | 'inimigos' | 'projeteis' | 'progressao' | 'pickups' | 'efeitos' | 'combate' | 'vigilia', number> {
+): Record<'cabecalho' | 'rng' | 'jogador' | 'mundo' | 'inimigos' | 'projeteis' | 'progressao' | 'pickups' | 'efeitos' | 'combate' | 'vigilia' | 'fogueira', number> {
   const secao = (inicio: number, fim: number): number => fnv1aBytes(FNV_BASE, new Uint8Array(e.buffer, inicio, fim - inicio));
   return {
     cabecalho: secao(0, BYTES_CAB),
@@ -989,6 +1083,7 @@ export function hashPorSecao(
     pickups: secao(INICIO_POOL_PICKUPS, INICIO_POOL_EFEITOS),
     efeitos: secao(INICIO_POOL_EFEITOS, BYTES_DO_LAYOUT_5),
     combate: secao(BYTES_DO_LAYOUT_5, BYTES_DO_LAYOUT_6),
-    vigilia: secao(BYTES_DO_LAYOUT_6, BYTES_ESTADO),
+    vigilia: secao(BYTES_DO_LAYOUT_6, BYTES_DO_LAYOUT_7),
+    fogueira: secao(BYTES_DO_LAYOUT_7, BYTES_ESTADO),
   };
 }

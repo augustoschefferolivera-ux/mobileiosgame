@@ -93,9 +93,12 @@ describe('determinismo (F-001.1)', () => {
     // ainda e a regressão v6 prova que os campos antigos não mudaram). Na 3b (dano com armadura e Brasa Firme,
     // Frasco) o HP e o contador `danoRecebido` mudam: 2175475d e de4a60fd (2c) viram os de baixo.
     // Na 3c (Almas soltas pelas mortes, fluxo drops) a seed 424242 muda: 8b2c35ab → 88a3a4f0 (a seed 1 ainda não soltou Alma até o passo 1.000).
+    // (referencias.test.ts: e5cba098 e 5a7d8aac viram 796b75a1 e 96b14125 pelo mesmo motivo.)
+    // F-008 (estado v8: etapa, arena, Fogueira, obstáculos ativos e o Coroado; muda só o layout, pois nada da F-008
+    // atua antes de 5:00 e a regressão v7 prova que os campos antigos não mudaram): a5721bcc e 88a3a4f0 viram os de baixo.
     // F-006: c052c6c9 e 6ddd6d39. F-005: f39dd6b4 e 7c1b6c0c; F-004: 901adb6d e 9cdc2c63; F-003: e91ed119 e 6173ca75.
-    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('a5721bcc');
-    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('88a3a4f0');
+    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('54256399');
+    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('6d4078d9');
   });
 
   /** Vivos, spawns, mortes, passo da 1ª morte, passo do 1º acerto de contato, HP e o fluxo armas intocado, no passo 1.000. */
@@ -154,7 +157,7 @@ describe('determinismo (F-001.1)', () => {
     for (let k = 100; k <= PASSOS_REFERENCIA; k += 100) {
       avancar(e, D, fonte, 100);
       const s = hashPorSecao(e);
-      expect(Object.keys(s)).toEqual(['cabecalho', 'rng', 'jogador', 'mundo', 'inimigos', 'projeteis', 'progressao', 'pickups', 'efeitos', 'combate', 'vigilia']);
+      expect(Object.keys(s)).toEqual(['cabecalho', 'rng', 'jogador', 'mundo', 'inimigos', 'projeteis', 'progressao', 'pickups', 'efeitos', 'combate', 'vigilia', 'fogueira']);
       const secoes = Object.entries(s).map(([nome, h]) => `${nome}=${hex8(h)}`).join(' ');
       log.push(`trilha passo=${k} hash=${hex8(hashEstado(e))} ${secoes}`);
     }
