@@ -6,6 +6,8 @@ import {
   ALVO_MINIMO_PT,
   ALVOS_POR_TELA,
   acharAlvo,
+  alvoDaPausa,
+  alvoDoAparo,
   alvoInvadeInsets,
   alvosDaTelaDePausa,
   alvosDaVigilia,
@@ -49,9 +51,12 @@ describe('área do joystick (F-002.7)', () => {
     expect(areaDoJoystick({ ...ins, topo: 500 }, a).y).toBe(500);
   });
 
-  it.each(CASOS)('%s: os 40% da direita da largura útil ficam livres para os botões futuros', (_nome, insets) => {
+  it.each(CASOS)('%s: os 40% da direita da largura útil ficam livres para os botões (o Aparo fica todo à direita da área)', (_nome, insets) => {
     const limite = insets.esquerda + 0.6 * (390 - insets.esquerda - insets.direita);
-    for (const a of alvosDaVigilia(insets, [])) expect(a.x + a.largura).toBeLessThanOrEqual(limite + 1e-9);
+    for (const a of alvosDaVigilia(insets, [])) {
+      if (a.id === 'aparo') expect(a.x).toBeGreaterThanOrEqual(limite - 1e-9);
+      else expect(a.x + a.largura).toBeLessThanOrEqual(limite + 1e-9);
+    }
   });
 });
 
@@ -102,5 +107,39 @@ describe('hit-test', () => {
     clienteParaPontos(41.6 + 153.4, 332, { left: 41.6, top: 0, width: 306.8, height: 664 }, p);
     expect(p.x).toBeCloseTo(195, 6);
     expect(p.y).toBeCloseTo(422, 6);
+  });
+});
+
+describe('botão Aparo (design/decisoes-F-006.md AP1)', () => {
+  const novo = (): Alvo => ({ id: '', x: 0, y: 0, largura: 0, altura: 0 });
+
+  it('80 × 80 pt a 24 pt dos insets: sem insets x 286 a 366 e y 740 a 820; com a barra do iPhone (baixo 34) y 706 a 786', () => {
+    expect(alvoDoAparo(insetsZerados(), novo())).toEqual({ id: 'aparo', x: 286, y: 740, largura: 80, altura: 80 });
+    expect(alvoDoAparo({ topo: 59, direita: 0, baixo: 34, esquerda: 0 }, novo())).toMatchObject({ x: 286, y: 706, largura: 80, altura: 80 });
+    expect(alvoDoAparo({ topo: 0, direita: 59, baixo: 0, esquerda: 0 }, novo()).x).toBe(390 - 59 - 24 - 80);
+  });
+
+  it('entra em alvosDaVigilia depois da pausa e da área do joystick', () => {
+    expect(alvosDaVigilia(insetsZerados(), []).map((a) => a.id)).toEqual(['pausa', 'joystick', 'aparo']);
+  });
+
+  it.each(CASOS)('%s: fora dos insets, sem cruzar a área do joystick nem o botão de pausa, com a caixa do Frasco (72 pt, 16 pt acima) cabendo', (_nome, insets) => {
+    const aparo = alvoDoAparo(insets, novo());
+    const joystick = areaDoJoystick(insets, novo());
+    const pausa = alvoDaPausa(insets, novo());
+    expect(alvoInvadeInsets(aparo, insets)).toBe(false);
+    expect(aparo.x).toBeGreaterThanOrEqual(joystick.x + joystick.largura);
+    const cruza = (a: Alvo, b: Alvo): boolean => a.x < b.x + b.largura && b.x < a.x + a.largura && a.y < b.y + b.altura && b.y < a.y + a.altura;
+    expect(cruza(aparo, pausa)).toBe(false);
+    const frasco: Alvo = { id: 'frasco', x: aparo.x + 4, y: aparo.y - 16 - 72, largura: 72, altura: 72 };
+    expect(alvoInvadeInsets(frasco, insets)).toBe(false);
+    expect(cruza(frasco, joystick)).toBe(false);
+    expect(cruza(frasco, pausa)).toBe(false);
+    expect(cruza(frasco, aparo)).toBe(false);
+  });
+
+  it('na vertical sem insets, 52 pt à direita da área do joystick', () => {
+    const insets = insetsZerados();
+    expect(alvoDoAparo(insets, novo()).x - (areaDoJoystick(insets, novo()).x + areaDoJoystick(insets, novo()).largura)).toBe(52);
   });
 });

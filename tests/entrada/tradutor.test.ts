@@ -617,3 +617,70 @@ describe('Espaço do teclado de debug (GE3)', () => {
     expect(acoes()).toBe(0);
   });
 });
+
+describe('botão Aparo (AP1; F-006.2, parte do tradutor)', () => {
+  const NO_BOTAO: [number, number] = [326, 780];
+
+  it('o toque que começa no botão liga o bit do aparo no touchstart, não cria joystick e não move', () => {
+    toque(T.inicio, 4, ...NO_BOTAO);
+    expect(frame()).toEqual([0, 0]);
+    expect(acoes()).toBe(ACAO.aparo);
+    expect(trad.joystick.ativo).toBe(false);
+    expect(trad.joystickCriados).toBe(0);
+    expect(trad.pedidoDePausa).toBeNull();
+  });
+
+  it('segurar não repete e soltar não dispara; cada toque novo é um comando', () => {
+    toque(T.inicio, 4, ...NO_BOTAO);
+    frame();
+    consumir();
+    toque(T.move, 4, ...NO_BOTAO);
+    frame();
+    expect(acoes()).toBe(0);
+    toque(T.fim, 4, ...NO_BOTAO);
+    frame();
+    expect(acoes()).toBe(0);
+    toque(T.inicio, 5, ...NO_BOTAO);
+    frame();
+    expect(acoes()).toBe(ACAO.aparo);
+  });
+
+  it('o dedo do joystick que passa por cima do botão não o aciona', () => {
+    toque(T.inicio, 1, 100, 780);
+    toque(T.move, 1, 326, 780);
+    frame();
+    expect(acoes() & ACAO.aparo).toBe(0);
+    toque(T.fim, 1, 326, 780);
+    frame();
+    expect(acoes() & ACAO.aparo).toBe(0);
+  });
+
+  it('o dedo do botão não conta para o gesto de pausa de dois dedos', () => {
+    em(1000, T.inicio, 8, ...NO_BOTAO);
+    em(1000, T.inicio, 9, 300, 300);
+    trad.traduzir(fila, cmd, 1700);
+    expect(trad.pedidoDePausa).toBeNull();
+  });
+
+  it('na pausa e no modal o botão não existe, e a borda pendente é descartada ao mudar de modo', () => {
+    toque(T.inicio, 4, ...NO_BOTAO);
+    frame();
+    expect(acoes()).toBe(ACAO.aparo);
+    trad.mudarModo('pausa');
+    expect(acoes()).toBe(0);
+    toque(T.fim, 4, ...NO_BOTAO);
+    toque(T.inicio, 5, ...NO_BOTAO);
+    frame();
+    expect(acoes()).toBe(0);
+  });
+
+  it('com a barra do iPhone (baixo 34) o botão sobe: y 706 a 786', () => {
+    trad.definirArea({ topo: 59, direita: 0, baixo: 34, esquerda: 0 });
+    toque(T.inicio, 4, 326, 790);
+    frame();
+    expect(acoes()).toBe(0);
+    toque(T.inicio, 5, 326, 710);
+    frame();
+    expect(acoes()).toBe(ACAO.aparo);
+  });
+});

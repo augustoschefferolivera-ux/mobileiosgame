@@ -14,7 +14,7 @@
 // e nunca os desliga (a fonte ao vivo consome a borda). Não aloca.
 import combate from '../dados/combate.json';
 import { ACAO, type ComandosDoPasso } from '../logica/nucleo/comandos';
-import { alvoDaPausa, alvosDaTelaDePausa, alvosDasCartas, alvosDoBau, areaDoJoystick, contem, type Alvo } from './alvos';
+import { alvoDaPausa, alvoDoAparo, alvosDaTelaDePausa, alvosDasCartas, alvosDoBau, areaDoJoystick, contem, type Alvo } from './alvos';
 import { CAMPOS_POR_EVENTO, TIPO_DE_TOQUE, type FilaDeToques } from './filaDeToques';
 import { pinoDoJoystick, vetorDoJoystick, type Vetor } from './joystick';
 import type { Insets } from '../plataforma/safeArea';
@@ -24,8 +24,10 @@ export const MAX_DEDOS = 5;
 /** Identificador do dedo virtual do mouse (build de debug); nunca solto pelo retrato de toques. */
 export const ID_DO_MOUSE = -1;
 
-/** Papel do dedo, pelo lugar onde começou: o botão de pausa não cria joystick nem conta para o gesto (P1, P3). */
+/** Papel do dedo, pelo lugar onde começou: um botão (pausa, Aparo) não cria joystick nem conta para o gesto (P1, P3, AP1). */
 const PAPEL = { livre: 0, joystick: 1, outro: 2, botao: 3 } as const;
+/** Qual botão da Vigília o dedo de papel `botao` tocou. */
+const BOTAO = { pausa: 0, aparo: 1 } as const;
 
 /** Gesto de pausa (P3): "parado" = até 10 pt do ponto do touchstart, por pelo menos 500 ms (o UILongPressGestureRecognizer). */
 export const GESTO_DE_PAUSA = { movimentoMaximoPt: 10, duracaoMs: 500, dedos: 2 } as const;
@@ -92,7 +94,10 @@ export class TradutorDeGestos {
   /** No modo pausa: o índice do alvo onde o dedo começou (−1 = nenhum). */
   private readonly alvoInicial = new Int8Array(MAX_DEDOS);
   private gestoTravado = false;
-  private readonly botao: Alvo = { id: 'pausa', x: 0, y: 0, largura: 0, altura: 0 };
+  /** Lista de botões da Vigília (AP1): `botaoDaPausa` e `botaoDoAparo`; o papel `botao` guarda qual em `qualBotao`. */
+  private readonly botaoDaPausa: Alvo = { id: 'pausa', x: 0, y: 0, largura: 0, altura: 0 };
+  private readonly botaoDoAparo: Alvo = { id: 'aparo', x: 0, y: 0, largura: 0, altura: 0 };
+  private readonly qualBotao = new Uint8Array(MAX_DEDOS);
   private readonly alvosDaPausa: Alvo[] = [];
   private readonly alvosDasCartas: Alvo[] = [];
   private readonly alvosDoBau: Alvo[] = [];
@@ -143,7 +148,8 @@ export class TradutorDeGestos {
   /** Recalcula a área do joystick, o botão de pausa e os alvos da tela de pausa (create e resize da Hud). */
   definirArea(insets: Insets): void {
     areaDoJoystick(insets, this.area);
-    alvoDaPausa(insets, this.botao);
+    alvoDaPausa(insets, this.botaoDaPausa);
+    alvoDoAparo(insets, this.botaoDoAparo);
     alvosDaTelaDePausa(insets, this.alvosDaPausa);
     alvosDasCartas(insets, this.alvosDasCartas);
     alvosDoBau(insets, this.alvosDoBau);
@@ -295,8 +301,14 @@ export class TradutorDeGestos {
       for (let k = 0; k < alvos.length; k++) if (contem(alvos[k]!, x, y)) this.alvoInicial[s] = k;
       return;
     }
-    if (contem(this.botao, x, y)) {
+    if (contem(this.botaoDaPausa, x, y)) {
       this.papel[s] = PAPEL.botao;
+      this.qualBotao[s] = BOTAO.pausa;
+    } else if (contem(this.botaoDoAparo, x, y)) {
+      // Aparo (AP1): dispara no touchstart, uma vez por toque; segurar não repete.
+      this.papel[s] = PAPEL.botao;
+      this.qualBotao[s] = BOTAO.aparo;
+      if (this.saida) this.saida.acoes[0] = this.saida.acoes[0]! | ACAO.aparo;
     } else if (this.dono < 0 && contem(this.area, x, y)) {
       // Toque duplo (GE2): dispara no touchstart do 2º toque, que segue como dono do joystick.
       if (this.temToque && this.saida) {
@@ -415,7 +427,7 @@ export class TradutorDeGestos {
   /** Fim de um dedo (não cancelamento): o botão e os alvos da pausa acionam se o dedo começou e soltou dentro (P1, P7, P9). */
   private acionar(s: number, x: number, y: number): void {
     if (this.modo === 'vigilia') {
-      if (this.papel[s] === PAPEL.botao && contem(this.botao, x, y)) this.pedidoDePausa = 'botao';
+      if (this.papel[s] === PAPEL.botao && this.qualBotao[s] === BOTAO.pausa && contem(this.botaoDaPausa, x, y)) this.pedidoDePausa = 'botao';
       return;
     }
     const k = this.alvoInicial[s]!;

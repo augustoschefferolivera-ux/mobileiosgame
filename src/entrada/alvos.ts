@@ -89,11 +89,25 @@ export function alvoDaPausa(insets: Insets, out: Alvo): Alvo {
   return out;
 }
 
-/** Vigília: o botão de pausa (F-004) e a área do joystick (F-002); os outros botões entram com as suas features. */
+/** Botão Aparo (design/decisoes-F-006.md AP1): 80 × 80 pt no canto inferior direito, a 24 pt dos insets (a margem do Continuar). */
+export const BOTAO_DO_APARO = { lado: 80, margem: 24 } as const;
+
+/** Botão Aparo, escrito em `out` sem alocar. A caixa do Frasco (F-007) fica 16 pt acima dele. */
+export function alvoDoAparo(insets: Insets, out: Alvo): Alvo {
+  out.id = 'aparo';
+  out.x = LARGURA_LOGICA - insets.direita - BOTAO_DO_APARO.margem - BOTAO_DO_APARO.lado;
+  out.y = ALTURA_LOGICA - insets.baixo - BOTAO_DO_APARO.margem - BOTAO_DO_APARO.lado;
+  out.largura = BOTAO_DO_APARO.lado;
+  out.altura = BOTAO_DO_APARO.lado;
+  return out;
+}
+
+/** Vigília: o botão de pausa (F-004), a área do joystick (F-002) e o botão Aparo (F-006); o Frasco entra com a F-007. */
 export function alvosDaVigilia(insets: Insets, out: Alvo[]): Alvo[] {
   out.length = 0;
   out.push(alvoDaPausa(insets, { id: '', x: 0, y: 0, largura: 0, altura: 0 }));
   out.push(areaDoJoystick(insets, { id: '', x: 0, y: 0, largura: 0, altura: 0 }));
+  out.push(alvoDoAparo(insets, { id: '', x: 0, y: 0, largura: 0, altura: 0 }));
   return out;
 }
 
