@@ -21,8 +21,9 @@ import { MEMBROS_DOS_MEDIOS, MEMBROS_DOS_PROJETEIS_INIMIGOS, MEMBROS_DOS_TELEGRA
 import { CamadaPorGPU, criarSaidaDeSprites } from '../../src/cenas/render/camadas';
 import { CAPACIDADE_DE_MORTES, EfeitosDaVigilia } from '../../src/cenas/render/efeitos';
 import { criarSaidaDaHorda, criarTabelaDeDesenho, prepararHorda } from '../../src/cenas/render/horda';
-import { CAB, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CENARIO, JOGADOR, MUNDO, MUNDO2, PROGRESSAO, TIPO_DE_PICKUP, TIPO_DE_PROJETIL, criarEstado } from '../../src/logica/nucleo/estado';
-import { criarComandos, fonteConstante } from '../../src/logica/nucleo/comandos';
+import { CAB, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CENARIO, JOGADOR, MUNDO, MUNDO2, PROGRESSAO, TIPO_DE_PICKUP, TODOS_OS_TUTORIAIS, TIPO_DE_PROJETIL, criarEstado, type ParametrosDaVigilia } from '../../src/logica/nucleo/estado';
+import { ACAO, criarComandos, fonteConstante, fonteDoRoteiro, type AcaoDeRoteiro } from '../../src/logica/nucleo/comandos';
+import { EVENTO, LeitorDeEventos, inicioDoEvento } from '../../src/logica/nucleo/eventos';
 import { PASSIVA } from '../../src/logica/progressao/tabela';
 import { avancar } from '../../src/logica/nucleo/passo';
 import { ARMA } from '../../src/logica/armas/tabela';
@@ -41,6 +42,13 @@ const AQUECIMENTO_COM_ARMAS = 9000;
  * a criarOnda (um golpe por vez) segue no interpretador; com 9.000 passos, 109 B/passo; com 18.000, ≈ 60.
  */
 const AQUECIMENTO_DA_UNIAO = 27000;
+/**
+ * E7a e E7b (VT6): começou em 9.000 e subiu até onde a medida exigiu. Com 9.000 a 36.000 passos o E7a mede 17 a 22 B por
+ * passo (o caminho de nascer ainda no interpretador) e o E7b, com a esquiva movendo o jogador, 1.400 a 5.500 B por passo
+ * (moverHorda e golpear desotimizadas por ramos novos, que o V8 leva milhares de passos para reotimizar); com 63.000,
+ * 8,7 B no E7a e 2,5 e 6,2 B no E7b, iguais em 2 rodadas (ADR-0008).
+ */
+const AQUECIMENTO_DOS_ATAQUES = 63000;
 const MEDIDOS = 6000;
 
 interface No {
@@ -50,7 +58,7 @@ interface No {
 }
 
 /** Roda `rodar(n)` com o HeapProfiler amostrando e devolve os bytes em funções de src/ por passo e as 5 maiores. */
-async function medir(rodar: (n: number) => void, aquecimento = AQUECIMENTO): Promise<{ porPasso: number; maiores: string[] }> {
+async function medir(rodar: (n: number) => void, aquecimento = AQUECIMENTO, medidos = MEDIDOS): Promise<{ porPasso: number; total: number; maiores: string[] }> {
   rodar(aquecimento);
   const sessao = new Session();
   sessao.connect();
@@ -59,7 +67,7 @@ async function medir(rodar: (n: number) => void, aquecimento = AQUECIMENTO): Pro
     includeObjectsCollectedByMajorGC: true,
     includeObjectsCollectedByMinorGC: true,
   } as never);
-  rodar(MEDIDOS);
+  rodar(medidos);
   const { profile } = (await sessao.post('HeapProfiler.stopSampling')) as unknown as { profile: { head: No } };
   sessao.disconnect();
   const porFuncao = new Map<string, number>();
@@ -77,8 +85,8 @@ async function medir(rodar: (n: number) => void, aquecimento = AQUECIMENTO): Pro
   const maiores = [...porFuncao.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
-    .map(([f, b]) => `${f}: ${(b / MEDIDOS).toFixed(1)} B/passo`);
-  return { porPasso: nossos / MEDIDOS, maiores };
+    .map(([f, b]) => `${f}: ${(b / medidos).toFixed(1)} B/passo`);
+  return { porPasso: nossos / medidos, total: nossos, maiores };
 }
 
 describe('alocação no caminho quente (E4)', () => {
@@ -283,5 +291,143 @@ describe('alocação no caminho quente (E4)', () => {
     expect(e.mundo2[MUNDO2.juncoes]).toBeGreaterThan(0);
     expect(pr[PROGRESSAO.nivel]! - nivelAntes, 'ao menos um level up medido').toBeGreaterThan(0);
     expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
+  }, 300_000);
+
+  // ——— F-006 (VT6, ET11): os ataques dos inimigos, o jogador vulnerável ———
+
+  /** Conta os eventos por código a cada passo, lendo o anel pelo leitor (o `medir` só soma funções de src/, e o leitor não aloca). */
+  function contador(e: ReturnType<typeof criarEstado>): { leitor: LeitorDeEventos; porTipo: number[]; ler: () => void } {
+    const leitor = new LeitorDeEventos();
+    const porTipo = new Array<number>(32).fill(0);
+    const ler = (): void => {
+      const n = leitor.pendentes(e.eventos);
+      for (let k = 0; k < n; k++) {
+        porTipo[e.eventos.u32[inicioDoEvento(leitor.proximo + k) + 1]! & 0xff]!++;
+      }
+      leitor.proximo += n;
+    };
+    return { leitor, porTipo, ler };
+  }
+
+  /** A horda_com_ataques com a build do tres_armas (E7a) e, no E7b, a União no minuto 10 (Espada nv8 + Elmo → Lâmina); jogador vulnerável. */
+  function paramsE7(tutoriaisVistos: number, uniao: boolean): Partial<ParametrosDaVigilia> {
+    const base = { ...parametrosDoCenario('horda_com_ataques'), armas: parametrosDoCenario('tres_armas').armas };
+    return {
+      ...base,
+      cenario: CENARIO.ataques | CENARIO.semCinzas,
+      tutoriaisVistos,
+      teto: 300,
+      ...(uniao ? { passivas: [{ codigo: PASSIVA.elmo_sem_rosto, nivel: 1 }], baus: [{ dx: 0, dy: 0, dourado: true }], relogioInicial: 36000 } : {}),
+    };
+  }
+
+  /** Aparo a cada 40 passos e esquiva 20 passos depois (a mira alterna): a cadência fixa do E7b. */
+  function roteiroDeAcoes(passos: number): AcaoDeRoteiro[] {
+    const lista: AcaoDeRoteiro[] = [];
+    const miras: [number, number][] = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+    for (let p = 40; p < passos; p += 40) {
+      lista.push({ passo: p, acoes: ACAO.aparo });
+      lista.push({ passo: p + 20, acoes: ACAO.esquiva, mira: miras[(p / 40) % 4]! });
+    }
+    return lista;
+  }
+
+  it(`E7a: horda com ataques, jogador vulnerável e parado, ${MEDIDOS} passos e quadros: ≤ ${LIMITE} B por passo, sem lista branca`, async () => {
+    const e = criarEstado(1, D, paramsE7(TODOS_OS_TUTORIAIS, false));
+    const { cena } = criarCena();
+    const escritor = new HordaPorGPU(cena, false);
+    const tabela = criarTabelaDeDesenho(inimigos.inimigos, D.tipos.existe);
+    const saida = criarSaidaDaHorda();
+    const medios = { gpu: new CamadaPorGPU(cena, MEMBROS_DOS_MEDIOS, false), saida: criarSaidaDeSprites(MEMBROS_DOS_MEDIOS) };
+    const telegrafos = { gpu: new CamadaPorGPU(cena, MEMBROS_DOS_TELEGRAFOS, false), saida: criarSaidaDeSprites(MEMBROS_DOS_TELEGRAFOS) };
+    const projeteis = { gpu: new CamadaPorGPU(cena, MEMBROS_DOS_PROJETEIS_INIMIGOS, false), saida: criarSaidaDeSprites(MEMBROS_DOS_PROJETEIS_INIMIGOS) };
+    const fonte = fonteConstante(criarComandos(), 'primeira');
+    const c = contador(e);
+    const { porPasso, maiores } = await medir((n) => {
+      for (let k = 0; k < n; k++) {
+        avancar(e, D, fonte, 1);
+        c.ler();
+        prepararHorda(e, 0.5, 585, 1266, saida);
+        escritor.escrever(saida, tabela);
+        prepararMedios(e, saida, tabela, D, 0.5, medios.saida);
+        medios.gpu.escrever(medios.saida);
+        prepararTelegrafos(e, D, saida, 0.5, telegrafos.saida);
+        telegrafos.gpu.escrever(telegrafos.saida);
+        prepararProjeteisInimigos(e, D, 0.5, 585, 1266, projeteis.saida);
+        projeteis.gpu.escrever(projeteis.saida);
+      }
+    }, AQUECIMENTO_DOS_ATAQUES);
+    expect(c.leitor.perdidos).toBe(0);
+    expect(c.porTipo[EVENTO.telegrafo], 'telegrafo').toBeGreaterThan(0);
+    expect(c.porTipo[EVENTO.golpeInimigo], 'golpeInimigo').toBeGreaterThan(0);
+    expect(c.porTipo[EVENTO.projetilLancado], 'projetilLancado').toBeGreaterThan(0);
+    expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
+  }, 600_000);
+
+  for (const [rotulo, vistos] of [
+    ['roteiro de esquiva, esquiva perfeita, aparo e Contra-ataque', TODOS_OS_TUTORIAIS],
+    ['variante com tutoriaisVistos = 0 (prompts visíveis, falhasDeAparo e janela de 17)', 0],
+  ] as const) {
+    it(`E7b: ${rotulo}, ${MEDIDOS} passos: ≤ ${LIMITE} B por passo, sem lista branca`, async () => {
+      const total = AQUECIMENTO_DOS_ATAQUES + MEDIDOS + 400;
+      const e = criarEstado(1, D, paramsE7(vistos, true));
+      const fonte = fonteDoRoteiro([{ passo: 0, mx: 0, my: 0 }], 'primeira', roteiroDeAcoes(total));
+      const { cena } = criarCena();
+      const ef = new EfeitosDaVigilia(D.tipos);
+      const escritor = new HordaPorGPU(cena, false);
+      const tabela = criarTabelaDeDesenho(inimigos.inimigos, D.tipos.existe);
+      const saida = criarSaidaDaHorda();
+      const camada = (n: number) => ({ gpu: new CamadaPorGPU(cena, n, false), saida: criarSaidaDeSprites(n) });
+      const [medios, telegrafos, projeteis, armas] = [camada(MEMBROS_DOS_MEDIOS), camada(MEMBROS_DOS_TELEGRAFOS), camada(MEMBROS_DOS_PROJETEIS_INIMIGOS), camada(MEMBROS_DAS_ARMAS)];
+      const c = contador(e);
+      const { porPasso, maiores } = await medir((n) => {
+        for (let k = 0; k < n; k++) {
+          avancar(e, D, fonte, 1);
+          c.ler();
+          ef.consumir(e, true);
+          prepararHorda(e, 0.5, 585, 1266, saida);
+          escritor.escrever(saida, tabela);
+          prepararMedios(e, saida, tabela, D, 0.5, medios.saida);
+          medios.gpu.escrever(medios.saida);
+          prepararTelegrafos(e, D, saida, 0.5, telegrafos.saida);
+          telegrafos.gpu.escrever(telegrafos.saida);
+          prepararProjeteisInimigos(e, D, 0.5, 585, 1266, projeteis.saida);
+          projeteis.gpu.escrever(projeteis.saida);
+          prepararArmas(e, D, ef, 0.5, 585, 1266, 585, 1266, armas.saida);
+          armas.gpu.escrever(armas.saida);
+        }
+      }, AQUECIMENTO_DOS_ATAQUES);
+      expect(e.build.codigo).toContain(ARMA.lamina_do_juramento_eterno);
+      for (const ev of ['telegrafo', 'golpeInimigo', 'projetilLancado', 'esquiva', 'esquivaPerfeita', 'aparo', 'contraAtaque'] as const) {
+        expect(c.porTipo[EVENTO[ev]], ev).toBeGreaterThan(0);
+      }
+      if (vistos === 0) expect(c.porTipo[EVENTO.aparoFalho]! + c.porTipo[EVENTO.aparoVazio]!, 'aparo falho ou vazio').toBeGreaterThan(0);
+      expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
+    }, 600_000);
+  }
+
+  // CA: 1.000 Contra-ataques em sequência (caSeq posto à mão), numa Vigília sem horda para o resto do passo custar quase nada.
+  it('1.000 Contra-ataques em sequência: ≤ 64 B no total depois do aquecimento', async () => {
+    const base = parametrosDoCenario('tres_armas');
+    const e = criarEstado(1, D, { ...base, cenario: CENARIO.ataques | CENARIO.diretorDesligado | CENARIO.semCinzas, teto: 300 });
+    const b = e.build;
+    const um = (): void => {
+      for (let v = 0; v < b.caSeq.length; v++) {
+        if (b.codigo[v] !== 0) {
+          b.caSeq[v] = 1;
+          b.caEspera[v] = 0;
+        }
+      }
+      for (let k = 0; k < 200 && b.caSeq.some((x) => x !== 0); k++) avancar(e, D, PARADO, 1);
+    };
+    const { total, maiores } = await medir(
+      (n) => {
+        for (let k = 0; k < n; k++) um();
+      },
+      10000,
+      1000,
+    );
+    expect(b.caSeq.every((x) => x === 0)).toBe(true);
+    expect(total, maiores.join('; ')).toBeLessThanOrEqual(64);
   }, 300_000);
 });
