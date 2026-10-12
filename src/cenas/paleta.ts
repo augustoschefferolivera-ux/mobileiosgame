@@ -52,4 +52,6 @@ export const COR_DO_INIMIGO: Readonly<Record<string, number>> = {
  */
 export const COR_DOS_ELITES: Readonly<Record<string, number>> = {
   oco_grande_coroado: 0xc9a227,
+  /** O Lanterneiro (F-009 LN1): sem `#ff2a2a` nem brasa; a arte e o teste de cores são da F-011 e da 2c. */
+  o_lanterneiro: 0x5a4a6b,
 };

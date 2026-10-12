@@ -7,7 +7,10 @@ import { FORMA, SEM_ALVO } from '../nucleo/eventos';
 import { alocar, liberar, quantosAtivos } from '../nucleo/pool';
 import type { DadosDaVigilia } from '../mundo/dados';
 import { CONSULTA, consultarGradeComGrandes, consultarGradeDoRascunho } from '../mundo/grade';
+import { GEO, circuloToca } from '../mundo/caixa';
+import { acertarNoChefe } from '../mundo/chefe';
 import { grade } from '../mundo/horda';
+import { TIPO } from '../mundo/tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../mundo/toro';
 import { ACERTO, ACHADOS, DANO, acertar, alvoAparado, calcularDano } from './acerto';
 import { indiceDoNivel } from './tabela';
@@ -218,8 +221,16 @@ export function moverProjeteis(e: Estado, dados: DadosDaVigilia): void {
       if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
       if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
       const d2 = dx * dx + dy * dy;
-      const lim = rp + raio[ini.tipo[s]!]!;
-      if (d2 > lim * lim) continue;
+      if (ini.tipo[s] === TIPO.o_lanterneiro) {
+        // A caixa do Lanterneiro (F-009 GE): a distância do centro da faca à caixa ≤ o raio dela.
+        GEO[0] = -dx;
+        GEO[1] = -dy;
+        GEO[4] = rp;
+        if (!circuloToca()) continue;
+      } else {
+        const lim = rp + raio[ini.tipo[s]!]!;
+        if (d2 > lim * lim) continue;
+      }
       if (melhor < 0 || d2 < melhorD2 || (d2 === melhorD2 && s < melhor)) {
         melhor = s;
         melhorD2 = d2;
@@ -229,7 +240,8 @@ export function moverProjeteis(e: Estado, dados: DadosDaVigilia): void {
       ACERTO[0] = pr.dano[p]!;
       // Lido no acerto, pelo alvo de agora (PQ7); as Facas têm o mesmo fator em todo nível.
       ACERTO[1] = dados.armas.pqFator[indiceDoNivel(arma, 1)]!;
-      acertar(e, melhor, arma, FORMA.faca, pr.salPct[p]!, pr.salPassos[p]!);
+      if (ini.tipo[melhor] === TIPO.o_lanterneiro) acertarNoChefe(e, dados, melhor, arma, FORMA.faca, 0);
+      else acertar(e, melhor, arma, FORMA.faca, pr.salPct[p]!, pr.salPassos[p]!);
       const perf = pr.perfuracoes[p]!;
       if (perf === 0) {
         liberarProjetil(e, p);

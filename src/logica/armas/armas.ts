@@ -12,11 +12,14 @@
 // alocaria um HeapNumber): o delta toroidal, as formas e a normalização vão em
 // linha, e o dano e as posições passam por rascunhos. Nada é alocado por passo.
 import { CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR, VAGAS_DE_ARMA, type Estado } from '../nucleo/estado';
+import { COSSENO_DO_SETOR, GEO, circuloToca, retanguloToca, setorToca } from '../mundo/caixa';
+import { acertarNoChefe } from '../mundo/chefe';
 import { CAUSA, EVENTO, FLAG, FLOATS_DO_EVENTO, FORMA, gravarEvento } from '../nucleo/eventos';
 import type { DadosDaVigilia } from '../mundo/dados';
 import { CONSULTA, consultarGradeComGrandes } from '../mundo/grade';
 import { grade, listarVivos, montarGradeDaMassa, vivos } from '../mundo/horda';
 import { matarInimigo } from '../mundo/inimigos';
+import { TIPO } from '../mundo/tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../mundo/toro';
 import { ACERTO, ACHADOS, DANO, MIRA, acertar, alvoAparado, calcularDano } from './acerto';
 import { criarOnda, rodarOndas } from './ondas';
@@ -167,6 +170,18 @@ function golpear(e: Estado, dados: DadosDaVigilia, v: number, forma: number, con
     let py = ini.y[s]! - jy;
     if (py > MEIA_ALTURA_DO_MAPA) py -= ALTURA_DO_MAPA;
     if (py < -MEIA_ALTURA_DO_MAPA) py += ALTURA_DO_MAPA;
+    if (ini.tipo[s] === TIPO.o_lanterneiro) {
+      // A caixa do Lanterneiro (F-009 GE): algum dos 6 pontos dentro do setor ou do retângulo.
+      GEO[0] = -px;
+      GEO[1] = -py;
+      GEO[2] = ux;
+      GEO[3] = uy;
+      GEO[4] = estocada ? L : R;
+      GEO[5] = estocada ? w : COSSENO_DO_SETOR;
+      GEO[6] = 0;
+      if (estocada ? retanguloToca() : setorToca()) acertarNoChefe(e, dados, s, codigo, forma, flagsExtra);
+      continue;
+    }
     let acerta: boolean;
     if (estocada) {
       // Círculo × retângulo exato, em coordenadas locais (W8).
@@ -259,6 +274,14 @@ function rodarAura(e: Estado, dados: DadosDaVigilia, v: number): void {
         let dy = ini.y[s]! - jy;
         if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
         if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
+        if (ini.tipo[s] === TIPO.o_lanterneiro) {
+          // O tick contra a caixa: a distância da origem à caixa ≤ R (F-009 GE); o chefe não leva Sal.
+          GEO[0] = -dx;
+          GEO[1] = -dy;
+          GEO[4] = R;
+          if (circuloToca()) acertarNoChefe(e, dados, s, codigo, FORMA.tick, flags);
+          continue;
+        }
         const lim = R + raio[ini.tipo[s]!]!;
         if (dx * dx + dy * dy <= lim * lim) acertar(e, s, codigo, FORMA.tick, salPct, salPassos, flags);
       }

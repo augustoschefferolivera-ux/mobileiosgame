@@ -65,7 +65,8 @@ export function criarTabelaDeDesenho(inimigos: readonly FormaDoJson[], existe: U
   for (let codigo = 1; codigo < IDS_DE_TIPO.length; codigo++) {
     if (existe[codigo] !== 1) continue;
     const id = IDS_DE_TIPO[codigo]!;
-    const i = inimigos.find((x) => x.id === id);
+    // O Lanterneiro (F-009 LN1) é a caixa de 96 × 128 desenhada, até a arte da F-011, como um quadrado de 128 px provisório.
+    const i = id === 'o_lanterneiro' ? { id, forma: 'quadrado', tamanho_px: 128 } : inimigos.find((x) => x.id === id);
     const cor = COR_DO_INIMIGO[id] ?? COR_DOS_ELITES[id];
     if (!i || i.tamanho_px === null || cor === undefined) throw new Error(`desenho: ${id} nasce sem tamanho ou sem cor`);
     const medio = i.forma === 'circulo' ? false : i.forma === 'quadrado' ? true : falha(id, i.forma);

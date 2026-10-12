@@ -28,6 +28,7 @@ import { GRANDES, MAX_GRANDES } from './grade';
 import { NASCIMENTO, matarInimigo, nascerInimigoDoRascunho } from './inimigos';
 import { TIPO } from './tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from './toro';
+import { chefeLigado, surgirChefe } from './chefe';
 import { apagarFogueira, verificarRaio } from './fogueira';
 import { encerrarVigilia } from './vigilia';
 
@@ -77,13 +78,15 @@ export function rodarEtapa(e: Estado, dados: DadosDaVigilia): void {
     return;
   }
   if (relogio >= marcos.chefeEm) {
-    // 20:00 (AR8): os Coroados viram cinza, a Fogueira acesa se apaga, a arena some e a etapa é CHEFE (sem Lanterneiro).
+    // 20:00 (AR8): os Coroados viram cinza, a Fogueira acesa se apaga, a arena do marco some e a etapa é CHEFE; o Lanterneiro surge (F-009).
     const k = u8[FOGUEIRA_U8.marcosIniciados]! - 1;
     const cinzas = converterEmCinza(e, dados);
     if (cinzas > 0) emitirMarcoVencido(e, k, cinzas);
     desfazerArena(e);
     if (u8[FOGUEIRA_U8.fogueiraAcesa] === 1) apagarFogueira(e);
     u8[FOGUEIRA_U8.etapa] = ETAPA.chefe;
+    // O Lanterneiro surge na arena de 224 px (F-009 AB1), com os ataques ligados.
+    if (chefeLigado(e)) surgirChefe(e, dados);
     return;
   }
   if (u8[FOGUEIRA_U8.coroadosVivos]! > 0) rodarConvocacoes(e, dados);

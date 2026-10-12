@@ -5,12 +5,13 @@
 // hash do buffer inteiro conter só os slots vivos. HP e dano são fixados no
 // spawn pela escala do minuto (B §3.6; Q-10), em inteiros. matarInimigo é o
 // único caminho de morte: grava o evento, conta e remove.
-import { CAB, FOGUEIRA_U8, LINHA_LIVRE, MUNDO, type Estado } from '../nucleo/estado';
+import { CAB, CHEFE_U16, FOGUEIRA_U8, LINHA_LIVRE, MUNDO, SEM_CHEFE, type Estado } from '../nucleo/estado';
 import { CAUSA, EVENTO, FLAG, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import { alocar, liberar } from '../nucleo/pool';
 import type { DadosDaVigilia } from './dados';
 import { PASSOS_POR_MINUTO } from '../diretor/timeline';
 import { gravarDanoNoSpawn, gravarHpNoSpawn } from './escala';
+import { aoMorrerOChefe } from './chefe';
 import { TIPO } from './tipos';
 import { desmarcarInimigo } from '../armas/ondas';
 import { MAX_GRANDES } from './grade';
@@ -108,6 +109,8 @@ export function removerInimigo(e: Estado, slot: number): void {
   const ini = e.inimigos;
   // Coroado vivo cai da conta em qualquer causa (CR9): morte, cinza, rotação do cenário.
   if (ini.tipo[slot] === TIPO.oco_grande_coroado) e.fogueiraU8[FOGUEIRA_U8.coroadosVivos] = e.fogueiraU8[FOGUEIRA_U8.coroadosVivos]! - 1;
+  // O Lanterneiro sai em qualquer causa (F-009): o slot deixa de valer.
+  else if (ini.tipo[slot] === TIPO.o_lanterneiro) e.chefeU16[CHEFE_U16.slot] = SEM_CHEFE;
   liberar(e.pool, slot);
   desmarcarInimigo(e, slot);
   ini.x[slot] = ini.y[slot] = ini.xAnt[slot] = ini.yAnt[slot] = ini.hp[slot] = ini.dano[slot] = 0;
@@ -129,13 +132,16 @@ export function removerInimigo(e: Estado, slot: number): void {
  */
 export function matarInimigo(e: Estado, dados: DadosDaVigilia, slot: number, causa: number): void {
   const ini = e.inimigos;
+  // A morte do Lanterneiro pelas armas tem causa própria (LN5): `mortes` + 1 e as Almas direto, sem Cinza, Alma de chão nem baú.
+  if (causa === CAUSA.arma && ini.tipo[slot] === TIPO.o_lanterneiro) causa = CAUSA.lanterneiro;
   FLOATS_DO_EVENTO[0] = ini.x[slot]!;
   FLOATS_DO_EVENTO[1] = ini.y[slot]!;
   FLOATS_DO_EVENTO[2] = 0;
   FLOATS_DO_EVENTO[3] = 0;
   const flags = ini.convertido[slot] === 1 ? FLAG.convertido : 0;
   gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.morte, 0, 0, slot, e.pool.geracao[slot]!, ini.tipo[slot]!, flags, causa);
-  if (causa === CAUSA.arma) {
+  if (causa === CAUSA.lanterneiro) aoMorrerOChefe(e, dados, slot);
+  else if (causa === CAUSA.arma) {
     // RS4: o convertido por arma vale 10 (o mesmo 10 do XP e das Almas); a massa que morre por outra causa vale 0.
     e.mundo[MUNDO.mortes] = e.mundo[MUNDO.mortes]! + (flags === FLAG.convertido ? MASSA_POR_CONVERTIDO : 1);
     soltarCinza(e, dados, slot);

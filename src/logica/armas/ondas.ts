@@ -13,7 +13,10 @@ import { EVENTO, FLOATS_DO_EVENTO, FORMA, gravarEvento } from '../nucleo/eventos
 import { alocar, liberar, quantosAtivos } from '../nucleo/pool';
 import type { DadosDaVigilia } from '../mundo/dados';
 import { CONSULTA, consultarGradeComGrandes } from '../mundo/grade';
+import { GEO, retanguloToca } from '../mundo/caixa';
+import { acertarNoChefe } from '../mundo/chefe';
 import { grade } from '../mundo/horda';
+import { TIPO } from '../mundo/tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../mundo/toro';
 import { ACERTO, ACHADOS, MIRA, acertar } from './acerto';
 import { indiceDoNivel } from './tabela';
@@ -133,6 +136,20 @@ export function rodarOndas(e: Estado, dados: DadosDaVigilia): void {
       let py = ini.y[s]! - cy;
       if (py > MEIA_ALTURA_DO_MAPA) py -= ALTURA_DO_MAPA;
       if (py < -MEIA_ALTURA_DO_MAPA) py += ALTURA_DO_MAPA;
+      if (ini.tipo[s] === TIPO.o_lanterneiro) {
+        // A caixa do Lanterneiro (F-009 GE): algum dos 6 pontos no quadrado da onda.
+        GEO[0] = -px;
+        GEO[1] = -py;
+        GEO[2] = ux;
+        GEO[3] = uy;
+        GEO[4] = 2 * meia;
+        GEO[5] = meia;
+        GEO[6] = -meia;
+        if (!retanguloToca()) continue;
+        f.bits[palavra] = f.bits[palavra]! | bit;
+        acertarNoChefe(e, dados, s, codigo, FORMA.onda, 0);
+        continue;
+      }
       // Círculo × quadrado exato em coordenadas locais (o teste da estocada, W8).
       const a = px * ux + py * uy;
       const b = px * -uy + py * ux;

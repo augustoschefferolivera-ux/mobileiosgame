@@ -14,13 +14,14 @@
 // (≈ 48 KB por passo com 300 vivos, medido). O delta toroidal, a
 // normalização no toro, o passo de comportamento e o intervalo de células vão
 // em linha, como em consultarGrade, e a colisão lê e escreve COLISAO.
-import { CAPACIDADE_DE_INIMIGOS, FOGUEIRA_U8, JOGADOR, type Estado } from '../nucleo/estado';
+import { CAPACIDADE_DE_INIMIGOS, CHEFE_U16, FOGUEIRA_U8, JOGADOR, type Estado } from '../nucleo/estado';
+import { GEO, distanciaComSinal } from './caixa';
 import { limitarPelaArena } from './borda';
 import type { DadosDaVigilia } from './dados';
 import { COLUNAS, CONSULTA, FOLGAS_DOS_GRANDES, GRANDES, LADO_DA_CELULA, LINHAS, MAX_GRANDES, consultarGradeComGrandes, criarGrade, reconstruirGrade } from './grade';
 import { RAIO_DO_JOGADOR } from './jogador';
 import { COLISAO, ES, colidirNaCelula } from './obstaculos';
-import { COMPORTAMENTO } from './tipos';
+import { COMPORTAMENTO, TIPO } from './tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from './toro';
 
 const N = CAPACIDADE_DE_INIMIGOS;
@@ -187,6 +188,10 @@ function separarOsGrandes(e: Estado, dados: DadosDaVigilia, outX: Float64Array, 
   for (let q = 0; q < ng; q++) {
     const a = GRANDES[q]!;
     const ra = t.raio[ini.tipo[a]!]!;
+    if (ini.tipo[a] === TIPO.o_lanterneiro) {
+      separarDaCaixa(e, dados, a, outX, outY);
+      continue;
+    }
     const ax = ini.x[a]!;
     const ay = ini.y[a]!;
     CONSULTA[0] = ax;
@@ -220,6 +225,37 @@ function separarOsGrandes(e: Estado, dados: DadosDaVigilia, outX: Float64Array, 
       outX[b] = outX[b]! + nx * meia;
       outY[b] = outY[b]! + ny * meia;
     }
+  }
+}
+
+/**
+ * O Lanterneiro contra a massa e os médios (LN3): os convocados são empurrados para fora da caixa pela penetração inteira, e o
+ * chefe nunca é empurrado. A consulta é a da separação dos grandes (raio 80 + R_MAX); a distância ao retângulo e a normal de saída
+ * vêm de `distanciaComSinal`. Um corpo grande (o Coroado) fica de fora: não convive com o chefe.
+ */
+function separarDaCaixa(e: Estado, dados: DadosDaVigilia, a: number, outX: Float64Array, outY: Float64Array): void {
+  const ini = e.inimigos;
+  const t = dados.tipos;
+  CONSULTA[0] = ini.x[a]!;
+  CONSULTA[1] = ini.y[a]!;
+  CONSULTA[2] = t.raio[TIPO.o_lanterneiro]! + t.raioMaximo;
+  const m = consultarGradeComGrandes(grade, ini.x, ini.y, achadosDoGrande);
+  for (let i = 0; i < m; i++) {
+    const b = achadosDoGrande[i]!;
+    if (t.grande[ini.tipo[b]!] === 1) continue;
+    let dx = ini.x[b]! - ini.x[a]!;
+    if (dx > MEIA_LARGURA_DO_MAPA) dx -= LARGURA_DO_MAPA;
+    if (dx < -MEIA_LARGURA_DO_MAPA) dx += LARGURA_DO_MAPA;
+    let dy = ini.y[b]! - ini.y[a]!;
+    if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
+    if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
+    GEO[0] = dx;
+    GEO[1] = dy;
+    distanciaComSinal();
+    const penetracao = t.raio[ini.tipo[b]!]! - GEO[2]!;
+    if (penetracao <= 0) continue;
+    outX[b] = outX[b]! + GEO[3]! * penetracao;
+    outY[b] = outY[b]! + GEO[4]! * penetracao;
   }
 }
 
@@ -267,6 +303,8 @@ export function moverHorda(e: Estado, dados: DadosDaVigilia): void {
     }
     // Postura Quebrada (PQ3): o atordoado não persegue nem recua; o pulso, a separação e o bloqueio seguem valendo.
     if (ini.quebradaPassos[s]! > 0) enraizado = true;
+    // O Lanterneiro (LN3) só anda livre: parado no telegrafo, na recuperação, na Quebra e na transição.
+    if (tipo === TIPO.o_lanterneiro && (fase !== 0 || e.chefeU16[CHEFE_U16.quebraPassos]! > 0 || e.chefeU16[CHEFE_U16.transicaoPassos]! > 0)) enraizado = true;
     const kb = ini.kbPassos[s]!;
     if (kb > 0) {
       // Afastamento do pulso (K1), no lugar do comportamento: radial, do jogador para o inimigo, recalculado a cada passo.
@@ -340,7 +378,8 @@ export function moverHorda(e: Estado, dados: DadosDaVigilia): void {
     if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
     if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
     const d2 = dx * dx + dy * dy;
-    if (d2 < soma * soma) {
+    // O Lanterneiro nunca é empurrado (LN3): a solidez é do jogador, pela caixa (jogador.ts).
+    if (d2 < soma * soma && tipo !== TIPO.o_lanterneiro) {
       let nx = 1;
       let ny = 0;
       let d = 0;

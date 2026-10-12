@@ -13,8 +13,10 @@ import { EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import { segundosEmPassos } from '../nucleo/passos';
 import type { DadosDaVigilia } from './dados';
 import { limitarPelaArena } from './borda';
+import { GEO, distanciaComSinal } from './caixa';
 import { comandosDoFrasco } from './frasco';
 import { COLISAO, ES, colidirComTodos } from './obstaculos';
+import { TIPO } from './tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from './toro';
 
 /** Hitbox do jogador: círculo de 16 px de raio, centrado no incentro do triângulo (§3). */
@@ -248,6 +250,15 @@ function bloquearPelosInimigos(e: Estado, dados: DadosDaVigilia): void {
   for (let it = 0; it < PASSADAS_DO_BLOQUEIO; it++) {
     for (let s = 0; s < CAPACIDADE_DE_INIMIGOS; s++) {
       if (pos[s]! < 0) continue;
+      if (ini.tipo[s] === TIPO.o_lanterneiro) {
+        // O Lanterneiro é uma caixa (F-009 LN3): a mesma regra, com a distância jogador–caixa no lugar da distância entre centros.
+        COLISAO[ES.x] = px;
+        COLISAO[ES.y] = py;
+        bloquearPelaCaixa(e, s);
+        px = COLISAO[ES.x]!;
+        py = COLISAO[ES.y]!;
+        continue;
+      }
       const ex = ini.x[s]!;
       const ey = ini.y[s]!;
       const soma = raio[ini.tipo[s]!]! + RAIO_DO_JOGADOR;
@@ -283,6 +294,40 @@ function bloquearPelosInimigos(e: Estado, dados: DadosDaVigilia): void {
   }
   COLISAO[ES.x] = px;
   COLISAO[ES.y] = py;
+}
+
+/**
+ * S4 contra a caixa do Lanterneiro (F-009 LN3): o jogador (em COLISAO) não aumenta a sobreposição que tinha no início do passo
+ * (em xAnt, yAnt) com a caixa, e é empurrado pela normal de saída só no que a aumentaria. Distância com sinal: negativa dentro.
+ */
+function bloquearPelaCaixa(e: Estado, s: number): void {
+  const ini = e.inimigos;
+  const ex = ini.x[s]!;
+  const ey = ini.y[s]!;
+  let ix = e.jogador[JOGADOR.xAnt]! - ex;
+  if (ix > MEIA_LARGURA_DO_MAPA) ix -= LARGURA_DO_MAPA;
+  if (ix < -MEIA_LARGURA_DO_MAPA) ix += LARGURA_DO_MAPA;
+  let iy = e.jogador[JOGADOR.yAnt]! - ey;
+  if (iy > MEIA_ALTURA_DO_MAPA) iy -= ALTURA_DO_MAPA;
+  if (iy < -MEIA_ALTURA_DO_MAPA) iy += ALTURA_DO_MAPA;
+  GEO[0] = ix;
+  GEO[1] = iy;
+  distanciaComSinal();
+  const penInicio = Math.max(0, RAIO_DO_JOGADOR - GEO[2]!);
+  let dx = COLISAO[ES.x]! - ex;
+  if (dx > MEIA_LARGURA_DO_MAPA) dx -= LARGURA_DO_MAPA;
+  if (dx < -MEIA_LARGURA_DO_MAPA) dx += LARGURA_DO_MAPA;
+  let dy = COLISAO[ES.y]! - ey;
+  if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
+  if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
+  GEO[0] = dx;
+  GEO[1] = dy;
+  distanciaComSinal();
+  const empurrao = RAIO_DO_JOGADOR - GEO[2]! - penInicio;
+  if (empurrao > 0) {
+    COLISAO[ES.x] = COLISAO[ES.x]! + GEO[3]! * empurrao;
+    COLISAO[ES.y] = COLISAO[ES.y]! + GEO[4]! * empurrao;
+  }
 }
 
 /**

@@ -95,7 +95,9 @@ describe('tabela de desenho', () => {
       andar: [i('oco_grande_coroado'), i('oco_grande_coroado_2')],
       telegrafo: i('oco_grande_coroado_telegrafo'),
     });
-    expect([tabela[TIPO.vazio], tabela[TIPO.o_lanterneiro]]).toEqual([null, null]);
+    expect(tabela[TIPO.vazio]).toBeNull();
+    // O Lanterneiro (F-009 LN1): provisório até a arte da F-011, um quadrado de 128 px com a cor `#5a4a6b` (as molduras do Oco Grande).
+    expect(tabela[TIPO.o_lanterneiro]).toMatchObject({ medio: true, cor: COR_DOS_ELITES['o_lanterneiro'], escala: (2 * 128) / 48 });
   });
 
   it('quadros (F-011): andar de 2 quadros pelo passo (defasado pelo slot), acerto nos 3 passos depois do golpe, espelho para o lado do jogador', () => {
@@ -127,9 +129,8 @@ describe('tabela de desenho', () => {
   });
 
   it('um tipo que nasce sem tamanho ou sem cor é erro na montagem', () => {
-    const existe = Uint8Array.from(D.tipos.existe);
-    existe[TIPO.o_lanterneiro] = 1;
-    expect(() => criarTabelaDeDesenho(inimigos.inimigos, existe)).toThrow(/o_lanterneiro/);
+    const semNovica = inimigos.inimigos.filter((x) => x.id !== 'novica_de_sal');
+    expect(() => criarTabelaDeDesenho(semNovica, D.tipos.existe)).toThrow(/novica_de_sal/);
   });
 });
 
