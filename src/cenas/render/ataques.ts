@@ -14,8 +14,10 @@ import { MOLDURA, RAIO_DA_CUNHA_PT } from './atlas';
 import { indiceDaMoldura, type SaidaDeSprites } from './camadas';
 import type { DesenhoDoTipo, SaidaDaHorda } from './horda';
 
-/** Membros das 3 camadas novas (RE5, RE8): médios, telegrafos (cunha ou faixa) e projéteis inimigos (anel + disco). */
-export const MEMBROS_DOS_MEDIOS = CAPACIDADE_DE_INIMIGOS;
+/** Membros das 3 camadas novas (RE5, RE8): médios (corpo e silhueta do telegrafo, F-011), telegrafos (cunha ou faixa) e projéteis inimigos (anel + disco). */
+/** Tint neutro: a arte (F-011) não é tingida. */
+const BRANCO = 0xffffff;
+export const MEMBROS_DOS_MEDIOS = 2 * CAPACIDADE_DE_INIMIGOS;
 export const MEMBROS_DOS_TELEGRAFOS = 64;
 export const MEMBROS_DOS_PROJETEIS_INIMIGOS = 128;
 /** Cada projétil usa 2 membros (o anel e o disco): 64 projéteis. */
@@ -42,9 +44,11 @@ const LARGURA_DO_QUADRADO_PX = MOLDURA.quadrado.largura;
 const ALTURA_DA_CUNHA_PX = RAIO_DA_CUNHA_PT * 2;
 
 /**
- * A 2ª camada de médios (RE8): os médios vivos em escrita compacta, na ordem dos slots, com o brilho do telegrafo
- * (RE4): `tintBlend` de 1 em T a 0 no último passo do telegrafo, interpolado pelo `alfa`, e o corpo termina em
- * branco puro. O resto da camada fica invisível. Devolve quantos médios foram escritos.
+ * A 2ª camada de médios (RE8), em pares de membros na ordem dos slots: o corpo (membro 2k) e a silhueta branca do
+ * telegrafo por cima (2k + 1). O corpo usa o quadro da arte (F-011): o acerto, o telegrafo ("inspirar"), o ataque
+ * na recuperação ou o andar, espelhado pela direção (no telegrafo, pela mira). O brilho do telegrafo (RE4) é o
+ * `blend` de 1 em T a 0 no último passo, interpolado pelo `alfa`: a silhueta branca tem alfa 1 − blend, e o corpo
+ * termina em branco puro. O resto da camada fica invisível. Devolve quantos médios foram escritos.
  */
 export function prepararMedios(e: Estado, horda: SaidaDaHorda, tabela: readonly (DesenhoDoTipo | null)[], dados: DadosDaVigilia, alfa: number, out: SaidaDeSprites): number {
   const ini = e.inimigos;
@@ -54,18 +58,10 @@ export function prepararMedios(e: Estado, horda: SaidaDaHorda, tabela: readonly 
     const tipo = horda.tipo[s]!;
     if (tipo === 0) continue;
     const d = tabela[tipo];
-    if (!d || d.moldura !== 'quadrado') continue;
-    out.visivel[k] = 1;
-    out.x[k] = horda.x[s]!;
-    out.y[k] = horda.y[s]!;
-    out.rotacao[k] = 0;
-    out.escalaX[k] = out.escalaY[k] = d.escala;
-    out.alpha[k] = 1;
-    out.origemX[k] = out.origemY[k] = 0.5;
-    out.moldura[k] = M_QUADRADO;
-    out.cor[k] = d.cor;
+    if (!d || !d.medio || 2 * k + 1 >= out.capacidade) continue;
+    const fase = ini.ataqueFase[s]!;
     let blend = 1;
-    if (ini.ataqueFase[s] === FASE_DO_ATAQUE.telegrafo) {
+    if (fase === FASE_DO_ATAQUE.telegrafo) {
       const tel = c.telegrafoPassos[tipo]!;
       // Passos desde T no instante desenhado (T = 0, o último passo do telegrafo = tel − 1).
       let passos = tel - ini.ataqueTimer[s]! - 1 + alfa;
@@ -73,13 +69,41 @@ export function prepararMedios(e: Estado, horda: SaidaDaHorda, tabela: readonly 
       if (passos > tel - 1) passos = tel - 1;
       blend = 1 - passos / (tel - 1);
     }
-    out.blend[k] = blend;
+    const acertado = horda.quadro[s] === d.acerto;
+    const quadro = acertado ? d.acerto : fase === FASE_DO_ATAQUE.telegrafo ? d.telegrafo : fase === FASE_DO_ATAQUE.recuperacao ? d.ataque : horda.quadro[s]!;
+    const espelhar = fase === FASE_DO_ATAQUE.telegrafo ? ini.miraX[s]! < 0 : horda.espelhar[s] === 1;
+    const escalaX = espelhar ? -d.escala : d.escala;
+    const corpo = 2 * k;
+    out.visivel[corpo] = 1;
+    out.x[corpo] = horda.x[s]!;
+    out.y[corpo] = horda.y[s]!;
+    out.rotacao[corpo] = 0;
+    out.escalaX[corpo] = escalaX;
+    out.escalaY[corpo] = d.escala;
+    out.alpha[corpo] = 1;
+    out.origemX[corpo] = out.origemY[corpo] = 0.5;
+    out.moldura[corpo] = quadro;
+    out.cor[corpo] = BRANCO;
+    out.blend[corpo] = blend;
+    const brilho = corpo + 1;
+    if (fase === FASE_DO_ATAQUE.telegrafo && !acertado && blend < 1) {
+      out.visivel[brilho] = 1;
+      out.x[brilho] = horda.x[s]!;
+      out.y[brilho] = horda.y[s]!;
+      out.rotacao[brilho] = 0;
+      out.escalaX[brilho] = escalaX;
+      out.escalaY[brilho] = d.escala;
+      out.alpha[brilho] = 1 - blend;
+      out.origemX[brilho] = out.origemY[brilho] = 0.5;
+      out.moldura[brilho] = d.branco;
+      out.cor[brilho] = BRANCO;
+      out.blend[brilho] = 1;
+    } else {
+      out.visivel[brilho] = 0;
+    }
     k++;
   }
-  for (let r = k; r < out.capacidade; r++) {
-    if (out.visivel[r] === 0) break;
-    out.visivel[r] = 0;
-  }
+  for (let r = 2 * k; r < out.capacidade; r++) out.visivel[r] = 0;
   return k;
 }
 

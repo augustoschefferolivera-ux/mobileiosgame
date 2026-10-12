@@ -201,7 +201,8 @@ describe('alocação no caminho quente (E4)', () => {
         projeteis.gpu.escrever(projeteis.saida);
       }
     });
-    expect(medios.saida.visivel.reduce((a, v) => a + v, 0)).toBe(30);
+    // Os médios vão em pares (corpo e silhueta do telegrafo, F-011): 30 corpos nos membros pares.
+    expect(medios.saida.visivel.reduce((a, v, i) => a + (i % 2 === 0 ? v : 0), 0)).toBe(30);
     expect(telegrafos.saida.visivel.reduce((a, v) => a + v, 0)).toBe(30);
     expect(projeteis.saida.visivel.reduce((a, v) => a + v, 0)).toBe(38);
     expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);

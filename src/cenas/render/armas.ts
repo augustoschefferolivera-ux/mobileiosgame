@@ -33,8 +33,8 @@ const ESCALA_DO_CRITICO = 1.5;
 /** Onda da União (U6): brasa a 0,4 até a idade 8 e reta até 0 na vida da onda (15). */
 const ALFA_DA_ONDA = 0.4;
 const IDADE_DO_FADE_DA_ONDA = 8;
-/** Morte: escala de 1 a 0,6 e alpha de 1 a 0 em 12 passos (V5). */
-const ESCALA_FINAL_DA_MORTE = 0.6;
+/** Tint neutro: a arte (F-011) não é tingida. */
+const BRANCO = 0xffffff;
 
 /** Membros da camada das armas: as facas por slot, 5 anéis de aura (um por vaga), os 16 efeitos e as 64 ondas da União (um por slot do pool, U6): 485. */
 export const MEMBROS_DAS_ARMAS = CAPACIDADE_DE_PROJETEIS + VAGAS_DE_ARMA + CAPACIDADE_DE_EFEITOS + CAPACIDADE_DE_ONDAS;
@@ -51,14 +51,16 @@ const M_ANEL = indiceDaMoldura('anel');
 const M_CUNHA = indiceDaMoldura('cunha');
 const M_QUADRADO = indiceDaMoldura('quadrado');
 const M_D0 = indiceDaMoldura('d0');
-const M_MASSA = indiceDaMoldura('massa');
 const LARGURA_DO_ANEL_PT = MOLDURA.anel.largura / 2;
 const LADO_DO_QUADRADO_PT = MOLDURA.quadrado.largura / 2;
 const LARGURA_DO_QUADRADO_PX = MOLDURA.quadrado.largura;
 
 const DIGITOS = new Uint8Array(4);
 
-/** Mortes (V5): a forma e a cor do tipo, alpha de 1 a 0 e escala de 1 a 0,6 em 12 passos. */
+/**
+ * Mortes (V5; F-011): o inimigo vira cinza em 3 quadros (doc 13 §1.5), um por terço dos 12 passos, no tamanho do
+ * corpo; o último terço some aos poucos.
+ */
 export function prepararMortes(
   ef: EfeitosDaVigilia,
   e: Estado,
@@ -88,13 +90,13 @@ export function prepararMortes(
     if (my < 0) my += ALTURA_DO_MAPA;
     out.x[k] = Math.round((camX + mx - MEIA_LARGURA_DO_MAPA) * ESCALA_DO_CANVAS) / ESCALA_DO_CANVAS;
     out.y[k] = Math.round((camY + my - MEIA_ALTURA_DO_MAPA) * ESCALA_DO_CANVAS) / ESCALA_DO_CANVAS;
-    const escala = d.escala * (1 - (1 - ESCALA_FINAL_DA_MORTE) * u);
-    out.escalaX[k] = out.escalaY[k] = escala;
+    const q = u < 1 / 3 ? 0 : u < 2 / 3 ? 1 : 2;
+    out.escalaX[k] = out.escalaY[k] = d.escala;
     out.rotacao[k] = 0;
-    out.alpha[k] = 1 - u;
+    out.alpha[k] = q < 2 ? 1 : 3 * (1 - u);
     out.origemX[k] = out.origemY[k] = 0.5;
-    out.moldura[k] = d.moldura === 'massa' ? M_MASSA : M_QUADRADO;
-    out.cor[k] = d.cor;
+    out.moldura[k] = d.cinza[q]!;
+    out.cor[k] = BRANCO;
   }
 }
 

@@ -194,7 +194,7 @@ describe('números (N2 a N6)', () => {
 });
 
 describe('mortes (V5)', () => {
-  it('idade 6: alpha 0,5 e escala 0,8 da do tipo; idade 12: removido', () => {
+  it('vira cinza em 3 quadros (F-011): idade 2 no 1º, 6 no 2º, 10 no 3º sumindo (alpha 0,5); idade 12: removido', () => {
     const e = criarEstado(1, D);
     const ef = new EfeitosDaVigilia(D.tipos);
     FLOATS_DO_EVENTO[0] = 400;
@@ -203,11 +203,14 @@ describe('mortes (V5)', () => {
     consumirEm(ef, e, 30);
     const tabela = criarTabelaDeDesenho(inimigos.inimigos, D.tipos.existe);
     const s = criarSaidaDeSprites(CAPACIDADE_DE_MORTES);
-    e.cab[CAB.passo] = 36;
-    prepararMortes(ef, e, 1, 585, 1266, tabela, s);
+    const oco = tabela[TIPO.oco_das_lanternas]!;
     const k = ef.mortes.ativo.indexOf(1);
-    expect(s.alpha[k]).toBeCloseTo(0.5, 9);
-    expect(s.escalaX[k]).toBeCloseTo(tabela[TIPO.oco_das_lanternas]!.escala * 0.8, 9);
+    for (const [passo, quadro, alpha] of [[32, 0, 1], [36, 1, 1], [40, 2, 0.5]] as const) {
+      e.cab[CAB.passo] = passo;
+      prepararMortes(ef, e, 1, 585, 1266, tabela, s);
+      expect([s.visivel[k], s.moldura[k], s.escalaX[k], s.cor[k]]).toEqual([1, oco.cinza[quadro], oco.escala, 0xffffff]);
+      expect(s.alpha[k]).toBeCloseTo(alpha, 9);
+    }
     e.cab[CAB.passo] = 42;
     prepararMortes(ef, e, 1, 585, 1266, tabela, s);
     expect(s.visivel[k]).toBe(0);

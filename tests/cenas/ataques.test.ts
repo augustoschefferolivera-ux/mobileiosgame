@@ -19,7 +19,7 @@ import { MOLDURA, RAIO_DA_CUNHA_PT } from '../../src/cenas/render/atlas';
 import { CamadaPorGPU, CamadaPorImagem, criarSaidaDeSprites, indiceDaMoldura, tintDoBlend } from '../../src/cenas/render/camadas';
 import { EfeitosDaVigilia } from '../../src/cenas/render/efeitos';
 import { OFFSET } from '../../src/cenas/render/escritores';
-import { criarSaidaDaHorda, criarTabelaDeDesenho, prepararHorda } from '../../src/cenas/render/horda';
+import { criarSaidaDaHorda, criarTabelaDeDesenho, prepararHorda, prepararQuadrosDaHorda } from '../../src/cenas/render/horda';
 import { CAB, JOGADOR, JOGADOR3_U8, TIPO_DE_PROJETIL, type Estado } from '../../src/logica/nucleo/estado';
 import { alocar } from '../../src/logica/nucleo/pool';
 import { FASE_DO_ATAQUE, TIPO } from '../../src/logica/mundo/tipos';
@@ -39,14 +39,18 @@ function telegrafar(e: Estado, s: number, timer: number, mx = 1, my = 0): void {
   e.inimigos.miraY[s] = my;
 }
 
+/** Ninguém acertado (o quadro de acerto da F-011 fica de fora destes testes). */
+const SEM_ACERTOS = new Float64Array(500).fill(-1e9);
+
 function horda(e: Estado, alfa = 1): ReturnType<typeof criarSaidaDaHorda> {
   const h = criarSaidaDaHorda();
   prepararHorda(e, alfa, J.x, J.y, h);
+  prepararQuadrosDaHorda(e, TABELA, SEM_ACERTOS, h);
   return h;
 }
 
 describe('2ª camada de médios (RE8)', () => {
-  it('escrita compacta só dos médios, na ordem dos slots, com a forma e a cor do tipo; a massa fica de fora', () => {
+  it('escrita compacta só dos médios, em pares (corpo e silhueta), na ordem dos slots, com o quadro de andar do tipo; a massa fica de fora', () => {
     const e = estadoCom([]);
     const massa = por(e, TIPO.oco_das_lanternas, 30, 0);
     const grande = por(e, TIPO.oco_grande, 0, -100);
@@ -54,13 +58,16 @@ describe('2ª camada de médios (RE8)', () => {
     const h = horda(e);
     const out = criarSaidaDeSprites(MEMBROS_DOS_MEDIOS);
     expect(prepararMedios(e, h, TABELA, D, 1, out)).toBe(2);
-    expect([out.visivel[0], out.visivel[1], out.visivel[2]]).toEqual([1, 1, 0]);
-    expect([out.moldura[0], out.moldura[1]]).toEqual([indiceDaMoldura('quadrado'), indiceDaMoldura('quadrado')]);
-    expect([out.cor[0], out.cor[1]]).toEqual([COR_DO_INIMIGO['oco_grande'], COR_DO_INIMIGO['novica_de_sal']]);
+    // Corpos nos membros pares; a silhueta do telegrafo (ímpares) fica oculta fora do telegrafo.
+    expect([out.visivel[0], out.visivel[1], out.visivel[2], out.visivel[3], out.visivel[4]]).toEqual([1, 0, 1, 0, 0]);
+    expect(TABELA[TIPO.oco_grande]!.andar).toContain(out.moldura[0]);
+    expect(TABELA[TIPO.novica_de_sal]!.andar).toContain(out.moldura[2]);
+    expect([out.cor[0], out.cor[2]]).toEqual([0xffffff, 0xffffff]);
     expect([out.x[0], out.y[0]]).toEqual([h.x[grande], h.y[grande]]);
-    expect([out.x[1], out.y[1]]).toEqual([h.x[novica], h.y[novica]]);
+    expect([out.x[2], out.y[2]]).toEqual([h.x[novica], h.y[novica]]);
     expect(h.tipo[massa]).toBe(TIPO.oco_das_lanternas);
-    expect(MOLDURA.quadrado.largura * out.escalaX[0]!).toBe(48);
+    // 24 px de arte a 2 pt: o corpo de 48 pt de B §3.2.
+    expect(24 * Math.abs(out.escalaX[0]!)).toBe(48);
   });
 
   it('a cauda usada no quadro anterior é zerada quando um médio morre', () => {
@@ -69,10 +76,10 @@ describe('2ª camada de médios (RE8)', () => {
     const b = por(e, TIPO.novica_de_sal, 100, 0);
     const out = criarSaidaDeSprites(MEMBROS_DOS_MEDIOS);
     prepararMedios(e, horda(e), TABELA, D, 1, out);
-    expect([out.visivel[0], out.visivel[1]]).toEqual([1, 1]);
+    expect([out.visivel[0], out.visivel[2]]).toEqual([1, 1]);
     e.pool.posicao[b] = -1;
     expect(prepararMedios(e, horda(e), TABELA, D, 1, out)).toBe(1);
-    expect([out.visivel[0], out.visivel[1]]).toEqual([1, 0]);
+    expect([out.visivel[0], out.visivel[2]]).toEqual([1, 0]);
   });
 
   it('um Oco Grande e um Oco no mesmo ponto: o médio é o da 2ª camada, desenhada acima da massa', () => {
@@ -82,7 +89,8 @@ describe('2ª camada de médios (RE8)', () => {
     const h = horda(e);
     const out = criarSaidaDeSprites(MEMBROS_DOS_MEDIOS);
     prepararMedios(e, h, TABELA, D, 1, out);
-    expect([out.x[0], out.y[0], out.cor[0]]).toEqual([h.x[g], h.y[g], 0x9fa39a]);
+    expect([out.x[0], out.y[0]]).toEqual([h.x[g], h.y[g]]);
+    expect(TABELA[TIPO.oco_grande]!.andar).toContain(out.moldura[0]);
   });
 });
 
@@ -105,6 +113,11 @@ describe('brilho do telegrafo no corpo por tintBlend (RE4)', () => {
     expect(blendDe(e, g, 1)).toBe(0);
     telegrafar(e, g, TEL_OCO - 7);
     expect(blendDe(e, g, 1)).toBeCloseTo(1 - 7 / 35, 12);
+    // F-011: o corpo no quadro do telegrafo e a silhueta branca por cima com alfa 1 − blend.
+    const out = criarSaidaDeSprites(MEMBROS_DOS_MEDIOS);
+    prepararMedios(e, horda(e), TABELA, D, 1, out);
+    expect([out.moldura[0], out.visivel[1], out.moldura[1]]).toEqual([TABELA[TIPO.oco_grande]!.telegrafo, 1, TABELA[TIPO.oco_grande]!.branco]);
+    expect(out.alpha[1]).toBeCloseTo(7 / 35, 12);
     const f = estadoCom([]);
     const n = por(f, TIPO.novica_de_sal, 0, -100);
     telegrafar(f, n, TEL_NOVICA);
