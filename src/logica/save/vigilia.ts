@@ -131,18 +131,19 @@ function horaDoSave(e: Estado): number {
 
 /**
  * O texto do `vigilia` a gravar. `bytes` = o buffer a guardar (o do estado, ou a sombra do Partir, FG9); o resumo (nível,
- * Almas, Frascos, hora) vem do estado vivo.
+ * Almas, Frascos, hora) vem do estado vivo, ou do `resumo` [nível, Almas, cargas] que acompanha a sombra (o resumo e o buffer
+ * são do mesmo passo; o estado vivo pode ter andado um passo além, L7 do crítico).
  */
-export function serializarVigilia(e: Estado, seq: number, bytes: Uint8Array = e.bytes): string {
+export function serializarVigilia(e: Estado, seq: number, bytes: Uint8Array = e.bytes, resumo?: Uint32Array): string {
   const corpo = {
     versao: VERSAO_DO_ENVELOPE,
     layout: VERSAO_LAYOUT,
     idVigilia: e.fogueiraU32[FOGUEIRA_U32.idVigilia]!,
     seq,
     hora: horaDoSave(e),
-    nivel: e.progresso[PROGRESSAO.nivel]!,
-    almas: e.progresso[PROGRESSAO.almas]!,
-    frascos: e.jogador4U8[JOGADOR4_U8.frascoCargas]!,
+    nivel: resumo?.[0] ?? e.progresso[PROGRESSAO.nivel]!,
+    almas: resumo?.[1] ?? e.progresso[PROGRESSAO.almas]!,
+    frascos: resumo?.[2] ?? e.jogador4U8[JOGADOR4_U8.frascoCargas]!,
     bytes: bytesParaBase64(bytes),
   };
   const texto = JSON.stringify(corpo);

@@ -21,14 +21,20 @@ export class ArmazenamentoDoMeta {
     return lerMeta(texto ?? this.memoria);
   }
 
-  /** Grava (com a soma); se o `localStorage` falhar, o texto fica na memória da sessão. Nunca lança. */
-  gravar(meta: Meta): void {
+  /**
+   * Grava (com a soma); se o `localStorage` falhar, o texto fica na memória da sessão. Nunca lança. Devolve `true` só se o
+   * texto entrou no `localStorage`: quem remove o `vigilia` depois (FIM atômico, SV4) confere isso antes de remover.
+   */
+  gravar(meta: Meta): boolean {
     const texto = serializarMeta(meta);
     this.memoria = texto;
     try {
-      this.armazenamento?.setItem(CHAVE_DO_META, texto);
+      if (this.armazenamento === null) return false;
+      this.armazenamento.setItem(CHAVE_DO_META, texto);
+      return true;
     } catch {
       // Cota cheia ou armazenamento bloqueado: a memória segura até a aba fechar.
+      return false;
     }
   }
 }

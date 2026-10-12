@@ -78,6 +78,21 @@ describe('lerOferta (SV5)', () => {
   });
 });
 
+describe('Recusar com o meta que não foi gravado (cota)', () => {
+  it('recusarOferta: o vigilia e o andamento ficam; a disposição diferente com gravarMeta false também mantém os saves', () => {
+    const a = guardada();
+    const sem = new ArmazenamentoDoMeta({ getItem: () => null, setItem: () => { throw new Error('cota'); } });
+    const o = lerOferta(a.vig, metaPadrao(), () => D, 1, () => undefined)!;
+    const novo = recusarOferta(o, D, metaPadrao(), sem, a.vig);
+    expect(novo).toMatchObject({ almas: 150, ultimaEncerrada: 1 });
+    expect(a.f.dados.has(CHAVE_DA_VIGILIA)).toBe(true);
+    expect(a.f.dados.has(CHAVE_DO_ANDAMENTO)).toBe(true);
+    const b = guardada();
+    expect(lerOferta(b.vig, metaPadrao(), () => DADOS_SEM_OBSTACULOS, 1, () => false)).toBeNull();
+    expect(b.f.dados.has(CHAVE_DA_VIGILIA)).toBe(true);
+  });
+});
+
 describe('recusarOferta (PE4, SV4, Q-03)', () => {
   it('Abandonar no estado carregado: metade das Almas, ultimaEncerrada = id, meta gravado antes de remover', () => {
     const { f, vig, armMeta } = guardada();

@@ -25,7 +25,7 @@ export function lerOferta(
   meta: Meta,
   criarDados: () => DadosDaVigilia,
   seed: number,
-  gravarMeta: (novo: Meta) => void,
+  gravarMeta: (novo: Meta) => boolean | void,
 ): OfertaDeRetomada | null {
   const lida = lerRetomada(arm, meta);
   if (lida === null) return null;
@@ -35,7 +35,8 @@ export function lerOferta(
   if (r === 'ok') return { estado, envelope: lida.envelope, andamento: lida.andamento };
   if (r === 'layout') return null;
   if (r === 'disposicao') {
-    gravarMeta(recusarSemEstado(meta, lida.envelope.idVigilia, lida.envelope.almas, lida.andamento));
+    // Só com o meta gravado de fato os saves saem; `false` (cota, modo privado) mantém o `vigilia` para o próximo boot.
+    if (gravarMeta(recusarSemEstado(meta, lida.envelope.idVigilia, lida.envelope.almas, lida.andamento)) === false) return null;
   }
   arm.removerTudo();
   return null;
@@ -47,7 +48,6 @@ export function lerOferta(
  */
 export function recusarOferta(oferta: OfertaDeRetomada, dados: DadosDaVigilia, meta: Meta, armMeta: ArmazenamentoDoMeta, arm: ArmazenamentoDaVigilia): Meta {
   const novo = recusarComEstado(oferta.estado, dados, meta, oferta.andamento);
-  armMeta.gravar(novo);
-  arm.removerTudo();
+  if (armMeta.gravar(novo)) arm.removerTudo();
   return novo;
 }

@@ -2,6 +2,7 @@
 // FIM atômico com falha injetada, leitura do boot e cota estourada. O armazenamento é simulado e registra cada chamada.
 import { describe, expect, it } from 'vitest';
 import { ACAO, fonteDoRoteiro } from '../../src/logica/nucleo/comandos';
+import { TIPO_DE_PICKUP } from '../../src/logica/nucleo/estado';
 import { CAB, CAUSA_DO_FIM, CENARIO, ETAPA, FOGUEIRA_F32, FOGUEIRA_U32, FOGUEIRA_U8, PROGRESSAO, criarEstado, type Estado } from '../../src/logica/nucleo/estado';
 import { avancar } from '../../src/logica/nucleo/passo';
 import { encerrarVigilia, resultadoDaVigilia } from '../../src/logica/mundo/vigilia';
@@ -13,6 +14,7 @@ import { ArmazenamentoDaVigilia, CHAVE_DA_VIGILIA, CHAVE_DO_ANDAMENTO, GravadorD
 import { DADOS_DA_CHARNECA as D, PARADO } from '../logica/apoio';
 import { ELMO, ESPADA, estadoDe } from '../logica/progressao/apoio';
 import { J } from '../logica/armas/apoio';
+import { pickupEm } from '../logica/progressao/apoio';
 
 /** localStorage simulado: guarda o texto, registra as chamadas e falha onde mandarem. */
 class Falso implements ArmazenamentoRemovivel {
@@ -118,6 +120,29 @@ describe('a Fogueira grava o vigilia (SV3, FG9)', () => {
     const final = lerVigilia(f.getItem(CHAVE_DA_VIGILIA));
     expect(final.ok && final.envelope.hora).toBe(1);
   });
+
+  it('sair do raio: o resumo do envelope é o do passo da sombra, mesmo que o passo da saída tenha colhido Almas (L7)', () => {
+    const { f, vig } = novo();
+    const e = estadoDe([[ESPADA, 8]], [[ELMO, 1]], { relogioInicial: 18000, inicioLivre: true, almasIniciais: 400 });
+    e.fogueiraU32[FOGUEIRA_U32.idVigilia] = 3;
+    e.fogueiraU8[FOGUEIRA_U8.fogueiraAcesa] = 1;
+    e.fogueiraU8[FOGUEIRA_U8.fogueiraHora] = 1;
+    e.fogueiraF32[FOGUEIRA_F32.fogueiraX] = J.x + 63.5;
+    e.fogueiraF32[FOGUEIRA_F32.fogueiraY] = J.y;
+    const g = new GravadorDaVigilia(vig, e, D.combate.autosavePassos);
+    avancar(e, D, PARADO, 1);
+    g.depoisDoFrame(e);
+    expect(e.fogueiraU8[FOGUEIRA_U8.etapa]).toBe(ETAPA.fogueira);
+    pickupEm(e, 0, 0, TIPO_DE_PICKUP.alma, 30);
+    avancar(e, D, fonteDoRoteiro([{ passo: 0, mx: -1, my: 0 }]), 1);
+    g.depoisDoFrame(e);
+    expect(e.fogueiraU8[FOGUEIRA_U8.etapa]).toBe(ETAPA.hora);
+    expect(e.progresso[PROGRESSAO.almas]).toBe(430);
+    const lido = lerVigilia(f.getItem(CHAVE_DA_VIGILIA));
+    if (!lido.ok) throw new Error(lido.motivo);
+    expect(lido.envelope.almas).toBe(400);
+    expect(g.ultimo!.hash).toBe(hashDosBytes(sombraDaFogueira(e)!));
+  });
 });
 
 describe('FIM atômico e leitura do boot (SV4, SV5)', () => {
@@ -141,6 +166,25 @@ describe('FIM atômico e leitura do boot (SV4, SV5)', () => {
     expect([depois.almas, depois.ultimaEncerrada]).toEqual([100, 1]);
     expect(lerMeta(f.getItem(CHAVE_DO_META)).almas).toBe(100);
     expect(f.getItem(CHAVE_DA_VIGILIA)).toBeNull();
+  });
+
+  it('o meta não entrou no localStorage (cota): o vigilia e o andamento ficam, o crédito vale na memória e o próximo boot oferece de novo', () => {
+    const { f, meta, vig } = novo();
+    const e0 = vigilia(1);
+    const g = new GravadorDaVigilia(vig, e0, 3600);
+    g.gravarInicio(e0);
+    g.salvarAndamento(e0);
+    f.falhaAoGravar = (chave) => chave === CHAVE_DO_META;
+    expect(meta.gravar(metaPadrao())).toBe(false);
+    const { r } = encerrada(1);
+    const depois = creditarFim(meta, vig, { ...metaPadrao(), proximaIdVigilia: 2 }, r, 1);
+    expect(depois.almas).toBe(100);
+    expect(f.getItem(CHAVE_DA_VIGILIA)).not.toBeNull();
+    expect(f.getItem(CHAVE_DO_ANDAMENTO)).not.toBeNull();
+    // Na mesma sessão o meta da memória já tem ultimaEncerrada: não há oferta e os saves saem.
+    expect(meta.ler().ultimaEncerrada).toBe(1);
+    f.falhaAoGravar = () => false;
+    expect(meta.gravar(depois)).toBe(true);
   });
 
   it('falha entre o meta e as remoções: a leitura descarta o vigilia, sem oferta, e as Almas contam uma vez; FIM repetido é no-op', () => {

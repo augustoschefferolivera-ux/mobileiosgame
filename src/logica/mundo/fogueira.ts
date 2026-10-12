@@ -62,6 +62,8 @@ export function apagarFogueira(e: Estado): void {
 // ——— Cópia-sombra (FG9) ———
 
 const SOMBRAS = new WeakMap<Estado, Uint8Array>();
+/** O resumo (nível, Almas, cargas do Frasco) do mesmo passo da sombra, para o envelope do `vigilia` não divergir do buffer. */
+const RESUMOS = new WeakMap<Estado, Uint32Array>();
 
 /**
  * Guarda o buffer inteiro na sombra do estado: o último passo dentro do raio, que o save do Partir e da saída grava
@@ -74,6 +76,19 @@ export function guardarSombra(e: Estado): void {
     SOMBRAS.set(e, s);
   }
   s.set(e.bytes);
+  let r = RESUMOS.get(e);
+  if (r === undefined) {
+    r = new Uint32Array(3);
+    RESUMOS.set(e, r);
+  }
+  r[0] = e.progresso[PROGRESSAO.nivel]!;
+  r[1] = e.progresso[PROGRESSAO.almas]!;
+  r[2] = e.jogador4U8[JOGADOR4_U8.frascoCargas]!;
+}
+
+/** O resumo [nível, Almas, cargas] do passo da sombra, ou undefined antes da 1ª Fogueira. */
+export function resumoDaSombra(e: Estado): Uint32Array | undefined {
+  return RESUMOS.get(e);
 }
 
 /** A sombra guardada, ou undefined antes da 1ª Fogueira. */

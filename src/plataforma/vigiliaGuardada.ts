@@ -2,7 +2,7 @@
 // `localStorage` (try/catch em tudo, com queda para a memória da sessão), o gravador que os escreve nos momentos certos, a
 // leitura do boot (descarta a Vigília já encerrada) e o FIM atômico. A lógica dos saves é de logica/save/vigilia.ts.
 import type { ResultadoDaVigilia } from '../logica/mundo/vigilia';
-import { sombraDaFogueira } from '../logica/mundo/fogueira';
+import { resumoDaSombra, sombraDaFogueira } from '../logica/mundo/fogueira';
 import { CAB, FASE, FOGUEIRA_U32, JOGADOR4_U8, type Estado } from '../logica/nucleo/estado';
 import { EV, EVENTO, eventosEscritos, inicioDoEvento } from '../logica/nucleo/eventos';
 import { aplicarFimDeVigilia, type Meta } from '../logica/save/meta';
@@ -116,7 +116,7 @@ export function lerRetomada(arm: ArmazenamentoDaVigilia, meta: Meta): RetomadaGu
 /**
  * FIM atômico (SV4): o `meta` com o crédito e `ultimaEncerrada = idVigilia` é gravado primeiro; só então se removem o
  * `vigilia` e o `andamento`. Uma Vigília já encerrada (`ultimaEncerrada` igual ao id) não credita de novo. `idVigilia` 0 é
- * uma Vigília sem save (cenário): só credita. Devolve o meta vigente.
+ * uma Vigília sem save (cenário): só credita. Se o meta não entrou no `localStorage`, o `vigilia` fica. Devolve o meta vigente.
  */
 export function creditarFim(armMeta: ArmazenamentoDoMeta, arm: ArmazenamentoDaVigilia, meta: Meta, r: ResultadoDaVigilia, idVigilia: number): Meta {
   if (idVigilia > 0 && meta.ultimaEncerrada === idVigilia) {
@@ -125,8 +125,10 @@ export function creditarFim(armMeta: ArmazenamentoDoMeta, arm: ArmazenamentoDaVi
   }
   const credito = aplicarFimDeVigilia(meta, r);
   const novo: Meta = idVigilia > 0 ? { ...credito, ultimaEncerrada: idVigilia } : credito;
-  armMeta.gravar(novo);
-  if (idVigilia > 0) arm.removerTudo();
+  // O `vigilia` só sai se o meta entrou no `localStorage`; sem isso (cota, modo privado) o crédito ficaria só na memória
+  // da aba e fechar a aba perderia as Almas e a Vigília. Com o `vigilia` mantido, o próximo boot oferece a retomada.
+  const gravou = armMeta.gravar(novo);
+  if (idVigilia > 0 && gravou) arm.removerTudo();
   return novo;
 }
 
@@ -167,9 +169,9 @@ export class GravadorDaVigilia {
   }
 
   /** O `vigilia` do estado como está, ou o buffer dado (a sombra). */
-  gravarVigilia(e: Estado, bytes: Uint8Array = e.bytes): boolean {
+  gravarVigilia(e: Estado, bytes: Uint8Array = e.bytes, resumo?: Uint32Array): boolean {
     this.seq++;
-    const ok = this.arm.gravar(CHAVE_DA_VIGILIA, serializarVigilia(e, this.seq, bytes));
+    const ok = this.arm.gravar(CHAVE_DA_VIGILIA, serializarVigilia(e, this.seq, bytes, resumo));
     this.guardou = ok;
     this.ultimo = { seq: this.seq, hash: hashDosBytes(bytes) };
     return ok;
@@ -199,7 +201,7 @@ export class GravadorDaVigilia {
     }
     this.cursor = fim;
     const sombra = partiu ? sombraDaFogueira(e) : undefined;
-    if (sombra !== undefined) this.gravarVigilia(e, sombra);
+    if (sombra !== undefined) this.gravarVigilia(e, sombra, resumoDaSombra(e));
     else if (estado) this.gravarVigilia(e);
     if (e.cab[CAB.passo]! >= this.proximoAndamento) {
       this.salvarAndamento(e);

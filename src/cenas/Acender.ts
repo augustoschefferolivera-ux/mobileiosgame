@@ -64,8 +64,9 @@ export class Acender extends Phaser.Scene {
     // Sem ?cenario: a Vigília guardada, se houver, é oferecida (a Recusar e o Continuar vêm dos toques).
     if (this.ctx.cenario === null) {
       this.oferta = lerOferta(this.ctx.vigiliaGuardada, this.ctx.meta.atual, criarDadosDaCharneca, this.ctx.seed, (novo) => {
-        this.ctx.meta.armazenamento.gravar(novo);
+        const gravou = this.ctx.meta.armazenamento.gravar(novo);
         this.ctx.meta.atual = novo;
+        return gravou;
       });
     }
     this.textosDaOferta();
