@@ -17,7 +17,7 @@ import { quantosAtivos } from '../../../src/logica/nucleo/pool';
 import { SEED_PADRAO } from '../../../src/logica/nucleo/referencia';
 import { ALTURA_DO_MAPA as H, LARGURA_DO_MAPA as W, deltaNoToro } from '../../../src/logica/mundo/toro';
 import { parametrosDoCenario } from '../../../src/plataforma/cenarios';
-import { DADOS_DA_CHARNECA as D, PARADO } from '../apoio';
+import { DADOS_DA_CHARNECA as D, PARADO, PRODUCAO } from '../apoio';
 import { eventos } from './apoio';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -69,7 +69,8 @@ describe('horda depois do pulso (E5)', () => {
 
 /** Passo da 1ª morte da Vigília normal com o jogador parado (F-004.4), até 1.800. */
 function primeiraMorte(seed: number): { passo: number; hash: string } {
-  const e = criarEstado(seed, D, { teto: 300 });
+  // Com os ataques ligados, como na Vigília de produção que a Playwright abre (decisoes-F-006 ET3).
+  const e = criarEstado(seed, D, { ...PRODUCAO, teto: 300 });
   for (let k = 1; k <= 1800; k++) {
     avancar(e, D, PARADO, 1);
     if (e.mundo[MUNDO.mortes]! > 0) return { passo: k, hash: hex8(hashEstado(e)) };

@@ -7,7 +7,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { COR, COR_DO_INIMIGO } from '../src/cenas/paleta';
-import { alvoDaPausa } from '../src/entrada/alvos';
+import { alvoDaPausa, alvoDoAparo } from '../src/entrada/alvos';
 import { insetsZerados } from '../src/plataforma/safeArea';
 import { ALTURA_DO_MAPA as H, LARGURA_DO_MAPA as W, deltaNoToro } from '../src/logica/mundo/toro';
 import { EVIDENCIAS, RAIZ, SEED, abrir, esperarIguais, proximoFrame, tocarAcender, type Debug } from './apoio';
@@ -81,19 +81,29 @@ async function naTela(page: Page): Promise<{ lista: NaTela[]; jogador: { x: numb
 /** O centro de `a` está dentro do desenho de `b` (com 2 pt de folga, pelo quadrado que contém o círculo)? */
 const cobre = (b: NaTela, a: NaTela): boolean => Math.abs(b.x - a.x) < MEIO[b.tipo]! + 2 && Math.abs(b.y - a.y) < MEIO[b.tipo]! + 2;
 
+/** Desde a F-006, os médios (Oco Grande e Noviça) vão numa 2ª camada, acima de toda a horda (RE8): cobrem qualquer Oco das Lanternas, seja qual for o slot. */
+const medio = (a: NaTela): boolean => a.tipo !== 'oco_das_lanternas';
+
 /** O botão de pausa da F-004, desenhado por cima da horda (design/decisoes-F-004.md, T18). */
 const PAUSA = alvoDaPausa(insetsZerados(), { id: '', x: 0, y: 0, largura: 0, altura: 0 });
 /** O desenho de `a` (com 2 pt de folga) não encosta no botão de pausa? */
 const longeDaPausa = (a: NaTela): boolean =>
   a.x - MEIO[a.tipo]! - 2 > PAUSA.x + PAUSA.largura || a.y - MEIO[a.tipo]! - 2 > PAUSA.y + PAUSA.altura;
 
-/** Visíveis, longe das bordas, do botão de pausa e do jogador; `isolado` pede que nenhum outro cubra o centro, `topo` só os de slot maior. */
+/** O botão Aparo da F-006, por cima da horda no canto de baixo à direita. */
+const APARO = alvoDoAparo(insetsZerados(), { id: '', x: 0, y: 0, largura: 0, altura: 0 });
+/** O desenho de `a` (com 2 pt de folga) não encosta no botão Aparo? */
+const longeDoAparo = (a: NaTela): boolean =>
+  a.x + MEIO[a.tipo]! + 2 < APARO.x || a.x - MEIO[a.tipo]! - 2 > APARO.x + APARO.largura || a.y + MEIO[a.tipo]! + 2 < APARO.y || a.y - MEIO[a.tipo]! - 2 > APARO.y + APARO.altura;
+
+/** Visíveis, longe das bordas, dos botões de pausa e Aparo e do jogador; `isolado` pede que nenhum outro cubra o centro, `topo` só os de slot maior. */
 function escolher(lista: NaTela[], jogador: { x: number; y: number }, n: number, isolado: boolean): NaTela[] {
   return lista
     .filter((a) => a.x > 30 && a.x < 360 && a.y > 60 && a.y < 784)
     .filter(longeDaPausa)
+    .filter(longeDoAparo)
     .filter((a) => Math.hypot(a.x - jogador.x, a.y - jogador.y) > MEIO[a.tipo]! + 24 + 2)
-    .filter((a) => !lista.some((b) => b.slot !== a.slot && (isolado || b.slot > a.slot) && cobre(b, a)))
+    .filter((a) => !lista.some((b) => b.slot !== a.slot && (isolado || b.slot > a.slot || (medio(b) && !medio(a))) && cobre(b, a)))
     .slice(0, n);
 }
 
@@ -203,7 +213,7 @@ test('a horda desenhada corresponde à simulação nos dois modos, e o slot que 
     expect(visiveis.length, 'inimigos visíveis e não cobertos').toBe(10);
     const antes = await pixelsDoCanvas(page);
     const lidas = await cores(page, antes, visiveis);
-    visiveis.forEach((a, i) => expect(perto(lidas[i]!, rgb(COR_DO_INIMIGO[a.tipo]!)), `${modo}: slot ${a.slot} (${a.tipo}) = ${lidas[i]}`).toBe(true));
+    visiveis.forEach((a, i) => expect(perto(lidas[i]!, rgb(COR_DO_INIMIGO[a.tipo]!)), `${modo}: slot ${a.slot} (${a.tipo}) em ${a.x},${a.y} = ${lidas[i]}`).toBe(true));
 
     // O slot morto: 3 inimigos visíveis sem ninguém por cima nem por baixo do centro.
     const removidos = escolher(lista, jogador, 3, true);

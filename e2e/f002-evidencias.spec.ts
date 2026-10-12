@@ -68,11 +68,12 @@ test('evidência: vídeo de 390 × 844 e 3 screenshots sequenciais (roteiro do �
   // 3. Cruzar a costura em x (de x = 585 a 144 px/s, ≈ 4,1 s) e 4. encostar no obstáculo e deslizar.
   await page.waitForFunction(() => window.__GAME_DEBUG__.jogador!.x < 400, undefined, { timeout: 20_000 });
   await page.waitForFunction(() => window.__GAME_DEBUG__.jogador!.y < 1266 - 6, undefined, { timeout: 20_000 });
-  await page.waitForTimeout(300);
-  await foto(3);
+  // A posição é lida antes da captura: no contêiner a captura leva quase 1 s de jogo (≈ 100 px a mais depois das camadas da F-006).
   const deslize = await page.evaluate(() => window.__GAME_DEBUG__.jogador!);
   expect(deslize.x).toBeGreaterThan(150);
   expect(deslize.x).toBeLessThan(260);
+  await page.waitForTimeout(300);
+  await foto(3);
   await page.waitForTimeout(2000);
 
   // 5. Soltar e tocar em outro ponto: o joystick aparece em outro lugar.
