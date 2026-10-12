@@ -52,13 +52,13 @@
 
 ### 0.A Decisões de design e divergências (para vetar)
 
-Em negrito, o que diverge de um documento aprovado. "Alternativa" é o que vale se você vetar. As oito que mais pedem seu olhar: DM1 e DM3 (armadura × Brasa Firme e os 15%), FR3 (carga gasta no início), FR4 e FR6 (esquivar durante a cura e "segurar"), RS4 (`mortes` com convertido 10), AM2 (Alma com pool cheio), SV2 (save só em `localStorage`), RS1 e RS6 (Resultado sem chefe e Brasas; Voltar leva ao Acender) e HB1 (cor do HP).
+Em negrito, o que diverge de um documento aprovado. "Alternativa" é o que vale se você vetar. As onze que mais pedem seu olhar: DM1 e DM3 (armadura × Brasa Firme e os 15%), FR3 (carga gasta no início), FR4 e FR6 (esquivar durante a cura e "segurar"), RS4 (`mortes` com convertido 10), AM2 (Alma com pool cheio), SV2 (save só em `localStorage`), RS1 e RS6 (Resultado sem chefe e Brasas; Voltar leva ao Acender) e HB1 (cor do HP).
 
 | # | Decisão | Valor |
 |---|---|---|
-| DM1 | Armadura × Brasa Firme | Multiplicativo: `dano = bruto × 20/(A+20) × (Brasa Firme ? 0,8 : 1)`; o teto de 75% é só da curva da armadura; máximo combinado 80%. A = 0, 4, 20, 60, 100 dão redução 0; 16,667%; 50%; 75% exato; 75% (cortado de 83,3%). Alternativa: aditivo `1 − (R + 0,2)` com teto de 75% no total (A = 20 daria 0,30 em vez de 0,40; A = 60 daria 0,25 em vez de 0,20) |
-| DM2 | Brasa Firme | `stamina > staminaMax/2` estrito, lida no instante do acerto, depois do gasto do passo e antes da regeneração. Só o teto 100 é testado (51 → ×0,8; 50 → ×1,0; 50,2 → ×0,8). **Diverge da D6 §10 ("≥ 50,5") para stamina entre 50 e 50,5**: a regeneração é de 0,5 por passo e o gasto é inteiro, mas valores como 50,2 existem. Alternativa: `≥ 50,5` |
-| DM3 | Os 15% do Frasco | **Medidos no dano líquido (depois da armadura e da Brasa Firme), estrito `>`, limiar `hpMax × 15/100` com o `hpMax` do momento. Diverge do doc 02 §5.5 e da D6 §10, que leem o bruto ("39 de 150").** O 39 continua interrompendo (31,2 > 22,5). Alternativa: medir o bruto (o Frasco ignoraria a armadura) |
+| DM1 | Armadura × Brasa Firme | Multiplicativo: `dano = bruto × 20/(A+20) × (Brasa Firme ? 1 − reducao_dano_pct/100 : 1)` (`reducao_dano_pct` = 20 em `vigilantes.json`, tabelado na carga; abaixo, 0,8); o teto de 75% é só da curva da armadura; máximo combinado 80%. A = 0, 4, 20, 60, 100 dão redução 0; 16,667%; 50%; 75% exato; 75% (cortado de 83,3%). Alternativa: aditivo `1 − (R + 0,2)` com teto de 75% no total (A = 20 daria 0,30 em vez de 0,40; A = 60 daria 0,25 em vez de 0,20) |
+| DM2 | Brasa Firme | `stamina > staminaMax × condicao_stamina_acima_pct/100` (50 em `vigilantes.json`), estrito, lida no instante do acerto, depois do gasto do passo e antes da regeneração. Com `staminaMax` = 100 equivale ao "≥ 50,5" da D6 §10 (a stamina anda em múltiplos de 0,5), sem divergência; com Vigor (F-010) o limiar segue o dado e o `>` estrito é a forma correta. Testes: 50,5 → ×0,8; 50 → ×1,0. Alternativa: `≥` (erra no limiar exato) |
+| DM3 | Os 15% do Frasco | Medidos no dano líquido (depois da armadura e da Brasa Firme), estrito `>`, limiar `hpMax × 15/100` com o `hpMax` do momento. O doc 02 §5.5 diz só "acima de 15% do HP máximo" (sem bruto nem líquido); **só a D6 §10 leu o bruto ("39 de 150") e esta decisão muda essa leitura.** O 39 com Brasa Firme continua interrompendo (31,2 > 22,5); com A = 20 o mesmo 39 vira 19,5 e não interrompe. Alternativa: medir o bruto (o Frasco ignoraria a armadura) |
 | DM4 | Arredondamento | O dano não é arredondado (Float32). O HUD mostra `ceil(hp)`: HP > 0 nunca mostra 0. O Apagar dispara com `hp ≤ 0`, não com o número exibido. Alternativa: arredondar o dano ao meio para cima (muda o contato de 1,5 para 2, +33%) |
 | FR1 | Iniciar o Frasco | Só com cargas > 0, HP < `hpMax`, sem cura em curso e fase VIVA, fora de pausa e modal. Durante a esquiva e a janela do aparo o bit é ignorado, sem custo e sem buffer; no aparo falho pode começar (D6 §10). Mesmo passo: aparo > esquiva > Frasco. Negado (HP cheio, 0 cargas): sem custo e sem gastar a espera de 120. Alternativa: buffer de 3 passos (só se o iPhone pedir) |
 | FR3 | Carga e interrupção | A carga sai no início; interrompido, a carga **não** volta e a cura já aplicada fica. Alternativa: devolver a carga ("jogo de cancelar") |
@@ -67,10 +67,10 @@ Em negrito, o que diverge de um documento aprovado. "Alternativa" é o que vale 
 | FR7 | Congelamento, pausa e modal | A cura segue o relógio do passo: se o `passo` não roda (congelamento, pausa, modal), a cura para. Frasco recusado em pausa e modal |
 | HB1 | Barra de HP | HP à esquerda da linha, stamina à direita (doc 11 §3.1). Barra cheia em `brasa #ffb347`; trecho da cura em brasa clara; "retardo" da perda em tom próprio medido (ΔE ≥ 20 contra a Cinza vermelha `#c8324b` e contra o fundo `#1a1f2b`). Se `#c8324b` não passar na medida, token novo na paleta; nunca branco nem `#ff2a2a`. O `laranjaQueimado` fica de fora: já é o tint de "stamina insuficiente". Alternativa: `laranjaQueimado` (confunde com a stamina) |
 | HB2 | Sinal de acerto | Só quando o desfecho é "acertou" e o dano líquido > 0. Retardo de 12 passos na barra; vinheta de bordas (alfa 0,35, 6 passos, a medir) na cor do retardo, no máximo 3 por segundo em rajada. Com "Flashes" desligado a vinheta não é criada; fica o retardo estático. Alternativa: só o retardo |
-| TL1 | Telemetria `dano_recebido` | Contato agregado em **uma** linha a cada 5 s (`fonte: "contato"`, soma de todos os tipos: 240 linhas em 20 min); golpe e projétil uma linha cada, teto de 128 por fonte (anel por fonte); a linha que zera o HP é sempre registrada. **O doc 10 §6 pede um evento por dano.** Alternativa: contato fora da telemetria (só no total do Resultado) |
+| TL1 | Telemetria `dano_recebido` | Contato agregado em **uma** linha a cada 5 s (`fonte: "contato"`, soma de todos os tipos: 240 linhas em 20 min); golpe, projétil, esquiva e aparo uma linha cada, com teto de 128 por fonte (anel por fonte; pior caso < 1.024, ver TL1); a linha que zera o HP é sempre registrada. **O doc 10 §6 pede um evento por dano.** Alternativa: contato fora da telemetria (só no total do Resultado) |
 | AG1 | Morte | `verificarMorte` no fim do passo, depois de todo o dano; `hp ≤ 0` → APAGANDO. Descarta `niveisPendentes`, `bausPorFechar` e a oferta em curso; zera o Frasco sem evento; o modal do mesmo passo não abre |
 | AG2 | Câmera lenta do Apagar | APAGANDO dura 30 passos e o driver escala o `deltaMs` por 0,5: 1 s de tempo real. A escala vale enquanto a fase for APAGANDO e não consome `restanteMs`; o FIM é exatamente no passo 30. **Diverge do ADR-0002 §3 ("1 passo a cada k quadros") e segue a D6 FB5.** Alternativa: fator 0,25 e 15 passos |
-| AG3 | O que roda em APAGANDO | Os inimigos andam; HP fica em 0, contato não fere, nenhum `dano_recebido` novo; comandos, armas e ataques não rodam; projéteis somem no passo 1; regeneração e Poder param; sem spawn; Cinzas e Almas no chão ficam; o relógio da Vigília para no passo da morte; pausa inerte. Alternativa: tudo congelado |
+| AG3 | O que roda em APAGANDO | Os inimigos andam; HP fica em 0, contato não fere, nenhum `dano_recebido` novo; comandos, armas e ataques não rodam; projéteis somem no passo 1; regeneração e Poder param; sem spawn; Cinzas e Almas no chão ficam; o relógio da Vigília para no passo da morte; pausa inerte. As regras valem por uma função da fase (`faseSemArmas`), que a F-009 reaproveita para A_FOME. Alternativa: tudo congelado |
 | AM2 | Alma com pool cheio | Sem Alma viva para juntar, o valor é **creditado direto em `almas`** (nada se perde). **Diverge da D5 §9 (descartar e contar)**; elimina o campo `almasDescartadas`. Medir com o `sim20`. Alternativa: descartar e contar |
 | RS1 | Conteúdo do Resultado | Tempo, Nível, Mortes causadas, **Dano recebido** (doc 02 §8), Almas líquidas (N − mancha), a linha da mancha e os botões. **Sem "Chefe mais longe" e "Brasas" até a F-009 (brief §5.13; doc 11 §3.12).** Sem Reviver. Alternativa: mostrar "—" |
 | RS4 | "Mortes causadas" | Abates pela arma, **convertido vale 10** (o mesmo 10 de XP e Almas); 0 para a massa que morre ao formar a arena e para o Coroado que vira cinza. **`mortes` muda de semântica (por slot na F-004)**; os testes de slot são reescritos. Alternativa: contador separado (`mortesDeMassa`) mantendo `mortes` por slot |
@@ -92,13 +92,13 @@ Em negrito, o que diverge de um documento aprovado. "Alternativa" é o que vale 
 
 | # | Decisão | Valor |
 |---|---|---|
-| DM8, LY6 | Laço quente | `BRUTO` segue `Float64Array` de rascunho; armadura e Brasa Firme escrevem em `BRUTO[0]` e não retornam número; limiares são locais; telemetria passa por `FLOATS_DO_EVENTO` (Float64Array de 4), nunca por argumento. O FNV-1a do meta (u32 ≥ 2^30) é calculado em duas metades de 16 bits ou num `Uint32Array` de rascunho |
+| DM8, LY6 | Laço quente | `BRUTO` segue `Float64Array` de rascunho; armadura e Brasa Firme escrevem em `BRUTO[0]` e não retornam número; limiares são locais; telemetria passa por `FLOATS_DO_EVENTO` (Float64Array de 4), nunca por argumento. O FNV-1a do meta (u32 ≥ 2^30) é calculado em `Uint32Array` de rascunho ou duas metades de 16 bits e guardado como `soma` string hex de 8 caracteres |
 | DM5 | Contador `danoRecebido` | HP efetivamente perdido, limitado ao HP restante; a telemetria registra o líquido do golpe |
-| FR2 | Cura | `frascoPorPasso = 0,4 × hpMax/120` e `frascoAlvo` gravados no toque (usa o `hpMax` do início); no passo 120 fixa `min(hpMax atual, alvo)` |
+| FR2 | Cura | `frascoPorPasso = 0,4 × hpMax/120` e `frascoRestante` (f32, começa em `0,4 × hpMax`) gravados no toque (usa o `hpMax` do início); cada passo soma `c` e desconta de `frascoRestante`; no passo 120 soma o resto: `hp = min(hpMax atual, hp + resto)` |
 | FR5 | Regeneração | `esperaRegen = max(esperaRegen, 120)` uma vez, no passo do início; sem `esperaFrasco` |
-| LY2 | Ordem do passo | comandos → congelamento (ET4) → cura do Frasco → pickups e modal → armas → ataques, contato, projéteis (`danoAoJogador`) → `verificarMorte` → relógio |
+| LY2 | Ordem do passo | A F-007 **insere** na ordem existente (D4/D6); não a reescreve: bit 16 primeiro; cura do Frasco depois de comandos e congelamento (ET4); `danoAoJogador` (golpe, contato, projétil) antes da regeneração de stamina, que mantém o lugar da D4/D6 junto com Poder, i-frames e varredura de mortes; `verificarMorte` depois da varredura de mortes e antes do relógio |
 | LY3 | Bits de `ACAO` | `esquiva` 1, `aparo` 2, `frasco` 4, `frascoCancelar` 8, `abandonar` 16; só no fim da enum |
-| LY4 | Eventos | `frascoInterrompido`, `apagou`, `fimDaVigilia`, mancha recuperada; `TIPO_DE_PICKUP.alma` = 4; códigos só no fim |
+| LY4 | Eventos | `frascoIniciado`, `frascoInterrompido`, `frascoCancelado`, `apagou`, `fimDaVigilia`, mancha recuperada e `danoAoJogador` (leva o dano líquido em `FLOATS_DO_EVENTO[0]`); `TIPO_DE_PICKUP.alma` = 4; códigos só no fim |
 | AG4 | Fase | `fase` u8 (0 VIVA, 1 APAGANDO, 2 FIM), `causaDoFim` u8; em FIM o `passo` é no-op (hash congelado) |
 | AG6 | `encerrarVigilia(estado, causa)` | Único, já aceita as 4 causas (apagar, abandonar, a_fome, amanhecer); a F-009 liga as duas últimas |
 | MC6 | Mancha no estado | Campos próprios no v7, sem slot no pool de 512, sem RNG; entra pelo `ParametrosDaVigilia.mancha` |
@@ -129,23 +129,23 @@ Em negrito, o que diverge de um documento aprovado. "Alternativa" é o que vale 
 
 ### O que nenhum documento dá
 
-A ordem armadura × Brasa Firme, o momento da leitura da stamina, os 15% bruto ou líquido, a carga do Frasco interrompido, o que "segurar" mede, as ações durante a cura, o arredondamento de 0,3 × N, o conteúdo do Resultado e dos botões, a política de pool cheio, a agregação da telemetria, o layout da pausa e o contador de "mortes causadas". São as decisões delegadas deste documento.
+A ordem armadura × Brasa Firme, o momento da leitura da stamina, os 15% bruto ou líquido (o doc 02 §5.5 não diz), a carga do Frasco interrompido, o que "segurar" mede, as ações durante a cura, o arredondamento de 0,3 × N, o conteúdo do Resultado e dos botões, a política de pool cheio, a agregação da telemetria, o layout da pausa e o contador de "mortes causadas". São as decisões delegadas deste documento.
 
 ## 2. Dano, armadura e Brasa Firme (DM)
 
 **DM1. Ordem e fórmula. [delegada]**
-- `danoAoJogador` fica o único caminho do HP e roda depois do aparo e dos i-frames de `resolverAcertoNoJogador` (D6 §10). Ordem de cálculo: bruto → `× 20/(A+20)` (a redução é `min(0,75, A/(A+20))`) → `× 0,8` se Brasa Firme, cada passo com `Math.fround`.
+- `danoAoJogador` fica o único caminho do HP e roda depois do aparo e dos i-frames de `resolverAcertoNoJogador` (D6 §10). Ordem de cálculo: bruto → `× 20/(A+20)` (a redução é `min(0,75, A/(A+20))`) → `× (1 − reducao_dano_pct/100)` se Brasa Firme (`reducao_dano_pct` = 20 de `vigilantes.json`, tabelado na carga; o 0,8 abaixo), cada passo com `Math.fround`.
 - Tabela de dano para bruto 20 (sem Brasa Firme / com): A = 0: 20 / 16; A = 4: 16,667 / 13,333; A = 20: 10 / 8; A = 60: 5 / 4; A = 100: 5 / 4. 60/80 = 0,75 é exato em Float32; A = 100 (83,3%) vira 75%.
 - A é inteiro (Elmo 4 por nível; A = 20 no nível 5; A = 60 só por teste da função). A negativo ou NaN é recusado na função fria, sem double cruzando linha.
 - Teste: `reducaoDeArmadura` com A = 0, 4, 20, 60, 100 (mais 59 e 61); tabela A × Brasa Firme de 6 casos que prova a escolha (aditivo e multiplicativo divergem).
 
 **DM2. Brasa Firme. [delegada]**
-- Condição `stamina > staminaMax/2`, estrita. Com o teto 100 coincide com o F-007.6. O teto vem do dado (`combate.staminaMax`); Vigor muda o teto só na F-010, que liga o teste de `staminaMax/2` ao dado (§13).
+- Condição `stamina > staminaMax × condicao_stamina_acima_pct/100` (50 em `vigilantes.json`, tabelado na carga), estrita. Com `staminaMax` = 100 vale 50 e a regra equivale ao "≥ 50,5" da D6 §10, porque a stamina anda em múltiplos de 0,5 (D6 linha 165): **não há divergência** e o valor 50,2 é inalcançável. Com Vigor (F-010) o teto muda e o limiar segue o dado; o `>` estrito é a forma correta. O teto vem do dado (`combate.staminaMax`); a F-010 liga o teste ao dado (§13).
 - Leitura no instante do acerto: depois do gasto do passo (a esquiva põe 25 e a Brasa Firme já cai) e antes da regeneração do passo.
-- **Diverge da D6 §10 ("≥ 50,5") para 50 a 50,5.** Teste: 51 → ×0,8; 50 → ×1,0; 50,2 → ×0,8.
+- Teste: 50,5 → ×0,8; 50 → ×1,0 (mutação `≥` reprova).
 
 **DM3. Os 15% do Frasco. [delegada]**
-- **Líquido, estrito, limiar `hpMax × 15/100` com o `hpMax` do momento.** Com 150: 22,5 (exato em Float32). Sem Brasa Firme o líquido 22 não interrompe e o 23 interrompe. Com Brasa Firme, bruto 28 → 22,4 não; 29 → 23,2 sim; 39 → 31,2 sim.
+- **Líquido, estrito, limiar `hpMax × 15/100` com o `hpMax` do momento; muda a leitura bruta da D6 §10** (o doc 02 §5.5 não especifica). Com 150: 22,5 (exato em Float32). Sem Brasa Firme o líquido 22 não interrompe e o 23 interrompe. Com Brasa Firme, bruto 28 → 22,4 não; 29 → 23,2 sim; 39 → 31,2 sim. Com A = 20, 39 bruto = 19,5 líquido: não interrompe.
 - "15% + 1" do F-007.2 é +1 ponto de dano líquido (23,5), mais o vizinho Float32 acima de 22,5. O F-007.2 roda com A = 0 e Brasa Firme desligada (stamina ≤ 50), para o bruto ser o líquido; a segunda asserção liga a Brasa Firme.
 - Vale para todo dano que passa por `danoAoJogador` (contato, golpe, projétil). O contato nunca interrompe: o maior contato é `maiorDano × 0,3` = 1,5, abaixo de 19,5 (15% de 130). O teste lê `inimigos.json`, não confia no texto.
 
@@ -164,8 +164,8 @@ A ordem armadura × Brasa Firme, o momento da leitura da stamina, os 15% bruto o
 **FR1. Iniciar. [delegada]** Ver §0.A. Teste: bit com `esquivaPasso` em 1, 13 e 21 → sem efeito e carga intacta; no aparo falho (24 passos) → inicia; HP cheio e 0 cargas → negado sem mudar estado nem `esperaRegen`; aparo e Frasco no mesmo passo → vale o aparo.
 
 **FR2. Cura. [delegada + técnica]**
-- Carga gasta no toque; cura de `0,4 × hpMax/120` por passo nos passos 1 a 120, `hp = min(hpMax atual, hp + c)`. Com 150, `c = 0,5` exato; para 100 a 600 o erro de Float32 após 120 somas é ≤ 4e-4, sem acumulador inteiro. No passo 120 o `hp` fixa `min(hpMax atual, frascoAlvo)`.
-- **O Frasco usa o `hpMax` do início**: uma carta +HP% escolhida no meio da cura (o modal abre durante a cura) muda o `hpMax` mas não `frascoPorPasso` nem `frascoAlvo`. Teste explícito.
+- Carga gasta no toque; cura de `0,4 × hpMax/120` por passo nos passos 1 a 120, `hp = min(hpMax atual, hp + c)` e `frascoRestante -= c`. No passo 120 soma o resto (`hp = min(hpMax atual, hp + frascoRestante)`; `frascoRestante` = 0), de modo que o dano sofrido entre os passos 1 e 119 **não** é desfeito (nada fixa o `hp` em um alvo gravado). Com 150, `c = 0,5` exato; para 100 a 600 o erro de Float32 após 120 somas é ≤ 4e-4, sem acumulador inteiro.
+- **O Frasco usa o `hpMax` do início**: uma carta +HP% escolhida no meio da cura (o modal abre durante a cura) muda o `hpMax` mas não `frascoPorPasso` nem `frascoRestante`. Teste explícito; outro teste: HP 30, golpe de 10 no passo 100 (não interrompe) → 90 − 10 = 80 no passo 120, não 90.
 - HP 30/150 → 90 em 120 passos; 140 → 150.
 
 **FR3. Interrupção. [delegada]**
@@ -192,7 +192,7 @@ A ordem armadura × Brasa Firme, o momento da leitura da stamina, os 15% bruto o
 
 **HB3. Contraste e medida. (a medir)** ΔE e razão de contraste das cores na implementação; resultado entra na ADR-0009.
 
-**TL1. Política. [delegada]** Ver §0.A. `frasco: [minuto, hp_antes]` uma linha por uso; `aparo` e `esquiva` uma linha por desfecho (política da D6, repetida aqui porque a pendência a exige). O contador do estado registra o HP perdido; a telemetria, o líquido. Teste: horda de 3.600 passos com HP infinito não expulsa `frasco` nem `apagar` do registro de 1.024 entradas.
+**TL1. Política. [delegada]** Ver §0.A. `frasco: [minuto, hp_antes]` uma linha por uso; `aparo` e `esquiva` uma linha por desfecho (política da D6), com **teto de 128 por fonte** (anel por fonte). Pior caso: golpe 128 + projétil 128 + contato 128 + esquiva 128 + aparo 128 + frasco 128 + `apagar` 1 = 769 < 1.024, então nenhuma fonte expulsa `frasco` nem `apagar`. O dano líquido do golpe chega pelo evento `danoAoJogador` (LY4, `FLOATS_DO_EVENTO[0]`); o contador do estado registra o HP perdido. Testes: horda de 3.600 passos com HP infinito; 100 esquivas e 100 aparos mais a morte real mantêm `frasco` e `apagar`.
 
 ## 5. Apagar (AG)
 
@@ -203,7 +203,7 @@ A ordem armadura × Brasa Firme, o momento da leitura da stamina, os 15% bruto o
 - `dispararCameraLenta` ganha duração e fator por parâmetro; a do Apagar passa por cima da do tutorial e não consome `restanteMs` nem a flag `usada`. **Diverge do ADR-0002 §3 e segue a D6 FB5.**
 - Teste: função pura (a soma do `deltaMs` real = 1.000 ms para 30 passos); sem driver, o `passo` chega a FIM em 30; Playwright: `estado` passa por APAGANDO e chega a FIM.
 
-**AG3. O que roda. [delegada, D4/D5/D6]** Ver §0.A. Zera `congelamento`, `esquivaPasso`, `aparoJanela`, `aparoFalho` e as bordas travadas; esquiva e aparo ignorados sem custo. Pausa inerte (evita FIM duplo). Teste: em APAGANDO, zero mortes, XP e Almas novas, nenhum projétil vivo, `relogio` constante, `hp` = 0; mutação: deixar as armas rodarem reprova.
+**AG3. O que roda. [delegada, D4/D5/D6]** Ver §0.A. Zera `congelamento`, `esquivaPasso`, `aparoJanela`, `aparoFalho` e as bordas travadas; esquiva e aparo ignorados sem custo. Pausa inerte (evita FIM duplo). As regras de A_FOME (D4 §9: nenhuma arma, facas somem, nenhuma morte soma) usam a mesma função da fase (`faseSemArmas(fase)`), não um `if` em APAGANDO. Teste: em APAGANDO, zero mortes, XP e Almas novas, nenhum projétil vivo, `relogio` constante, `hp` = 0; mutação: deixar as armas rodarem reprova.
 
 **AG4. Estado. (técnica)** `fase`, `causaDoFim` (0 nenhuma, 1 apagar, 2 abandonar; 3 a_fome e 4 amanhecer reservados) e `apagandoPassos` no v7. Debug: `estado` = `VIVA | APAGANDO | FIM(apagar|abandonar)`, `tela` = `resultado`, `textoAtivo` com `A4.APAGAR.01` já em APAGANDO.
 
@@ -227,7 +227,7 @@ A ordem armadura × Brasa Firme, o momento da leitura da stamina, os 15% bruto o
 
 **AM5. HUD de Almas. [delegada, D5 R4/P10]** "1.240" com "." de milhar, glifos da N4, topo + 116 pt, à esquerda; atualiza só quando o valor muda. Teste `hud.test.ts`: 0, 9, 999, 1.000, 1.240, 12.345, sem alocação nova por quadro. As Almas não aparecem na pausa.
 
-**AM6. Alvos (Q-21). Não calibrados.** Medir o total por Vigília de produção (`sim20`) e registrar como recomendação para a F-010 (preço da árvore).
+**AM6. Alvos (Q-21). Não calibrados.** Q-21 só fecha na F-010, com as 300 Almas garantidas adiadas (RS8). Medir o total por Vigília de produção (`sim20`) e registrar como recomendação para a F-010 (preço da árvore).
 
 **AM7. Limite. (técnica)** `almas`, `manchaAlmas` e o `valor` do pickup ficam < 2^30; o saldo do Santuário é limitado em `aplicarFimDeVigilia`. Teste de limite.
 
@@ -235,7 +235,7 @@ A ordem armadura × Brasa Firme, o momento da leitura da stamina, os 15% bruto o
 
 **RS1. Conteúdo.** Ver §0.A. Sem botão Reviver (teste); o "Dano recebido" reusa o contador de PE2.
 
-**RS2. Tempo.** `relogio / 3600` em `m:ss`, truncado; o relógio para na pausa, no modal, no congelamento e em APAGANDO, então vale o instante do HP 0.
+**RS2. Tempo.** `relogio` está em passos (60 Hz): segundos = `⌊relogio / 60⌋`, mostrados em `m:ss`, truncado; o relógio para na pausa, no modal, no congelamento e em APAGANDO, então vale o instante do HP 0.
 
 **RS3. Nível.** O do estado no passo da morte; o nível pendente descartado não conta (D5 §9). Teste: morrer com um nível pendente mostra o anterior.
 
@@ -247,11 +247,11 @@ A ordem armadura × Brasa Firme, o momento da leitura da stamina, os 15% bruto o
 
 **RS7. Mapa pequeno. [delegada]** Um `Graphics` de ≈ 120 × 120 pt proporcional ao mapa, com um ponto na posição da mancha; sem texto novo. Alternativa: só o texto, e o mapa na F-010.
 
-**RS8. Título do Abandonar.** `A6.PAUSA.ABANDONAR` (sem texto novo).
+**RS9. Título do Abandonar.** `A6.PAUSA.ABANDONAR` (sem texto novo).
 
 ## 8. Mancha das Cinzas Perdidas (MC)
 
-**MC1. Conta.** N = 0, 1, 2, 3, 4, 5, 15, 280, 1.100 dão mancha 0, 0, 1, 1, 1, 2, 5, 84, 330 (o `round` da linguagem daria 4 para N = 15; por isso inteiro explícito). Soma sempre fecha: `mancha + santuário = N`.
+**MC1. Conta.** N = 0, 1, 2, 3, 4, 5, 15, 280, 1.100 dão mancha 0, 0, 1, 1, 1, 2, 5, 84, 330 (`Math.round(0,3 × 15)` também dá 5; o inteiro explícito evita depender de Float32: `fround(0,3) × 15` = 4,5000002). Soma sempre fecha: `mancha + santuário = N`.
 
 **MC2. Quais Almas.** Todas as do contador no passo da morte, inclusive as recuperadas da mancha anterior e as Bolsas; as do chão se perdem.
 
@@ -284,11 +284,11 @@ A ordem armadura × Brasa Firme, o momento da leitura da stamina, os 15% bruto o
 
 ## 9. Save meta mínimo (SV)
 
-**SV1. Escopo. [delegada]** `meta.ts`: tipo `Meta` v1, `serializarMeta`, `lerMeta` (`versao`, `seq`, `soma` FNV-1a), migração `v0 → v1` = defaults, `aplicarFimDeVigilia(meta, resultado)`. Os campos que a F-007 não usa (`ultimaEncerrada`, `proximaIdVigilia`, `vigiliasConcluidas`) nascem com valor neutro. Brasas, ranks, `conviteRecusadoEm` e a árvore são da F-010.
+**SV1. Escopo. [delegada]** `meta.ts`: tipo `Meta` v1, `serializarMeta`, `lerMeta` (`versao`, `seq`, `soma` FNV-1a como string hex de 8 caracteres), migração `v0 → v1` = defaults, `aplicarFimDeVigilia(meta, resultado)`. Os campos que a F-007 não usa (`ultimaEncerrada`, `proximaIdVigilia`, `vigiliasConcluidas`) nascem com valor neutro. Brasas, ranks, `conviteRecusadoEm` e a árvore são da F-010.
 
 **SV2. Armazenamento.** Ver §0.A. `try/catch` em toda leitura e escrita (modo privado, cota, ITP), com queda para memória; a F-010 migra `vdc.meta` para o IndexedDB.
 
-**SV3. Campos do `meta` v1.** `versao`, `seq`, `soma`, `almas` (saldo do Santuário), `mancha` (`{x, y, hora, rotulo, almas}` ou `null`; `hora` 1 a 5), `tutoriais` (máscara 1, 2, 4), `primeiroApagarFeito`, `opcoes` (`som`, `flashes`, `numerosDeDano`), `vigiliasConcluidas`, `proximaIdVigilia`, `ultimaEncerrada`.
+**SV3. Campos do `meta` v1.** `versao`, `seq`, `soma` (string hex de 8 caracteres, nunca número), `almas` (saldo do Santuário), `mancha` (`{x, y, hora, rotulo, almas}` ou `null`; `hora` 1 a 5), `tutoriais` (máscara 1, 2, 4), `primeiroApagarFeito`, `opcoes` (`som`, `flashes`, `numerosDeDano`), `vigiliasConcluidas`, `proximaIdVigilia`, `ultimaEncerrada`.
 
 **SV4. Quando grava.** No FIM (Almas, mancha, `primeiroApagarFeito`, `vigiliasConcluidas`); na opção alterada, na hora do toque; no tutorial cumprido (o driver compara `tutoriaisCumpridos(estado)` com a máscara a cada quadro: no máximo 3 gravações por perfil). Nunca no laço quente.
 
@@ -300,7 +300,7 @@ A ordem armadura × Brasa Firme, o momento da leitura da stamina, os 15% bruto o
 
 **SV8. Hash. (técnica)** O meta não entra no hash; só os parâmetros que ele alimenta (`tutoriaisVistos`, `mancha`, `almasIniciais`). Teste: Vigília com meta vazio = Vigília com os padrões.
 
-**SV9. Funções frias. (técnica)** O FNV-1a (u32 ≥ 2^30) não é devolvido como número: calcula-se em duas metades de 16 bits, ou escreve-se num `Uint32Array` de rascunho. Teste: `soma` inválida → defaults; versão desconhecida → defaults, sem lançar; `seq` monotônico.
+**SV9. Funções frias. (técnica)** O FNV-1a (u32 ≥ 2^30) não é devolvido nem guardado como número no objeto `Meta`: `soma` é string hex de 8 caracteres, calculada num `Uint32Array` de rascunho ou em duas metades de 16 bits. Teste: hash 0xFFFFFFFF ida e volta (`"ffffffff"`); `soma` inválida → defaults; versão desconhecida → defaults, sem lançar; `seq` monotônico.
 
 ## 10. Pausa: estatísticas e Abandonar (PE)
 
@@ -326,7 +326,7 @@ A ordem armadura × Brasa Firme, o momento da leitura da stamina, os 15% bruto o
 |---|---|---|
 | `fase`, `causaDoFim`, `apagandoPassos` | u8 | AG |
 | `frascoCargas`, `frascoPasso` | u8 | FR |
-| `frascoPorPasso`, `frascoAlvo` | f32 | FR |
+| `frascoPorPasso`, `frascoRestante` | f32 | FR |
 | `manchaAtiva` | u8 | MC |
 | `manchaX`, `manchaY` | f32 | MC |
 | `manchaAlmas` | u32 | MC |
@@ -339,7 +339,7 @@ Sem `almasDescartadas` (AM2) e sem `estado/apagandoPasso` (descartado do B1). Os
 
 **LY3. Comandos.** A validação aceita 4, 8 e 16 (16 só com `fase` VIVA) e recusa o resto. Cancelar vence o 4; abandonar vence tudo. O replay v6, que não usa 8 e 16, segue válido (regressão). Teste de replay com os bits.
 
-**LY4. Eventos e orçamento.** Os 4 eventos novos somam ao orçamento: teste E7 de ≤ 16 B por passo e 0 B alocado, com Frasco, golpes e morte. Códigos de EVENTO, FORMA, `TIPO_DE_PICKUP.alma` e `ACAO` só no fim.
+**LY4. Eventos e orçamento.** Os 7 eventos novos (`frascoIniciado`, `frascoInterrompido`, `frascoCancelado`, `apagou`, `fimDaVigilia`, mancha recuperada, `danoAoJogador`) somam ao orçamento (reconferir ≤ 16 B no E7 com a rajada de golpes): teste E7 de ≤ 16 B por passo e 0 B alocado, com Frasco, golpes e morte. Códigos de EVENTO, FORMA, `TIPO_DE_PICKUP.alma` e `ACAO` só no fim.
 
 **LY5. Parâmetros novos.** `ParametrosDaVigilia.mancha` e `.almasIniciais` entram no hash e no replay.
 
@@ -355,11 +355,11 @@ Sem `almasDescartadas` (AM2) e sem `estado/apagandoPasso` (descartado do B1). Os
 
 **F-007.3** (vitest). Descrição: "Mancha salva e restaurada entre duas Vigílias com seeds diferentes." **Como:** "Apagar com seed A e 200 Almas: `aplicarFimDeVigilia` grava no meta `mancha = {x, y, hora, rotulo: null, almas: 60}` (x, y no ponto livre mais próximo, hora pela função pura) e Santuário 140. Vigília com seed B e `ParametrosDaVigilia.mancha` do meta a recria na mesma (x, y) com as mesmas Almas no passo 0, sem consumir RNG (mesmo estado de RNG com e sem mancha). Encostar a 33 px não pega; a 32 px devolve 60 uma vez e o hash do passo seguinte inclui as Almas; o meta só muda no FIM. Apagar com 0 Almas apaga a mancha antiga; Abandonar a mantém (Q-04)." (origem: B §4; D7 MC)
 
-**F-007.4** (playwright). Descrição: "Morrer de propósito e ver a tela de resultado (Playwright)." **Como:** "`?inicio=19:00&seed=N` sem nenhum toque até o HP chegar a 0 (≈ 4 a 5 s, a medir com a Brasa Firme; o teste espera pelo `estado`, não por tempo fixo): `__GAME_DEBUG__.estado` passa por APAGANDO e chega a FIM(apagar) no passo 30 de APAGANDO; `textoAtivo` contém `A4.APAGAR.01` em APAGANDO e no Resultado; a tela é `resultado`, com Tempo, Nível, Mortes, Dano recebido, Almas e sem botão Reviver; `localStorage` limpo e `?tutorial=0` não grava." (origem: B §4; D7 AG)
+**F-007.4** (playwright). Descrição: "Morrer de propósito e ver a tela de resultado (Playwright)." **Como:** "`?inicio=19:00&seed=N` sem nenhum toque até o HP chegar a 0 (≈ 4 a 5 s, a medir com a Brasa Firme; o teste espera pelo `estado`, não por tempo fixo): `__GAME_DEBUG__.estado` passa por APAGANDO e chega a FIM(apagar) no passo 30 de APAGANDO; `textoAtivo` contém `A4.APAGAR.01` em APAGANDO e no Resultado; a tela é `resultado`, com Tempo, Nível, Mortes, Dano recebido, Almas e sem botão Reviver; `localStorage` limpo no início." (origem: B §4; D7 AG)
 
 **F-007.5** (vitest). Descrição: "Abandonar Vigília: Almas ×0,5, sem mancha." **Como:** "`passo` com `ACAO.abandonar` (16) leva a FIM(abandonar) no mesmo passo, e o bit é ignorado em APAGANDO e FIM; Santuário = `⌊N/2⌋` para N = 0, 1, 2, 3, 280, 281; nenhuma mancha nova e a antiga mantida; título `A6.PAUSA.ABANDONAR`; o replay repete o Abandonar; o crédito do meta é feito uma vez (ADR-0002 §9; Q-25)." (origem: Q-25; ADR-0002 §9; D7 PE)
 
-**F-007.6** (vitest). Descrição: "Brasa Firme." **Como:** "hpMax inicial de Aldric = 150 (`hpMaximo(130, 15)` em `reiniciarEstado`, B §3.3); com A = 0, o golpe de 20 sai × 0,8 (16) com stamina 51, × 1,0 (20) com 50 e × 0,8 com 50,2 ('enquanto stamina > 50%', estrito, lida depois do gasto do passo e antes da regeneração); armadura depois Brasa Firme (A = 4: 13,333)." (origem: B §3.3 (escopo da F-007); D7 DM2)
+**F-007.6** (vitest). Descrição: "Brasa Firme." **Como:** "hpMax inicial de Aldric = 150 (`hpMaximo(130, 15)` em `reiniciarEstado`, B §3.3); com A = 0, o golpe de 20 sai × 0,8 (16) com stamina 51 ou 50,5, × 1,0 (20) com 50 ('enquanto stamina > 50%', estrito, lida depois do gasto do passo e antes da regeneração; o limiar vem de `vigilantes.json`; com 50,5 também × 0,8); armadura depois Brasa Firme (A = 4: 13,333)." (origem: B §3.3 (escopo da F-007); D7 DM2)
 
 **F-007.7** (vitest). Descrição: "Frasco." **Como:** "um Frasco não interrompido cura 40% do HP máximo ao longo de 120 passos (HP 30/150 → 90 exato no passo 120; 140 → 150, sem passar do máximo) e `esperaRegen` ≥ 120 no 1º passo: sem gasto, a regeneração fica parada nos passos 1 a 120 e volta no 121 (doc 02 §5.2). Também: 3 → 0 cargas e o 4º toque negado; HP cheio negado sem custo; bit ignorado com `esquivaPasso` em 1, 13 e 21; esquiva e aparo durante a cura não cancelam; o hpMax muda no meio e a cura usa o do início; bit 8 cancela (novo toque ≥ 18 passos no tradutor); replay reproduz cura e hash." (origem: B §3.3 e §4 (escopo); D7 FR)
 
@@ -372,14 +372,14 @@ Sem `almasDescartadas` (AM2) e sem `estado/apagandoPasso` (descartado do B1). Os
 
 ### Testes adicionais e mutações
 
-- **Vitest:** ordem cura × dano (HP 0,3 + cura 0,5 + golpe 1 → APAGANDO); APAGANDO (AG3); tabela de FIM da mancha (MC8); meta (ida e volta, soma, versão, defaults, opções e tutoriais gravados, `?visto` não grava, falha de `localStorage`); Almas (drop por seed, junção, coleta, crédito direto); `alvosDaTelaDePausa` em 4 alturas; HUD de Almas; regressão v6 e referências v7; E7 de alocação e de ≤ 16 B por passo.
+- **Vitest:** ordem cura × dano (HP 0,3 + cura 0,5 + golpe 1 → APAGANDO); APAGANDO (AG3); tabela de FIM da mancha (MC8); meta (ida e volta, soma, versão, defaults, opções e tutoriais gravados, `?visto` e `?tutorial=0` não gravam, falha de `localStorage`); Almas (drop por seed, junção, coleta, crédito direto); `alvosDaTelaDePausa` em 4 alturas; HUD de Almas; regressão v6 e referências v7; E7 de alocação e de ≤ 16 B por passo.
 - **Mutações a reprovar:** `⌊(3N+5)/10⌋` → `⌊0,3N⌋`; `<` por `≤` no raio 32; manter a mancha antiga no Apagar com 0; armas rodando em APAGANDO; creditar o meta duas vezes; contar o convertido como 1; Brasa Firme `≥` em vez de `>`; 15% sobre o bruto; devolver a carga na interrupção; aditivo no lugar de multiplicativo.
 - **Playwright:** o de F-004 e F-006 que dependem de `mortes`, do número de eventos e dos hashes são ajustados; a lista exata sai do diff.
 
 ## 13. Recomendações para as features seguintes (não decididas aqui)
 
 - **F-008 (Fogueira, Descansar, retomada):** recarrega os Frascos (Descansar exige cura parada e a zera); reaproveita a seta da mancha; os campos v7 (`fase`, Frasco, mancha, contadores) entram no `vigilia`; a mancha recuperada só se confirma com o `vigilia` seguinte (Q-03); `idVigilia` e `ultimaEncerrada` passam a ser ativos; Recusar da retomada usa `encerrarVigilia(abandonar)`; `sincronizarDerivados` refaz hpMax e as tabelas de dano; mancha dentro de uma arena (sem decisão); Coroado que vira cinza não solta Cinza nem Alma e não soma `mortes`.
-- **F-009 (Arena, chefe, fome, Amanhecer):** o dano de fome passa por `danoAoJogador`; liga as causas a_fome e amanhecer de `encerrarVigilia`; Resultado ganha "Chefe mais longe" e "Brasas"; A Fome na Hora da mancha; medir o total de Almas por Vigília contra Q-21.
+- **F-009 (Arena, chefe, fome, Amanhecer):** o dano de fome passa por `danoAoJogador`; liga as causas a_fome e amanhecer de `encerrarVigilia`; A_FOME segue a regra da D4 (decisoes-F-004: nenhuma arma, facas somem, nenhuma morte soma) pela `faseSemArmas` da F-007; Resultado ganha "Chefe mais longe" e "Brasas"; A Fome na Hora da mancha; medir o total de Almas por Vigília contra Q-21.
 - **F-010 (Santuário, meta completa, iPhone):** IndexedDB e `navigator.storage.persist()` com migração de `vdc.meta`; as 300 Almas do primeiro Apagar e o balão `A2.TUTORIAL.05`; custos de passivas em múltiplo de 0,5 (Passo Leve −30% = 17,5) e "+stamina máxima" por Vigor lendo `vigilantes.json`, com o teste de `staminaMax/2` ligado ao dado; teto de cargas do Frasco (até 6); calibrar no iPhone o "segurar" (18 passos), o swipe e a cor/vinheta do HP; `visibilitychange` em APAGANDO; preço da árvore pela medida de Almas.
 - **F-011 (Feitos):** `esquivasPerfeitas` já tem contador.
 
@@ -399,7 +399,7 @@ Sem `almasDescartadas` (AM2) e sem `estado/apagandoPasso` (descartado do B1). Os
 - **Documentos e scripts:** `docs/roteiro-iphone.md` (Frasco, "segurar", sinal de acerto); `scripts/sim20.ts` rodado de novo (Almas por Vigília e creditadas direto); `progress.md`.
 - **ADR-0009**, com as decisões técnicas e as divergências:
   - do ADR-0002 §3: a câmera lenta do Apagar acoplada à fase; do §10: meta só em `localStorage`; do §9: `ACAO.abandonar`;
-  - do doc 02 §5.5 e da D6 §10: os 15% no líquido e a Brasa Firme estrita;
+  - da D6 §10: os 15% no líquido (o doc 02 §5.5 não os define); a Brasa Firme estrita é equivalente ao "≥ 50,5" e não diverge;
   - da D5 §9: Alma com pool cheio creditada direto;
   - da D4 M3 / F-004: a semântica de `mortes`;
   - de B §3.12: a mancha no ponto livre; de brief §5.12 / doc 11 §3.6: a seta da mancha na F-007;
@@ -408,4 +408,20 @@ Sem `almasDescartadas` (AM2) e sem `estado/apagandoPasso` (descartado do B1). Os
 
 ## 15. Revisão adversarial
 
-*A preencher depois da revisão (lentes: fidelidade às fontes, técnica e completude; cada uma seguida de um verificador cético). Registrar aqui: método, resultado, conflitos resolvidos pelo coordenador, o que mudou no documento e as medidas novas.*
+- **Método:** três lentes (fidelidade às fontes, técnica e completude), cada uma seguida de um verificador cético que refez contas e conferiu as citações (D6, D4, doc 02, `vigilantes.json`, `node` para o arredondamento). Nenhum protótipo novo.
+- **Nota:** 8/10 antes das correções (a direção estava certa; os erros eram de detalhe e de coerência interna); sem pendência bloqueante depois.
+- **Achados:** 11 mais 1 novo (N1) = 12. Veredito dos verificadores: 10 confirmados, 1 ajustado (A2), 0 refutados; N1 (baixa) aceito.
+- **O que mudou no documento:**
+  - A1 (confirmado): a cura deixou de fixar o `hp` em `frascoAlvo`, o que desfazia o dano dos passos 1 a 119; agora `frascoRestante` (f32), soma do resto no passo 120 e teste "golpe de 10 no passo 100 → 80".
+  - A2 (ajustado): a "divergência" da Brasa Firme não existe (a stamina anda em múltiplos de 0,5; o 50,2 é inalcançável); `>` estrito equivale ao "≥ 50,5" com `staminaMax` 100 e segue o dado com Vigor; negrito removido do §0.A, DM2, F-007.6 e ADR-0009.
+  - A3: `soma` do meta é string hex de 8 caracteres (não u32 no objeto); teste com 0xFFFFFFFF.
+  - A4: eventos `frascoIniciado`, `frascoCancelado` e `danoAoJogador` (dano líquido) somam-se aos 4 anteriores: 7 eventos, E7 a reconferir.
+  - A5: teto de 128 por fonte também para esquiva e aparo, pior caso 769 < 1.024 e teste com 100 esquivas/aparos mais a morte.
+  - A6: `faseSemArmas(fase)` serve a APAGANDO e a A_FOME; regra repetida no §13 da F-009.
+  - A7: LY2 virou inserção na ordem da D4/D6 (posição exata a confirmar no código, com teste de ordem).
+  - A8: removida a frase falsa "o round daria 4"; a fórmula `⌊(3N+5)/10⌋` fica.
+  - A9: os 15% no líquido divergem só da D6 §10 (o doc 02 §5.5 não define); fora a lista de documento aprovado; com A = 20 o 39 não interrompe.
+  - A10: `reducao_dano_pct` (20) e `condicao_stamina_acima_pct` (50) lidos de `vigilantes.json`.
+  - A11: "oito" virou "onze"; RS2 usa `relogio / 60`; `?tutorial=0` saiu do critério F-007.4 (fica nos testes); Q-21 depende das 300 Almas adiadas (AM6); este §15 preenchido.
+  - N1: o segundo RS8 virou RS9.
+- **Conflitos resolvidos pelo coordenador:** nenhum novo. **Medidas novas:** nenhuma; as "a medir" seguem para a implementação.
