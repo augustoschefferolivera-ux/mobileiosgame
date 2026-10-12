@@ -12,6 +12,7 @@ import vigiliaSemCinzas from '../dados/cenarios/vigilia_sem_cinzas.json';
 import ocoGrandeSozinho from '../dados/cenarios/oco_grande_sozinho.json';
 import novicaSozinha from '../dados/cenarios/novica_sozinha.json';
 import hordaComAtaques from '../dados/cenarios/horda_com_ataques.json';
+import telegrafos from '../dados/cenarios/telegrafos.json';
 import { codigoDaArma } from '../logica/armas/tabela';
 import { segundosEmPassos } from '../logica/nucleo/passos';
 import { codigoDoTipo } from '../logica/mundo/tipos';
@@ -52,6 +53,7 @@ export const RECEITAS: readonly ReceitaDeCenario[] = [
   ocoGrandeSozinho,
   novicaSozinha,
   hordaComAtaques,
+  telegrafos,
 ];
 
 /** Parâmetros da Vigília de um cenário (sem o TETO, que vem de ?teto ou da detecção). */

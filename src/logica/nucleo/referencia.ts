@@ -25,3 +25,9 @@ export const ROTEIRO_REFERENCIA: Roteiro = [
   { passo: 400, mx: R2, my: R2 },
   { passo: 430, mx: 0, my: 1 },
 ];
+
+/**
+ * Seed do vídeo e da comparação Node × Chromium da F-006 (decisoes-F-006 VT7, VT9): fixa, independente de
+ * `--seed` do verify.sh, porque o roteiro de ações achado pelo Vitest (`.verify/referencia-f006.json`) vale para uma seed.
+ */
+export const SEED_DA_F006 = 1;

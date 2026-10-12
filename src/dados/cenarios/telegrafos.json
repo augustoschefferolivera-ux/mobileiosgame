@@ -1,0 +1,23 @@
+{
+  "id": "telegrafos",
+  "versao": 1,
+  "linha_fixa": null,
+  "jogador": { "invulneravel": true },
+  "diretor_desligado": true,
+  "tutoriais_vistos": true,
+  "rotacao": 0,
+  "armas": [
+    { "arma": "facas_de_sal", "nivel": 1 }
+  ],
+  "cinzas": false,
+  "passivas": [],
+  "baus": [],
+  "xp_inicial": 0,
+  "relogio_inicial_s": 0,
+  "ataques_inimigos": true,
+  "inimigos": [
+    { "tipo": "oco_grande", "dx": 0, "dy": -135 },
+    { "tipo": "novica_de_sal", "dx": 0, "dy": 190 },
+    { "tipo": "novica_de_sal", "dx": 198, "dy": 222 }
+  ]
+}

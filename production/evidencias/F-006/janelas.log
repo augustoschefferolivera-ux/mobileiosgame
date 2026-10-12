@@ -1,0 +1,18 @@
+# F-006 — janelas medidas pelo caminho real (Vitest, tests/logica/combate/referencias.test.ts)
+# Gerado em 2026-10-12T05:07:48.596Z com Node v22.22.0; esperado vem da D6 (design/decisoes-F-006.md), obtido da simulação.
+janela=esquiva passo=2 esperado=sem_dano obtido=sem_dano iguais=true
+janela=esquiva passo=13 esperado=sem_dano obtido=sem_dano iguais=true
+janela=esquiva passo=14 esperado=dano obtido=dano iguais=true
+janela=aparo h-c=10 esperado=aparado obtido=aparado iguais=true
+janela=aparo h-c=11 esperado=aparado obtido=aparado iguais=true
+janela=aparo h-c=12 esperado=dano obtido=dano iguais=true
+janela=regeneracao passo=G+30 esperado=sem_regeneracao obtido=sem_regeneracao iguais=true
+janela=regeneracao passo=G+31 esperado=com_regeneracao obtido=com_regeneracao iguais=true
+janela=aparo_falho stamina P0=22 a P0+24 esperado=constante obtido=constante iguais=true
+janela=aparo_falho primeira_regeneracao=G+37 esperado=47 obtido=47 iguais=true
+janela=aparo_vazio controle primeira_regeneracao=G+31 esperado=41 obtido=41 iguais=true
+janela=contra_ataque arma=espada_longa salva esperado=4_golpes obtido=4_golpes iguais=true
+janela=contra_ataque arma=facas_de_sal salva esperado=5_facas obtido=5_facas iguais=true
+janela=contra_ataque arma=circulo_de_sal salva esperado=1_tick_0_pulsos obtido=1_tick_0_pulsos iguais=true
+janela=congelamento passos=5 passo_e_relogio esperado=parados obtido=parados iguais=true
+janela=congelamento passo=6 esperado=anda obtido=anda iguais=true

@@ -218,14 +218,14 @@ describe('integridade referencial', () => {
     expect(problemas).toEqual([]);
   });
 
-  it('só as receitas antigas ficam sem ataques_inimigos e as três novas o ligam (decisoes-F-006 VT1)', () => {
+  it('só as receitas antigas ficam sem ataques_inimigos e as novas (as três da D6 e a dos telegrafos) o ligam (decisoes-F-006 VT1)', () => {
     const antigas = ['horda', 'horda_rotativa', 'tres_armas', 'bau_uniao', 'sem_horda', 'nivel_tres', 'vigilia_sem_cinzas'];
     for (const id of antigas) {
       const c = d(`cenarios/${id}.json`);
       expect(c['ataques_inimigos'], id).toBeUndefined();
       expect(c['inimigos'], id).toBeUndefined();
     }
-    for (const id of ['oco_grande_sozinho', 'novica_sozinha', 'horda_com_ataques']) {
+    for (const id of ['oco_grande_sozinho', 'novica_sozinha', 'horda_com_ataques', 'telegrafos']) {
       const c = d(`cenarios/${id}.json`);
       expect([c['ataques_inimigos'], c['diretor_desligado'] || id === 'horda_com_ataques', c['tutoriais_vistos'], c['cinzas']], id).toEqual([true, true, true, false]);
     }
