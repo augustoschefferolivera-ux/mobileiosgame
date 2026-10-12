@@ -157,3 +157,20 @@ Geradas por `node scripts/arte/rodar.mjs amostras` a partir das grades e procedu
 - Grades e procedurais em `src/arte/` (sem Phaser, sem DOM); o Boot rasteriza tudo num `CanvasTexture` de 1024 × 1024 com `putImageData` e registra as molduras, como o atlas de formas de hoje (`src/cenas/render/atlas.ts`).
 - O render troca a moldura e o tint branco pela moldura do quadro certo; a horda (SpriteGPULayer) continua num lote só.
 - Só apresentação: nada em `src/logica`, no layout do estado nem nos hashes; textos só por `t(id)`.
+
+## 11. Notas da produção (etapa 2)
+
+O que a produção detalhou ou mudou em relação ao card aprovado, e por quê:
+
+- **Círculo de Sal e pulso em grãos de sal**, não num anel liso: o raio da aura e do pulso varia sem parar (nível, passivas, o pulso crescendo 96 pt), e um anel de pixel por raio não cabe no atlas. São cristais de 3 e 2 px com contorno (10 e 8 pt), um a cada 10 pt da circunferência (até 64 por anel), girando devagar, numa camada própria abaixo das facas e dos golpes.
+- **Brilho do telegrafo nos médios (RE4)**: o corpo troca para o quadro de "inspirar" e uma silhueta branca do mesmo quadro fica por cima com alfa 1 − blend. O modo de tint SCREEN não serve: no SpriteGPULayer do Phaser 4.2.1 o modo é multiplicado por 255 no shader sem ter sido dividido antes.
+- **NEAREST depois do `refresh()`**: o Phaser reenvia o canvas com LINEAR a cada refresh (antialias ligado). Com o filtro certo, os modos GPU e Image saem idênticos pixel a pixel.
+- **Inimigos olham para o lado do Aldric** (a horda persegue): a regra depende só do estado do passo, então a imagem pausada não depende de quantos quadros o render desenhou.
+- **Oco Grande Coroado** (elite que a F-008 fez nascer nesta branch): 32 × 32 px (64 pt), o Oco Grande maior, de coroa de bronze, com andar, telegrafo e ataque. A cor de identidade é a dos elites da F-008 (`COR_DOS_ELITES`); o molde provisório dela continua valendo só para elite sem arte.
+- **Golpe e estocada em escala livre pelo alcance** (raio ÷ 64 pt; comprimento ÷ 96 pt): o único lugar com escala não inteira, num efeito que dura 8 passos; o ângulo segue a regra dos 16 passos.
+- **Partículas**: pool de 256 pelo passo (sem alocar e sem reciclar), pontos de 1 e 2 pt tingidos na cor exata da paleta: 3 faíscas Y/A por acerto da Espada e da Lâmina, 2 lascas S/H das Facas, 1 grão do Círculo, 4 grãos de cinza por morte, 10 faíscas em anel no aparo e uma brasa subindo a cada 5 passos do Frasco (a cada 2 no Apagar).
+- **Marcadores de status**: a estrela do atordoado a 2 pt por px; o cristal do Sal na grade fina (centenas de inimigos salgados ao mesmo tempo não podem cobrir os rostos). Os dois 12 pt acima do centro do corpo.
+- **HUD em células de 2 pt**: Graphics desenha a arte, o disco, o anel e o triângulo na grade (`src/cenas/pixel.ts`); ícones a 2 pt no HUD (28 pt) e a 4 pt no modal (56 pt dentro dos 64); o traço dos anéis dos botões vira 4 pt (os 3 pt arredondados para 2 células); o joystick usa máscaras de pixel do atlas, tingidas. O texto continua na fonte do sistema (E8).
+- **Tela de Acender**: o Aldric a 4 pt por px (96 pt) no lugar do logotipo, respirando, com a luz da brasa: a única exceção de escala fora dos efeitos, por ser uma ilustração de título.
+- **Chão**: TileSprite com a textura de 64 × 64 px (16 ladrilhos), a 2 pt por px; na costura do mapa (1.170 pt, não múltiplo de 128) o padrão salta uma vez, sem efeito na leitura.
+- **Animações**: a massa anda em 2 quadros, os médios em 2 mais telegrafo e ataque; o Aldric respira, anda em 4, esquiva (agachado, rolando na capa, agachado) com 2 rastros, apara, bebe o Frasco e ajoelha antes de virar cinza; o acerto dura 3 passos.
