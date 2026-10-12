@@ -1,0 +1,39 @@
+# Build de debug no GitHub Pages para o teste em iPhone (design/decisoes-F-006.md VT10, docs/roteiro-iphone.md).
+# Só manual: nada roda sozinho. Antes de rodar, ative o Pages com a fonte "GitHub Actions" (Settings > Pages).
+# Atenção: publica um build de DEBUG (parâmetros de URL e ganchos de escrita) numa URL pública; despublique depois do teste.
+name: Pages de teste
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-teste
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:debug
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist-debug
+      - id: deploy
+        uses: actions/deploy-pages@v4
