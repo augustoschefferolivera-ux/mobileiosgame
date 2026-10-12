@@ -610,92 +610,71 @@
           "id": "F-007.1",
           "descricao": "Redução de armadura em 5 casos.",
           "verificacao": "vitest",
-          "como": "A/(A+20) com teto de 75%: A = 0, 4, 20, 60 e 100.",
+          "como": "`reducaoDeArmadura(A)` = `min(0,75, A/(A+20))` em Float32: A = 0 → 0; A = 4 → 0,16667; A = 20 → 0,5; A = 60 → 0,75 exato (fronteira do teto); A = 100 → 0,75 (cortado de 0,833). Casos extras A = 59 e 61; A negativo ou NaN recusado. Tabela com bruto 20: sem Brasa Firme 20; 16,667; 10; 5; 5 e com Brasa Firme 16; 13,333; 8; 4; 4 (multiplicativo, DM1).",
           "origem": "B §4"
         },
         {
           "id": "F-007.2",
           "descricao": "Frasco interrompe com golpe > 15% HP.",
           "verificacao": "vitest",
-          "como": "golpe de 15% não interrompe; de 15% + 1 interrompe.",
+          "como": "hpMax 150, A = 0, Brasa Firme desligada (stamina ≤ 50), Frasco em curso: dano líquido 22,5 não interrompe; 23,5 (15% + 1) e o vizinho Float32 acima de 22,5 interrompem (`frascoPasso` = 0, evento, carga não volta, cura feita fica). Contato de 1,5 não interrompe. Segunda asserção com Brasa Firme (stamina 100): bruto 28 não interrompe (22,4) e 29 interrompe (23,2); bruto 39 interrompe. O limiar é líquido, estrito, com o hpMax do momento (DM3).",
           "origem": "B §4"
         },
         {
           "id": "F-007.3",
           "descricao": "Mancha salva e restaurada entre duas Vigílias com seeds diferentes.",
           "verificacao": "vitest",
-          "como": "Apagar com seed A grava a mancha no meta; Vigília com seed B a recria na mesma posição; encostar devolve as Almas (Q-04).",
+          "como": "Apagar com seed A e 200 Almas: `aplicarFimDeVigilia` grava no meta `mancha = {x, y, hora, rotulo: null, almas: 60}` (x, y no ponto livre mais próximo, hora pela função pura) e Santuário 140. Vigília com seed B e `ParametrosDaVigilia.mancha` do meta a recria na mesma (x, y) com as mesmas Almas no passo 0, sem consumir RNG (mesmo estado de RNG com e sem mancha). Encostar a 33 px não pega; a 32 px devolve 60 uma vez e o hash do passo seguinte inclui as Almas; o meta só muda no FIM. Apagar com 0 Almas apaga a mancha antiga; Abandonar a mantém (Q-04).",
           "origem": "B §4"
         },
         {
           "id": "F-007.4",
           "descricao": "Morrer de propósito e ver a tela de resultado (Playwright).",
           "verificacao": "playwright",
-          "como": "?inicio=19:00&seed=N sem nenhum toque até o HP chegar a 0: __GAME_DEBUG__.estado passa por APAGANDO e chega a FIM (apagar); textoAtivo contém A4.APAGAR.01 e a tela de Resultado aparece.",
+          "como": "`?inicio=19:00&seed=N` sem nenhum toque até o HP chegar a 0 (≈ 4 a 5 s, a medir com a Brasa Firme; o teste espera pelo `estado`, não por tempo fixo): `__GAME_DEBUG__.estado` passa por APAGANDO e chega a FIM(apagar) no passo 30 de APAGANDO; `textoAtivo` contém `A4.APAGAR.01` em APAGANDO e no Resultado; a tela é `resultado`, com Tempo, Nível, Mortes, Dano recebido, Almas e sem botão Reviver; `localStorage` limpo no início.",
           "origem": "B §4"
         },
         {
           "id": "F-007.5",
           "descricao": "Abandonar Vigília: Almas ×0,5, sem mancha.",
           "verificacao": "vitest",
-          "como": "FIM(abandonar) (ADR-0002 §9; Q-25).",
+          "como": "`passo` com `ACAO.abandonar` (16) leva a FIM(abandonar) no mesmo passo, e o bit é ignorado em APAGANDO e FIM; Santuário = `⌊N/2⌋` para N = 0, 1, 2, 3, 280, 281; nenhuma mancha nova e a antiga mantida; título `A6.PAUSA.ABANDONAR`; o replay repete o Abandonar; o crédito do meta é feito uma vez (ADR-0002 §9; Q-25).",
           "origem": "Q-25; ADR-0002 §9"
         },
         {
           "id": "F-007.6",
           "descricao": "Brasa Firme.",
           "verificacao": "vitest",
-          "como": "hpMax inicial de Aldric = 150 (B §3.3); com A = 0, o golpe recebido sai × 0,8 com stamina 51 e × 1,0 com stamina 50 ('enquanto stamina > 50%').",
+          "como": "hpMax inicial de Aldric = 150 (`hpMaximo(130, 15)` em `reiniciarEstado`, B §3.3); com A = 0, o golpe de 20 sai × 0,8 (16) com stamina 51 ou 50,5, × 1,0 (20) com 50 ('enquanto stamina > 50%', estrito, lida depois do gasto do passo e antes da regeneração; o limiar vem de `vigilantes.json`; com 50,5 também × 0,8); armadura depois Brasa Firme (A = 4: 13,333).",
           "origem": "B §3.3 (escopo da F-007)"
         },
         {
           "id": "F-007.7",
           "descricao": "Frasco.",
           "verificacao": "vitest",
-          "como": "um Frasco não interrompido cura 40% do HP máximo ao longo de 120 passos, sem passar do máximo, e suspende a regeneração de stamina por 120 passos (doc 02 §5.2).",
+          "como": "um Frasco não interrompido cura 40% do HP máximo ao longo de 120 passos (HP 30/150 → 90 exato no passo 120; 140 → 150, sem passar do máximo) e `esperaRegen` ≥ 120 no 1º passo: sem gasto, a regeneração fica parada nos passos 1 a 120 e volta no 121 (doc 02 §5.2). Também: 3 → 0 cargas e o 4º toque negado; HP cheio negado sem custo; bit ignorado com `esquivaPasso` em 1, 13 e 21; esquiva e aparo durante a cura não cancelam; o hpMax muda no meio e a cura usa o do início; bit 8 cancela (novo toque ≥ 18 passos no tradutor); replay reproduz cura e hash.",
           "origem": "B §3.3 e §4 (escopo)"
         },
         {
           "id": "F-007.8",
           "descricao": "Divisão das Almas no Apagar.",
           "verificacao": "vitest",
-          "como": "Apagar com N Almas grava na mancha 30% de N, com posição e Hora, e o resto vai ao Santuário (B §3.12).",
+          "como": "mancha = `⌊(3N + 5)/10⌋` para N = 0, 1, 2, 3, 4, 5, 15, 280, 1.100, 123.456 (0, 0, 1, 1, 1, 2, 5, 84, 330, 37.037); Santuário = N − mancha; N = 0 não cria mancha; posição e Hora gravadas (Hora pela função pura: 0:00 a 4:59 → I … 15:00 a 19:59 → IV; 20:00 e 22:59 → A Fome).",
           "origem": "B §3.12 (escopo)"
         }
       ],
       "evidencias": [
         {
           "arquivo": "production/evidencias/F-007/resultado.png",
-          "descricao": "Screenshot do resultado (B)"
+          "descricao": "Screenshot do Resultado do F-007.4 (390 × 844) (B; design/decisoes-F-007.md §12)"
         },
         {
           "arquivo": "production/evidencias/F-007/mancha.png",
-          "descricao": "Screenshot da mancha na Vigília seguinte (B)"
+          "descricao": "`?inicio=19:00&seed=N&almas=1000` → morrer → Repetir Vigília (seed nova) → mancha visível, com a seta se fora da vista (B; design/decisoes-F-007.md §12)"
         }
       ],
       "pendencias_antes_de_comecar": [
-        "brief §11.3 F-007: câmera lenta do Apagar, carga do Frasco interrompido, 'segurar' cancela, ações durante o Frasco, ordem armadura × Brasa Firme, 15% antes ou depois da redução",
-        "Arredondamento de 0,3 × N Almas da mancha (nenhuma fonte dá)",
-        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): mancha no ponto livre mais próximo; gravar no meta o tutorial de mover cumprido (Q-26)",
-        "Recomendações da F-003 a fechar (design/decisoes-F-003.md §9): barra de HP e sinal do acerto; F-003.5 com stamina ≤ 50; arredondamento do HP com Brasa Firme e Frasco; dano_recebido do contato na telemetria",
-        "O que \"mortes causadas\" conta (convertido 1 ou 10, massa da arena, Coroados que viram cinza): derivado de mortes e da flag do evento, ou outro contador (design/decisoes-F-004.md §9)",
-        "Estatísticas e Abandonar na pausa; como o Abandonar chega a FIM(abandonar) com a pausa fora da máquina (design/decisoes-F-004.md §9)",
-        "Gravar opcoes.numerosDeDano no meta (design/decisoes-F-004.md §9)",
-        "Com HP 0 (APAGANDO) e no A_FOME: nenhuma arma ativa, facas em voo somem e nenhuma morte nova soma em mortes, XP ou Almas (design/decisoes-F-004.md §9)",
-        "Redução A/(A+20) com a Armadura derivada do Elmo (4 por nível) e a ordem com a Brasa Firme; o hpMax da F-005 (⌊(base × (100 + Σ%) + 50)/100⌋) é a base da Brasa Firme e do Frasco (design/decisoes-F-005.md §9)",
-        "Almas dos inimigos e pickup de Alma no contador almas da F-005 e no pool de 512 com tipo próprio; junção por tipo (sem vizinho do mesmo tipo, a nova é descartada e conta); o baú nunca é descartado; HUD de Almas em topo + 116 com os glifos da N4 e \".\" (design/decisoes-F-005.md §9)",
-        "APAGANDO: nenhuma morte nova solta Cinza nem soma XP; morte do jogador e modal no mesmo passo: a morte vale primeiro e a fila de modais é descartada; o Resultado mostra o nível do estado (design/decisoes-F-005.md §9)",
-        "a armadura A/(A + 20) e a Brasa Firme entram em `danoAoJogador`, depois do aparo e dos i-frames de `resolverAcertoNoJogador`; valem para o golpe (20 a 39; 39 passa de 15% de 150 e interrompe o Frasco) e para o projétil (18 a 35). A Brasa Firme lê `stamina > 50%` estritamente (≥ 50,5) do registro novo (design/decisoes-F-006.md §10)",
-        "o F-003.5 continua medindo o dano bruto; com a Brasa Firme, o teste fixa stamina ≤ 50 ou afirma o valor bruto (design/decisoes-F-006.md §10)",
-        "o bit `ACAO.frasco` durante a esquiva e o aparo: a F-006 não o liga e a validação o recusa; a F-007 decide se ele é ignorado, guardado ou cancela a ação (brief §11.3 F-007) (design/decisoes-F-006.md §10)",
-        "o Frasco usa o bit `ACAO.frasco` (4) e `esperaRegen = max(esperaRegen, 120)`; nada mais zera o relógio da regeneração; o \"vulnerável\" do aparo falho não o bloqueia (a trava de ações é só de esquiva e aparo) (design/decisoes-F-006.md §10)",
-        "em APAGANDO: zerar `congelamento`, `esquivaPasso`, `aparoJanela`, `aparoFalho` e as bordas travadas; esquiva e aparo são ignorados sem custo; nenhuma máquina de ataque age e os projéteis em voo somem (D4 §9) (design/decisoes-F-006.md §10)",
-        "custos vindos de passivas saem em múltiplo de 0,5 (Passo Leve −30% = 17,5); \"+stamina máxima\" por Vigor lê o teto de `vigilantes.json` (design/decisoes-F-006.md §10)",
-        "gravar no meta os bits de tutorial (`tutoriaisCumpridos(e)`) e as opções Som e Flashes, junto de `numerosDeDano` (design/decisoes-F-006.md §10)",
-        "a câmera lenta do Apagar reaproveita a escala do `deltaMs` (FB5) (design/decisoes-F-006.md §10)",
-        "as estatísticas da pausa e do Resultado (\"aparos\", \"esquivas perfeitas\") não têm contadores no estado: leem o anel ou a telemetria, ou a F-007 acrescenta os contadores num layout v7; a política de agregação da telemetria `aparo` junto de `dano_recebido` (só os golpes e o projétil), dentro das 1.024 entradas, é dela (design/decisoes-F-006.md §10)",
-        "o sinal de acerto no jogador não usa branco nem `#ff2a2a` e respeita \"Flashes\" (design/decisoes-F-006.md §10)",
-        "a caixa do Frasco (72 pt, 16 pt acima do Aparo) já está reservada (design/decisoes-F-006.md §10)"
+        "Resolvidas em design/decisoes-F-007.md (aprovadas pelo usuário sem veto, 2026-10-12): brief §11.3 F-007 (AG2, FR3, FR6, FR4, DM1, DM3); arredondamento das Almas da mancha (MC1); recomendações da D2 §9 (MC4, SV4), da D3 §9 (HB1 a HB3, DM7, DM4, TL1), da D4 §9 (RS4, PE1 a PE5, SV6, AG3, DM6), da D5 §9 (DM1, DM2, DM5, AM1 a AM5, AG1, AG3, RS3) e da D6 §10 (DM1 a DM3, DM7, FR1, LY3, FR5, AG3, DM6, SV4 a SV6, AG2, PE2, TL1, HB2, FR8)"
       ]
     },
     {
@@ -816,7 +795,14 @@
         "Medida U7: sem elites, a 1ª União só às 10:00 ou às 15:00 (contra os minutos 12 a 15 do doc 10 §3.1); relógio no HUD com os glifos da N4 e \":\" (design/decisoes-F-005.md §9)",
         "o save grava o buffer v6 inteiro (estado de ataque, pool com o dono, Sal, prompts, `quebradaPassos`, `caSeq`, `caEspera`, `alvoAparado`, `congelamento`); a migração de `vigilia` v5 para v6 põe a stamina em 100 e os contadores em 0; a carga chama `sincronizarDerivados`, que refaz as **duas** tabelas de dano vivo, e reabre o modal antes de qualquer passo (design/decisoes-F-006.md §10)",
         "na Fogueira o passo roda e o relógio para: stamina, regeneração e congelamento andam; os timers do Contra-ataque (`caSeq`, `caEspera`) ficam parados junto com os das armas (D4 §9); \"ninguém ataca\" e os marcos vencidos congelam a fase 6, cancelam o telegrafo e decidem o projétil em voo (design/decisoes-F-006.md §10)",
-        "o Coroado reusa a máquina de ataque por dados (Patada branca em cone) e acrescenta o Grito vermelho (`aparavel: false`, empurrão); define `postura_quebrada`; a convocação não nasce atordoada; cunha e brilho para corpos de 64 a 128 px; seta de telegrafo na borda da tela quando o atacante está fora de vista (doc 11 §3.6; brief §5.12), que a F-006 deixou de fora: nenhum telegrafo seu nasce fora da vista, mas a Noviça pode sair da vista durante os 30 passos do telegrafo (§0.A) (design/decisoes-F-006.md §10)"
+        "o Coroado reusa a máquina de ataque por dados (Patada branca em cone) e acrescenta o Grito vermelho (`aparavel: false`, empurrão); define `postura_quebrada`; a convocação não nasce atordoada; cunha e brilho para corpos de 64 a 128 px; seta de telegrafo na borda da tela quando o atacante está fora de vista (doc 11 §3.6; brief §5.12), que a F-006 deixou de fora: nenhum telegrafo seu nasce fora da vista, mas a Noviça pode sair da vista durante os 30 passos do telegrafo (§0.A) (design/decisoes-F-006.md §10)",
+        "recarrega os Frascos na Fogueira (Descansar exige cura parada e a zera) (design/decisoes-F-007.md §13)",
+        "reaproveita a seta da mancha (MC9) (design/decisoes-F-007.md §13)",
+        "os campos v7 (`fase`, Frasco, mancha, contadores) entram no `vigilia`; a mancha recuperada só se confirma com o `vigilia` seguinte (Q-03); `idVigilia` e `ultimaEncerrada` passam a ser ativos (design/decisoes-F-007.md §13)",
+        "Recusar da retomada usa `encerrarVigilia(abandonar)` (design/decisoes-F-007.md §13)",
+        "`sincronizarDerivados` refaz hpMax e as tabelas de dano (design/decisoes-F-007.md §13)",
+        "mancha dentro de uma arena (sem decisão) (design/decisoes-F-007.md §13)",
+        "Coroado que vira cinza não solta Cinza nem Alma e não soma `mortes` (design/decisoes-F-007.md §13)"
       ]
     },
     {
@@ -934,7 +920,11 @@
         "o aparo no chefe soma +25 de Postura; se também atordoa fica a decidir (o valor provisório é `postura_quebrada: false`; para o Coroado, o doc 02 §5.4 (\"no atacante\") sugere `true`; para o Lanterneiro, o brief §11.3 deixa em aberto); o \"Agarrar\" branco aparado causa a Quebra imediata (design/decisoes-F-006.md §10)",
         "a Quebra ×2 e a Postura Firme −40% são exclusivas e entram por acerto, em produto com a PQ6; os dígitos críticos da Quebra usam a mesma `FLAG.critico` (design/decisoes-F-006.md §10)",
         "os ataques do Lanterneiro reusam a máquina e a camada de silhuetas, em vermelho `#ff2a2a`; a regra do vermelho (AP10) vale sem mudança; a imunidade ao pulso, ao Sal e à Postura Quebrada é daqui (design/decisoes-F-006.md §10)",
-        "o 3º som (quebra) já é sintetizado no boot e toca na Quebra de Postura (design/decisoes-F-006.md §10)"
+        "o 3º som (quebra) já é sintetizado no boot e toca na Quebra de Postura (design/decisoes-F-006.md §10)",
+        "o dano de fome passa por `danoAoJogador`; liga as causas a_fome e amanhecer de `encerrarVigilia` (design/decisoes-F-007.md §13)",
+        "A_FOME segue a regra da D4 (nenhuma arma, facas somem, nenhuma morte soma) pela `faseSemArmas` da F-007 (design/decisoes-F-007.md §13)",
+        "Resultado ganha \"Chefe mais longe\" e \"Brasas\"; A Fome na Hora da mancha (design/decisoes-F-007.md §13)",
+        "medir o total de Almas por Vigília contra Q-21 (design/decisoes-F-007.md §13)"
       ]
     },
     {
@@ -1055,7 +1045,13 @@
         "Balanceamento, depois da F-010: um jogador em movimento quase não é atingido pela Noviça (5 a 14%): se o tutorial do aparo precisar de mais acertos, aumentar a vida ou a velocidade do projétil, ou mirar à frente, sem mudar B (design/decisoes-F-006.md §10)",
         "Balanceamento, depois da F-010: quem anda em linha pode nunca ser telegrafado por um Oco Grande (na seed 6, nada em 1.500 passos) e ver o prompt de esquiva só muito depois (design/decisoes-F-006.md §10)",
         "Balanceamento, depois da F-010: reavaliar o dano dos médios (20 a 39) contra o HP de 150 com 100 Grandes e 80 a 125 Noviças vivos na linha 19 (design/decisoes-F-006.md §10)",
-        "Balanceamento, depois da F-010: o aparo falho custa só 3 pontos de stamina (AP7): se a punição não for sentida, somar os 24 passos (design/decisoes-F-006.md §10)"
+        "Balanceamento, depois da F-010: o aparo falho custa só 3 pontos de stamina (AP7): se a punição não for sentida, somar os 24 passos (design/decisoes-F-006.md §10)",
+        "IndexedDB e `navigator.storage.persist()` com migração de `vdc.meta` (design/decisoes-F-007.md §13)",
+        "as 300 Almas do primeiro Apagar e o balão `A2.TUTORIAL.05` (design/decisoes-F-007.md §13)",
+        "custos de passivas em múltiplo de 0,5 (Passo Leve −30% = 17,5) e \"+stamina máxima\" por Vigor lendo `vigilantes.json`, com o teste de `staminaMax/2` ligado ao dado (design/decisoes-F-007.md §13)",
+        "teto de cargas do Frasco (até 6) (design/decisoes-F-007.md §13)",
+        "calibrar no iPhone o \"segurar\" (18 passos), o swipe e a cor/vinheta do HP (design/decisoes-F-007.md §13)",
+        "`visibilitychange` em APAGANDO; preço da árvore pela medida de Almas (design/decisoes-F-007.md §13)"
       ]
     }
   ]

@@ -1,6 +1,6 @@
 # Decisões da F-007 "HP, Frascos, armadura, Apagar e Cinzas Perdidas"
 
-- **Status:** proposta para aprovação. Nada foi implementado; as decisões valem depois do seu "aprovo" (ou do que você vetar na §0.A). As decisões técnicas e as divergências vão para o ADR-0009 ao implementar.
+- **Status:** aprovado pelo usuário sem veto em 2026-10-12 ("Concordo com tudo que me trouxe"), depois da revisão adversarial (§15); implementação na Etapa 2 da Sessão 7. As decisões técnicas e as divergências vão para o ADR-0009 ao implementar.
 - **Como foi feito:**
   - levantamento: duas áreas de pesquisa (B1: dano, armadura, Brasa Firme, Frasco, barra de HP e telemetria; B2: Apagar, Resultado, mancha, save meta, Almas, pausa e Abandonar), cada uma seguida de um verificador cético, e um crítico de completude (Sonnet, esforço médio). Os verificadores conferiram as citações, refizeram as contas e corrigiram erros de fato (por exemplo, o exemplo aditivo de B1-01, o tipo de `FLOATS_DO_EVENTO` e a aritmética da cura × regeneração);
   - o crítico achou 10 conflitos entre as áreas (por exemplo, o bit 8 usado duas vezes e dois layouts v7 com nomes diferentes), 10 contradições entre fontes, 12 lacunas e 13 divergências de documentos aprovados. Cada conflito está resolvido no lugar da decisão;
