@@ -213,7 +213,7 @@ A ordem armadura × Brasa Firme, o momento da leitura da stamina, os 15% bruto o
 
 **AG7. Aba escondida.** Sem save de `vigilia` antes da F-008, o app não persiste APAGANDO; `visibilitychange` é da F-010. Sem decisão.
 
-**AG8. Medida do tempo até a morte.** Jogador parado em `?inicio=19:00`, seeds 1 a 8, sem Brasa Firme: HP 0 em 230 a 243 passos (3,8 a 4,0 s), 0 Almas e 0 mortes. Com a Brasa Firme (×0,8) o jogador parado morre cerca de 25% mais tarde (~5 s). **Refazer a medida depois do código;** o Playwright espera pelo `estado`, nunca por um tempo fixo.
+**AG8. Medida do tempo até a morte.** Jogador parado em `?inicio=19:00`, seeds 1 a 8, sem Brasa Firme: HP 0 em 230 a 243 passos (3,8 a 4,0 s), 0 Almas e 0 mortes. Com a Brasa Firme (×0,8) a fase de dano (do 1º dano até a morte, 8 a 28 passos, menos de meio segundo) dura cerca de 25% mais (+1 a +9 passos); o tempo total muda pouco (~4 s), porque a chegada da horda (216 a 233 passos até o 1º dano) domina. Medido pelo crítico da F-007 (seeds 1 a 8); o texto original aplicava os 25% ao tempo todo. O cenário 19:00 mata em menos de meio segundo depois do contato e não serve para tarar equilíbrio. **Refazer a medida depois do código;** o Playwright espera pelo `estado`, nunca por um tempo fixo.
 
 ## 6. Almas e pickup de Alma (AM)
 

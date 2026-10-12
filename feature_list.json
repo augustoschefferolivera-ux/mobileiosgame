@@ -601,7 +601,7 @@
     {
       "id": "F-007",
       "nome": "HP, Frascos, armadura, Apagar e Cinzas Perdidas",
-      "status": "pendente",
+      "status": "pronta",
       "escopo_b": "HP com Brasa Firme, redução `A/(A+20)`, Frasco (40% em 2 s, interrompível, botão 72 pt), Apagar com câmera lenta 1 s, tela de resultado (tempo, nível, mortes, Almas), 30% das Almas viram mancha com posição e Hora, mancha reaparece na próxima Vigília e devolve ao encostar",
       "criterio_b": "Teste: redução de armadura em 5 casos; Frasco interrompe com golpe > 15% HP; mancha salva e restaurada entre duas Vigílias com seeds diferentes. Playwright: morrer de propósito e ver a tela de resultado",
       "evidencia_b": "Screenshot do resultado; screenshot da mancha na Vigília seguinte",
@@ -631,7 +631,7 @@
           "id": "F-007.4",
           "descricao": "Morrer de propósito e ver a tela de resultado (Playwright).",
           "verificacao": "playwright",
-          "como": "`?inicio=19:00&seed=N` sem nenhum toque até o HP chegar a 0 (≈ 4 a 5 s, a medir com a Brasa Firme; o teste espera pelo `estado`, não por tempo fixo): `__GAME_DEBUG__.estado` passa por APAGANDO e chega a FIM(apagar) no passo 30 de APAGANDO; `textoAtivo` contém `A4.APAGAR.01` em APAGANDO e no Resultado; a tela é `resultado`, com Tempo, Nível, Mortes, Dano recebido, Almas e sem botão Reviver; `localStorage` limpo no início.",
+          "como": "`?inicio=19:00&seed=N` sem nenhum toque até o HP chegar a 0 (≈ 4 s no total, dominado pela chegada da horda; a fase de dano dura menos de meio segundo; o teste espera pelo `estado`, não por tempo fixo): `__GAME_DEBUG__.estado` passa por APAGANDO e chega a FIM(apagar) no passo 30 de APAGANDO; `textoAtivo` contém `A4.APAGAR.01` em APAGANDO e no Resultado; a tela é `resultado`, com Tempo, Nível, Mortes, Dano recebido, Almas e sem botão Reviver; `localStorage` limpo no início.",
           "origem": "B §4"
         },
         {
@@ -645,7 +645,7 @@
           "id": "F-007.6",
           "descricao": "Brasa Firme.",
           "verificacao": "vitest",
-          "como": "hpMax inicial de Aldric = 150 (`hpMaximo(130, 15)` em `reiniciarEstado`, B §3.3); com A = 0, o golpe de 20 sai × 0,8 (16) com stamina 51 ou 50,5, × 1,0 (20) com 50 ('enquanto stamina > 50%', estrito, lida depois do gasto do passo e antes da regeneração; o limiar vem de `vigilantes.json`; com 50,5 também × 0,8); armadura depois Brasa Firme (A = 4: 13,333).",
+          "como": "hpMax inicial de Aldric = 150 (`hpMaximo(130, 15)` em `reiniciarEstado`, B §3.3); com A = 0, o golpe de 20 sai × 0,8 (16) com stamina 51 ou 50,5, × 1,0 (20) com 50 ('enquanto stamina > 50%', estrito, lida depois do gasto e da regeneração do passo, ADR-0009 §9.2; o limiar vem de `vigilantes.json`; com 50,5 também × 0,8; com 49,75 e a regeneração de 0,5 cruzando 50 no mesmo passo, × 0,8, e com a espera de regeneração ativa, × 1,0); armadura depois Brasa Firme (A = 4: 13,333).",
           "origem": "B §3.3 (escopo da F-007)"
         },
         {

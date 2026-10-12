@@ -2,10 +2,12 @@
 
 ## Sessão 7 — F-007 "HP, Frascos, armadura, Apagar e Cinzas Perdidas"
 
-### Estado: em andamento (D7 aprovada; Etapa 2 em curso)
+### Estado: F-007 pronta (aguarda a revisão do usuário); F-008 não começada
 
-- [x] **Etapa 1, decisões:** `design/decisoes-F-007.md` (D7), com revisão adversarial (12 achados, nota 8 antes das correções). Aprovada pelo usuário sem veto em 2026-10-12 ("Concordo com tudo que me trouxe"). `feature_list.json` recebeu o "como" dos F-007.1 a F-007.8, as duas evidências e as pendências resolvidas; as recomendações da §13 entraram nas pendências da F-008 a F-010.
-- [ ] **Etapa 2, implementação** (em curso, em 5 etapas): 1) registro da aprovação (feito); 2) regressão v6 (`regressao-v6.test.ts`, gravada com o código da F-006), dados, schemas e textos (feito); 3) estado v7 (feito): layout de 74.680 B (bloco da F-007 de 44 B depois dos 74.636 do v6), `BYTES_DO_LAYOUT_6`, `FASE`, `CAUSA_DO_FIM`, eventos 22 a 28, `ACAO.frascoCancelar` e `.abandonar`, `TIPO_DE_PICKUP.alma`, parâmetros `mancha` e `almasIniciais`; sem comportamento novo; hashes de referência (passo 1.000): seed 1 `c052c6c9` → `2175475d`, seed 424242 `6ddd6d39` → `de4a60fd`; `nivel_tres` seed 1 `ca1c0824`/`286ca680` → `e5cba098`/`5a7d8aac`; seguintes: comportamento (dano, Frasco, Apagar, mancha, meta) e cenas (HUD, pausa, Resultado), testes e evidências.
+- [x] **Etapa 1, decisões:** `design/decisoes-F-007.md` (D7), com revisão adversarial (12 achados, nota 8 antes das correções). Aprovada pelo usuário sem veto em 2026-10-12 ("Concordo com tudo que me trouxe").
+- [x] **Etapa 2, implementação:** estado v7 (74.680 B, o v6 intacto nos primeiros 74.636), dano líquido com armadura e Brasa Firme, Frasco (3 cargas, 40% em 120 passos, interrompível), Apagar (APAGANDO de 30 passos, câmera lenta, tela de Resultado), Abandonar em 2 toques (Almas ×0,5, sem mancha), mancha das Cinzas Perdidas (30% das Almas, posição e Hora, reaparece e devolve), save meta mínimo (`vdc.meta`), telemetria `frasco` e `dano_recebido`, HUD de HP e de Almas, pausa com estatísticas. Decisões técnicas e 20 divergências em `docs/decisoes/ADR-0009-implementacao-da-f007.md`.
+- [x] **Crítico independente:** nota **8,0**, sem bloqueante; 88 mutações, 77 reprovadas, 11 sobreviventes (4 equivalentes e 7 lacunas, todas viraram teste). Aplicados: pausa legível (Hud escondida, painel opaco, "Mortes causadas"), critério F-007.6 e AG8 alinhados ao código, `f002-evidencias` robusto, `pontoLivreMaisProximo` sem doubles e E7c com a mancha. Não aplicado: o Abandonar pelo fluxo de comandos (B3). Detalhes no ADR-0009 §10.
+- [x] `scripts/verify.sh --feature F-007 --taps-game --seed 1` verde (typecheck, lint, Vitest, builds, Playwright e evidências); F-001 a F-006 intactas. Evidências em `production/evidencias/F-007/`.
 
 ## Backlog do usuário (teste no iPhone, 2026-10-12)
 
@@ -288,8 +290,9 @@
 - **Sessão 3:** fechou na F-003.
 - **Sessão 4:** fechou na F-004.
 - **Sessão 5:** fechou na F-005.
-- **Sessão 6:** fecha na F-006, que aguarda a revisão do usuário. A F-007 não foi começada.
-- **Próxima sessão (F-007), com o mesmo método:**
-  - ler este arquivo, o ADR-0008, `design/decisoes-F-006.md` (sobretudo as recomendações para as F-007 a F-010) e a entrada da F-007 no `feature_list.json`;
-  - antes de implementar, fechar as pendências da F-007 (levantamento, revisão adversarial e §0 para veto), e só então a Etapa 2;
-  - rodar `scripts/verify.sh --feature F-006 --taps-game --seed 1` para conferir que a esquiva e o aparo continuam verdes.
+- **Sessão 6:** fechou na F-006.
+- **Sessão 7:** fecha na F-007, que aguarda a revisão do usuário. A F-008 não foi começada.
+- **Próxima sessão (F-008), com o mesmo método:**
+  - ler este arquivo, o ADR-0009, `design/decisoes-F-007.md` (sobretudo a §13, as recomendações para as F-008 a F-010) e a entrada da F-008 no `feature_list.json`;
+  - antes de implementar, fechar as pendências da F-008 (levantamento, revisão adversarial e §0 para veto), e só então a Etapa 2;
+  - rodar `scripts/verify.sh --feature F-007 --taps-game --seed 1` para conferir que o Apagar e a mancha continuam verdes.
