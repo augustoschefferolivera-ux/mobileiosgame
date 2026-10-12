@@ -22,7 +22,7 @@ import { aldricEspelhado, quadroDoAldric } from './aldric';
 import { ORIGEM_X, ORIGEM_Y, direcao16 } from './arte';
 import { CHAVE_DO_ATLAS, CHAVE_DO_CHAO, NOMES_DAS_MOLDURAS, indiceDaMoldura } from './atlas';
 import { arredondarParaOPixel } from './camera';
-import { MEMBROS_DAS_ARMAS, MEMBROS_DOS_DIGITOS, MEMBROS_DO_SAL, prepararArmas, prepararMortes, prepararNumeros, prepararSal, prepararStatus } from './armas';
+import { MEMBROS_DAS_ARMAS, MEMBROS_DAS_PARTICULAS, MEMBROS_DOS_DIGITOS, MEMBROS_DO_SAL, prepararArmas, prepararMortes, prepararNumeros, prepararParticulas, prepararSal, prepararStatus } from './armas';
 import { MEMBROS_DOS_MEDIOS, MEMBROS_DOS_PROJETEIS_INIMIGOS, MEMBROS_DOS_TELEGRAFOS, prepararMedios, prepararProjeteisInimigos, prepararTelegrafos } from './ataques';
 import { criarSaidaDeSprites, type EscritorDeSprites, type SaidaDeSprites } from './camadas';
 import { CAPACIDADE_DE_MORTES, EfeitosDaVigilia } from './efeitos';
@@ -107,6 +107,8 @@ export class RenderDaVigilia implements RenderDoMundo {
   private readonly armasCamada: Camada | null = null;
   /** Os grãos do Círculo de Sal e dos pulsos (F-011), abaixo das facas e dos golpes. */
   private readonly sal: Camada | null = null;
+  /** Faíscas, lascas, cinza e brasas (F-011), acima do Aldric. */
+  private readonly particulas: Camada | null = null;
   private readonly digitos: Camada | null = null;
 
   constructor(
@@ -152,6 +154,7 @@ export class RenderDaVigilia implements RenderDoMundo {
     this.rastros = RASTROS.map((r) => cena.add.image(x0, y0, CHAVE_DO_ATLAS, 'aldric_rolando').setAlpha(r.alfa).setVisible(false));
     this.jogador = cena.add.image(x0, y0, CHAVE_DO_ATLAS, 'aldric_parado').setScale(ESCALA);
     cena.add.layer([this.brilho, this.marcador, ...this.rastros, this.jogador]);
+    if (armas) this.particulas = camada(MEMBROS_DAS_PARTICULAS);
     if (armas) this.digitos = camada(MEMBROS_DOS_DIGITOS);
   }
 
@@ -177,7 +180,7 @@ export class RenderDaVigilia implements RenderDoMundo {
       this.horda.escrever(this.saida, this.tabela);
     }
     const ef = this.efeitos;
-    if (ef && this.mortes && this.medios && this.status && this.telegrafos && this.sal && this.armasCamada && this.projeteisInimigos && this.digitos) {
+    if (ef && this.mortes && this.medios && this.status && this.telegrafos && this.sal && this.armasCamada && this.projeteisInimigos && this.particulas && this.digitos) {
       prepararMortes(ef, e, alfa, camX, camY, this.tabela, this.mortes.saida);
       this.mortes.escritor.escrever(this.mortes.saida);
       prepararMedios(e, this.saida, this.tabela, this.dados, alfa, this.medios.saida);
@@ -192,6 +195,8 @@ export class RenderDaVigilia implements RenderDoMundo {
       this.armasCamada.escritor.escrever(this.armasCamada.saida);
       ef.recusados.projeteisInimigos = prepararProjeteisInimigos(e, this.dados, alfa, camX, camY, this.projeteisInimigos.saida);
       this.projeteisInimigos.escritor.escrever(this.projeteisInimigos.saida);
+      prepararParticulas(ef, e, alfa, camX, camY, this.particulas.saida);
+      this.particulas.escritor.escrever(this.particulas.saida);
       prepararNumeros(ef, e, alfa, camX, camY, this.digitos.saida);
       this.digitos.escritor.escrever(this.digitos.saida);
     }
@@ -249,6 +254,7 @@ export class RenderDaVigilia implements RenderDoMundo {
     this.status?.escritor.liberar();
     this.telegrafos?.escritor.liberar();
     this.sal?.escritor.liberar();
+    this.particulas?.escritor.liberar();
     this.projeteisInimigos?.escritor.liberar();
     this.armasCamada?.escritor.liberar();
     this.digitos?.escritor.liberar();

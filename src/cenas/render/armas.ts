@@ -15,7 +15,7 @@ import { ESCALA_DO_CANVAS } from '../escala';
 import { COR } from '../paleta';
 import { ORIGEM_X, ORIGEM_Y, direcao16 } from './arte';
 import { indiceDaMoldura, type SaidaDeSprites } from './camadas';
-import { CAPACIDADE_DE_EFEITOS, CAPACIDADE_DE_MORTES, CAPACIDADE_DE_NUMEROS, EFEITO, VIDA, digitosDe, idade, type EfeitosDaVigilia } from './efeitos';
+import { CAPACIDADE_DE_EFEITOS, CAPACIDADE_DE_MORTES, CAPACIDADE_DE_NUMEROS, CAPACIDADE_DE_PARTICULAS, EFEITO, VIDA, digitosDe, idade, type EfeitosDaVigilia } from './efeitos';
 import type { DesenhoDoTipo, SaidaDaHorda } from './horda';
 
 /** Cores dos efeitos (V1 a V4, N3). */
@@ -60,6 +60,9 @@ const M_ONDA = QUATRO.map((k) => indiceDaMoldura(`onda_${k}`));
 /** Arco: [forte][volta][ângulo][quadro] achatado em forte·16 + volta·8 + ângulo·2 + quadro. */
 const M_ARCO = [false, true].flatMap((forte) => [false, true].flatMap((volta) => QUATRO.flatMap((k) => [0, 1].map((q) => indiceDaMoldura(nomeDoArco(forte, volta, k, q))))));
 const M_GRAO = [indiceDaMoldura('grao_sal_0'), indiceDaMoldura('grao_sal_1')] as const;
+const M_PONTO = indiceDaMoldura('ponto');
+const M_PONTO_2 = indiceDaMoldura('ponto_2');
+export const MEMBROS_DAS_PARTICULAS = CAPACIDADE_DE_PARTICULAS;
 export const M_STATUS_ATORDOADO = indiceDaMoldura('status_atordoado');
 export const M_STATUS_SAL = indiceDaMoldura('status_sal');
 const ARTE = ESCALA_DA_GRADE.arte;
@@ -329,6 +332,41 @@ function escreverGraos(out: SaidaDeSprites, anel: number, jx: number, jy: number
     out.origemX[k] = out.origemY[k] = 0.5;
     out.moldura[k] = M_GRAO[g & 1]!;
     out.cor[k] = BRANCO;
+  }
+}
+
+/**
+ * Partículas (F-011, style card §6): um ponto de 1 ou 2 pt na cor da paleta (o branco tingido), na posição
+ * `x + vx·t, y + vy·t + g·t²/2` da idade t em passos, arredondada para o pixel do canvas e na cópia mais próxima
+ * da câmera; inteiro até 60% da vida e some no resto.
+ */
+export function prepararParticulas(ef: EfeitosDaVigilia, e: Estado, alfa: number, camX: number, camY: number, out: SaidaDeSprites): void {
+  const pa = ef.particulas;
+  const passo = e.cab[CAB.passo]!;
+  for (let k = 0; k < CAPACIDADE_DE_PARTICULAS; k++) {
+    if (pa.ativo[k] !== 1) {
+      out.visivel[k] = 0;
+      continue;
+    }
+    const t = idade(passo, alfa, pa.passo[k]!);
+    const vida = pa.vida[k]!;
+    if (t >= vida) {
+      out.visivel[k] = 0;
+      continue;
+    }
+    let mx = (pa.x[k]! + pa.vx[k]! * t - camX + MEIA_LARGURA_DO_MAPA) % LARGURA_DO_MAPA;
+    if (mx < 0) mx += LARGURA_DO_MAPA;
+    let my = (pa.y[k]! + pa.vy[k]! * t + 0.5 * pa.gravidade[k]! * t * t - camY + MEIA_ALTURA_DO_MAPA) % ALTURA_DO_MAPA;
+    if (my < 0) my += ALTURA_DO_MAPA;
+    out.visivel[k] = 1;
+    out.x[k] = Math.round((camX + mx - MEIA_LARGURA_DO_MAPA) * ESCALA_DO_CANVAS) / ESCALA_DO_CANVAS;
+    out.y[k] = Math.round((camY + my - MEIA_ALTURA_DO_MAPA) * ESCALA_DO_CANVAS) / ESCALA_DO_CANVAS;
+    out.rotacao[k] = 0;
+    out.escalaX[k] = out.escalaY[k] = 1;
+    out.alpha[k] = t < 0.6 * vida ? 1 : (vida - t) / (0.4 * vida);
+    out.origemX[k] = out.origemY[k] = 0.5;
+    out.moldura[k] = pa.grande[k] === 1 ? M_PONTO_2 : M_PONTO;
+    out.cor[k] = pa.cor[k]!;
   }
 }
 
