@@ -21,8 +21,13 @@ export const CELULAS = COLUNAS * LINHAS;
  */
 export const MAX_GRANDES = 4;
 export const GRANDES = new Int32Array(MAX_GRANDES + 1);
-/** Quanto a consulta com `R + R_MAX` (24) deve somar para alcançar o raio de um grande (32): 8 px. */
+/** Quanto a consulta com `R + R_MAX` (24) deve somar para alcançar o raio do Coroado (32): 8 px. */
 export const FOLGA_DOS_GRANDES = 8;
+/**
+ * A folga de cada grande de `GRANDES`, em px (raio − R_MAX): 8 para o Coroado e 56 para o Lanterneiro (raio 80, F-009 LN3).
+ * `montarGradeDaMassa` a preenche junto com a lista; ela só amplia os candidatos, e cada arma confere o contato exato.
+ */
+export const FOLGAS_DOS_GRANDES = new Float64Array(MAX_GRANDES).fill(FOLGA_DOS_GRANDES);
 
 export interface Grade {
   /** Itens por célula; durante a reconstrução, serve de cursor de escrita. */
@@ -189,11 +194,11 @@ function acrescentarGrandes(xs: Float32Array, ys: Float32Array, out: Int32Array,
   if (n === 0) return 0;
   const x = CONSULTA[0]!;
   const y = CONSULTA[1]!;
-  const lim = CONSULTA[2]! + folga;
-  const lim2 = lim * lim;
   let novos = 0;
   for (let k = 0; k < n; k++) {
     const id = GRANDES[k]!;
+    const lim = CONSULTA[2]! + (folga > 0 ? FOLGAS_DOS_GRANDES[k]! : 0);
+    const lim2 = lim * lim;
     let dx = xs[id]! - x;
     if (dx > MEIA_LARGURA) dx -= LARGURA_DO_MAPA;
     if (dx < -MEIA_LARGURA) dx += LARGURA_DO_MAPA;

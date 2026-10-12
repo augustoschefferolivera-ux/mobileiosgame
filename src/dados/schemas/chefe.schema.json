@@ -33,7 +33,8 @@
         "tipo",
         "regiao",
         "forma",
-        "tamanho_px",
+        "largura_px",
+        "altura_px",
         "hp_base",
         "hp_escala_por_nivel",
         "velocidade",
@@ -43,8 +44,7 @@
         "postura_firme_reducao_pct",
         "transicao_fase_s",
         "fases",
-        "furia",
-        "pendencias"
+        "furia"
       ],
       "properties": {
         "id": {
@@ -69,8 +69,15 @@
         "forma": {
           "$ref": "comum.schema.json#/$defs/forma"
         },
-        "tamanho_px": {
-          "$ref": "comum.schema.json#/$defs/positivoOuPendente"
+        "largura_px": {
+          "description": "Largura da caixa alinhada aos eixos, em px (LN1).",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "altura_px": {
+          "description": "Altura da caixa alinhada aos eixos, em px (LN1).",
+          "type": "number",
+          "exclusiveMinimum": 0
         },
         "hp_base": {
           "type": "number",
@@ -151,6 +158,16 @@
             "regen_duracao_s": {
               "type": "number",
               "minimum": 0
+            },
+            "ganho_faca": {
+              "description": "Postura por Faca que acerta (PO1).",
+              "type": "number",
+              "minimum": 0
+            },
+            "regen_espera_passos": {
+              "description": "Passos sem ganho nem acerto de arma antes de a Postura cair (PO3).",
+              "type": "integer",
+              "minimum": 1
             }
           }
         },

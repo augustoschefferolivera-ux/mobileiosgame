@@ -17,7 +17,7 @@
 import { CAPACIDADE_DE_INIMIGOS, FOGUEIRA_U8, JOGADOR, type Estado } from '../nucleo/estado';
 import { limitarPelaArena } from './borda';
 import type { DadosDaVigilia } from './dados';
-import { COLUNAS, CONSULTA, GRANDES, LADO_DA_CELULA, LINHAS, MAX_GRANDES, consultarGradeComGrandes, criarGrade, reconstruirGrade } from './grade';
+import { COLUNAS, CONSULTA, FOLGAS_DOS_GRANDES, GRANDES, LADO_DA_CELULA, LINHAS, MAX_GRANDES, consultarGradeComGrandes, criarGrade, reconstruirGrade } from './grade';
 import { RAIO_DO_JOGADOR } from './jogador';
 import { COLISAO, ES, colidirNaCelula } from './obstaculos';
 import { COMPORTAMENTO } from './tipos';
@@ -55,7 +55,10 @@ export function montarGradeDaMassa(e: Estado, dados: DadosDaVigilia, ids: Int32A
   for (let k = 0; k < n; k++) {
     const s = ids[k]!;
     if (grande[tipo[s]!] === 1) {
-      if (g < MAX_GRANDES) GRANDES[g++] = s;
+      if (g < MAX_GRANDES) {
+        FOLGAS_DOS_GRANDES[g] = dados.tipos.raio[tipo[s]!]! - dados.tipos.raioMaximo;
+        GRANDES[g++] = s;
+      }
     } else massa[m++] = s;
   }
   reconstruirGrade(grade, e.inimigos.x, e.inimigos.y, massa, m);

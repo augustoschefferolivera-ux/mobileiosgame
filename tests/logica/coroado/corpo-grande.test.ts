@@ -43,10 +43,10 @@ describe('a lista dos grandes e a grade da massa', () => {
     expect(naGrade).toEqual(new Set([g, o]));
   });
 
-  it('o R_MAX continua 24 e o raio dos obstáculos é 32; o Coroado conta como grande, os outros não', () => {
+  it('o R_MAX continua 24 e o raio dos obstáculos é 32; o Coroado e o Lanterneiro (F-009) contam como grandes, os outros não', () => {
     expect([VAZIO.tipos.raioMaximo, VAZIO.tipos.raioDeObstaculo, FOLGA_DOS_GRANDES]).toEqual([24, 32, 8]);
     expect(VAZIO.tipos.raioDeObstaculo - VAZIO.tipos.raioMaximo).toBeLessThanOrEqual(FOLGA_DOS_GRANDES);
-    expect([...VAZIO.tipos.grande]).toEqual([0, 0, 0, 0, 1, 0]);
+    expect([...VAZIO.tipos.grande]).toEqual([0, 0, 0, 0, 1, 1]);
   });
 
   it('o 5º Coroado não nasce (a lista tem 4 lugares); a morte de um libera o lugar', () => {

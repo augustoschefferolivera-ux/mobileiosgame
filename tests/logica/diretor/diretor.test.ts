@@ -101,7 +101,7 @@ describe('tipos que podem nascer (§4)', () => {
   it('o R_MAX sai dos tipos da grade que nascem (24 na Charneca); o Coroado (32) é grande e só entra no raio dos obstáculos (CR10)', () => {
     expect(D.tipos.raioMaximo).toBe(24);
     expect(D.tipos.raioDeObstaculo).toBe(32);
-    expect([...D.tipos.grande]).toEqual([0, 0, 0, 0, 1, 0]);
+    expect([...D.tipos.grande]).toEqual([0, 0, 0, 0, 1, 1]);
   });
 });
 

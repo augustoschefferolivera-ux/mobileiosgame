@@ -8,10 +8,11 @@
       "tipo": "chefe_da_regiao",
       "regiao": "charneca_das_lanternas",
       "forma": "retangulo",
-      "tamanho_px": null,
+      "largura_px": 96,
+      "altura_px": 128,
       "hp_base": 6500,
       "hp_escala_por_nivel": 0.04,
-      "velocidade": null,
+      "velocidade": 0.45,
       "almas": 200,
       "arena": {
         "raio_corpos": 7
@@ -25,7 +26,9 @@
         "quebra_s": 3,
         "quebra_mult_dano": 2,
         "regen_por_s": 20,
-        "regen_duracao_s": 5
+        "regen_duracao_s": 5,
+        "ganho_faca": 0.5,
+        "regen_espera_passos": 60
       },
       "postura_firme_reducao_pct": 40,
       "transicao_fase_s": 1.5,
@@ -42,9 +45,10 @@
               },
               "forma": "arco",
               "aparavel": true,
-              "dano": null,
+              "dano": 55,
               "angulo_graus": 180,
-              "alcance_corpos": null
+              "alcance_corpos": 4,
+              "recuperacao_s": 1.2
             },
             {
               "id": "bater_a_vara",
@@ -54,9 +58,10 @@
               },
               "forma": "linha",
               "aparavel": true,
-              "dano": null,
+              "dano": 70,
               "alcance_corpos": 6,
-              "largura_corpos": null
+              "largura_corpos": 1.5,
+              "recuperacao_s": 1.5
             },
             {
               "id": "luz_cega",
@@ -66,12 +71,13 @@
               },
               "forma": "cone",
               "aparavel": false,
-              "dano": null,
+              "dano": 0,
               "dano_por_s": 8,
               "angulo_graus": 60,
               "alcance_corpos": 6,
               "efeito_tela": "inverte_cores",
-              "duracao_efeito_s": 2
+              "duracao_efeito_s": 2,
+              "recuperacao_s": 1.5
             }
           ]
         },
@@ -85,21 +91,23 @@
               "id": "lanterna_arremessada",
               "telegrafo": {
                 "cor": "vermelho",
-                "duracao_s": null
+                "duracao_s": 1.0
               },
               "forma": "area_circular",
               "aparavel": false,
               "dano": null,
               "raio_corpos": 2,
               "dano_por_s": 6,
-              "duracao_efeito_s": 6
+              "duracao_efeito_s": 6,
+              "recuperacao_s": 1.2
             }
           ],
           "convoca": {
             "inimigo": "oco_das_lanternas",
             "quantidade": 10,
-            "intervalo_s": null,
-            "ilumina_raio_corpos": 3
+            "intervalo_s": 10,
+            "ilumina_raio_corpos": 3,
+            "anel_corpos": 3.5
           }
         },
         {
@@ -111,15 +119,16 @@
               "id": "explosao_de_luz",
               "telegrafo": {
                 "cor": "vermelho",
-                "duracao_s": null
+                "duracao_s": 1.0
               },
               "forma": "anel_expansivo",
               "aparavel": false,
-              "dano": null,
+              "dano": 75,
               "raio_inicial_corpos": 1,
               "raio_final_corpos": 6,
               "expansao_s": 1,
-              "intervalo_s": 12
+              "intervalo_s": 12,
+              "recuperacao_s": 1.5
             },
             {
               "id": "agarrar",
@@ -135,7 +144,8 @@
                 "dano_hp_pct": 20,
                 "preso_s": 1,
                 "aparo_quebra_imediata": true
-              }
+              },
+              "recuperacao_s": 1.5
             }
           ]
         }
@@ -144,34 +154,7 @@
         "apos_s": 300,
         "dano_pct": 5,
         "intervalo_s": 10
-      },
-      "pendentes": {
-        "tamanho_px": "F-009",
-        "velocidade": "F-009",
-        "fases[0].ataques[0].dano": "F-009",
-        "fases[0].ataques[0].alcance_corpos": "F-009",
-        "fases[0].ataques[1].dano": "F-009",
-        "fases[0].ataques[1].largura_corpos": "F-009",
-        "fases[0].ataques[2].dano": "F-009",
-        "fases[1].ataques[0].telegrafo.duracao_s": "F-009",
-        "fases[1].convoca.intervalo_s": "F-009",
-        "fases[2].ataques[0].telegrafo.duracao_s": "F-009",
-        "fases[2].ataques[0].dano": "F-009"
-      },
-      "pendencias": [
-        "F-009: dano de Vara Horizontal, Bater a Vara e Explosão de Luz; se a Luz Cega tem dano de acerto além dos 8/s (brief §11.3)",
-        "F-009: alcance da Vara Horizontal e largura de Bater a Vara (brief §11.3)",
-        "F-009: duração do telegrafo vermelho da Lanterna Arremessada e da Explosão de Luz (B: 0,8 a 1,2 s)",
-        "F-009: velocidade, IA de escolha de ataque e frequência da convocação da fase 2 (brief §11.3)",
-        "F-009: se cada fase mantém os ataques das anteriores",
-        "F-009: se o dano do chefe escala por minuto; sentido de 'zera e regenera 20/s por 5 s' (brief §11.3)",
-        "F-009: Postura gerada por Facas, Círculo, Lâmina e onda; aparo comum no chefe (brief §11.3)",
-        "F-009: tamanho (doc 06 §2.2: 4 corpos de altura; doc 13 §1.2: 128 a 192 px)",
-        "F-009: se a luz do jogador (doc 13 §1.4: raio de 5 corpos) e a dos Ocos convocados (ilumina_raio_corpos 3) entram no MVP (brief §11.3; Q-28)",
-        "F-008/F-009: se o escurecimento de 40% da fase 2 (escurecer_arena_pct) soma com os 10%/min da Hora IV e se atinge telegrafos e HUD (brief §11.3)",
-        "F-009: raio de nascimento dos convocados dentro da arena (ADR-0002 §9)",
-        "Fúria inalcançável no MVP (A Fome às 23:00), mantida e testada isoladamente (Q-05)"
-      ]
+      }
     }
   ]
 }

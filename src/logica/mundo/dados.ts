@@ -4,6 +4,7 @@
 // timeline do diretor compilada.
 // Não mudam durante a Vigília e não ficam no estado; o estado guarda só a
 // impressão da disposição (design/decisoes-F-002.md §2), que entra no hash.
+import chefes from '../../dados/chefes.json';
 import combate from '../../dados/combate.json';
 import { criarTabelaDeArmas, type ArmaDoJson, type TabelaDeArmas } from '../armas/tabela';
 import {
@@ -25,6 +26,7 @@ import {
   type ObstaculosPorCelula,
 } from './obstaculos';
 import {
+  COMPORTAMENTO,
   CORPO_PX,
   CORPOS_POR_SEGUNDO_NA_VELOCIDADE_1,
   IDS_DE_TIPO,
@@ -58,6 +60,79 @@ export interface DadosDaVigilia {
   readonly marcos: TabelaDeMarcos;
   /** Stamina, esquiva, aparo, congelamento, Poder, Postura Quebrada e os ataques dos inimigos (design/decisoes-F-006.md ET9). */
   readonly combate: TabelaDeCombate;
+  /** O Lanterneiro, A Fome, o Amanhecer e a Fúria (design/decisoes-F-009.md). */
+  readonly chefe: TabelaDoChefe;
+}
+
+/** Códigos de `inimigos.ataqueId` do Lanterneiro (AT1); 0 com a fase em telegrafo é o cast do Convocar (FS3). */
+export const ATAQUE_DO_CHEFE = { convocar: 0, vara: 1, bater: 2, luzCega: 3, lanterna: 4, explosao: 5, agarrar: 6 } as const;
+
+/**
+ * Os números do Lanterneiro, compilados uma vez de chefes.json e de combate.json (`chefe`, `fome`, `amanhecer`, `furia`).
+ * Durações em passos inteiros, distâncias em px. Os vetores por ataque são indexados por `ATAQUE_DO_CHEFE` (índice 0 sem uso).
+ */
+export interface TabelaDoChefe {
+  readonly meiaLargura: number;
+  readonly meiaAltura: number;
+  /** Raio do círculo que contém a caixa: 80 (LN1). */
+  readonly circunraio: number;
+  /** Deslocamento por passo (velocidade × 4,5 × 32 ÷ 60 = 1,08 px). */
+  readonly velocidade: number;
+  readonly pararA: number;
+  readonly nasceA: number;
+  readonly recuperacaoInicial: number;
+  readonly esperaPosQuebra: number;
+  /** HP: `hpBase × (100 + hpPctPorNivel × nível)/100` (LN2). */
+  readonly hpBase: number;
+  readonly hpPctPorNivel: number;
+  readonly almas: number;
+  /** Limiares de HP em % do `hpMax` das fases 2 e 3 (FS1). */
+  readonly limiarPct: Float64Array;
+  readonly transicaoPassos: number;
+  readonly posturaMax: number;
+  readonly ganhoAparo: number;
+  readonly ganhoEsquiva: number;
+  readonly ganhoEspada: number;
+  readonly ganhoPesada: number;
+  readonly ganhoFaca: number;
+  readonly quebraPassos: number;
+  readonly regenEspera: number;
+  /** Queda da Postura por passo depois da espera: `fround(regen_por_s/60)` (PO3). */
+  readonly regenPorPasso: number;
+  /** Fator do dano de arma em %: fora da Quebra 100 − Postura Firme (60); dentro, 200 (PO6). */
+  readonly fatorForaPct: number;
+  readonly fatorQuebraPct: number;
+  readonly telegrafo: Int32Array;
+  readonly recuperacao: Int32Array;
+  readonly dano: Float64Array;
+  readonly gatilho: Float64Array;
+  readonly aparavel: Uint8Array;
+  readonly convocaIntervalo: number;
+  readonly convocaCast: number;
+  readonly convocaRecuperacao: number;
+  readonly convocaPrimeira: number;
+  readonly explosaoIntervalo: number;
+  readonly explosaoPrimeira: number;
+  readonly explosaoRaioIni: number;
+  readonly explosaoRaioFim: number;
+  readonly explosaoMeiaEspessura: number;
+  readonly cegoPassos: number;
+  readonly tickPassos: number;
+  /** Dano bruto de um tick: `dano_por_s × tickPassos / 60` (AT3, AT5). */
+  readonly tickCego: number;
+  readonly tickZona: number;
+  readonly zonaPassos: number;
+  readonly zonaRaio: number;
+  readonly zonasMaximas: number;
+  readonly agarrarPct: number;
+  readonly presoPassos: number;
+  readonly furiaInicio: number;
+  readonly furiaIntervalo: number;
+  readonly furiaPct: number;
+  readonly fomeTick: number;
+  readonly fomeBase: number;
+  readonly fomeDivisor: number;
+  readonly amanhecerPassos: number;
 }
 
 /** O que se lê de `marco` numa linha da região (regiao.schema.json). */
@@ -234,7 +309,8 @@ export function criarDadosDaVigilia(
   const obstaculos = criarObstaculos(regiao.obstaculos);
   const timeline = compilarTimeline(regiao.linhas, regiao.sem_spawn_antes_do_marco_s);
   const marcos = criarTabelaDeMarcos(regiao);
-  const tipos = tiposQueNascem(criarTiposDeInimigo(inimigos), timeline, marcos);
+  const chefe = criarTabelaDoChefe(chefes, combate);
+  const tipos = comOChefe(tiposQueNascem(criarTiposDeInimigo(inimigos), timeline, marcos), chefe);
   const tabelaDeArmas = criarTabelaDeArmas(armas, vigilante.atributos, vigilante.arma_inicial);
   return {
     obstaculos,
@@ -250,6 +326,7 @@ export function criarDadosDaVigilia(
     timeline,
     marcos,
     combate: criarTabelaDeCombate(combate, vigilante, inimigos),
+    chefe,
   };
 }
 
@@ -449,4 +526,126 @@ function tiposQueNascem(t: TiposDeInimigo, tl: Timeline, marcos: TabelaDeMarcos)
   if (raioDeObstaculo > raioMaximo + FOLGA_DOS_GRANDES) throw new Error(`corpo grande demais: raio ${raioDeObstaculo} px, o máximo é ${raioMaximo + FOLGA_DOS_GRANDES}`);
   // Fora do conjunto, existe = 0: nascerInimigo recusa o tipo, e nenhum corpo passa do R_MAX da separação e do raio dos obstáculos.
   return { ...t, existe, raioMaximo, raioDeObstaculo };
+}
+
+type ChefesDoJson = typeof chefes;
+
+/** Compila o Lanterneiro (`chefes.json`) e os blocos `chefe`, `fome`, `amanhecer` e `furia` de combate.json. */
+export function criarTabelaDoChefe(j: ChefesDoJson, c: CombateDoJson): TabelaDoChefe {
+  const ch = j.chefes[0]!;
+  const k = c.chefe;
+  const fases = ch.fases as readonly { readonly limiar_hp_pct: number; readonly ataques: readonly Record<string, unknown>[] }[];
+  const ataque = (id: string): Record<string, unknown> => {
+    for (const f of fases) for (const a of f.ataques) if (a['id'] === id) return a;
+    throw new Error(`chefes.json: falta o ataque ${id}`);
+  };
+  const n = 7;
+  const telegrafo = new Int32Array(n);
+  const recuperacao = new Int32Array(n);
+  const dano = new Float64Array(n);
+  const gatilho = new Float64Array(n);
+  const aparavel = new Uint8Array(n);
+  const por: readonly (readonly [number, string, number])[] = [
+    [ATAQUE_DO_CHEFE.vara, 'vara_horizontal', k.gatilho_px.vara],
+    [ATAQUE_DO_CHEFE.bater, 'bater_a_vara', k.gatilho_px.bater],
+    [ATAQUE_DO_CHEFE.luzCega, 'luz_cega', k.gatilho_px.luz_cega],
+    [ATAQUE_DO_CHEFE.lanterna, 'lanterna_arremessada', k.gatilho_px.lanterna],
+    [ATAQUE_DO_CHEFE.explosao, 'explosao_de_luz', 0],
+    [ATAQUE_DO_CHEFE.agarrar, 'agarrar', k.gatilho_px.agarrar],
+  ];
+  for (const [codigo, id, g] of por) {
+    const a = ataque(id);
+    telegrafo[codigo] = segundosEmPassos((a['telegrafo'] as { duracao_s: number }).duracao_s);
+    recuperacao[codigo] = segundosEmPassos(a['recuperacao_s'] as number);
+    dano[codigo] = (a['dano'] as number | null) ?? 0;
+    gatilho[codigo] = g;
+    aparavel[codigo] = a['aparavel'] === true ? 1 : 0;
+  }
+  const luz = ataque('luz_cega');
+  const lanterna = ataque('lanterna_arremessada');
+  const explosao = ataque('explosao_de_luz');
+  const agarrar = ataque('agarrar')['agarrar'] as { dano_hp_pct: number; preso_s: number };
+  const convoca = (fases[1] as unknown as { convoca: { intervalo_s: number } }).convoca;
+  const meiaLargura = ch.largura_px / 2;
+  const meiaAltura = ch.altura_px / 2;
+  const tick = k.tick_passos;
+  return {
+    meiaLargura,
+    meiaAltura,
+    circunraio: Math.sqrt(meiaLargura * meiaLargura + meiaAltura * meiaAltura),
+    velocidade: (ch.velocidade * CORPOS_POR_SEGUNDO_NA_VELOCIDADE_1 * CORPO_PX) / PASSOS_POR_SEGUNDO,
+    pararA: k.parar_a_px,
+    nasceA: k.nasce_a_px,
+    recuperacaoInicial: k.recuperacao_inicial_passos,
+    esperaPosQuebra: k.espera_pos_quebra_passos,
+    hpBase: ch.hp_base,
+    hpPctPorNivel: Math.round(ch.hp_escala_por_nivel * 100),
+    almas: ch.almas,
+    limiarPct: Float64Array.from([fases[1]!.limiar_hp_pct, fases[2]!.limiar_hp_pct]),
+    transicaoPassos: k.transicao_passos,
+    posturaMax: ch.postura.max,
+    ganhoAparo: ch.postura.ganho_aparo,
+    ganhoEsquiva: ch.postura.ganho_esquiva_perfeita,
+    ganhoEspada: ch.postura.ganho_acerto_espada,
+    ganhoPesada: ch.postura.ganho_acerto_pesada,
+    ganhoFaca: ch.postura.ganho_faca,
+    quebraPassos: segundosEmPassos(ch.postura.quebra_s),
+    regenEspera: ch.postura.regen_espera_passos,
+    regenPorPasso: Math.fround(ch.postura.regen_por_s / PASSOS_POR_SEGUNDO),
+    fatorForaPct: 100 - ch.postura_firme_reducao_pct,
+    fatorQuebraPct: ch.postura.quebra_mult_dano * 100,
+    telegrafo,
+    recuperacao,
+    dano,
+    gatilho,
+    aparavel,
+    convocaIntervalo: segundosEmPassos(convoca.intervalo_s),
+    convocaCast: k.convocar.cast_passos,
+    convocaRecuperacao: k.convocar.recuperacao_passos,
+    convocaPrimeira: k.convocar.primeira_na_fase_2_passos,
+    explosaoIntervalo: segundosEmPassos(explosao['intervalo_s'] as number),
+    explosaoPrimeira: k.explosao.primeira_na_fase_3_passos,
+    explosaoRaioIni: (explosao['raio_inicial_corpos'] as number) * CORPO_PX,
+    explosaoRaioFim: (explosao['raio_final_corpos'] as number) * CORPO_PX,
+    explosaoMeiaEspessura: k.explosao.meia_espessura_px,
+    cegoPassos: segundosEmPassos(luz['duracao_efeito_s'] as number),
+    tickPassos: tick,
+    tickCego: ((luz['dano_por_s'] as number) * tick) / PASSOS_POR_SEGUNDO,
+    tickZona: ((lanterna['dano_por_s'] as number) * tick) / PASSOS_POR_SEGUNDO,
+    zonaPassos: segundosEmPassos(lanterna['duracao_efeito_s'] as number),
+    zonaRaio: (lanterna['raio_corpos'] as number) * CORPO_PX,
+    zonasMaximas: k.zonas_maximas,
+    agarrarPct: agarrar.dano_hp_pct,
+    presoPassos: segundosEmPassos(agarrar.preso_s),
+    furiaInicio: c.furia.inicio_relogio,
+    furiaIntervalo: segundosEmPassos(ch.furia.intervalo_s),
+    furiaPct: ch.furia.dano_pct,
+    fomeTick: c.fome.tick_passos,
+    fomeBase: c.fome.base,
+    fomeDivisor: c.fome.divisor,
+    amanhecerPassos: c.amanhecer.duracao_passos,
+  };
+}
+
+/**
+ * Acrescenta o Lanterneiro (tipo 5) à tabela de tipos: corpo grande de raio = circunraio da caixa (80), que nasce pelo
+ * `surgirChefe` e não pelo diretor, persegue (para a `pararA`) e não fere por contato. Fora das consultas de obstáculo
+ * (`raioDeObstaculo`): a arena tira todo obstáculo a ≤ 224 + r do jogador, onde ele ainda cabe. A folga das consultas
+ * das armas vem de `FOLGAS_DOS_GRANDES` (raio − R_MAX), preenchida por `montarGradeDaMassa`.
+ */
+function comOChefe(t: TiposDeInimigo, chefe: TabelaDoChefe): TiposDeInimigo {
+  const c = TIPO.o_lanterneiro;
+  const existe = Uint8Array.from(t.existe);
+  const raio = Float64Array.from(t.raio);
+  const velocidade = Float64Array.from(t.velocidade);
+  const distancia = Float64Array.from(t.distancia);
+  const comportamento = Uint8Array.from(t.comportamento);
+  const grande = Uint8Array.from(t.grande);
+  existe[c] = 1;
+  raio[c] = chefe.circunraio;
+  velocidade[c] = chefe.velocidade;
+  distancia[c] = chefe.pararA;
+  comportamento[c] = COMPORTAMENTO.pararADistancia;
+  grande[c] = 1;
+  return { ...t, existe, raio, velocidade, distancia, comportamento, grande };
 }

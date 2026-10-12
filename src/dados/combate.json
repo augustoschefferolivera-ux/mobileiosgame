@@ -72,5 +72,41 @@
     "raio_px": 64,
     "distancia_px": 96,
     "autosave_passos": 3600
+  },
+  "chefe": {
+    "recuperacao_inicial_passos": 120,
+    "espera_pos_quebra_passos": 30,
+    "parar_a_px": 96,
+    "nasce_a_px": 144,
+    "gatilho_px": {
+      "vara": 144,
+      "bater": 208,
+      "luz_cega": 208,
+      "lanterna": 320,
+      "agarrar": 128
+    },
+    "convocar": {
+      "cast_passos": 60,
+      "recuperacao_passos": 60,
+      "primeira_na_fase_2_passos": 180
+    },
+    "explosao": {
+      "primeira_na_fase_3_passos": 360,
+      "meia_espessura_px": 12
+    },
+    "tick_passos": 10,
+    "zonas_maximas": 3,
+    "transicao_passos": 90
+  },
+  "fome": {
+    "tick_passos": 10,
+    "base": 18,
+    "divisor": 1800
+  },
+  "amanhecer": {
+    "duracao_passos": 600
+  },
+  "furia": {
+    "inicio_relogio": 90000
   }
 }

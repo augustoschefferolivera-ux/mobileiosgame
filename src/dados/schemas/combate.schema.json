@@ -22,7 +22,11 @@
     "telemetria",
     "gestos",
     "arena",
-    "fogueira"
+    "fogueira",
+    "chefe",
+    "fome",
+    "amanhecer",
+    "furia"
   ],
   "properties": {
     "versao": {
@@ -375,6 +379,201 @@
           "description": "Distância do jogador em que a Fogueira acende no fim do marco (FG1).",
           "type": "number",
           "exclusiveMinimum": 0
+        }
+      }
+    },
+    "chefe": {
+      "description": "O Lanterneiro (design/decisoes-F-009.md AB2, FS1 a FS3, AT3, AT5, LN3, PO2).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recuperacao_inicial_passos",
+        "espera_pos_quebra_passos",
+        "parar_a_px",
+        "nasce_a_px",
+        "gatilho_px",
+        "convocar",
+        "explosao",
+        "tick_passos",
+        "zonas_maximas",
+        "transicao_passos"
+      ],
+      "properties": {
+        "recuperacao_inicial_passos": {
+          "description": "Passos de recuperação com que o Lanterneiro nasce (AB2).",
+          "type": "integer",
+          "minimum": 1
+        },
+        "espera_pos_quebra_passos": {
+          "description": "Passos de espera depois da Quebra de Postura (PO2).",
+          "type": "integer",
+          "minimum": 1
+        },
+        "parar_a_px": {
+          "description": "Distância centro a centro em que o chefe para de perseguir (LN3).",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "nasce_a_px": {
+          "description": "Distância do centro da arena em que nasce, na direção 0 da tabela (AB2).",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "gatilho_px": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "vara",
+            "bater",
+            "luz_cega",
+            "lanterna",
+            "agarrar"
+          ],
+          "properties": {
+            "vara": {
+              "description": "Distância centro a centro para começar o ataque (FS2).",
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "bater": {
+              "description": "Distância centro a centro para começar o ataque (FS2).",
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "luz_cega": {
+              "description": "Distância centro a centro para começar o ataque (FS2).",
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "lanterna": {
+              "description": "Distância centro a centro para começar o ataque (FS2).",
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "agarrar": {
+              "description": "Distância centro a centro para começar o ataque (FS2).",
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "convocar": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "cast_passos",
+            "recuperacao_passos",
+            "primeira_na_fase_2_passos"
+          ],
+          "properties": {
+            "cast_passos": {
+              "description": "Cast parado do Convocar (FS3).",
+              "type": "integer",
+              "minimum": 1
+            },
+            "recuperacao_passos": {
+              "description": "Recuperação do Convocar (FS3).",
+              "type": "integer",
+              "minimum": 1
+            },
+            "primeira_na_fase_2_passos": {
+              "description": "Espera do 1º Convocar ao entrar na fase 2 (FS1).",
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "explosao": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "primeira_na_fase_3_passos",
+            "meia_espessura_px"
+          ],
+          "properties": {
+            "primeira_na_fase_3_passos": {
+              "description": "Espera da 1ª Explosão ao entrar na fase 3 (FS1).",
+              "type": "integer",
+              "minimum": 1
+            },
+            "meia_espessura_px": {
+              "description": "Meia-espessura do anel (AT5).",
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "tick_passos": {
+          "description": "Passos entre dois ticks de cegueira e de zona da Lanterna (AT3, AT5).",
+          "type": "integer",
+          "minimum": 1
+        },
+        "zonas_maximas": {
+          "description": "Zonas de Lanterna simultâneas (AT5).",
+          "type": "integer",
+          "minimum": 1
+        },
+        "transicao_passos": {
+          "description": "Passos da transição de fase (FS1); espelha `transicao_fase_s` de chefes.json.",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "fome": {
+      "description": "A Fome (FM2).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tick_passos",
+        "base",
+        "divisor"
+      ],
+      "properties": {
+        "tick_passos": {
+          "description": "Passos entre dois ticks de A Fome (FM2).",
+          "type": "integer",
+          "minimum": 1
+        },
+        "base": {
+          "description": "Numerador base do tick: hpMax × (base + k)/divisor (FM2).",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "divisor": {
+          "description": "Divisor do tick (FM2).",
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "amanhecer": {
+      "description": "O Amanhecer (AN4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "duracao_passos"
+      ],
+      "properties": {
+        "duracao_passos": {
+          "description": "Passos do Amanhecer até o FIM (AN4).",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "furia": {
+      "description": "A Fúria do Lanterneiro (FU1).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inicio_relogio"
+      ],
+      "properties": {
+        "inicio_relogio": {
+          "description": "Relógio (passos) em que a Fúria começa: 72.000 + apos_s × 60 (FU1).",
+          "type": "integer",
+          "minimum": 1
         }
       }
     }
