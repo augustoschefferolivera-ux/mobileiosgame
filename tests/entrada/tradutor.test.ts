@@ -784,3 +784,119 @@ describe('botão Aparo (AP1; F-006.2, parte do tradutor)', () => {
     expect(acoes()).toBe(ACAO.aparo);
   });
 });
+
+describe('suavização da direção do joystick', () => {
+  const graus = (x: number, y: number): number => (Math.atan2(y, x) * 180) / Math.PI;
+  const quadro = (agora: number): [number, number] => {
+    trad.traduzir(fila, cmd, agora);
+    return [cmd.movimento[0]!, cmd.movimento[1]!];
+  };
+  /** Dedo na base (100, 600) e puxado 60 pt para a direita, em régime. */
+  const andandoParaDireita = (): void => {
+    toque(T.inicio, 7, 100, 600);
+    quadro(1000);
+    toque(T.move, 7, 160, 600);
+    quadro(1016);
+  };
+  /** Dedo a 60 pt da base, no ângulo `a` (graus). */
+  const puxar = (a: number): void => {
+    const r = (a * Math.PI) / 180;
+    toque(T.move, 7, 100 + 60 * Math.cos(r), 600 + 60 * Math.sin(r));
+  };
+
+  it('partindo do repouso, a direção vale de imediato', () => {
+    toque(T.inicio, 7, 100, 600);
+    quadro(1000);
+    puxar(90);
+    const [mx, my] = quadro(1016);
+    expect(mx).toBeCloseTo(0, 6);
+    expect(my).toBeCloseTo(1, 6);
+  });
+
+  it('entrar na zona morta e sair de novo conta como repouso', () => {
+    andandoParaDireita();
+    toque(T.move, 7, 102, 600);
+    expect(quadro(1032)).toEqual([0, 0]);
+    puxar(90);
+    expect(graus(...quadro(1048))).toBeCloseTo(90, 4);
+  });
+
+  it('limita o giro a 540 graus por segundo do quadro e mantém o módulo', () => {
+    andandoParaDireita();
+    puxar(90);
+    const [mx, my] = quadro(1032);
+    expect(graus(mx, my)).toBeCloseTo(8.64, 3);
+    expect(Math.hypot(mx, my)).toBeCloseTo(1, 6);
+    expect(graus(...quadro(1048))).toBeCloseTo(17.28, 3);
+  });
+
+  it('o módulo parcial do vetor continua o da curva do joystick', () => {
+    andandoParaDireita();
+    toque(T.move, 7, 100, 600 + 33);
+    const [mx, my] = quadro(1032);
+    expect(Math.hypot(mx, my)).toBeCloseTo((33 / 60 - 0.15) / 0.85, 6);
+    expect(graus(mx, my)).toBeCloseTo(8.64, 3);
+  });
+
+  it('chega ao alvo e para nele, nos dois sentidos', () => {
+    andandoParaDireita();
+    puxar(-60);
+    let a = 0;
+    for (let k = 2; k < 40; k++) a = graus(...quadro(1000 + 16 * k));
+    expect(a).toBeCloseTo(-60, 4);
+  });
+
+  it('um quadro de 0 ms não gira', () => {
+    andandoParaDireita();
+    puxar(90);
+    const [mx, my] = quadro(1016);
+    expect(mx).toBeCloseTo(1, 6);
+    expect(my).toBeCloseTo(0, 6);
+  });
+
+  it('a reversão acima de 150 graus vale de imediato; 150 ou menos é limitada', () => {
+    andandoParaDireita();
+    puxar(170);
+    expect(graus(...quadro(1032))).toBeCloseTo(170, 4);
+    puxar(-10);
+    expect(graus(...quadro(1048))).toBeCloseTo(-10, 4);
+    puxar(135);
+    expect(graus(...quadro(1064))).toBeCloseTo(-10 + 8.64, 3);
+  });
+
+  it('um quadro muito longo (voltando de uma pausa) chega ao alvo; sem relógio (NaN) também', () => {
+    andandoParaDireita();
+    puxar(90);
+    expect(graus(...quadro(6000))).toBeCloseTo(90, 4);
+    puxar(0);
+    trad.traduzir(fila, cmd);
+    expect(graus(cmd.movimento[0]!, cmd.movimento[1]!)).toBeCloseTo(0, 4);
+  });
+
+  it('soltar e tocar de novo recomeça do repouso; o teclado não é suavizado', () => {
+    andandoParaDireita();
+    toque(T.fim, 7, 160, 600);
+    quadro(1032);
+    toque(T.inicio, 8, 100, 600);
+    quadro(1048);
+    puxar(90);
+    toque(T.move, 8, 100, 660);
+    expect(graus(...quadro(1064))).toBeCloseTo(90, 4);
+    toque(T.fim, 8, 100, 660);
+    trad.teclado.x = 1;
+    trad.teclado.y = 0;
+    quadro(1080);
+    trad.teclado.x = 0;
+    trad.teclado.y = 1;
+    expect(quadro(1096)).toEqual([0, 1]);
+  });
+
+  it('só mexe nos ComandosDoPasso do movimento: ações e mira ficam como estavam', () => {
+    andandoParaDireita();
+    puxar(90);
+    quadro(1032);
+    expect(cmd.acoes[0]).toBe(0);
+    expect(cmd.mira[0]).toBe(0);
+    expect(cmd.mira[1]).toBe(0);
+  });
+});

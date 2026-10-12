@@ -5,6 +5,19 @@
 
 export const RAIO_DO_JOYSTICK_PT = 60;
 export const ZONA_MORTA = 0.15;
+/**
+ * Suavização da direção (decisão do usuário, 2026-10-12; divergência da D2 §4):
+ * perto da zona morta um desvio pequeno do dedo gira muito o ângulo do vetor, e
+ * a direção mudava num único quadro. O tradutor limita o giro da direção a
+ * este valor por segundo de tempo real do quadro; o módulo não muda.
+ */
+export const GIRO_MAX_GRAUS_S = 540;
+/**
+ * Giro maior que isto vale de imediato (reversão para esquivar ou reagir):
+ * uma virada de quase 180° não é "um desvio do dedo", é uma intenção; esperar
+ * 1/3 s para voltar atrás custaria uma esquiva.
+ */
+export const REVERSAO_IMEDIATA_GRAUS = 150;
 /** Raio do pino desenhado (só visual, §4). */
 export const RAIO_DO_PINO_PT = 24;
 

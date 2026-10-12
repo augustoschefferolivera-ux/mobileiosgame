@@ -16,7 +16,7 @@ import combate from '../dados/combate.json';
 import { ACAO, type ComandosDoPasso } from '../logica/nucleo/comandos';
 import { alvoDaPausa, alvoDoAparo, alvosDaTelaDePausa, alvosDasCartas, alvosDoBau, areaDoJoystick, contem, type Alvo } from './alvos';
 import { CAMPOS_POR_EVENTO, TIPO_DE_TOQUE, type FilaDeToques } from './filaDeToques';
-import { pinoDoJoystick, vetorDoJoystick, type Vetor } from './joystick';
+import { GIRO_MAX_GRAUS_S, pinoDoJoystick, REVERSAO_IMEDIATA_GRAUS, vetorDoJoystick, type Vetor } from './joystick';
 import type { Insets } from '../plataforma/safeArea';
 
 /** Dedos acompanhados ao mesmo tempo; o 6º é descartado e contado (§4; conferir no iPhone, Q-29). */
@@ -45,6 +45,8 @@ const TOQUE_DUPLO = {
   distanciaMaxPt: combate.gestos.toque_duplo.distancia_entre_toques_max_pt,
   deslocamentoMaxPt: combate.gestos.toque_duplo.deslocamento_max_pt,
 } as const;
+const GIRO_MAX_RAD_MS = (GIRO_MAX_GRAUS_S * Math.PI) / 180 / 1000;
+const COS_REVERSAO = Math.cos((REVERSAO_IMEDIATA_GRAUS * Math.PI) / 180);
 /** Um timeStamp a mais de 60 s do relógio do quadro está em outro relógio: vale o agora do quadro (P3). */
 const RELOGIO_SUSPEITO_MS = 60_000;
 
@@ -120,6 +122,12 @@ export class TradutorDeGestos {
   private esquivaDoTeclado = false;
   /** Os ComandosDoPasso do último `traduzir`: `mudarModo` zera as ações pendentes neles. */
   private saida: ComandosDoPasso | null = null;
+  /** Direção suavizada (unitária) do vetor de movimento; só vale com `dirValida` (nasce do repouso). */
+  private dirX = 0;
+  private dirY = 0;
+  private dirValida = false;
+  /** O `agora` do quadro anterior (NaN = sem referência: a direção vale de imediato). */
+  private agoraAnterior = Number.NaN;
   private dono = -1;
   private atualX = 0;
   private atualY = 0;
@@ -134,6 +142,8 @@ export class TradutorDeGestos {
     this.dono = -1;
     this.joystick.ativo = false;
     this.joystick.vx = this.joystick.vy = 0;
+    this.dirValida = false;
+    this.agoraAnterior = Number.NaN;
     this.dedosPerdidos = 0;
     this.joystickCriados = 0;
     this.teclado.x = this.teclado.y = 0;
@@ -245,9 +255,46 @@ export class TradutorDeGestos {
       j.pinoX = this.v.x;
       j.pinoY = this.v.y;
       vetorDoJoystick(dx, dy, this.v);
-      j.vx = this.v.x;
-      j.vy = this.v.y;
+      // Suavização (ver GIRO_MAX_GRAUS_S): limita o giro da direção pelo tempo real do quadro; o módulo fica.
+      // Vale de imediato: partindo do repouso, sem relógio, e na reversão acima de REVERSAO_IMEDIATA_GRAUS.
+      const vx = this.v.x;
+      const vy = this.v.y;
+      const m = Math.sqrt(vx * vx + vy * vy);
+      if (m > 0) {
+        const ux = vx / m;
+        const uy = vy / m;
+        const dt = agora - this.agoraAnterior;
+        if (this.dirValida && dt >= 0 && dt < Infinity) {
+          const dot = this.dirX * ux + this.dirY * uy;
+          const cruz = this.dirX * uy - this.dirY * ux;
+          const maxRad = GIRO_MAX_RAD_MS * dt;
+          if (dot > COS_REVERSAO && Math.abs(Math.atan2(cruz, dot)) > maxRad) {
+            const c = Math.cos(maxRad);
+            const sn = cruz < 0 ? -Math.sin(maxRad) : Math.sin(maxRad);
+            const nx = this.dirX * c - this.dirY * sn;
+            const ny = this.dirX * sn + this.dirY * c;
+            const inv = 1 / Math.sqrt(nx * nx + ny * ny);
+            this.dirX = nx * inv;
+            this.dirY = ny * inv;
+          } else {
+            this.dirX = ux;
+            this.dirY = uy;
+          }
+        } else {
+          this.dirX = ux;
+          this.dirY = uy;
+        }
+        this.dirValida = true;
+        j.vx = this.dirX * m;
+        j.vy = this.dirY * m;
+      } else {
+        this.dirValida = false;
+        j.vx = j.vy = 0;
+      }
+    } else {
+      this.dirValida = false;
     }
+    this.agoraAnterior = agora;
     // O toque tem prioridade sobre o teclado (§4); na pausa e no modal, nada move.
     const pausa = this.modo !== 'vigilia';
     out.movimento[0] = pausa ? 0 : j.ativo ? j.vx : this.teclado.x;
@@ -336,6 +383,7 @@ export class TradutorDeGestos {
       j.origemX = this.atualX = x;
       j.origemY = this.atualY = y;
       j.pinoX = j.pinoY = j.vx = j.vy = 0;
+      this.dirValida = false;
     } else {
       this.papel[s] = PAPEL.outro;
     }
