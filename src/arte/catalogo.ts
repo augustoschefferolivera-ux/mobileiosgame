@@ -151,9 +151,9 @@ ANGULOS_DESENHADOS.forEach((g, i) => {
   );
 });
 
-// Círculo de Sal: os grãos do anel e do pulso; partículas brancas (tingidas pela paleta no render).
-sprite('grao_sal_0', 'fina', ras(['.S.', 'SHs', '.s.']));
-sprite('grao_sal_1', 'fina', ras(['SS', 'Hs']));
+// Círculo de Sal: os grãos do anel e do pulso (cristais com contorno, como as Cinzas); partículas brancas (tingidas pela paleta no render).
+sprite('grao_sal_0', 'arte', comContorno(['.....', '..S..', '.SHs.', '..s..', '.....']));
+sprite('grao_sal_1', 'arte', comContorno(['....', '.HS.', '.Ss.', '....']));
 sprite('ponto', 'fina', ras(['W']));
 sprite('ponto_2', 'fina', ras(['WW', 'WW']));
 

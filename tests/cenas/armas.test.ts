@@ -6,7 +6,9 @@ import { criarCena } from './phaserFalso';
 import type Phaser from 'phaser';
 import { describe, expect, it } from 'vitest';
 import inimigos from '../../src/dados/inimigos.json';
-import { COR_DO_CRITICO, DIGITOS_POR_NUMERO, MEMBROS_DAS_ARMAS, prepararArmas, prepararMortes, prepararNumeros, prepararStatus } from '../../src/cenas/render/armas';
+import { COR_DO_CRITICO, DIGITOS_POR_NUMERO, MEMBROS_DAS_ARMAS, MEMBROS_DO_SAL, prepararArmas, prepararMortes, prepararNumeros, prepararSal, prepararStatus } from '../../src/cenas/render/armas';
+import { ORIGEM_X, ORIGEM_Y } from '../../src/cenas/render/arte';
+import { ESTOCADA, RAIO_DO_ARCO } from '../../src/arte/catalogo';
 import { FONTE_DOS_DIGITOS, MOLDURA } from '../../src/cenas/render/atlas';
 import { CamadaPorGPU, OFFSET_DA_ORIGEM, criarSaidaDeSprites, indiceDaMoldura } from '../../src/cenas/render/camadas';
 import { CAPACIDADE_DE_MORTES, CAPACIDADE_DE_NUMEROS, EfeitosDaVigilia, digitosDe } from '../../src/cenas/render/efeitos';
@@ -218,7 +220,6 @@ describe('mortes (V5)', () => {
 });
 
 describe('desenho das armas (V1 a V4)', () => {
-  const ANEL = indiceDaMoldura('anel');
   /** A camada das armas com a câmera e o jogador interpolado no jogador parado em J (alfa 1). */
   function preparar(e: Estado, ef: EfeitosDaVigilia): ReturnType<typeof criarSaidaDeSprites> {
     const out = criarSaidaDeSprites(MEMBROS_DAS_ARMAS);
@@ -233,7 +234,7 @@ describe('desenho das armas (V1 a V4)', () => {
     return CAPACIDADE_DE_PROJETEIS + 5 + ef.efeitos.ativo.indexOf(1);
   }
 
-  it('anel da aura (V3): só nas vagas de aura, centrado no jogador, com 2R de diâmetro (128 no nv1, 192 no nv8), sal a 60%', () => {
+  it('anel da aura (V3; F-011 em grãos de sal): só nas vagas de aura, em volta do jogador, na borda do raio R (64 no nv1, 96 no nv8), a 85%', () => {
     for (const [nivel, R] of [
       [1, 64],
       [8, 96],
@@ -242,16 +243,27 @@ describe('desenho das armas (V1 a V4)', () => {
         [ARMA.espada_longa_do_juramento, 1],
         [ARMA.circulo_de_sal, nivel],
       ]);
-      const out = preparar(e, new EfeitosDaVigilia(D.tipos));
-      const [espada, aura] = [CAPACIDADE_DE_PROJETEIS, CAPACIDADE_DE_PROJETEIS + 1];
-      expect([out.visivel[espada], out.visivel[aura], out.visivel[aura + 1]]).toEqual([0, 1, 0]);
-      expect([out.x[aura], out.y[aura], out.moldura[aura], out.cor[aura]]).toEqual([J.x, J.y, ANEL, COR.sal]);
-      expect(MOLDURA.anel.largura * out.escalaX[aura]!, `nv${nivel}`).toBeCloseTo(2 * R, 9);
-      expect(out.alpha[aura]).toBeCloseTo(0.6, 9);
+      const ef = new EfeitosDaVigilia(D.tipos);
+      const out = preparar(e, ef);
+      // Na camada das armas, o membro da aura fica oculto: o anel é de grãos, na camada do sal.
+      expect([out.visivel[CAPACIDADE_DE_PROJETEIS], out.visivel[CAPACIDADE_DE_PROJETEIS + 1]]).toEqual([0, 0]);
+      const sal = criarSaidaDeSprites(MEMBROS_DO_SAL);
+      prepararSal(e, D, ef, 1, J.x, J.y, sal);
+      const graos = [...Array(64).keys()].filter((g) => sal.visivel[g] === 1);
+      expect(graos.length, `nv${nivel}`).toBe(Math.min(64, Math.round((2 * Math.PI * R) / 10)));
+      for (const g of graos) {
+        const d = Math.hypot(sal.x[g]! - J.x, sal.y[g]! - J.y);
+        expect(d, `nv${nivel} grão ${g}`).toBeGreaterThan(R - 6);
+        expect(d).toBeLessThan(R - 3.25);
+        expect([sal.alpha[g], sal.cor[g]]).toEqual([0.85, 0xffffff]);
+        expect([indiceDaMoldura('grao_sal_0'), indiceDaMoldura('grao_sal_1')]).toContain(sal.moldura[g]);
+      }
+      // Só uma vaga de aura: o 2º anel e os pulsos ficam ocultos.
+      expect(sal.visivel.subarray(64).every((v) => v === 0)).toBe(true);
     }
   });
 
-  it('faca (V2): um membro por projétil vivo, 4 × 16 pt em sal, girada pelo voo (para cima, 0); o slot liberado some', () => {
+  it('faca (V2; F-011): um membro por projétil vivo, a faca de 13 px a 2 pt, no desenho da direção do voo (para cima: o de 0°, sem giro); o slot liberado some', () => {
     const e = estadoCom([[ARMA.facas_de_sal, 1]]);
     por(e, TIPO.oco_das_lanternas, 0, -100);
     rodarArmas(e, D);
@@ -260,8 +272,8 @@ describe('desenho das armas (V1 a V4)', () => {
     expect(vivas).toHaveLength(2);
     let out = preparar(e, new EfeitosDaVigilia(D.tipos));
     for (const p of vivas) {
-      expect([out.visivel[p], out.moldura[p], out.cor[p]]).toEqual([1, indiceDaMoldura('faca'), COR.sal]);
-      expect([MOLDURA.faca.largura * out.escalaX[p]!, MOLDURA.faca.altura * out.escalaY[p]!]).toEqual([4, 16]);
+      expect([out.visivel[p], out.moldura[p], out.cor[p]]).toEqual([1, indiceDaMoldura('faca_0'), 0xffffff]);
+      expect([13 * out.escalaX[p]!, 13 * out.escalaY[p]!]).toEqual([26, 26]);
       expect(out.rotacao[p]).toBeCloseTo(0, 9);
       expect([out.x[p], out.y[p]]).toEqual([e.projeteis.x[p], e.projeteis.y[p]]);
     }
@@ -271,45 +283,52 @@ describe('desenho das armas (V1 a V4)', () => {
     expect([out.visivel[vivas[0]!], out.visivel[vivas[1]!]]).toEqual([0, 1]);
   });
 
-  it('golpe (V1): cunha em brasa com raio R e a ponta no jogador, alpha 0,5 → 0,25 na idade 4; some na idade 8', () => {
+  it('golpe (V1; F-011): o arco de brasa de raio R com o vértice no jogador; varredura na idade 0, arco cheio na 4, metade na 6; some na 8', () => {
     const e = criarEstado(1, D);
     const ef = new EfeitosDaVigilia(D.tipos);
     const k = efeito(e, ef, 10, EVENTO.golpe, FORMA.ida, [0, -1, 64, 0]);
     let out = preparar(e, ef);
-    expect([out.visivel[k], out.moldura[k], out.cor[k], out.x[k], out.y[k]]).toEqual([1, indiceDaMoldura('cunha'), COR.brasa, J.x, J.y]);
-    expect([out.origemX[k], out.origemY[k]]).toEqual([0.5, 1]);
-    expect(MOLDURA.cunha.altura * out.escalaY[k]!).toBeCloseTo(64, 9);
+    const varredura = indiceDaMoldura('arco_espada_ida_0_0');
+    expect([out.visivel[k], out.moldura[k], out.cor[k], out.x[k], out.y[k]]).toEqual([1, varredura, 0xffffff, J.x, J.y]);
+    expect([out.origemX[k], out.origemY[k]]).toEqual([ORIGEM_X[varredura], ORIGEM_Y[varredura]]);
+    expect(RAIO_DO_ARCO * out.escalaY[k]!).toBeCloseTo(64, 9);
     expect(out.rotacao[k]).toBeCloseTo(0, 9);
-    expect(out.alpha[k]).toBeCloseTo(0.5, 9);
+    expect(out.alpha[k]).toBeCloseTo(1, 9);
     consumirEm(ef, e, 14);
     out = preparar(e, ef);
-    expect(out.alpha[k]).toBeCloseTo(0.25, 9);
+    expect([out.moldura[k], out.alpha[k]]).toEqual([indiceDaMoldura('arco_espada_ida_0_1'), 1]);
+    consumirEm(ef, e, 16);
+    expect(preparar(e, ef).alpha[k]).toBeCloseTo(0.5, 9);
     consumirEm(ef, e, 18);
     expect(preparar(e, ef).visivel[k]).toBe(0);
   });
 
-  it('estocada (V1): retângulo de L × 2w a partir do jogador, ao longo da mira (para a direita, girado 90°)', () => {
+  it('estocada (V1; F-011): a lança de brasa de L a partir do jogador, ao longo da mira (para a direita: o desenho de 0° girado 90°)', () => {
     const e = criarEstado(1, D);
     const ef = new EfeitosDaVigilia(D.tipos);
     const k = efeito(e, ef, 10, EVENTO.golpe, FORMA.estocada, [1, 0, 115.2, 19.2]);
     const out = preparar(e, ef);
-    expect([out.visivel[k], out.moldura[k], out.cor[k]]).toEqual([1, indiceDaMoldura('quadrado'), COR.brasa]);
-    expect(MOLDURA.quadrado.largura * out.escalaX[k]!).toBeCloseTo(2 * 19.2, 4);
-    expect(MOLDURA.quadrado.altura * out.escalaY[k]!).toBeCloseTo(115.2, 4);
+    expect([out.visivel[k], out.moldura[k], out.cor[k]]).toEqual([1, indiceDaMoldura('estocada_0'), 0xffffff]);
+    expect(ESTOCADA.comprimento * out.escalaX[k]!).toBeCloseTo(115.2, 4);
     expect(out.rotacao[k]).toBeCloseTo(Math.PI / 2, 9);
   });
 
-  it('pulso (V3): o anel cresce 96 px em 12 passos (na idade 6, raio R + 48 e alpha 0,3) e some na idade 12', () => {
+  it('pulso (V3; F-011 em grãos): o anel cresce 96 px em 12 passos (na idade 6, raio R + 48 e alpha 0,85 × 0,5) e some na idade 12', () => {
     const e = criarEstado(1, D);
     const ef = new EfeitosDaVigilia(D.tipos);
     const k = efeito(e, ef, 10, EVENTO.pulso, 0, [0, 0, 96, 12]);
     consumirEm(ef, e, 16);
-    const out = preparar(e, ef);
-    expect([out.visivel[k], out.moldura[k], out.cor[k]]).toEqual([1, ANEL, COR.sal]);
-    expect(MOLDURA.anel.largura * out.escalaX[k]!).toBeCloseTo(2 * 144, 9);
-    expect(out.alpha[k]).toBeCloseTo(0.3, 9);
-    consumirEm(ef, e, 22);
     expect(preparar(e, ef).visivel[k]).toBe(0);
+    const sal = criarSaidaDeSprites(MEMBROS_DO_SAL);
+    prepararSal(e, D, ef, 1, J.x, J.y, sal);
+    const base = 5 * 64;
+    expect(sal.visivel[base]).toBe(1);
+    expect(Math.hypot(sal.x[base]! - J.x, sal.y[base]! - J.y)).toBeGreaterThan(144 - 6);
+    expect(Math.hypot(sal.x[base]! - J.x, sal.y[base]! - J.y)).toBeLessThan(144 - 3.25);
+    expect(sal.alpha[base]).toBeCloseTo(0.425, 9);
+    consumirEm(ef, e, 22);
+    prepararSal(e, D, ef, 1, J.x, J.y, sal);
+    expect(sal.visivel.every((v) => v === 0)).toBe(true);
   });
 
   it('Sal no inimigo (V4): losango de 8 pt em sal na posição da horda, só com salPassos > 0 e só no slot vivo', () => {
@@ -324,9 +343,10 @@ describe('desenho das armas (V1 a V4)', () => {
     e.inimigos.salPct[s] = 50;
     e.inimigos.salPassos[s] = 10;
     prepararStatus(e, horda, out);
-    expect([out.visivel[s], out.visivel[outro], out.moldura[s], out.cor[s]]).toEqual([1, 0, indiceDaMoldura('losango'), COR.sal]);
-    expect([out.x[s], out.y[s]]).toEqual([horda.x[s], horda.y[s]]);
-    expect(MOLDURA.losango.largura * out.escalaX[s]!).toBe(8);
+    expect([out.visivel[s], out.visivel[outro], out.moldura[s], out.cor[s]]).toEqual([1, 0, indiceDaMoldura('status_sal'), 0xffffff]);
+    // F-011: o cristal de sal em pixel (5 px de arte = 10 pt), 12 pt acima do centro do corpo.
+    expect([out.x[s], out.y[s]]).toEqual([horda.x[s], horda.y[s]! - 12]);
+    expect(5 * out.escalaX[s]!).toBe(10);
     // Slot vazio na horda: não desenha, mesmo com um salPassos que sobrasse no slot.
     removerInimigo(e, s);
     e.inimigos.salPassos[s] = 10;

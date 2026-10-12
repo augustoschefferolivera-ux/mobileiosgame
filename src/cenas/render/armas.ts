@@ -5,22 +5,29 @@
 // câmera e arredondado para o pixel do canvas, como a horda; as idades contam
 // em passos do evento, então a imagem pausada depende só da seed e do passo.
 // Nada é alocado por frame; nos laços por membro, as contas vão em linha.
-import { ARQUETIPO, indiceDoNivel } from '../../logica/armas/tabela';
+import { ESCALA_DA_GRADE, ESTOCADA, MEIA_DA_ONDA, RAIO_DO_ARCO, nomeDoArco } from '../../arte/catalogo';
+import { ARMA, ARQUETIPO, indiceDoNivel } from '../../logica/armas/tabela';
 import { CAB, TIPO_DE_PROJETIL, CAPACIDADE_DE_EFEITOS as CAPACIDADE_DE_ONDAS, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PROJETEIS, VAGAS_DE_ARMA, type Estado } from '../../logica/nucleo/estado';
 import { FORMA } from '../../logica/nucleo/eventos';
 import type { DadosDaVigilia } from '../../logica/mundo/dados';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../../logica/mundo/toro';
 import { ESCALA_DO_CANVAS } from '../escala';
 import { COR } from '../paleta';
-import { MOLDURA, RAIO_DA_CUNHA_PT } from './atlas';
+import { ORIGEM_X, ORIGEM_Y, direcao16 } from './arte';
 import { indiceDaMoldura, type SaidaDeSprites } from './camadas';
 import { CAPACIDADE_DE_EFEITOS, CAPACIDADE_DE_MORTES, CAPACIDADE_DE_NUMEROS, EFEITO, VIDA, digitosDe, idade, type EfeitosDaVigilia } from './efeitos';
 import type { DesenhoDoTipo, SaidaDaHorda } from './horda';
 
 /** Cores dos efeitos (V1 a V4, N3). */
 export const COR_DO_CRITICO = COR.amarelo;
-const ALFA_DO_GOLPE = 0.5;
-const ALFA_DO_ANEL = 0.6;
+/** Os grãos do Círculo de Sal (F-011): até 64 por anel, um a cada ≈ 10 pt da circunferência, girando 0,24 rad por segundo; a 2 pt por px de arte (6 pt). */
+const GRAOS_POR_ANEL = 64;
+const PT_POR_GRAO = 10;
+const ALFA_DO_GRAO = 0.85;
+const GIRO_POR_PASSO = 0.004;
+/** Pulsos desenhados ao mesmo tempo na camada do sal (o resto do pool fica de fora, só render). */
+const PULSOS_DO_SAL = 4;
+export const MEMBROS_DO_SAL = (VAGAS_DE_ARMA + PULSOS_DO_SAL) * GRAOS_POR_ANEL;
 /** O pulso cresce 96 px em 12 passos (V3). */
 const CRESCIMENTO_DO_PULSO_PX = 96;
 /** Animação do número (N6): sobe 16 pt; alpha 1 até a idade 24 e reta até 0 na 36. */
@@ -44,16 +51,21 @@ export const INICIO_DAS_ONDAS = CAPACIDADE_DE_PROJETEIS + VAGAS_DE_ARMA + CAPACI
 export const DIGITOS_POR_NUMERO = 4;
 export const MEMBROS_DOS_DIGITOS = CAPACIDADE_DE_NUMEROS * DIGITOS_POR_NUMERO;
 
-const M_FACA = indiceDaMoldura('faca');
-const M_LOSANGO = indiceDaMoldura('losango');
-const M_ESTRELA = indiceDaMoldura('estrela');
-const M_ANEL = indiceDaMoldura('anel');
-const M_CUNHA = indiceDaMoldura('cunha');
-const M_QUADRADO = indiceDaMoldura('quadrado');
 const M_D0 = indiceDaMoldura('d0');
-const LARGURA_DO_ANEL_PT = MOLDURA.anel.largura / 2;
-const LADO_DO_QUADRADO_PT = MOLDURA.quadrado.largura / 2;
-const LARGURA_DO_QUADRADO_PX = MOLDURA.quadrado.largura;
+/** Molduras da arte (F-011): os 4 ângulos desenhados de cada efeito girado, os grãos e os marcadores de status. */
+const QUATRO = [0, 1, 2, 3] as const;
+const M_FACA = QUATRO.map((k) => indiceDaMoldura(`faca_${k}`));
+const M_ESTOCADA = QUATRO.map((k) => indiceDaMoldura(`estocada_${k}`));
+const M_ONDA = QUATRO.map((k) => indiceDaMoldura(`onda_${k}`));
+/** Arco: [forte][volta][ângulo][quadro] achatado em forte·16 + volta·8 + ângulo·2 + quadro. */
+const M_ARCO = [false, true].flatMap((forte) => [false, true].flatMap((volta) => QUATRO.flatMap((k) => [0, 1].map((q) => indiceDaMoldura(nomeDoArco(forte, volta, k, q))))));
+const M_GRAO = [indiceDaMoldura('grao_sal_0'), indiceDaMoldura('grao_sal_1')] as const;
+export const M_STATUS_ATORDOADO = indiceDaMoldura('status_atordoado');
+export const M_STATUS_SAL = indiceDaMoldura('status_sal');
+const ARTE = ESCALA_DA_GRADE.arte;
+/** O marcador de status fica 12 pt acima do centro do corpo (na cabeça da massa, no peito dos médios). */
+const ACIMA_DO_CENTRO_PT = 12;
+const DIRECAO = { base: 0, rotacao: 0 };
 
 const DIGITOS = new Uint8Array(4);
 
@@ -101,9 +113,9 @@ export function prepararMortes(
 }
 
 /**
- * Marcador de status no inimigo, um membro por slot, no centro do corpo e na posição que a horda desenha: a estrela
- * de 4 pontas de 12 pt em amarelo se está atordoado (RE9, com prioridade sobre o Sal: o losango fica oculto
- * enquanto dura a Postura Quebrada), ou o losango de 8 × 8 pt em sal (V4).
+ * Marcador de status no inimigo, um membro por slot, 12 pt acima do centro do corpo que a horda desenha (F-011): a
+ * estrela do atordoado em amarelo (RE9, com prioridade sobre o Sal: o cristal fica oculto enquanto dura a Postura
+ * Quebrada), ou o cristal de sal (V4). Os dois em pixel art com contorno, a 2 pt por px.
  */
 export function prepararStatus(e: Estado, horda: SaidaDaHorda, out: SaidaDeSprites): void {
   const sal = e.inimigos.salPassos;
@@ -116,13 +128,13 @@ export function prepararStatus(e: Estado, horda: SaidaDaHorda, out: SaidaDeSprit
     }
     out.visivel[s] = 1;
     out.x[s] = horda.x[s]!;
-    out.y[s] = horda.y[s]!;
+    out.y[s] = horda.y[s]! - ACIMA_DO_CENTRO_PT;
     out.rotacao[s] = 0;
-    out.escalaX[s] = out.escalaY[s] = 0.5;
+    out.escalaX[s] = out.escalaY[s] = ARTE;
     out.alpha[s] = 1;
     out.origemX[s] = out.origemY[s] = 0.5;
-    out.moldura[s] = atordoado ? M_ESTRELA : M_LOSANGO;
-    out.cor[s] = atordoado ? COR.amarelo : COR.sal;
+    out.moldura[s] = atordoado ? M_STATUS_ATORDOADO : M_STATUS_SAL;
+    out.cor[s] = BRANCO;
   }
 }
 
@@ -167,26 +179,17 @@ export function prepararArmas(
     if (my < 0) my += ALTURA_DO_MAPA;
     out.x[s] = camX + mx - MEIA_LARGURA_DO_MAPA;
     out.y[s] = camY + my - MEIA_ALTURA_DO_MAPA;
-    // O ângulo é da cena, nunca da simulação: a faca aponta para onde voa.
-    out.rotacao[s] = Math.atan2(p.vy[s]!, p.vx[s]!) + Math.PI / 2;
-    out.escalaX[s] = out.escalaY[s] = 0.5;
+    // O ângulo é da cena, nunca da simulação: a faca aponta para onde voa, em 16 direções (4 desenhos e giros de 90°).
+    direcao16(Math.atan2(p.vy[s]!, p.vx[s]!) + Math.PI / 2, DIRECAO);
+    out.rotacao[s] = DIRECAO.rotacao;
+    out.escalaX[s] = out.escalaY[s] = ARTE;
     out.alpha[s] = 1;
     out.origemX[s] = out.origemY[s] = 0.5;
-    out.moldura[s] = M_FACA;
-    out.cor[s] = COR.sal;
+    out.moldura[s] = M_FACA[DIRECAO.base]!;
+    out.cor[s] = BRANCO;
   }
-  // Anel da aura de cada vaga de arquétipo aura, com a borda externa no raio de acerto (V3).
-  const b = e.build;
-  for (let v = 0; v < VAGAS_DE_ARMA; v++) {
-    const k = CAPACIDADE_DE_PROJETEIS + v;
-    const codigo = b.codigo[v]!;
-    if (codigo === 0 || dados.armas.arquetipo[codigo] !== ARQUETIPO.aura) {
-      out.visivel[k] = 0;
-      continue;
-    }
-    const R = dados.armas.alcance[indiceDoNivel(codigo, b.nivel[v]!)]!;
-    escreverAnel(out, k, jx, jy, R, ALFA_DO_ANEL);
-  }
+  // Os membros da aura ficam ocultos: o anel do Círculo de Sal é de grãos, na camada do sal (prepararSal, F-011).
+  for (let v = 0; v < VAGAS_DE_ARMA; v++) out.visivel[CAPACIDADE_DE_PROJETEIS + v] = 0;
   const efs = ef.efeitos;
   const passo = e.cab[CAB.passo]!;
   for (let j = 0; j < CAPACIDADE_DE_EFEITOS; j++) {
@@ -197,12 +200,8 @@ export function prepararArmas(
     }
     const t = idade(passo, alfa, efs.passo[j]!);
     if (efs.tipo[j] === EFEITO.pulso) {
-      const u = t / VIDA.pulso;
-      if (u >= 1) {
-        out.visivel[k] = 0;
-        continue;
-      }
-      escreverAnel(out, k, jx, jy, efs.c[j]! + CRESCIMENTO_DO_PULSO_PX * u, ALFA_DO_ANEL * (1 - u));
+      // O pulso também é de grãos (prepararSal).
+      out.visivel[k] = 0;
       continue;
     }
     const u = t / VIDA.golpe;
@@ -210,23 +209,28 @@ export function prepararArmas(
       out.visivel[k] = 0;
       continue;
     }
+    // F-011: o arco de brasa (ou a lança da estocada) na direção do golpe em 16 passos, com o vértice no jogador;
+    // inteiro até a metade da vida e some na outra metade. A Lâmina do Juramento Eterno usa o arco forte.
+    direcao16(Math.atan2(efs.b[j]!, efs.a[j]!) + Math.PI / 2, DIRECAO);
     out.visivel[k] = 1;
     out.x[k] = jx;
     out.y[k] = jy;
-    out.rotacao[k] = Math.atan2(efs.b[j]!, efs.a[j]!) + Math.PI / 2;
-    out.alpha[k] = ALFA_DO_GOLPE * (1 - u);
-    out.origemX[k] = 0.5;
-    out.origemY[k] = 1;
-    out.cor[k] = COR.brasa;
+    out.rotacao[k] = DIRECAO.rotacao;
+    out.alpha[k] = u < 0.5 ? 1 : 2 * (1 - u);
+    out.cor[k] = BRANCO;
+    let m: number;
     if (efs.forma[j] === FORMA.estocada) {
-      // Retângulo de L × 2w a partir do jogador, ao longo da mira.
-      out.moldura[k] = M_QUADRADO;
-      out.escalaX[k] = (2 * efs.d[j]!) / LADO_DO_QUADRADO_PT / 2;
-      out.escalaY[k] = efs.c[j]! / LADO_DO_QUADRADO_PT / 2;
+      m = M_ESTOCADA[DIRECAO.base]!;
+      out.escalaX[k] = out.escalaY[k] = efs.c[j]! / ESTOCADA.comprimento;
     } else {
-      out.moldura[k] = M_CUNHA;
-      out.escalaX[k] = out.escalaY[k] = efs.c[j]! / RAIO_DA_CUNHA_PT / 2;
+      const forte = efs.arma[j] === ARMA.lamina_do_juramento_eterno ? 16 : 0;
+      const volta = efs.forma[j] === FORMA.volta ? 8 : 0;
+      m = M_ARCO[forte + volta + DIRECAO.base * 2 + (u < 0.25 ? 0 : 1)]!;
+      out.escalaX[k] = out.escalaY[k] = efs.c[j]! / RAIO_DO_ARCO;
     }
+    out.moldura[k] = m;
+    out.origemX[k] = ORIGEM_X[m]!;
+    out.origemY[k] = ORIGEM_Y[m]!;
   }
   // Ondas da União (U6): um quadrado de 2 × ondaMeia no centro do acerto, origem + mira × px/60 × (idade − 1 + alfa),
   // girado pela mira, no chão (não segue o jogador). Com alfa = 1 a imagem só depende do estado.
@@ -257,25 +261,75 @@ export function prepararArmas(
     out.visivel[k] = 1;
     out.x[k] = camX + mx - MEIA_LARGURA_DO_MAPA;
     out.y[k] = camY + my - MEIA_ALTURA_DO_MAPA;
-    out.rotacao[k] = Math.atan2(f.dirY[o]!, f.dirX[o]!) + Math.PI / 2;
-    out.escalaX[k] = out.escalaY[k] = (2 * t.ondaMeia[codigo]!) / LARGURA_DO_QUADRADO_PX;
+    // F-011: o crescente de brasa na direção do voo, em 16 passos, na largura da onda.
+    direcao16(Math.atan2(f.dirY[o]!, f.dirX[o]!) + Math.PI / 2, DIRECAO);
+    out.rotacao[k] = DIRECAO.rotacao;
+    out.escalaX[k] = out.escalaY[k] = t.ondaMeia[codigo]! / MEIA_DA_ONDA;
     out.alpha[k] = ti <= IDADE_DO_FADE_DA_ONDA ? ALFA_DA_ONDA : (ALFA_DA_ONDA * (vida - ti)) / (vida - IDADE_DO_FADE_DA_ONDA);
-    out.origemX[k] = out.origemY[k] = 0.5;
-    out.moldura[k] = M_QUADRADO;
-    out.cor[k] = COR.brasa;
+    const m = M_ONDA[DIRECAO.base]!;
+    out.origemX[k] = ORIGEM_X[m]!;
+    out.origemY[k] = ORIGEM_Y[m]!;
+    out.moldura[k] = m;
+    out.cor[k] = BRANCO;
   }
 }
 
-function escreverAnel(out: SaidaDeSprites, k: number, jx: number, jy: number, raio: number, alpha: number): void {
-  out.visivel[k] = 1;
-  out.x[k] = jx;
-  out.y[k] = jy;
-  out.rotacao[k] = 0;
-  out.escalaX[k] = out.escalaY[k] = (2 * raio) / LARGURA_DO_ANEL_PT / 2;
-  out.alpha[k] = alpha;
-  out.origemX[k] = out.origemY[k] = 0.5;
-  out.moldura[k] = M_ANEL;
-  out.cor[k] = COR.sal;
+/**
+ * A camada do sal (F-011): o anel do Círculo de Sal de cada vaga de aura, com a borda externa no raio de acerto
+ * (V3), e os pulsos (o anel cresce 96 px em 12 passos, V3), feitos de grãos de sal na grade fina, um a cada ≈ 9 pt
+ * da circunferência (até 64), girando devagar, a 0,85 de alfa (× (1 − u) no pulso).
+ */
+export function prepararSal(e: Estado, dados: DadosDaVigilia, ef: EfeitosDaVigilia, alfa: number, jx: number, jy: number, out: SaidaDeSprites): void {
+  const b = e.build;
+  const passo = e.cab[CAB.passo]!;
+  const giro = passo * GIRO_POR_PASSO;
+  let anel = 0;
+  for (let v = 0; v < VAGAS_DE_ARMA; v++) {
+    const codigo = b.codigo[v]!;
+    if (codigo === 0 || dados.armas.arquetipo[codigo] !== ARQUETIPO.aura) continue;
+    escreverGraos(out, anel++, jx, jy, dados.armas.alcance[indiceDoNivel(codigo, b.nivel[v]!)]!, giro, ALFA_DO_GRAO);
+  }
+  const efs = ef.efeitos;
+  let pulsos = 0;
+  for (let j = 0; j < CAPACIDADE_DE_EFEITOS && pulsos < PULSOS_DO_SAL; j++) {
+    if (efs.ativo[j] !== 1 || efs.tipo[j] !== EFEITO.pulso) continue;
+    const u = idade(passo, alfa, efs.passo[j]!) / VIDA.pulso;
+    if (u >= 1) continue;
+    escreverGraos(out, VAGAS_DE_ARMA + pulsos++, jx, jy, efs.c[j]! + CRESCIMENTO_DO_PULSO_PX * u, -giro, ALFA_DO_GRAO * (1 - u));
+  }
+  for (let a = anel; a < VAGAS_DE_ARMA; a++) esconderAnel(out, a);
+  for (let p = pulsos; p < PULSOS_DO_SAL; p++) esconderAnel(out, VAGAS_DE_ARMA + p);
+}
+
+function esconderAnel(out: SaidaDeSprites, anel: number): void {
+  for (let g = 0; g < GRAOS_POR_ANEL; g++) out.visivel[anel * GRAOS_POR_ANEL + g] = 0;
+}
+
+/** Os grãos de um anel de raio `raio` pt em volta de (jx, jy), arredondados para o pixel do canvas. */
+function escreverGraos(out: SaidaDeSprites, anel: number, jx: number, jy: number, raio: number, giro: number, alpha: number): void {
+  let n = Math.round((2 * Math.PI * raio) / PT_POR_GRAO);
+  if (n > GRAOS_POR_ANEL) n = GRAOS_POR_ANEL;
+  if (n < 12) n = 12;
+  const base = anel * GRAOS_POR_ANEL;
+  for (let g = 0; g < GRAOS_POR_ANEL; g++) {
+    const k = base + g;
+    if (g >= n) {
+      out.visivel[k] = 0;
+      continue;
+    }
+    // A borda externa no raio: o grão de 5 px (10 pt, com o contorno) fica 4 pt para dentro, com 1 pt de variação.
+    const r = raio - 4 - ((g * 7) % 3) * 0.5;
+    const ang = (2 * Math.PI * g) / n + giro;
+    out.visivel[k] = 1;
+    out.x[k] = Math.round((jx + r * Math.sin(ang)) * ESCALA_DO_CANVAS) / ESCALA_DO_CANVAS;
+    out.y[k] = Math.round((jy - r * Math.cos(ang)) * ESCALA_DO_CANVAS) / ESCALA_DO_CANVAS;
+    out.rotacao[k] = 0;
+    out.escalaX[k] = out.escalaY[k] = ARTE;
+    out.alpha[k] = alpha;
+    out.origemX[k] = out.origemY[k] = 0.5;
+    out.moldura[k] = M_GRAO[g & 1]!;
+    out.cor[k] = BRANCO;
+  }
 }
 
 /**

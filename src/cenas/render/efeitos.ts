@@ -48,6 +48,8 @@ export interface PoolDeEfeitos {
   readonly ativo: Uint8Array;
   readonly tipo: Uint8Array;
   readonly forma: Uint8Array;
+  /** Código da arma do evento (a Lâmina do Juramento Eterno desenha o arco forte, F-011). */
+  readonly arma: Uint8Array;
   readonly passo: Float64Array;
   /** golpe: direção, alcance e meia-largura; pulso: 0, 0, R e o empurrão máximo. */
   readonly a: Float64Array;
@@ -77,6 +79,7 @@ export class EfeitosDaVigilia {
     ativo: new Uint8Array(CAPACIDADE_DE_EFEITOS),
     tipo: new Uint8Array(CAPACIDADE_DE_EFEITOS),
     forma: new Uint8Array(CAPACIDADE_DE_EFEITOS),
+    arma: new Uint8Array(CAPACIDADE_DE_EFEITOS),
     passo: new Float64Array(CAPACIDADE_DE_EFEITOS),
     a: new Float64Array(CAPACIDADE_DE_EFEITOS),
     b: new Float64Array(CAPACIDADE_DE_EFEITOS),
@@ -168,6 +171,7 @@ export class EfeitosDaVigilia {
         ef.ativo[j] = 1;
         ef.tipo[j] = tipo === EVENTO.golpe ? EFEITO.golpe : EFEITO.pulso;
         ef.forma[j] = (u32[i + EV.tipoArmaForma]! >>> 16) & 0xff;
+        ef.arma[j] = (u32[i + EV.tipoArmaForma]! >>> 8) & 0xff;
         ef.passo[j] = u32[i + EV.passo]!;
         ef.a[j] = f32[i + EV.floats]!;
         ef.b[j] = f32[i + EV.floats + 1]!;
