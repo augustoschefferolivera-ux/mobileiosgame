@@ -20,7 +20,7 @@ import { ALTURA_DA_TELA, ALTURA_DO_MAPA, LARGURA_DA_TELA, LARGURA_DO_MAPA, copia
 import { ESCALA_DA_GRADE } from '../../arte/catalogo';
 import { aldricEspelhado, quadroDoAldric } from './aldric';
 import { ORIGEM_X, ORIGEM_Y, direcao16 } from './arte';
-import { CHAVE_DO_ATLAS, CHAVE_DO_CHAO, NOMES_DAS_MOLDURAS, indiceDaMoldura } from './atlas';
+import { CHAVE_DO_ATLAS, CHAVE_DO_CHAO, NOMES_DAS_MOLDURAS, escalaPara, indiceDaMoldura } from './atlas';
 import { arredondarParaOPixel } from './camera';
 import { MEMBROS_DAS_ARMAS, MEMBROS_DAS_PARTICULAS, MEMBROS_DOS_DIGITOS, MEMBROS_DO_SAL, prepararArmas, prepararMortes, prepararNumeros, prepararParticulas, prepararSal, prepararStatus } from './armas';
 import { MEMBROS_DOS_MEDIOS, MEMBROS_DOS_PROJETEIS_INIMIGOS, MEMBROS_DOS_TELEGRAFOS, prepararMedios, prepararProjeteisInimigos, prepararTelegrafos } from './ataques';
@@ -28,6 +28,7 @@ import { criarSaidaDeSprites, type EscritorDeSprites, type SaidaDeSprites } from
 import { CAPACIDADE_DE_MORTES, EfeitosDaVigilia } from './efeitos';
 import type { EscritorDaHorda } from './escritores';
 import { membrosDoMundo, molduraDaRocha, prepararMundo } from './pickups';
+import { MEMBROS_DAS_ESTRUTURAS, alfaDoEscurecimento, prepararEstruturas } from './estruturas';
 import { criarSaidaDaHorda, prepararHorda, prepararQuadrosDaHorda, type DesenhoDoTipo } from './horda';
 /** Molduras do marcador de direção nos 4 ângulos desenhados. */
 const MARCADORES = [0, 1, 2, 3].map((k) => indiceDaMoldura(`marcador_${k}`));
@@ -86,6 +87,11 @@ export function anguloDoJogador(dirX: number, dirY: number): number {
 export class RenderDaVigilia implements RenderDoMundo {
   private readonly obstaculos: Phaser.GameObjects.Image[] = [];
   private readonly mundo: Camada | null = null;
+  /** A borda da arena e a Fogueira (F-008), logo acima do mundo. */
+  private readonly estruturas: Camada | null = null;
+  /** O véu preto do escurecimento (ES1), acima da horda e abaixo dos telegrafos. */
+  private readonly veu: Phaser.GameObjects.Image | null = null;
+  private alfaDoVeu = 0;
   private readonly chao: Phaser.GameObjects.TileSprite;
   private readonly jogador: Phaser.GameObjects.Image;
   private readonly brilho: Phaser.GameObjects.Image;
@@ -128,6 +134,7 @@ export class RenderDaVigilia implements RenderDoMundo {
     if (armas) {
       // Camada "mundo" (R1): obstáculos e pickups, abaixo de tudo o mais.
       this.mundo = camada(membrosDoMundo(o.n));
+      this.estruturas = camada(MEMBROS_DAS_ESTRUTURAS);
     } else {
       const camadaDosObstaculos = cena.add.layer();
       for (let i = 0; i < o.n; i++) {
@@ -143,6 +150,8 @@ export class RenderDaVigilia implements RenderDoMundo {
     if (armas) {
       this.medios = camada(MEMBROS_DOS_MEDIOS);
       this.status = camada(CAPACIDADE_DE_INIMIGOS);
+      // O véu: um quadrado preto do tamanho da tela (390 × 844 pt e a folga), que segue a câmera (só render, fora do hash).
+      this.veu = cena.add.image(dados.inicioX, dados.inicioY, CHAVE_DO_ATLAS, 'quadrado').setTint(0x000000).setAlpha(0).setVisible(false).setScale(escalaPara('quadrado', LARGURA_DA_TELA + 8), escalaPara('quadrado', ALTURA_DA_TELA + 8));
       this.telegrafos = camada(MEMBROS_DOS_TELEGRAFOS);
       this.sal = camada(MEMBROS_DO_SAL);
       this.armasCamada = camada(MEMBROS_DAS_ARMAS);
@@ -174,6 +183,10 @@ export class RenderDaVigilia implements RenderDoMundo {
       prepararMundo(e, this.dados, alfa, camX, camY, this.mundo.saida);
       this.mundo.escritor.escrever(this.mundo.saida);
     }
+    if (this.estruturas) {
+      prepararEstruturas(e, this.dados, camX, camY, this.estruturas.saida);
+      this.estruturas.escritor.escrever(this.estruturas.saida);
+    }
     if (this.efeitos && this.armas) this.efeitos.consumir(e, this.armas.opcoes.numerosDeDano);
     if (this.horda) {
       prepararHorda(e, alfa, camX, camY, this.saida);
@@ -188,6 +201,7 @@ export class RenderDaVigilia implements RenderDoMundo {
       this.medios.escritor.escrever(this.medios.saida);
       prepararStatus(e, this.saida, this.status.saida);
       this.status.escritor.escrever(this.status.saida);
+      this.escurecer(e, camX, camY);
       ef.recusados.telegrafos = prepararTelegrafos(e, this.dados, this.saida, alfa, this.telegrafos.saida);
       this.telegrafos.escritor.escrever(this.telegrafos.saida);
       prepararSal(e, this.dados, ef, alfa, jx, jy, this.sal.saida);
@@ -203,6 +217,18 @@ export class RenderDaVigilia implements RenderDoMundo {
     }
     this.chao.setPosition(camX, camY).setTilePosition(camX / ESCALA - MEIA_LARGURA_DO_CHAO, camY / ESCALA - MEIA_ALTURA_DO_CHAO);
     this.desenharAldric(e, jx, jy);
+  }
+
+  /** O véu do escurecimento (ES1): o alfa pelo relógio, na posição da câmera; só reescreve o alfa quando muda. */
+  private escurecer(e: Estado, camX: number, camY: number): void {
+    const veu = this.veu;
+    if (veu === null) return;
+    const a = alfaDoEscurecimento(e.cab[CAB.relogio]!);
+    if (a !== this.alfaDoVeu) {
+      this.alfaDoVeu = a;
+      veu.setAlpha(a).setVisible(a > 0);
+    }
+    if (a > 0) veu.setPosition(camX, camY);
   }
 
   /** O Aldric pelo estado (src/cenas/render/aldric.ts), a luz da brasa, o marcador de direção e os rastros da esquiva. */
@@ -249,6 +275,7 @@ export class RenderDaVigilia implements RenderDoMundo {
 
   liberar(): void {
     this.mundo?.escritor.liberar();
+    this.estruturas?.escritor.liberar();
     this.horda?.liberar();
     this.mortes?.escritor.liberar();
     this.medios?.escritor.liberar();

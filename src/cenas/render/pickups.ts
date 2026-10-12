@@ -62,7 +62,7 @@ const CICLO_DO_BRILHO = 48;
 const PASSOS_DO_BRILHO = 6;
 
 /** Os obstáculos nos membros 0 a n − 1: a rocha do raio da região (F-011), na cópia mais próxima da câmera. */
-export function prepararObstaculos(dados: DadosDaVigilia, camX: number, camY: number, out: SaidaDeSprites): void {
+export function prepararObstaculos(dados: DadosDaVigilia, camX: number, camY: number, out: SaidaDeSprites, ativo: Uint8Array | null = null): void {
   const o = dados.obstaculos;
   const molduras = rochasDaRegiao(dados);
   for (let i = 0; i < o.n; i++) {
@@ -70,7 +70,8 @@ export function prepararObstaculos(dados: DadosDaVigilia, camX: number, camY: nu
     if (mx < 0) mx += LARGURA_DO_MAPA;
     let my = (o.y[i]! - camY + MEIA_ALTURA_DO_MAPA) % ALTURA_DO_MAPA;
     if (my < 0) my += ALTURA_DO_MAPA;
-    out.visivel[i] = 1;
+    // Os obstáculos que a arena do marco desativou somem (F-008 AR3); sem o vetor (testes do render), todos aparecem.
+    out.visivel[i] = ativo === null || ativo[i] === 1 ? 1 : 0;
     out.x[i] = camX + mx - MEIA_LARGURA_DO_MAPA;
     out.y[i] = camY + my - MEIA_ALTURA_DO_MAPA;
     out.rotacao[i] = 0;
@@ -142,6 +143,6 @@ export function prepararPickups(e: Estado, dados: DadosDaVigilia, alfa: number, 
 
 /** A camada "mundo" inteira: obstáculos e pickups, nessa ordem de desenho. */
 export function prepararMundo(e: Estado, dados: DadosDaVigilia, alfa: number, camX: number, camY: number, out: SaidaDeSprites): void {
-  prepararObstaculos(dados, camX, camY, out);
+  prepararObstaculos(dados, camX, camY, out, e.obstaculoAtivo);
   prepararPickups(e, dados, alfa, camX, camY, out);
 }
