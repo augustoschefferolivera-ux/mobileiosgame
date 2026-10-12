@@ -28,6 +28,8 @@ export const COR = {
   cinzaAzul: 0x5aa9e6,
   cinzaVerde: 0x6cc57c,
   cinzaVermelha: 0xc8324b,
+  /** Alma no chão e a mancha das Cinzas Perdidas (decisoes-F-007 AM4, MC9): lilás, fora das três faixas das Cinzas. */
+  alma: 0xb18cff,
   /** Baús (R2): comum em bronze, dourado em ouro escuro (com contorno na moldura). */
   bauBronze: 0xb08d57,
   bauOuro: 0xa8841f,

@@ -5,9 +5,12 @@
 // Text são criados uma vez, na raiz da cena (o __GAME_DEBUG__.textoAtivo os
 // lê), e a cena fica invisível fora da pausa. Os toques vêm do tradutor, no
 // modo pausa: esta cena só desenha. Som e Flashes (F-006 FB3 e RE11) ficam lado a
-// lado acima de "números"; estatísticas e Abandonar entram na F-007.
+// lado acima de "números". F-007 (PE1, PE3, PE4): três estatísticas (Mortes, Dano
+// recebido, Aparos; uma linha só se a altura não deixa três), o aviso do Abandonar
+// (só armado) e o botão Abandonar, que arma no 1º toque e confirma no 2º.
 import Phaser from 'phaser';
-import { CAIXA_DA_OPCAO, OPCAO_DUPLA, alvosDaTelaDePausa, caixaDaOpcao, type Alvo } from '../entrada/alvos';
+import { BLOCO_DO_ABANDONAR, CAIXA_DA_OPCAO, OPCAO_DUPLA, alvosDaTelaDePausa, blocoDaPausa, caixaDaOpcao, type Alvo } from '../entrada/alvos';
+import { JOGADOR4, JOGADOR4_U32, MUNDO } from '../logica/nucleo/estado';
 import { ALTURA_LOGICA, LARGURA_LOGICA } from '../plataforma/safeArea';
 import type { ContextoDoJogo } from './contexto';
 import { COR, cameraLogica, texto } from './estilo';
@@ -25,6 +28,11 @@ const PRIMEIRA_LINHA_ABAIXO_DO_TOPO = 56;
 const ENTRE_NOME_E_NIVEL = 12;
 /** Rótulo de Som e Flashes: o tamanho dos nomes da build (RE11). */
 const TAMANHO_DO_ROTULO_DA_DUPLA = 15;
+/** Os rótulos das três estatísticas (PE1), na ordem de baixo para cima do que o jogador lê: Mortes, Dano recebido, Aparos. */
+const IDS_DAS_ESTATISTICAS = ['A6.PAUSA.MORTES', 'A6.PAUSA.DANO', 'A6.PAUSA.APAROS'] as const;
+/** Largura de quebra do aviso do Abandonar: duas linhas (PE3). */
+const LARGURA_DO_AVISO = 280;
+const ENTRE_ROTULO_E_VALOR = 8;
 
 export class Pausa extends Phaser.Scene {
   private veu: Phaser.GameObjects.Graphics | null = null;
@@ -36,10 +44,15 @@ export class Pausa extends Phaser.Scene {
   private rotuloDoSom: Phaser.GameObjects.Text | null = null;
   private rotuloDosFlashes: Phaser.GameObjects.Text | null = null;
   private continuar: Phaser.GameObjects.Text | null = null;
+  private rotuloDoAbandonar: Phaser.GameObjects.Text | null = null;
+  private avisoDoAbandonar: Phaser.GameObjects.Text | null = null;
+  private readonly rotulosDasEstatisticas: Phaser.GameObjects.Text[] = [];
+  private readonly valoresDasEstatisticas: Phaser.GameObjects.Text[] = [];
+  private estatisticasEmUmaLinha: Phaser.GameObjects.Text | null = null;
   private readonly alvos: Alvo[] = [];
   private readonly linhas: LinhaDaPausa[] = [];
   private aberta = false;
-  /** As três opções como foram desenhadas (números, som, flashes), para redesenhar só quando mudam. */
+  /** As opções e o Abandonar armado como foram desenhados (números, som, flashes, armado), para redesenhar só quando mudam. */
   private desenhadas = -1;
 
   constructor(private readonly ctx: ContextoDoJogo) {
@@ -61,6 +74,14 @@ export class Pausa extends Phaser.Scene {
     this.rotuloDoSom = texto(this, 0, 0, 'A6.PAUSA.SOM', TAMANHO_DO_ROTULO_DA_DUPLA, COR.osso).setOrigin(0, 0.5);
     this.rotuloDosFlashes = texto(this, 0, 0, 'A6.PAUSA.FLASHES', TAMANHO_DO_ROTULO_DA_DUPLA, COR.osso).setOrigin(0, 0.5);
     this.continuar = texto(this, 0, 0, 'A6.PAUSA.CONTINUAR', 18, COR.osso).setOrigin(0.5);
+    this.rotuloDoAbandonar = texto(this, 0, 0, 'A6.PAUSA.ABANDONAR', 18, COR.osso).setOrigin(0.5);
+    this.avisoDoAbandonar = texto(this, 0, 0, 'A6.PAUSA.ABANDONAR_AVISO', 14, COR.sal, undefined, LARGURA_DO_AVISO).setOrigin(0.5, 0);
+    this.rotulosDasEstatisticas.length = this.valoresDasEstatisticas.length = 0;
+    for (const id of IDS_DAS_ESTATISTICAS) {
+      this.rotulosDasEstatisticas.push(texto(this, 0, 0, id, 14, COR.sal).setOrigin(1, 0));
+      this.valoresDasEstatisticas.push(texto(this, 0, 0, 'A6.PAUSA.VALOR', 14, COR.osso, { valor: 0 }).setOrigin(0, 0));
+    }
+    this.estatisticasEmUmaLinha = texto(this, 0, 0, 'A6.PAUSA.ESTATISTICAS_LINHA', 14, COR.osso, { mortes: 0, dano: 0, aparos: 0 }).setOrigin(0.5, 0);
     this.aberta = false;
     this.desenhadas = -1;
     for (const obj of this.objetos()) obj.setAlpha(0);
@@ -73,7 +94,22 @@ export class Pausa extends Phaser.Scene {
   }
 
   private objetos(): (Phaser.GameObjects.Graphics | Phaser.GameObjects.Text)[] {
-    return [this.veu!, this.botoes!, this.titulo!, ...this.nomes, ...this.niveis, this.rotuloDaOpcao!, this.rotuloDoSom!, this.rotuloDosFlashes!, this.continuar!];
+    return [
+      this.veu!,
+      this.botoes!,
+      this.titulo!,
+      ...this.nomes,
+      ...this.niveis,
+      this.rotuloDaOpcao!,
+      this.rotuloDoSom!,
+      this.rotuloDosFlashes!,
+      this.continuar!,
+      this.rotuloDoAbandonar!,
+      this.avisoDoAbandonar!,
+      ...this.rotulosDasEstatisticas,
+      ...this.valoresDasEstatisticas,
+      this.estatisticasEmUmaLinha!,
+    ];
   }
 
   /** Mostra a tela com a build atual (fade de 200 ms que não bloqueia toque). */
@@ -81,6 +117,7 @@ export class Pausa extends Phaser.Scene {
     if (this.aberta) return;
     this.aberta = true;
     this.preencherBuild();
+    this.preencherEstatisticas();
     this.desenhadas = -1;
     this.diagramar();
     this.scene.setVisible(true);
@@ -125,6 +162,16 @@ export class Pausa extends Phaser.Scene {
     }
   }
 
+  /** Mortes, dano recebido (ao mais próximo, PE2) e aparos, lidos do estado quando a pausa abre (a simulação para). */
+  private preencherEstatisticas(): void {
+    const e = this.ctx.simulacao?.estado;
+    const mortes = e?.mundo[MUNDO.mortes] ?? 0;
+    const dano = Math.round(e?.jogador4[JOGADOR4.danoRecebido] ?? 0);
+    const aparos = e?.jogador4U32[JOGADOR4_U32.aparos] ?? 0;
+    [mortes, dano, aparos].forEach((v, k) => this.valoresDasEstatisticas[k]!.setText(t('A6.PAUSA.VALOR', { valor: v })));
+    this.estatisticasEmUmaLinha!.setText(t('A6.PAUSA.ESTATISTICAS_LINHA', { mortes, dano, aparos }));
+  }
+
   private diagramar(): void {
     const ins = this.ctx.insets;
     alvosDaTelaDePausa(ins, this.alvos);
@@ -143,7 +190,18 @@ export class Pausa extends Phaser.Scene {
       nivel.setPosition(x0 + nome.width + ENTRE_NOME_E_NIVEL, y);
       if (nome.visible) y += ENTRE_LINHAS_DA_BUILD;
     }
-    const [opcao, cont, som, flashes] = this.alvos;
+    const [opcao, cont, som, flashes, abandonar] = this.alvos;
+    // Estatísticas e aviso acima do Abandonar (PE3): o fim da build desenhada decide entre três linhas e uma.
+    const bloco = blocoDaPausa(abandonar!, y);
+    const linha = BLOCO_DO_ABANDONAR.linha;
+    this.avisoDoAbandonar!.setPosition(cx, bloco.yDoAviso);
+    this.estatisticasEmUmaLinha!.setPosition(cx, bloco.yDasEstatisticas).setVisible(bloco.linhasDasEstatisticas === 1);
+    for (let k = 0; k < 3; k++) {
+      const em3 = bloco.linhasDasEstatisticas === 3;
+      this.rotulosDasEstatisticas[k]!.setPosition(cx - ENTRE_ROTULO_E_VALOR, bloco.yDasEstatisticas + k * linha).setVisible(em3);
+      this.valoresDasEstatisticas[k]!.setPosition(cx + ENTRE_ROTULO_E_VALOR, bloco.yDasEstatisticas + k * linha).setVisible(em3);
+    }
+    this.rotuloDoAbandonar!.setPosition(abandonar!.x + abandonar!.largura / 2, abandonar!.y + abandonar!.altura / 2);
     this.rotuloDaOpcao!.setPosition(opcao!.x + CAIXA_DA_OPCAO.margem, opcao!.y + opcao!.altura / 2);
     this.rotuloDoSom!.setPosition(som!.x + OPCAO_DUPLA.margem, som!.y + som!.altura / 2);
     this.rotuloDosFlashes!.setPosition(flashes!.x + OPCAO_DUPLA.margem, flashes!.y + flashes!.altura / 2);
@@ -153,7 +211,7 @@ export class Pausa extends Phaser.Scene {
 
   private assinaturaDasOpcoes(): number {
     const o = this.ctx.opcoes;
-    return (o.numerosDeDano ? 1 : 0) | (o.som ? 2 : 0) | (o.flashes ? 4 : 0);
+    return (o.numerosDeDano ? 1 : 0) | (o.som ? 2 : 0) | (o.flashes ? 4 : 0) | (this.ctx.simulacao?.pausa.abandonarArmado ? 8 : 0);
   }
 
   /** Os alvos no estilo do Acender e a caixa de cada opção: cheia (osso) quando ligada, vazia quando desligada (P9, RE11). */
@@ -161,9 +219,13 @@ export class Pausa extends Phaser.Scene {
     const o = this.ctx.opcoes;
     this.desenhadas = this.assinaturaDasOpcoes();
     const g = this.botoes!.clear();
+    const armado = this.ctx.simulacao?.pausa.abandonarArmado === true;
+    this.avisoDoAbandonar!.setVisible(armado);
     for (const a of this.alvos) {
       g.fillStyle(COR.cinzaFrio).fillRect(a.x, a.y, a.largura, a.altura);
-      g.lineStyle(2, COR.laranjaQueimado).strokeRect(a.x, a.y, a.largura, a.altura);
+      // O Abandonar armado ganha a borda de brasa, mais grossa (PE4); os demais, a borda de sempre.
+      if (a.id === 'abandonar' && armado) g.lineStyle(4, COR.brasa).strokeRect(a.x, a.y, a.largura, a.altura);
+      else g.lineStyle(2, COR.laranjaQueimado).strokeRect(a.x, a.y, a.largura, a.altura);
     }
     const { lado, borda } = CAIXA_DA_OPCAO;
     const caixa = (alvo: Alvo, margem: number, ligada: boolean): void => {

@@ -201,6 +201,18 @@
       "limite_palavras": null
     },
     {
+      "id": "A6.PAUSA.VALOR",
+      "texto": "{valor}",
+      "contexto": "Tela de pausa: o valor de uma estatística, ao lado do rótulo (design/decisoes-F-007.md PE1); só o algarismo",
+      "limite_palavras": null
+    },
+    {
+      "id": "A6.PAUSA.ESTATISTICAS_LINHA",
+      "texto": "{mortes} · {dano} · {aparos}",
+      "contexto": "Tela de pausa: as três estatísticas numa linha só, quando a altura não deixa três (design/decisoes-F-007.md PE3); só algarismos",
+      "limite_palavras": null
+    },
+    {
       "id": "A7.RESULTADO.TEMPO",
       "texto": "Tempo",
       "contexto": "Resultado: rótulo (doc 11 §3.12)",
@@ -222,6 +234,12 @@
       "id": "A7.RESULTADO.DANO",
       "texto": "Dano recebido",
       "contexto": "Resultado: rótulo (doc 02 §8; design/decisoes-F-007.md RS1); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A7.RESULTADO.VALOR",
+      "texto": "{valor}",
+      "contexto": "Resultado: o valor de uma linha (tempo m:ss, nível, mortes, dano, Almas) ao lado do rótulo (design/decisoes-F-007.md RS1); só o algarismo",
       "limite_palavras": null
     },
     {

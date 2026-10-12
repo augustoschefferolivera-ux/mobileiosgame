@@ -1,5 +1,5 @@
 // Cálculo do desenho do mundo, sem Phaser (design/decisoes-F-005.md R1 e R2): os
-// obstáculos e os pickups (Cinzas e baús) numa só camada, nesta ordem de
+// obstáculos e os pickups (Cinzas, Almas e baús) numa só camada, nesta ordem de
 // membros: os N obstáculos, depois os 512 slots do pool de pickups. Os
 // obstáculos ficam na cópia mais próxima da câmera, com as mesmas contas de
 // antes (eram Image); cada pickup, na posição interpolada entre xAnt e x pelo
@@ -24,6 +24,8 @@ export function membrosDoMundo(n: number): number {
 }
 
 const M_CIRCULO = indiceDaMoldura('circulo');
+/** Alma no chão (AM4): círculo lilás de 12 pt, sem texto. */
+const ESCALA_DA_ALMA = escalaPara('circulo', 12);
 const M_CINZA = indiceDaMoldura('cinza');
 const M_QUADRADO = indiceDaMoldura('quadrado');
 const M_BAU_OURO = indiceDaMoldura('bau_ouro');
@@ -112,6 +114,10 @@ export function prepararPickups(e: Estado, dados: DadosDaVigilia, alfa: number, 
       out.moldura[k] = M_CINZA;
       out.escalaX[k] = out.escalaY[k] = ESCALA_DA_CINZA[faixa]!;
       out.cor[k] = TINT_DA_CINZA[faixa]!;
+    } else if (tipo === TIPO_DE_PICKUP.alma) {
+      out.moldura[k] = M_CIRCULO;
+      out.escalaX[k] = out.escalaY[k] = ESCALA_DA_ALMA;
+      out.cor[k] = COR.alma;
     } else if (tipo === TIPO_DE_PICKUP.bauDourado) {
       out.moldura[k] = M_BAU_OURO;
       out.escalaX[k] = out.escalaY[k] = ESCALA_DO_BAU_OURO;
