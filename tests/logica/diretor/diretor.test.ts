@@ -15,7 +15,7 @@ import {
   vivosEquivalentes,
 } from '../../../src/logica/diretor/diretor';
 import { PASSOS_POR_MINUTO } from '../../../src/logica/diretor/timeline';
-import { CAB, CENARIO, MUNDO, baseDoFluxo, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
+import { CAB, CENARIO, FOGUEIRA_U8, MUNDO, baseDoFluxo, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
 import { avancar, passo } from '../../../src/logica/nucleo/passo';
 import { criarComandos } from '../../../src/logica/nucleo/comandos';
 import { quantosAtivos } from '../../../src/logica/nucleo/pool';
@@ -44,8 +44,13 @@ function removerAlguns(e: Estado, k: number): void {
   }
 }
 
-/** Um passo só do diretor, com o relógio avançado como no passo (sem física). */
+/**
+ * Um passo só do diretor, com o relógio avançado como no passo (sem física). Os testes aqui medem a reposição pela
+ * timeline, sem a máquina de etapas (que o `passo` roda); os três marcos contam como iniciados, para o portão do
+ * marco devido (F-008 AR5) não parar o diretor quando o teste escreve o relógio além de 5:00.
+ */
 function passoDoDiretor(e: Estado, moveu = false): void {
+  e.fogueiraU8[FOGUEIRA_U8.marcosIniciados] = 3;
   e.cab[CAB.passo] = e.cab[CAB.passo]! + 1;
   e.cab[CAB.relogio] = e.cab[CAB.relogio]! + 1;
   rodarDiretor(e, D, moveu);

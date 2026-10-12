@@ -14,7 +14,8 @@
 // (≈ 48 KB por passo com 300 vivos, medido). O delta toroidal, a
 // normalização no toro, o passo de comportamento e o intervalo de células vão
 // em linha, como em consultarGrade, e a colisão lê e escreve COLISAO.
-import { CAPACIDADE_DE_INIMIGOS, JOGADOR, type Estado } from '../nucleo/estado';
+import { CAPACIDADE_DE_INIMIGOS, FOGUEIRA_U8, JOGADOR, type Estado } from '../nucleo/estado';
+import { limitarPelaArena } from './borda';
 import type { DadosDaVigilia } from './dados';
 import { COLUNAS, CONSULTA, GRANDES, LADO_DA_CELULA, LINHAS, MAX_GRANDES, consultarGradeComGrandes, criarGrade, reconstruirGrade } from './grade';
 import { RAIO_DO_JOGADOR } from './jogador';
@@ -302,6 +303,7 @@ export function moverHorda(e: Estado, dados: DadosDaVigilia): void {
   separarHorda(e, dados, vivos, n, sepX, sepY);
 
   // 6. Separação, bloqueio pelo jogador e obstáculos.
+  const arena = e.fogueiraU8[FOGUEIRA_U8.arenaAtiva] === 1;
   const jxAnt = j[JOGADOR.xAnt]!;
   const jyAnt = j[JOGADOR.yAnt]!;
   let separacao2 = 0;
@@ -358,7 +360,13 @@ export function moverHorda(e: Estado, dados: DadosDaVigilia): void {
     COLISAO[ES.raio] = t.raio[tipo]!;
     COLISAO[ES.movX] = movX[s]!;
     COLISAO[ES.movY] = movY[s]!;
-    colidirNaCelula(dados.obstaculos, dados.obstaculosPorCelula, true);
+    colidirNaCelula(dados.obstaculos, dados.obstaculosPorCelula, true, e.obstaculoAtivo);
+    // A borda da arena (AR2): o lado vem da posição anterior; o knockback e a separação passam por ela.
+    if (arena) {
+      COLISAO[ES.xAnt] = x0;
+      COLISAO[ES.yAnt] = y0;
+      limitarPelaArena(e, dados, false);
+    }
     const cx = COLISAO[ES.x]!;
     const cy = COLISAO[ES.y]!;
     const ox = cx - px;

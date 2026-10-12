@@ -12,6 +12,7 @@ import { CAB, CAPACIDADE_DE_INIMIGOS, FOGUEIRA_F32, FOGUEIRA_U8, JOGADOR, JOGADO
 import { EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import { segundosEmPassos } from '../nucleo/passos';
 import type { DadosDaVigilia } from './dados';
+import { limitarPelaArena } from './borda';
 import { comandosDoFrasco } from './frasco';
 import { COLISAO, ES, colidirComTodos } from './obstaculos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from './toro';
@@ -204,7 +205,9 @@ export function moverJogador(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPa
   COLISAO[ES.raio] = RAIO_DO_JOGADOR;
   COLISAO[ES.movX] = dx;
   COLISAO[ES.movY] = dy;
-  colidirComTodos(dados.obstaculos, false);
+  colidirComTodos(dados.obstaculos, false, e.obstaculoAtivo);
+  // A borda da arena (AR2), depois dos obstáculos: a esquiva, o empurrão e o bloqueio dos inimigos passam por ela.
+  if (e.fogueiraU8[FOGUEIRA_U8.arenaAtiva] === 1) limitarPelaArena(e, dados, true);
   // A normalização de normalizarNoToro, em linha.
   let nx = Math.fround(COLISAO[ES.x]!);
   if (nx < 0) nx = Math.fround(nx + LARGURA_DO_MAPA);

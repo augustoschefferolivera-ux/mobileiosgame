@@ -6,7 +6,7 @@
 //  - reposição a cada intervalo efetivo: `falta = alvo − vivosEq`, `livres =
 //    TETO − slots`; entram mín(falta, livres), dos quais g são convertidos;
 //  - posição no anel de 468 a 624 px, com 60% no semicírculo oposto à intenção.
-import { baseDoFluxo, CAB, CENARIO, JOGADOR, LINHA_LIVRE, MUNDO, type Estado } from '../nucleo/estado';
+import { baseDoFluxo, CAB, CENARIO, ETAPA, FOGUEIRA_U8, JOGADOR, LINHA_LIVRE, MUNDO, type Estado } from '../nucleo/estado';
 import { quantosAtivos } from '../nucleo/pool';
 import { DOIS_A_MENOS_32, SORTEADO, sortear } from '../nucleo/rng';
 import type { DadosDaVigilia } from '../mundo/dados';
@@ -104,13 +104,14 @@ export function sortearPontoDeSpawn(
   dy: number,
   raioDoCorpo: number,
   out: PontoDeSpawn,
+  ativo: Uint8Array | null = null,
 ): void {
   ENTRADA_DO_SPAWN[0] = jx;
   ENTRADA_DO_SPAWN[1] = jy;
   ENTRADA_DO_SPAWN[2] = dx;
   ENTRADA_DO_SPAWN[3] = dy;
   ENTRADA_DO_SPAWN[4] = raioDoCorpo;
-  sortearPontoDoRascunho(rng, base, dados, temIntencao, out);
+  sortearPontoDoRascunho(rng, base, dados, temIntencao, out, ativo);
 }
 
 /** Entradas de sortearPontoDoRascunho: jx, jy, dx, dy e o raio do corpo. */
@@ -124,7 +125,7 @@ const ENTRADA_DO_SPAWN = new Float64Array(5);
  * vão em linha, com as mesmas contas de proximoUnitario, normalizarNoToro e
  * deltaNoToro.
  */
-function sortearPontoDoRascunho(rng: Uint32Array, base: number, dados: DadosDaVigilia, temIntencao: boolean, out: PontoDeSpawn): void {
+function sortearPontoDoRascunho(rng: Uint32Array, base: number, dados: DadosDaVigilia, temIntencao: boolean, out: PontoDeSpawn, ativo: Uint8Array | null): void {
   const jx = ENTRADA_DO_SPAWN[0]!;
   const jy = ENTRADA_DO_SPAWN[1]!;
   const dx = ENTRADA_DO_SPAWN[2]!;
@@ -156,6 +157,7 @@ function sortearPontoDoRascunho(rng: Uint32Array, base: number, dados: DadosDaVi
     const o = dados.obstaculos;
     let livre = true;
     for (let i = 0; i < o.n && livre; i++) {
+      if (ativo !== null && ativo[i] === 0) continue;
       let ox = x - o.x[i]!;
       if (ox > MEIA_LARGURA_DO_MAPA) ox -= LARGURA_DO_MAPA;
       if (ox < -MEIA_LARGURA_DO_MAPA) ox += LARGURA_DO_MAPA;
@@ -186,7 +188,7 @@ function nascerNoAnel(e: Estado, dados: DadosDaVigilia, codigo: number, converti
   ENTRADA_DO_SPAWN[2] = j[JOGADOR.dirX]!;
   ENTRADA_DO_SPAWN[3] = j[JOGADOR.dirY]!;
   ENTRADA_DO_SPAWN[4] = dados.tipos.raio[codigo]!;
-  sortearPontoDoRascunho(e.rng, base, dados, temIntencao, ponto);
+  sortearPontoDoRascunho(e.rng, base, dados, temIntencao, ponto, e.obstaculoAtivo);
   const m = e.mundo;
   if (!ponto.livre) {
     m[MUNDO.semPontoLivre] = m[MUNDO.semPontoLivre]! + 1;
@@ -227,6 +229,16 @@ function repor(e: Estado, dados: DadosDaVigilia, linha: number, temIntencao: boo
 export function rodarDiretor(e: Estado, dados: DadosDaVigilia, temIntencao: boolean): void {
   if (e.cab[CAB.cenario]! & CENARIO.diretorDesligado) return;
   const m = e.mundo;
+  // Etapas (F-008 AR5): em MARCO e em FOGUEIRA nada nasce, e com um marco devido (o relógio já passou do limiar e a arena
+  // ainda não se formou) também não; `espera` zera, para a reposição recomeçar no 1º passo livre. Linha fixa: sem etapas.
+  if (e.cab[CAB.linhaFixa] === LINHA_LIVRE) {
+    const etapa = e.fogueiraU8[FOGUEIRA_U8.etapa]!;
+    const iniciados = e.fogueiraU8[FOGUEIRA_U8.marcosIniciados]!;
+    if (etapa === ETAPA.marco || etapa === ETAPA.fogueira || (etapa === ETAPA.hora && iniciados < dados.marcos.n && e.cab[CAB.relogio]! >= dados.marcos.limiar[iniciados]!)) {
+      m[MUNDO.espera] = 0;
+      return;
+    }
+  }
   if (naJanelaDoMarco(e, dados)) {
     m[MUNDO.espera] = 0;
     return;
