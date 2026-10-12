@@ -6,13 +6,12 @@
 // delta toroidal, arredondada para o pixel do canvas e na cópia mais próxima,
 // como a horda. O slot livre sai invisível. Nada é alocado por frame; no laço
 // por slot as contas vão em linha (ADR-0005 §2, ADR-0006 §2).
-import { CAPACIDADE_DE_PICKUPS, TIPO_DE_PICKUP, type Estado } from '../../logica/nucleo/estado';
+import { ESCALA_DA_GRADE, RAIOS_DAS_ROCHAS, SEMENTES_DAS_ROCHAS, nomeDaRocha } from '../../arte/catalogo';
+import { CAB, CAPACIDADE_DE_PICKUPS, TIPO_DE_PICKUP, type Estado } from '../../logica/nucleo/estado';
 import type { DadosDaVigilia } from '../../logica/mundo/dados';
 import { COR_DA_CINZA } from '../../logica/progressao/tabela';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../../logica/mundo/toro';
 import { ESCALA_DO_CANVAS } from '../escala';
-import { COR } from '../paleta';
-import { MOLDURA, escalaPara } from './atlas';
 import { indiceDaMoldura, type SaidaDeSprites } from './camadas';
 
 /** Obstáculos da Charneca e membros da camada "mundo" (54 + 512 = 566, R1). */
@@ -23,33 +22,49 @@ export function membrosDoMundo(n: number): number {
   return n + CAPACIDADE_DE_PICKUPS;
 }
 
-const M_CIRCULO = indiceDaMoldura('circulo');
-/** Alma no chão (AM4): círculo lilás de 12 pt, sem texto. */
-const ESCALA_DA_ALMA = escalaPara('circulo', 12);
-const M_CINZA = indiceDaMoldura('cinza');
-const M_QUADRADO = indiceDaMoldura('quadrado');
-const M_BAU_OURO = indiceDaMoldura('bau_ouro');
-const LARGURA_DO_CIRCULO = MOLDURA.circulo.largura;
-const COR_DOS_OBSTACULOS = COR.cinzaFrio;
+/** Tint neutro e escala da grade de arte: a arte (F-011) não é tingida e cada px de arte vale 2 pt. */
+const BRANCO = 0xffffff;
+const ESCALA = ESCALA_DA_GRADE.arte;
 
-/** Tamanho do baú: 32 pt (R2). */
-const LADO_DO_BAU_PT = 32;
-const ESCALA_DO_BAU_COMUM = escalaPara('quadrado', LADO_DO_BAU_PT);
-const ESCALA_DO_BAU_OURO = escalaPara('bau_ouro', LADO_DO_BAU_PT);
+/** Moldura da rocha mais próxima do raio de um obstáculo (px de arte = raio em pt ÷ 2), nas 2 sementes alternadas. */
+function molduraDaRocha(raioPt: number, i: number): number {
+  let melhor: number = RAIOS_DAS_ROCHAS[0];
+  for (const r of RAIOS_DAS_ROCHAS) if (Math.abs(r - raioPt / ESCALA) < Math.abs(melhor - raioPt / ESCALA)) melhor = r;
+  return indiceDaMoldura(nomeDaRocha(melhor, SEMENTES_DAS_ROCHAS[i % SEMENTES_DAS_ROCHAS.length]!));
+}
 
-/** Escala e cor da Cinza por código de faixa (COR_DA_CINZA): 0,75 azul, 1,0 verde, 1,25 vermelha, sobre o losango de 12 × 16 pt. */
-const ESCALA_DA_CINZA = new Float64Array(4);
-const TINT_DA_CINZA = new Uint32Array(4);
-ESCALA_DA_CINZA[COR_DA_CINZA.azul] = escalaPara('cinza', 12) * 0.75;
-ESCALA_DA_CINZA[COR_DA_CINZA.verde] = escalaPara('cinza', 12);
-ESCALA_DA_CINZA[COR_DA_CINZA.vermelha] = escalaPara('cinza', 12) * 1.25;
-TINT_DA_CINZA[COR_DA_CINZA.azul] = COR.cinzaAzul;
-TINT_DA_CINZA[COR_DA_CINZA.verde] = COR.cinzaVerde;
-TINT_DA_CINZA[COR_DA_CINZA.vermelha] = COR.cinzaVermelha;
+/** As molduras das rochas da região, calculadas uma vez por região (o laço por quadro não monta nome nenhum). */
+let rochasDe: DadosDaVigilia | null = null;
+let rochas = new Uint16Array(0);
+function rochasDaRegiao(dados: DadosDaVigilia): Uint16Array {
+  if (rochasDe !== dados) {
+    const o = dados.obstaculos;
+    rochas = Uint16Array.from({ length: o.n }, (_, i) => molduraDaRocha(o.r[i]!, i));
+    rochasDe = dados;
+  }
+  return rochas;
+}
 
-/** Os obstáculos nos membros 0 a n − 1: círculo cinza-frio do diâmetro da região, na cópia mais próxima da câmera. */
+/** Cristal da Cinza por código de faixa (COR_DA_CINZA): azul 7 × 9, verde 9 × 11 e vermelha 11 × 13 px; e o quadro do brilho. */
+const CRISTAL = new Int32Array(4);
+const CRISTAL_BRILHANDO = new Int32Array(4);
+CRISTAL[COR_DA_CINZA.azul] = indiceDaMoldura('cinza_azul');
+CRISTAL[COR_DA_CINZA.verde] = indiceDaMoldura('cinza_verde');
+CRISTAL[COR_DA_CINZA.vermelha] = indiceDaMoldura('cinza_vermelha');
+CRISTAL_BRILHANDO[COR_DA_CINZA.azul] = indiceDaMoldura('cinza_azul_brilho');
+CRISTAL_BRILHANDO[COR_DA_CINZA.verde] = indiceDaMoldura('cinza_verde_brilho');
+CRISTAL_BRILHANDO[COR_DA_CINZA.vermelha] = indiceDaMoldura('cinza_vermelha_brilho');
+const M_ALMA = [indiceDaMoldura('alma'), indiceDaMoldura('alma_2')] as const;
+const M_BAU_COMUM = indiceDaMoldura('bau_comum');
+const M_BAU_DOURADO = indiceDaMoldura('bau_dourado');
+/** A Cinza cintila 6 passos a cada 48, defasada pelo slot; a Alma troca de quadro a cada 16 passos. */
+const CICLO_DO_BRILHO = 48;
+const PASSOS_DO_BRILHO = 6;
+
+/** Os obstáculos nos membros 0 a n − 1: a rocha do raio da região (F-011), na cópia mais próxima da câmera. */
 export function prepararObstaculos(dados: DadosDaVigilia, camX: number, camY: number, out: SaidaDeSprites): void {
   const o = dados.obstaculos;
+  const molduras = rochasDaRegiao(dados);
   for (let i = 0; i < o.n; i++) {
     let mx = (o.x[i]! - camX + MEIA_LARGURA_DO_MAPA) % LARGURA_DO_MAPA;
     if (mx < 0) mx += LARGURA_DO_MAPA;
@@ -59,18 +74,18 @@ export function prepararObstaculos(dados: DadosDaVigilia, camX: number, camY: nu
     out.x[i] = camX + mx - MEIA_LARGURA_DO_MAPA;
     out.y[i] = camY + my - MEIA_ALTURA_DO_MAPA;
     out.rotacao[i] = 0;
-    out.escalaX[i] = out.escalaY[i] = (o.r[i]! * 2) / LARGURA_DO_CIRCULO;
+    out.escalaX[i] = out.escalaY[i] = ESCALA;
     out.alpha[i] = 1;
     out.origemX[i] = out.origemY[i] = 0.5;
-    out.moldura[i] = M_CIRCULO;
-    out.cor[i] = COR_DOS_OBSTACULOS;
+    out.moldura[i] = molduras[i]!;
+    out.cor[i] = BRANCO;
   }
 }
 
 /**
- * Os pickups nos membros `dados.obstaculos.n` a n + 511: a Cinza (losango, escala
- * e cor pela faixa do valor, lida de `dados.progressao`) e o baú (quadrado de
- * 32 pt, bronze o comum e ouro com contorno o dourado).
+ * Os pickups nos membros `dados.obstaculos.n` a n + 511 (F-011): a Cinza (o
+ * cristal da faixa do valor, lida de `dados.progressao`, cintilando), a Alma
+ * (chama lilás de 2 quadros) e o baú (comum ou dourado).
  */
 export function prepararPickups(e: Estado, dados: DadosDaVigilia, alfa: number, camX: number, camY: number, out: SaidaDeSprites): void {
   const p = e.pickups;
@@ -79,6 +94,7 @@ export function prepararPickups(e: Estado, dados: DadosDaVigilia, alfa: number, 
   const faixaValor = dados.progressao.faixaValor;
   const faixaCor = dados.progressao.faixaCor;
   const nFaixas = faixaValor.length;
+  const passo = e.cab[CAB.passo]!;
   for (let s = 0; s < CAPACIDADE_DE_PICKUPS; s++) {
     const k = base + s;
     const tipo = p.tipo[s]!;
@@ -106,26 +122,20 @@ export function prepararPickups(e: Estado, dados: DadosDaVigilia, alfa: number, 
     out.rotacao[k] = 0;
     out.alpha[k] = 1;
     out.origemX[k] = out.origemY[k] = 0.5;
+    out.escalaX[k] = out.escalaY[k] = ESCALA;
+    out.cor[k] = BRANCO;
     if (tipo === TIPO_DE_PICKUP.cinza) {
       // Faixa do valor: a última cujo "a partir de" o valor alcança (as faixas vêm em ordem crescente).
       const valor = p.valor[s]!;
       let faixa = 0;
       for (let f = 0; f < nFaixas; f++) if (valor >= faixaValor[f]!) faixa = faixaCor[f]!;
-      out.moldura[k] = M_CINZA;
-      out.escalaX[k] = out.escalaY[k] = ESCALA_DA_CINZA[faixa]!;
-      out.cor[k] = TINT_DA_CINZA[faixa]!;
+      out.moldura[k] = (passo + s * 7) % CICLO_DO_BRILHO < PASSOS_DO_BRILHO ? CRISTAL_BRILHANDO[faixa]! : CRISTAL[faixa]!;
     } else if (tipo === TIPO_DE_PICKUP.alma) {
-      out.moldura[k] = M_CIRCULO;
-      out.escalaX[k] = out.escalaY[k] = ESCALA_DA_ALMA;
-      out.cor[k] = COR.alma;
+      out.moldura[k] = M_ALMA[((passo >> 4) + s) & 1]!;
     } else if (tipo === TIPO_DE_PICKUP.bauDourado) {
-      out.moldura[k] = M_BAU_OURO;
-      out.escalaX[k] = out.escalaY[k] = ESCALA_DO_BAU_OURO;
-      out.cor[k] = COR.bauOuro;
+      out.moldura[k] = M_BAU_DOURADO;
     } else {
-      out.moldura[k] = M_QUADRADO;
-      out.escalaX[k] = out.escalaY[k] = ESCALA_DO_BAU_COMUM;
-      out.cor[k] = COR.bauBronze;
+      out.moldura[k] = M_BAU_COMUM;
     }
   }
 }

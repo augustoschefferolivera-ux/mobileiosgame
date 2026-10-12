@@ -5,7 +5,8 @@ import { criarCena } from './phaserFalso';
 import type Phaser from 'phaser';
 import { describe, expect, it } from 'vitest';
 import { MEMBROS_DAS_ARMAS, INICIO_DAS_ONDAS, prepararArmas } from '../../src/cenas/render/armas';
-import { MOLDURA, escalaPara } from '../../src/cenas/render/atlas';
+import { MOLDURA } from '../../src/cenas/render/atlas';
+import { RAIOS_DAS_ROCHAS, SEMENTES_DAS_ROCHAS, nomeDaRocha } from '../../src/arte/catalogo';
 import { arredondarParaOPixel } from '../../src/cenas/render/camera';
 import { CamadaPorGPU, NOMES_DAS_MOLDURAS, criarSaidaDeSprites, indiceDaMoldura } from '../../src/cenas/render/camadas';
 import { EfeitosDaVigilia } from '../../src/cenas/render/efeitos';
@@ -21,9 +22,9 @@ import { estadoCom } from '../logica/armas/apoio';
 import { DADOS_DA_CHARNECA, DADOS_SEM_OBSTACULOS as D } from '../logica/apoio';
 
 const OBST = DADOS_DA_CHARNECA.obstaculos.n;
-const M_CINZA = indiceDaMoldura('cinza');
 const M_QUADRADO = indiceDaMoldura('quadrado');
-const M_BAU_OURO = indiceDaMoldura('bau_ouro');
+/** O cristal de cada faixa (F-011), parado ou no quadro do brilho (a Cinza cintila pelo passo e pelo slot). */
+const CRISTAL = (nome: string): number[] => [indiceDaMoldura(nome), indiceDaMoldura(`${nome}_brilho`)];
 
 function porPickup(e: Estado, tipo: number, x: number, y: number, valor = 1, xAnt = x, yAnt = y): number {
   const s = alocar(e.poolDePickups);
@@ -61,14 +62,16 @@ describe('camada "mundo" (R1)', () => {
     }
   });
 
-  it('obstáculo: círculo cinza-frio no diâmetro da região, visível, sem rotação', () => {
+  it('obstáculo: a rocha do raio da região (F-011; raio em px de arte = raio ÷ 2), sementes alternadas, visível, sem rotação', () => {
     const out = criarSaidaDeSprites(MEMBROS_DO_MUNDO);
     prepararObstaculos(DADOS_DA_CHARNECA, 585, 1266, out);
     const o = DADOS_DA_CHARNECA.obstaculos;
     for (let i = 0; i < o.n; i++) {
-      expect([out.visivel[i], out.moldura[i], out.cor[i], out.alpha[i], out.rotacao[i]]).toEqual([1, indiceDaMoldura('circulo'), COR.cinzaFrio, 1, 0]);
-      expect(out.escalaX[i]).toBe(escalaPara('circulo', o.r[i]! * 2));
-      expect(out.escalaY[i]).toBe(out.escalaX[i]);
+      const raio = o.r[i]! / 2;
+      expect(RAIOS_DAS_ROCHAS).toContain(raio);
+      const moldura = indiceDaMoldura(nomeDaRocha(raio, SEMENTES_DAS_ROCHAS[i % 2]!));
+      expect([out.visivel[i], out.moldura[i], out.cor[i], out.alpha[i], out.rotacao[i]]).toEqual([1, moldura, 0xffffff, 1, 0]);
+      expect([out.escalaX[i], out.escalaY[i]]).toEqual([2, 2]);
     }
   });
 });
@@ -84,49 +87,40 @@ describe('prepararPickups', () => {
     expect(out.visivel.reduce((a, v) => a + v, 0)).toBe(1);
   });
 
-  it('a Cinza usa a moldura "cinza", e a cor e a escala vêm da faixa do valor (dados.progressao)', () => {
+  it('a Cinza usa o cristal da faixa do valor (dados.progressao): azul 14 × 18, verde 18 × 22, vermelha 22 × 26 pt', () => {
     const e = criarEstado(1, D);
     const out = criarSaidaDeSprites(membrosDoMundo(0));
     const { faixaValor, faixaCor } = D.progressao;
     expect(Array.from(faixaValor)).toEqual([1, 5, 25]);
     expect(faixaCor.length).toBe(3);
-    const casos: [number, number, number][] = [
-      [1, COR.cinzaAzul, 0.75],
-      [4, COR.cinzaAzul, 0.75],
-      [5, COR.cinzaVerde, 1],
-      [10, COR.cinzaVerde, 1],
-      [24, COR.cinzaVerde, 1],
-      [25, COR.cinzaVermelha, 1.25],
-      [400, COR.cinzaVermelha, 1.25],
+    const casos: [number, string][] = [
+      [1, 'cinza_azul'],
+      [4, 'cinza_azul'],
+      [5, 'cinza_verde'],
+      [10, 'cinza_verde'],
+      [24, 'cinza_verde'],
+      [25, 'cinza_vermelha'],
+      [400, 'cinza_vermelha'],
     ];
     const slots = casos.map(([valor]) => porPickup(e, TIPO_DE_PICKUP.cinza, 700, 1300, valor));
     prepararPickups(e, D, 1, 585, 1266, out);
-    casos.forEach(([valor, cor, fator], i) => {
+    casos.forEach(([valor, nome], i) => {
       const k = slots[i]!;
-      expect([out.moldura[k], out.cor[k], out.alpha[k]], `valor ${valor}`).toEqual([M_CINZA, cor, 1]);
-      expect(out.escalaX[k], `valor ${valor}`).toBeCloseTo(escalaPara('cinza', 12) * fator, 12);
-      expect(out.escalaY[k]).toBe(out.escalaX[k]);
+      expect(CRISTAL(nome), `valor ${valor}`).toContain(out.moldura[k]);
+      expect([out.cor[k], out.alpha[k], out.escalaX[k], out.escalaY[k]], `valor ${valor}`).toEqual([0xffffff, 1, 2, 2]);
     });
-    // 12 × 16 pt: moldura de 24 × 32 px no atlas a 2×; px × escala = pt.
-    expect([MOLDURA.cinza.largura, MOLDURA.cinza.altura]).toEqual([24, 32]);
-    expect(MOLDURA.cinza.largura * out.escalaX[slots[2]!]!).toBe(12);
-    expect(MOLDURA.cinza.altura * out.escalaX[slots[2]!]!).toBe(16);
-    expect(MOLDURA.cinza.largura * out.escalaX[slots[0]!]!).toBe(9);
-    expect(MOLDURA.cinza.altura * out.escalaX[slots[5]!]!).toBe(20);
   });
 
-  it('o baú comum é o quadrado de 32 pt em bronze; o dourado, a moldura com contorno em ouro escuro', () => {
+  it('o baú comum e o dourado (F-011): 16 px de arte a 2 pt, os 32 pt de largura do R2', () => {
     const e = criarEstado(1, D);
     const out = criarSaidaDeSprites(membrosDoMundo(0));
     const comum = porPickup(e, TIPO_DE_PICKUP.bauComum, 700, 1300, 0);
     const ouro = porPickup(e, TIPO_DE_PICKUP.bauDourado, 800, 1300, 1);
     prepararPickups(e, D, 1, 585, 1266, out);
-    expect([out.moldura[comum], out.cor[comum]]).toEqual([M_QUADRADO, COR.bauBronze]);
-    expect([out.moldura[ouro], out.cor[ouro]]).toEqual([M_BAU_OURO, COR.bauOuro]);
-    expect(MOLDURA.quadrado.largura * out.escalaX[comum]!).toBe(32); // pt
-    expect(MOLDURA.bau_ouro.largura * out.escalaX[ouro]!).toBe(32);
-    expect(out.escalaX[comum]).toBe(escalaPara('quadrado', 32));
-    expect(out.escalaX[ouro]).toBe(0.5);
+    expect([out.moldura[comum], out.cor[comum]]).toEqual([indiceDaMoldura('bau_comum'), 0xffffff]);
+    expect([out.moldura[ouro], out.cor[ouro]]).toEqual([indiceDaMoldura('bau_dourado'), 0xffffff]);
+    expect(16 * out.escalaX[comum]!).toBe(32); // pt
+    expect(16 * out.escalaX[ouro]!).toBe(32);
   });
 
   it('os pickups ficam depois dos obstáculos (membro n + slot) e prepararMundo escreve os dois', () => {
@@ -135,7 +129,7 @@ describe('prepararPickups', () => {
     const s = porPickup(e, TIPO_DE_PICKUP.cinza, 700, 1300, 5);
     prepararMundo(e, DADOS_DA_CHARNECA, 1, 585, 1266, out);
     expect(out.visivel[OBST + s]).toBe(1);
-    expect(out.moldura[OBST + s]).toBe(M_CINZA);
+    expect(CRISTAL('cinza_verde')).toContain(out.moldura[OBST + s]);
     expect(out.visivel.slice(0, OBST).every((v) => v === 1)).toBe(true);
     expect(out.visivel.reduce((a, v) => a + v, 0)).toBe(OBST + 1);
   });
