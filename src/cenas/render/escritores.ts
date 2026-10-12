@@ -29,6 +29,14 @@ export const OFFSET = {
   tintMode: 38,
 } as const;
 
+/**
+ * A camada da horda desenha só a massa (RE8): os médios vão para a 2ª camada, acima da massa. O tipo continua
+ * real em `SaidaDaHorda.tipo` (o status, as marcas e o Sal leem os médios dali).
+ */
+export function ehMedio(d: DesenhoDoTipo | null): boolean {
+  return d !== null && d.moldura === 'quadrado';
+}
+
 export interface EscritorDaHorda {
   readonly modo: 'gpu' | 'image';
   escrever(saida: SaidaDaHorda, tabela: readonly (DesenhoDoTipo | null)[]): void;
@@ -106,7 +114,7 @@ export class HordaPorGPU implements EscritorDaHorda {
     for (let s = 0; s < CAPACIDADE_DE_INIMIGOS; s++) {
       const base = s * FLOATS_POR_MEMBRO;
       const d = tabela[saida.tipo[s]!];
-      if (!d) {
+      if (!d || d.moldura === 'quadrado') {
         f32[base + OFFSET.escalaX] = 0;
         f32[base + OFFSET.escalaY] = 0;
         f32[base + OFFSET.alpha] = 0;
@@ -153,7 +161,7 @@ export class HordaPorImagem implements EscritorDaHorda {
       const img = this.imagens[s]!;
       const tipo = saida.tipo[s]!;
       const d = tabela[tipo];
-      if (!d) {
+      if (!d || d.moldura === 'quadrado') {
         if (img.visible) img.setVisible(false);
         continue;
       }

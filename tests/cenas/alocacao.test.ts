@@ -17,15 +17,18 @@ import inimigos from '../../src/dados/inimigos.json';
 import { HordaPorGPU } from '../../src/cenas/render/escritores';
 import { MEMBROS_DAS_ARMAS, MEMBROS_DOS_DIGITOS, prepararArmas, prepararMortes, prepararNumeros, prepararStatus } from '../../src/cenas/render/armas';
 import { MEMBROS_DO_MUNDO, prepararMundo } from '../../src/cenas/render/pickups';
+import { MEMBROS_DOS_MEDIOS, MEMBROS_DOS_PROJETEIS_INIMIGOS, MEMBROS_DOS_TELEGRAFOS, prepararMedios, prepararProjeteisInimigos, prepararTelegrafos } from '../../src/cenas/render/ataques';
 import { CamadaPorGPU, criarSaidaDeSprites } from '../../src/cenas/render/camadas';
 import { CAPACIDADE_DE_MORTES, EfeitosDaVigilia } from '../../src/cenas/render/efeitos';
 import { criarSaidaDaHorda, criarTabelaDeDesenho, prepararHorda } from '../../src/cenas/render/horda';
-import { CAB, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CENARIO, JOGADOR, MUNDO, MUNDO2, PROGRESSAO, TIPO_DE_PICKUP, criarEstado } from '../../src/logica/nucleo/estado';
+import { CAB, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CENARIO, JOGADOR, MUNDO, MUNDO2, PROGRESSAO, TIPO_DE_PICKUP, TIPO_DE_PROJETIL, criarEstado } from '../../src/logica/nucleo/estado';
 import { criarComandos, fonteConstante } from '../../src/logica/nucleo/comandos';
 import { PASSIVA } from '../../src/logica/progressao/tabela';
 import { avancar } from '../../src/logica/nucleo/passo';
 import { ARMA } from '../../src/logica/armas/tabela';
 import { alocar, quantosAtivos } from '../../src/logica/nucleo/pool';
+import { nascerInimigo } from '../../src/logica/mundo/inimigos';
+import { FASE_DO_ATAQUE, TIPO } from '../../src/logica/mundo/tipos';
 import { parametrosDoCenario } from '../../src/plataforma/cenarios';
 import { DADOS_DA_CHARNECA as D, PARADO } from '../logica/apoio';
 
@@ -85,11 +88,15 @@ describe('alocação no caminho quente (E4)', () => {
     const escritor = new HordaPorGPU(cena, false);
     const tabela = criarTabelaDeDesenho(inimigos.inimigos, D.tipos.existe);
     const saida = criarSaidaDaHorda();
+    // A 2ª camada de médios (F-006 RE8): o escritor GPU de 500 membros, escrito a cada quadro.
+    const medios = { gpu: new CamadaPorGPU(cena, MEMBROS_DOS_MEDIOS, false), saida: criarSaidaDeSprites(MEMBROS_DOS_MEDIOS) };
     const { porPasso, maiores } = await medir((n) => {
       for (let k = 0; k < n; k++) {
         avancar(e, D, PARADO, 1);
         prepararHorda(e, 0.5, 585, 1266, saida);
         escritor.escrever(saida, tabela);
+        prepararMedios(e, saida, tabela, D, 0.5, medios.saida);
+        medios.gpu.escrever(medios.saida);
       }
     });
     expect(quantosAtivos(e.pool)).toBe(300);
@@ -113,6 +120,8 @@ describe('alocação no caminho quente (E4)', () => {
     const camada = (n: number) => ({ gpu: new CamadaPorGPU(cena, n, false), saida: criarSaidaDeSprites(n) });
     const mundo = camada(MEMBROS_DO_MUNDO);
     const [mortes, status, armas, digitos] = [camada(CAPACIDADE_DE_MORTES), camada(CAPACIDADE_DE_INIMIGOS), camada(MEMBROS_DAS_ARMAS), camada(MEMBROS_DOS_DIGITOS)];
+    // As 3 camadas da F-006: a 2ª de médios, os telegrafos e os projéteis inimigos.
+    const [medios, telegrafos, projeteis] = [camada(MEMBROS_DOS_MEDIOS), camada(MEMBROS_DOS_TELEGRAFOS), camada(MEMBROS_DOS_PROJETEIS_INIMIGOS)];
     const { porPasso, maiores } = await medir((n) => {
       for (let k = 0; k < n; k++) {
         avancar(e, D, PARADO, 1);
@@ -123,10 +132,16 @@ describe('alocação no caminho quente (E4)', () => {
         escritor.escrever(saida, tabela);
         prepararMortes(ef, e, 0.5, 585, 1266, tabela, mortes.saida);
         mortes.gpu.escrever(mortes.saida);
+        prepararMedios(e, saida, tabela, D, 0.5, medios.saida);
+        medios.gpu.escrever(medios.saida);
         prepararStatus(e, saida, status.saida);
         status.gpu.escrever(status.saida);
+        prepararTelegrafos(e, D, saida, 0.5, telegrafos.saida);
+        telegrafos.gpu.escrever(telegrafos.saida);
         prepararArmas(e, D, ef, 0.5, 585, 1266, 585, 1266, armas.saida);
         armas.gpu.escrever(armas.saida);
+        prepararProjeteisInimigos(e, D, 0.5, 585, 1266, projeteis.saida);
+        projeteis.gpu.escrever(projeteis.saida);
         prepararNumeros(ef, e, 0.5, 585, 1266, digitos.saida);
         digitos.gpu.escrever(digitos.saida);
       }
@@ -136,6 +151,50 @@ describe('alocação no caminho quente (E4)', () => {
     expect(e.mundo[MUNDO.mortes]! / (AQUECIMENTO_COM_ARMAS + MEDIDOS)).toBeGreaterThan(0.02);
     expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
   }, 240_000);
+  // F-006 RE5 a RE8: o render dos ataques com telegrafos e projéteis vivos o tempo todo (só o render): 30 médios em
+  // telegrafo (Oco Grande e Noviça), 19 projéteis de Sal em voo (o máximo medido no protótipo) e o indício ligado.
+  it(`render dos ataques com 30 telegrafos e 19 projéteis vivos, ${MEDIDOS} quadros: ≤ ${LIMITE} B por quadro, sem lista branca`, async () => {
+    const e = criarEstado(1, D, { ...parametrosDoCenario('tres_armas'), linhaFixa: 19, teto: 300 });
+    const tabela = criarTabelaDeDesenho(inimigos.inimigos, D.tipos.existe);
+    for (let k = 0; k < 30; k++) {
+      const s = nascerInimigo(e, D, k % 2 === 0 ? TIPO.oco_grande : TIPO.novica_de_sal, 585 + ((k % 6) - 3) * 40, 1266 - 120 - Math.floor(k / 6) * 40, false);
+      e.inimigos.ataqueFase[s] = FASE_DO_ATAQUE.telegrafo;
+      e.inimigos.ataqueTimer[s] = 1 + ((k * 7) % 30);
+      e.inimigos.miraX[s] = 0;
+      e.inimigos.miraY[s] = 1;
+    }
+    for (let k = 0; k < 19; k++) {
+      const p = alocar(e.poolDeProjeteis);
+      e.projeteis.x[p] = e.projeteis.xAnt[p] = 585 + 20 + k * 6;
+      e.projeteis.y[p] = e.projeteis.yAnt[p] = 1266 + (k % 3) * 9;
+      e.projeteis.vx[p] = -1.6;
+      e.projeteis.vy[p] = 0;
+      e.projeteis.tipo[p] = TIPO_DE_PROJETIL.sal;
+      e.projeteis.vida[p] = 100;
+    }
+    const { cena } = criarCena();
+    const camada = (n: number) => ({ gpu: new CamadaPorGPU(cena, n, false), saida: criarSaidaDeSprites(n) });
+    const [medios, telegrafos, projeteis] = [camada(MEMBROS_DOS_MEDIOS), camada(MEMBROS_DOS_TELEGRAFOS), camada(MEMBROS_DOS_PROJETEIS_INIMIGOS)];
+    const saida = criarSaidaDaHorda();
+    let alfa = 0;
+    const { porPasso, maiores } = await medir((n) => {
+      for (let k = 0; k < n; k++) {
+        alfa = (alfa + 0.37) % 1;
+        e.cab[CAB.passo] = k;
+        prepararHorda(e, alfa, 585, 1266, saida);
+        prepararMedios(e, saida, tabela, D, alfa, medios.saida);
+        medios.gpu.escrever(medios.saida);
+        prepararTelegrafos(e, D, saida, alfa, telegrafos.saida);
+        telegrafos.gpu.escrever(telegrafos.saida);
+        prepararProjeteisInimigos(e, D, alfa, 585, 1266, projeteis.saida);
+        projeteis.gpu.escrever(projeteis.saida);
+      }
+    });
+    expect(medios.saida.visivel.reduce((a, v) => a + v, 0)).toBe(30);
+    expect(telegrafos.saida.visivel.reduce((a, v) => a + v, 0)).toBe(30);
+    expect(projeteis.saida.visivel.reduce((a, v) => a + v, 0)).toBe(38);
+    expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
+  }, 120_000);
   // F-005 R1 e U6: o mundo com o pool de pickups cheio (Cinzas das 3 faixas e baús) e as ondas vivas, só o render.
   it(`render do mundo com 512 pickups e 20 ondas vivas, ${MEDIDOS} quadros: ≤ ${LIMITE} B por quadro, sem lista branca`, async () => {
     const e = criarEstado(1, D, { ...parametrosDoCenario('tres_armas'), linhaFixa: 19, teto: 300 });

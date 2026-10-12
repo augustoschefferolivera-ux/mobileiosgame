@@ -6,7 +6,7 @@
 // em passos do evento, então a imagem pausada depende só da seed e do passo.
 // Nada é alocado por frame; nos laços por membro, as contas vão em linha.
 import { ARQUETIPO, indiceDoNivel } from '../../logica/armas/tabela';
-import { CAB, CAPACIDADE_DE_EFEITOS as CAPACIDADE_DE_ONDAS, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PROJETEIS, VAGAS_DE_ARMA, type Estado } from '../../logica/nucleo/estado';
+import { CAB, TIPO_DE_PROJETIL, CAPACIDADE_DE_EFEITOS as CAPACIDADE_DE_ONDAS, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PROJETEIS, VAGAS_DE_ARMA, type Estado } from '../../logica/nucleo/estado';
 import { FORMA } from '../../logica/nucleo/eventos';
 import type { DadosDaVigilia } from '../../logica/mundo/dados';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../../logica/mundo/toro';
@@ -18,7 +18,7 @@ import { CAPACIDADE_DE_EFEITOS, CAPACIDADE_DE_MORTES, CAPACIDADE_DE_NUMEROS, EFE
 import type { DesenhoDoTipo, SaidaDaHorda } from './horda';
 
 /** Cores dos efeitos (V1 a V4, N3). */
-export const COR_DO_CRITICO = 0xffd166;
+export const COR_DO_CRITICO = COR.amarelo;
 const ALFA_DO_GOLPE = 0.5;
 const ALFA_DO_ANEL = 0.6;
 /** O pulso cresce 96 px em 12 passos (V3). */
@@ -46,6 +46,7 @@ export const MEMBROS_DOS_DIGITOS = CAPACIDADE_DE_NUMEROS * DIGITOS_POR_NUMERO;
 
 const M_FACA = indiceDaMoldura('faca');
 const M_LOSANGO = indiceDaMoldura('losango');
+const M_ESTRELA = indiceDaMoldura('estrela');
 const M_ANEL = indiceDaMoldura('anel');
 const M_CUNHA = indiceDaMoldura('cunha');
 const M_QUADRADO = indiceDaMoldura('quadrado');
@@ -97,11 +98,17 @@ export function prepararMortes(
   }
 }
 
-/** Sal no inimigo (V4): losango de 8 × 8 pt em sal no centro do corpo, na posição que a horda desenha. */
+/**
+ * Marcador de status no inimigo, um membro por slot, no centro do corpo e na posição que a horda desenha: a estrela
+ * de 4 pontas de 12 pt em amarelo se está atordoado (RE9, com prioridade sobre o Sal: o losango fica oculto
+ * enquanto dura a Postura Quebrada), ou o losango de 8 × 8 pt em sal (V4).
+ */
 export function prepararStatus(e: Estado, horda: SaidaDaHorda, out: SaidaDeSprites): void {
   const sal = e.inimigos.salPassos;
+  const quebrada = e.inimigos.quebradaPassos;
   for (let s = 0; s < CAPACIDADE_DE_INIMIGOS; s++) {
-    if (horda.tipo[s] === 0 || sal[s] === 0) {
+    const atordoado = quebrada[s]! > 0;
+    if (horda.tipo[s] === 0 || (sal[s] === 0 && !atordoado)) {
       out.visivel[s] = 0;
       continue;
     }
@@ -112,8 +119,8 @@ export function prepararStatus(e: Estado, horda: SaidaDaHorda, out: SaidaDeSprit
     out.escalaX[s] = out.escalaY[s] = 0.5;
     out.alpha[s] = 1;
     out.origemX[s] = out.origemY[s] = 0.5;
-    out.moldura[s] = M_LOSANGO;
-    out.cor[s] = COR.sal;
+    out.moldura[s] = atordoado ? M_ESTRELA : M_LOSANGO;
+    out.cor[s] = atordoado ? COR.amarelo : COR.sal;
   }
 }
 
@@ -136,7 +143,8 @@ export function prepararArmas(
   const p = e.projeteis;
   const vivo = e.poolDeProjeteis.posicao;
   for (let s = 0; s < CAPACIDADE_DE_PROJETEIS; s++) {
-    if (vivo[s]! < 0) {
+    // Só as facas: o projétil de Sal da Noviça (tipo 2) tem a camada dele (RE6).
+    if (vivo[s]! < 0 || p.tipo[s] !== TIPO_DE_PROJETIL.faca) {
       out.visivel[s] = 0;
       continue;
     }

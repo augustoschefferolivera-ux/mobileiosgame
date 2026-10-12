@@ -49,6 +49,10 @@ export const MOLDURA = {
   d7: { x: 168, y: 440, largura: 20, altura: 26 },
   d8: { x: 192, y: 440, largura: 20, altura: 26 },
   d9: { x: 216, y: 440, largura: 20, altura: 26 },
+  /** Estrela de 4 pontas de 12 pt: o marcador do atordoado (RE9). */
+  estrela: { x: 0, y: 472, largura: 24, altura: 24 },
+  /** Anel de 24 pt com traço de 2 pt: o anel do projétil da Noviça (RE6); o `anel` escalado a 24 pt teria traço de 0,4 pt. */
+  anel_pequeno: { x: 240, y: 444, largura: 48, altura: 48 },
 } as const;
 export type NomeDaMoldura = keyof typeof MOLDURA;
 
@@ -145,6 +149,27 @@ export function gerarAtlas(texturas: Phaser.Textures.TextureManager): void {
   c.arc(vx, vy, w.altura, -Math.PI / 2 - Math.PI / 3, -Math.PI / 2 + Math.PI / 3);
   c.closePath();
   c.fill();
+  // Estrela de 4 pontas: pontas nos 4 lados, cintura a um terço do raio.
+  const est = MOLDURA.estrela;
+  const ecx = est.x + est.largura / 2;
+  const ecy = est.y + est.altura / 2;
+  c.beginPath();
+  for (let k = 0; k < 8; k++) {
+    const raio = k % 2 === 0 ? est.largura / 2 : est.largura / 6;
+    const ang = (k * Math.PI) / 4 - Math.PI / 2;
+    const px = ecx + raio * Math.cos(ang);
+    const py = ecy + raio * Math.sin(ang);
+    if (k === 0) c.moveTo(px, py);
+    else c.lineTo(px, py);
+  }
+  c.closePath();
+  c.fill();
+  // Anel pequeno: 24 pt de diâmetro, traço de 2 pt (4 px).
+  const ap = MOLDURA.anel_pequeno;
+  c.lineWidth = TRACO_DO_ANEL_PX;
+  c.beginPath();
+  c.arc(ap.x + ap.largura / 2, ap.y + ap.altura / 2, ap.largura / 2 - TRACO_DO_ANEL_PX / 2, 0, Math.PI * 2);
+  c.stroke();
   // Dígitos: o contorno escuro primeiro, depois as células acesas em branco.
   for (let d = 0; d < 10; d++) {
     const m = MOLDURA[`d${d}` as NomeDaMoldura];

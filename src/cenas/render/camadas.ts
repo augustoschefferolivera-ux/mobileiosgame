@@ -33,6 +33,11 @@ export interface SaidaDeSprites {
   readonly moldura: Uint8Array;
   /** Cor rgb (o tint). */
   readonly cor: Uint32Array;
+  /**
+   * `tintBlend` do membro (o shader faz mix(branco, cor, tintBlend)): 1 = a cor; 0 = branco puro. Só o telegrafo
+   * no corpo dos médios o baixa (RE4); `tintMode` fica em 0.
+   */
+  readonly blend: Float64Array;
 }
 
 export function criarSaidaDeSprites(capacidade: number): SaidaDeSprites {
@@ -49,6 +54,7 @@ export function criarSaidaDeSprites(capacidade: number): SaidaDeSprites {
     origemY: new Float64Array(capacidade).fill(0.5),
     moldura: new Uint8Array(capacidade),
     cor: new Uint32Array(capacidade),
+    blend: new Float64Array(capacidade).fill(1),
   };
 }
 
@@ -97,6 +103,7 @@ export class CamadaPorGPU implements EscritorDeSprites {
       f32[base + OFFSET.moldura] = this.indiceNaTextura[s.moldura[k]!]!;
       f32[base + OFFSET_DA_ORIGEM.x] = s.origemX[k]!;
       f32[base + OFFSET_DA_ORIGEM.y] = s.origemY[k]!;
+      f32[base + OFFSET.tintBlend] = s.blend[k]!;
       const tint = (0xff000000 | s.cor[k]!) >>> 0;
       u32[base + OFFSET.tint] = tint;
       u32[base + OFFSET.tint + 1] = tint;
@@ -109,6 +116,18 @@ export class CamadaPorGPU implements EscritorDeSprites {
   liberar(): void {
     liberarLayer(this.layer);
   }
+}
+
+/**
+ * O tint do plano B para o `tintBlend`: mix(branco, cor, blend) por canal, em inteiros (RE4). Em linha nos laços
+ * quentes seria o mesmo; aqui é um caminho de `?render=image`.
+ */
+export function tintDoBlend(cor: number, blend: number): number {
+  if (blend >= 1) return cor;
+  const r = Math.round(255 + (((cor >>> 16) & 0xff) - 255) * blend);
+  const g = Math.round(255 + (((cor >>> 8) & 0xff) - 255) * blend);
+  const b = Math.round(255 + ((cor & 0xff) - 255) * blend);
+  return (r << 16) | (g << 8) | b;
 }
 
 /** O plano B: um Image por posição, numa layer; só muda o que mudou. */
@@ -141,7 +160,7 @@ export class CamadaPorImagem implements EscritorDeSprites {
         this.molduraDesenhada[k] = m;
         img.setFrame(NOMES_DAS_MOLDURAS[m]!);
       }
-      const cor = s.cor[k]!;
+      const cor = tintDoBlend(s.cor[k]!, s.blend[k]!);
       if (this.corDesenhada[k] !== cor) {
         this.corDesenhada[k] = cor;
         img.setTint(cor);

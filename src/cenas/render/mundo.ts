@@ -1,8 +1,10 @@
 // Render do mundo da Vigília (ADR-0002 §3 e §11; design/decisoes-F-002.md §5;
 // design/decisoes-F-003.md §7; design/decisoes-F-004.md §6). Camadas, nesta
 // ordem de desenho: chão (vazio no MVP), mundo (54 obstáculos e 512 pickups,
-// F-005 R1), mortes, horda, status (Sal), armas (facas, aura, golpes, pulsos e
-// ondas da União), jogador e dígitos dos números de dano. O jogador é Image nos
+// F-005 R1), mortes, horda (a massa), médios (F-006 RE8, acima da massa), status
+// (Sal e atordoado), telegrafos (cunha e faixa no chão, RE5), armas (facas, aura,
+// golpes, pulsos e ondas da União), projéteis inimigos (RE6), jogador e dígitos
+// dos números de dano. O jogador é Image nos
 // dois modos; a horda e as camadas vão para os escritores injetados
 // (SpriteGPULayer ou o pool de Image do plano B), que só escrevem o que as
 // funções de preparo calculam. Sem as camadas (testes do render de obstáculos e
@@ -19,6 +21,7 @@ import { COR } from '../estilo';
 import { CHAVE_DO_ATLAS, escalaPara } from './atlas';
 import { arredondarParaOPixel } from './camera';
 import { MEMBROS_DAS_ARMAS, MEMBROS_DOS_DIGITOS, prepararArmas, prepararMortes, prepararNumeros, prepararStatus } from './armas';
+import { MEMBROS_DOS_MEDIOS, MEMBROS_DOS_PROJETEIS_INIMIGOS, MEMBROS_DOS_TELEGRAFOS, prepararMedios, prepararProjeteisInimigos, prepararTelegrafos } from './ataques';
 import { criarSaidaDeSprites, type EscritorDeSprites, type SaidaDeSprites } from './camadas';
 import { CAPACIDADE_DE_MORTES, EfeitosDaVigilia } from './efeitos';
 import type { EscritorDaHorda } from './escritores';
@@ -75,7 +78,10 @@ export class RenderDaVigilia implements RenderDoMundo {
   /** Consumidor do anel e pools do render (null sem as camadas das armas). */
   readonly efeitos: EfeitosDaVigilia | null;
   private readonly mortes: Camada | null = null;
+  private readonly medios: Camada | null = null;
   private readonly status: Camada | null = null;
+  private readonly telegrafos: Camada | null = null;
+  private readonly projeteisInimigos: Camada | null = null;
   private readonly armasCamada: Camada | null = null;
   private readonly digitos: Camada | null = null;
 
@@ -107,8 +113,11 @@ export class RenderDaVigilia implements RenderDoMundo {
     this.horda = horda ? horda.criar(cena) : null;
     this.tabela = horda ? horda.tabela : [];
     if (armas) {
+      this.medios = camada(MEMBROS_DOS_MEDIOS);
       this.status = camada(CAPACIDADE_DE_INIMIGOS);
+      this.telegrafos = camada(MEMBROS_DOS_TELEGRAFOS);
       this.armasCamada = camada(MEMBROS_DAS_ARMAS);
+      this.projeteisInimigos = camada(MEMBROS_DOS_PROJETEIS_INIMIGOS);
     }
     this.jogador = cena.add
       .image(dados.inicioX, dados.inicioY, CHAVE_DO_ATLAS, 'triangulo')
@@ -140,13 +149,19 @@ export class RenderDaVigilia implements RenderDoMundo {
       this.horda.escrever(this.saida, this.tabela);
     }
     const ef = this.efeitos;
-    if (ef && this.mortes && this.status && this.armasCamada && this.digitos) {
+    if (ef && this.mortes && this.medios && this.status && this.telegrafos && this.armasCamada && this.projeteisInimigos && this.digitos) {
       prepararMortes(ef, e, alfa, camX, camY, this.tabela, this.mortes.saida);
       this.mortes.escritor.escrever(this.mortes.saida);
+      prepararMedios(e, this.saida, this.tabela, this.dados, alfa, this.medios.saida);
+      this.medios.escritor.escrever(this.medios.saida);
       prepararStatus(e, this.saida, this.status.saida);
       this.status.escritor.escrever(this.status.saida);
+      ef.recusados.telegrafos = prepararTelegrafos(e, this.dados, this.saida, alfa, this.telegrafos.saida);
+      this.telegrafos.escritor.escrever(this.telegrafos.saida);
       prepararArmas(e, this.dados, ef, alfa, camX, camY, jx, jy, this.armasCamada.saida);
       this.armasCamada.escritor.escrever(this.armasCamada.saida);
+      ef.recusados.projeteisInimigos = prepararProjeteisInimigos(e, this.dados, alfa, camX, camY, this.projeteisInimigos.saida);
+      this.projeteisInimigos.escritor.escrever(this.projeteisInimigos.saida);
       prepararNumeros(ef, e, alfa, camX, camY, this.digitos.saida);
       this.digitos.escritor.escrever(this.digitos.saida);
     }
@@ -158,7 +173,10 @@ export class RenderDaVigilia implements RenderDoMundo {
     this.mundo?.escritor.liberar();
     this.horda?.liberar();
     this.mortes?.escritor.liberar();
+    this.medios?.escritor.liberar();
     this.status?.escritor.liberar();
+    this.telegrafos?.escritor.liberar();
+    this.projeteisInimigos?.escritor.liberar();
     this.armasCamada?.escritor.liberar();
     this.digitos?.escritor.liberar();
   }

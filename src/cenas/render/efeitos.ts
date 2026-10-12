@@ -86,8 +86,10 @@ export class EfeitosDaVigilia {
   /** O número mais novo de cada slot de inimigo (−1 = nenhum), para a agregação (N7). */
   private readonly numeroDoSlot = new Int16Array(CAPACIDADE_DE_INIMIGOS).fill(-1);
   readonly leitor = new LeitorDeEventos();
-  /** Recusas por pool cheio, desde reiniciar(). */
-  readonly recusados = { numeros: 0, mortes: 0, efeitos: 0 };
+  /** Recusas por pool cheio, desde reiniciar(). `telegrafos` e `projeteisInimigos` são os excedentes não desenhados no último quadro (RE5). */
+  readonly recusados = { numeros: 0, mortes: 0, efeitos: 0, telegrafos: 0, projeteisInimigos: 0 };
+  /** Eventos de feedback da interface lidos do anel desde reiniciar(): o flash, os sons e o pulso da stamina os consomem (FB2, FB4, RE1). */
+  readonly feedback = { aparo: 0, esquivaPerfeita: 0, acaoNegada: 0 };
   numerosVivos = 0;
   private numerosLigados = true;
 
@@ -99,7 +101,8 @@ export class EfeitosDaVigilia {
     this.efeitos.ativo.fill(0);
     this.numeroDoSlot.fill(-1);
     this.leitor.reiniciar();
-    this.recusados.numeros = this.recusados.mortes = this.recusados.efeitos = 0;
+    this.recusados.numeros = this.recusados.mortes = this.recusados.efeitos = this.recusados.telegrafos = this.recusados.projeteisInimigos = 0;
+    this.feedback.aparo = this.feedback.esquivaPerfeita = this.feedback.acaoNegada = 0;
     this.numerosVivos = 0;
     this.numerosLigados = true;
   }
@@ -140,6 +143,12 @@ export class EfeitosDaVigilia {
         m.y[j] = f32[i + EV.floats + 1]!;
         m.tipo[j] = u32[i + EV.inimigoFlagsCausa]! & 0xff;
         m.passo[j] = u32[i + EV.passo]!;
+      } else if (tipo === EVENTO.aparo) {
+        this.feedback.aparo++;
+      } else if (tipo === EVENTO.esquivaPerfeita) {
+        this.feedback.esquivaPerfeita++;
+      } else if (tipo === EVENTO.acaoNegada) {
+        this.feedback.acaoNegada++;
       } else if (tipo === EVENTO.golpe || tipo === EVENTO.pulso) {
         const ef = this.efeitos;
         let j = 0;
