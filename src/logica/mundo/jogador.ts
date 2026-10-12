@@ -12,6 +12,7 @@ import { CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR, JOGADOR3, JOGADOR3_U16, JOGADOR3_
 import { EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import { segundosEmPassos } from '../nucleo/passos';
 import type { DadosDaVigilia } from './dados';
+import { comandosDoFrasco } from './frasco';
 import { COLISAO, ES, colidirComTodos } from './obstaculos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from './toro';
 
@@ -135,6 +136,8 @@ function rodarTimersEComandos(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoP
       gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.esquiva, 0, 0, -1, 0, 0, 0, 0);
     }
   }
+  // Frasco (FR1, FR5): depois do aparo e da esquiva (que vencem no mesmo passo) e antes da regeneração, que lê a espera já gravada.
+  comandosDoFrasco(e, dados, cmd);
   // (c) regeneração: o passo que gravou o atraso não regenera nem o decrementa.
   if (gasto === 0 && decidiuFalho === 0) {
     const espera = u8[JOGADOR3_U8.esperaRegen]!;

@@ -106,6 +106,9 @@ export interface TabelaDeCombate {
   /** Brasa Firme (vigilantes.json): redução do dano em % e o limiar da stamina em % de `staminaMax` (estrito, `>`). */
   readonly brasaFirmeReducaoPct: number;
   readonly brasaFirmeStaminaPct: number;
+  /** Tabelados na carga (DM1, DM2): o fator do dano com Brasa Firme (0,8) e o limiar estrito da stamina (50). */
+  readonly brasaFirmeFator: number;
+  readonly brasaFirmeLimiar: number;
   /** Apagar: passos de APAGANDO e o fator do `deltaMs` do driver (só apresentação). */
   readonly apagarPassos: number;
   readonly apagarFator: number;
@@ -277,6 +280,8 @@ export function criarTabelaDeCombate(c: CombateDoJson, vigilante: VigilanteDoJso
     frascoCancelarPassos: c.frasco.cancelar_segurando_passos,
     brasaFirmeReducaoPct: vigilante.passiva.reducao_dano_pct,
     brasaFirmeStaminaPct: vigilante.passiva.condicao_stamina_acima_pct,
+    brasaFirmeFator: 1 - vigilante.passiva.reducao_dano_pct / 100,
+    brasaFirmeLimiar: (staminaMax * vigilante.passiva.condicao_stamina_acima_pct) / 100,
     apagarPassos: c.apagar.duracao_passos,
     apagarFator: c.apagar.camera_lenta_fator,
     manchaPct: c.mancha.pct_das_almas,

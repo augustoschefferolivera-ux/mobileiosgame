@@ -8,7 +8,7 @@
 import { describe, expect, it } from 'vitest';
 import { fonteDoRoteiro } from '../../../src/logica/nucleo/comandos';
 import { FNV_BASE, fnv1aBytes, hex8 } from '../../../src/logica/nucleo/hash';
-import { BYTES_DO_LAYOUT_4, CAB, CENARIO, PROGRESSAO, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
+import { BYTES_DO_LAYOUT_4, CAB, CENARIO, JOGADOR, LAYOUT, PROGRESSAO, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { PASSOS_REFERENCIA, ROTEIRO_REFERENCIA } from '../../../src/logica/nucleo/referencia';
 import { parametrosDoCenario } from '../../../src/plataforma/cenarios';
@@ -20,15 +20,17 @@ function hashDosCamposV4(e: Estado): string {
   cab[CAB.cenario - 1] = cab[CAB.cenario - 1]! & ~CENARIO.semCinzas;
   // Desde a F-006 os bits de esquiva e aparo (2 e 4) existem em tutoriaisVistos (decisoes-F-006 ET3): só o bit mover (1) vale.
   cab[CAB.tutoriaisVistos - 1] = cab[CAB.tutoriaisVistos - 1]! & 1;
+  // Desde a F-007 o HP recebe armadura e Brasa Firme (DM1, DM2): a palavra do HP fica de fora.
+  new DataView(copia.buffer).setUint32(LAYOUT.jogador + JOGADOR.hp * 4 - 4, 0, true);
   return hex8(fnv1aBytes(FNV_BASE, copia));
 }
 
 const V4 = {
-  vigilia: { 1: '751fe379', 424242: '0aa68dbf' },
-  parada433: { 1: 'ca80b1dc', 424242: 'df7b5950' },
-  horda: { 1: 'a725e19c', 424242: '917043f4' },
-  rotativa: { 1: 'd35f7cc3', 424242: 'e94caeef' },
-  tresArmas: { 1: '2ae2f66a', 424242: '9dfbad09' },
+  vigilia: { 1: '1e07d252', 424242: '15819c05' },
+  parada433: { 1: '92cf3c0c', 424242: 'f38b4d73' },
+  horda: { 1: 'c9741fef', 424242: 'a9ae0c13' },
+  rotativa: { 1: '813b5b3c', 424242: 'c5fae0d8' },
+  tresArmas: { 1: 'd275a119', 424242: '6612d966' },
 } as const;
 
 describe('os campos do v4 evoluem como na F-004 até o 1º level up', () => {

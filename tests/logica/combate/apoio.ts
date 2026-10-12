@@ -15,12 +15,14 @@ import {
 import { SEM_ALVO, eventosEscritos, inicioDoEvento } from '../../../src/logica/nucleo/eventos';
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { TIPO } from '../../../src/logica/mundo/tipos';
-import { DADOS_DA_CHARNECA, DADOS_SEM_OBSTACULOS } from '../apoio';
+import { DADOS_BRUTOS, DADOS_DA_CHARNECA, DADOS_SEM_OBSTACULOS } from '../apoio';
 import type { DadosDaVigilia } from '../../../src/logica/mundo/dados';
 
 export { ACAO, TIPO };
 export const D = DADOS_DA_CHARNECA;
-export const D_LIVRE = DADOS_SEM_OBSTACULOS;
+/** Sem obstáculos e sem Brasa Firme (os testes da F-006 medem o dano bruto; o líquido tem testes próprios, dano-liquido.test.ts). */
+export const D_LIVRE = DADOS_BRUTOS;
+export const D_LIVRE_COM_BRASA_FIRME = DADOS_SEM_OBSTACULOS;
 
 /** Sem diretor nem armas, com os três tutoriais vistos (a base dos testes de esquiva). */
 export const BASE: Partial<ParametrosDaVigilia> = { cenario: CENARIO.diretorDesligado, armas: [], tutoriaisVistos: TODOS_OS_TUTORIAIS };

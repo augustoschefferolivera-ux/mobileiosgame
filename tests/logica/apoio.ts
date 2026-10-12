@@ -19,8 +19,17 @@ export function dadosDe(regiao: Partial<RegiaoDoJson> = {}): DadosDaVigilia {
   return criarDadosDaVigilia({ ...charneca, ...regiao }, aldric, inimigos.inimigos, armas.armas, FONTES_DA_PROGRESSAO);
 }
 
+/**
+ * Os mesmos dados com a Brasa Firme desligada (fator 1): os testes das F-003 a F-006 medem o dano bruto, e a
+ * stamina inicial de 100 aplicaria o ×0,8 da F-007 (decisoes-F-007 DM7). Os testes do líquido usam os dados reais.
+ */
+export function semBrasaFirme(d: DadosDaVigilia): DadosDaVigilia {
+  return { ...d, combate: { ...d.combate, brasaFirmeFator: 1 } };
+}
+
 export const DADOS_DA_CHARNECA = dadosDe();
 export const DADOS_SEM_OBSTACULOS = dadosDe({ obstaculos: [] });
+export const DADOS_BRUTOS = semBrasaFirme(DADOS_SEM_OBSTACULOS);
 /** Fonte que dá intenção nula em todos os passos. */
 export const PARADO = fonteConstante(criarComandos());
 /** Parâmetros de uma Vigília sem armas: os testes das F-001 a F-003 que medem a horda sem mortes (decisoes-F-004 §5). */

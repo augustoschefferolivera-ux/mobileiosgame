@@ -4,11 +4,12 @@
 // as 8 palavras do mundo da F-003, o pool de inimigos e os campos x, y, xAnt,
 // yAnt, hp, dano, tipo e convertido), na mesma ordem. Os valores foram
 // gravados com o código do commit aad3094 (F-003 ratificada). Desde a F-005, o
-// bit semCinzas do cabeçalho fica de fora (os cenários antigos o ligam).
+// bit semCinzas do cabeçalho fica de fora (os cenários antigos o ligam). Desde a F-007 a palavra do HP também fica de
+// fora e os valores foram regravados com o código da F-007 etapa 2c (56304b2), o último com o HP bruto.
 import { describe, expect, it } from 'vitest';
 import { fonteDoRoteiro } from '../../../src/logica/nucleo/comandos';
 import { FNV_BASE, fnv1aBytes, hex8 } from '../../../src/logica/nucleo/hash';
-import { CAB, CENARIO, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
+import { CAB, CENARIO, JOGADOR, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { PASSOS_REFERENCIA, ROTEIRO_REFERENCIA } from '../../../src/logica/nucleo/referencia';
 import { parametrosDoCenario } from '../../../src/plataforma/cenarios';
@@ -23,16 +24,19 @@ function hashDosCamposV3(e: Estado): string {
   cab[CAB.tutoriaisVistos - 1] = cab[CAB.tutoriaisVistos - 1]! & 1;
   let h = fnv1aBytes(FNV_BASE, new Uint8Array(cab.buffer));
   h = fnv1aBytes(h, b(e.rng.byteOffset, e.rng.byteOffset + e.rng.byteLength));
-  h = fnv1aBytes(h, b(e.jogador.byteOffset, e.jogador.byteOffset + 32));
+  // Desde a F-007 o HP recebe armadura e Brasa Firme (DM1, DM2): a palavra do HP fica de fora (decisoes-F-007 LY1).
+  const jogador = new Uint8Array(e.buffer.slice(e.jogador.byteOffset, e.jogador.byteOffset + 32));
+  new DataView(jogador.buffer).setUint32(JOGADOR.hp * 4, 0, true);
+  h = fnv1aBytes(h, jogador);
   h = fnv1aBytes(h, b(e.mundo.byteOffset, e.mundo.byteOffset + 32));
   h = fnv1aBytes(h, b(e.pool.contagens.byteOffset, e.inimigos.convertido.byteOffset + 500));
   return hex8(h);
 }
 
 const V3 = {
-  vigilia: { 1: '148102b6', 424242: '60e38d12' },
-  horda: { 1: '8525ce67', 424242: '6c7b419f' },
-  hordaRotativa: { 1: 'db0c9f48', 424242: '44aecf54' },
+  vigilia: { 1: 'badf5995', 424242: 'dcb425b0' },
+  horda: { 1: '95b3b5d4', 424242: 'eb4d7178' },
+  hordaRotativa: { 1: 'fd88af07', 424242: '3d5f97a3' },
 } as const;
 
 describe('sem armas, o v4 evolui como o v3 (F-003)', () => {

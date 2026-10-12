@@ -16,6 +16,7 @@ import { rodarAtaques } from '../mundo/ataques';
 import { aplicarRotacao } from '../mundo/cenario';
 import { aplicarContato } from '../mundo/contato';
 import type { DadosDaVigilia } from '../mundo/dados';
+import { rodarFrasco } from '../mundo/frasco';
 import { moverHorda } from '../mundo/horda';
 import { atualizarPromptDeMover, moverJogador } from '../mundo/jogador';
 import { confirmarModal, modalAberto } from '../progressao/modal';
@@ -42,6 +43,8 @@ export function passo(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): v
   e.cab[CAB.relogio] = e.cab[CAB.relogio]! + 1;
   const moveu = moverJogador(e, dados, cmd);
   atualizarPromptDeMover(e, moveu);
+  // Cura do Frasco (FR2, LY2): depois dos comandos e antes de todo dano do passo.
+  rodarFrasco(e, dados);
   moverHorda(e, dados);
   rodarArmas(e, dados);
   // Logo depois das armas e antes do contato (ET4, EP3): o Poder da esquiva perfeita vale 120 fases de armas.

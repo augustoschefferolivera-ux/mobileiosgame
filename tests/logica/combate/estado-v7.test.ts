@@ -8,6 +8,7 @@ import {
   BYTES_DO_LAYOUT_6,
   BYTES_ESTADO,
   CAUSA_DO_FIM,
+  CENARIO,
   FASE,
   JOGADOR4,
   JOGADOR4_U32,
@@ -102,8 +103,8 @@ describe('o bloco v7 ao nascer e sem comportamento novo', () => {
     expect(e.jogador4U8[JOGADOR4_U8.frascoCargas]).toBe(D.combate.frascoCargas);
   });
 
-  it('1.000 passos da Vigília de produção, parada, não mexem no bloco v7', () => {
-    const e = criarEstado(1, D, PRODUCAO);
+  it('1.000 passos da Vigília de produção, parada e invulnerável, não mexem no bloco v7 (o dano e o Frasco são da F-007 3b)', () => {
+    const e = criarEstado(1, D, { ...PRODUCAO, cenario: (PRODUCAO.cenario ?? 0) | CENARIO.jogadorInvulneravel });
     const antes = e.bytes.slice(BYTES_DO_LAYOUT_6);
     avancar(e, D, PARADO, 1000);
     expect(e.bytes.slice(BYTES_DO_LAYOUT_6)).toEqual(antes);

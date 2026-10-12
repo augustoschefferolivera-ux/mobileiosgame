@@ -130,14 +130,15 @@ describe('ações e mira (decisoes-F-006 ET5, ET6)', () => {
     expect(n).toBe(1);
   });
 
-  it('validarAcoes recusa passos repetidos ou fora de ordem, o bit do Frasco, |mira| > 1 e NaN', () => {
+  it('validarAcoes recusa passos repetidos ou fora de ordem, o bit de abandonar, |mira| > 1 e NaN; aceita o Frasco e o cancelar', () => {
     expect(() => validarAcoes([{ passo: 0, acoes: 1 }, { passo: 5, acoes: 2, mira: [1, 0] }])).not.toThrow();
     expect(() => validarAcoes([{ passo: 5, acoes: 1 }, { passo: 5, acoes: 1 }])).toThrow(/fora de ordem/);
     expect(() => validarAcoes([{ passo: 6, acoes: 1 }, { passo: 5, acoes: 1 }])).toThrow(/fora de ordem/);
     expect(() => validarAcoes([{ passo: -1, acoes: 1 }])).toThrow(/fora de ordem/);
     expect(() => validarAcoes([{ passo: 1.5, acoes: 1 }])).toThrow(/fora de ordem/);
-    expect(() => validarAcoes([{ passo: 1, acoes: ACAO.frasco }])).toThrow(/bits/);
-    expect(() => validarAcoes([{ passo: 1, acoes: 8 }])).toThrow(/bits/);
+    expect(() => validarAcoes([{ passo: 1, acoes: ACAO.frasco }, { passo: 2, acoes: ACAO.frascoCancelar }, { passo: 3, acoes: ACAO.frasco | ACAO.aparo }])).not.toThrow();
+    expect(() => validarAcoes([{ passo: 1, acoes: ACAO.abandonar }])).toThrow(/bits/);
+    expect(() => validarAcoes([{ passo: 1, acoes: 32 }])).toThrow(/bits/);
     expect(() => validarAcoes([{ passo: 1, acoes: 1, mira: [1, 0.1] }])).toThrow(/mira/);
     expect(() => validarAcoes([{ passo: 1, acoes: 1, mira: [Number.NaN, 0] }])).toThrow(/mira/);
     expect(() => validarAcoes([{ passo: 1, acoes: 1, mira: [Number.POSITIVE_INFINITY, 0] }])).toThrow(/mira/);

@@ -16,7 +16,7 @@ import {
 import { nascerInimigo } from '../../../src/logica/mundo/inimigos';
 import { TIPO } from '../../../src/logica/mundo/tipos';
 import { ALTURA_DO_MAPA as H, LARGURA_DO_MAPA as W } from '../../../src/logica/mundo/toro';
-import { DADOS_SEM_OBSTACULOS as D, PARADO } from '../apoio';
+import { DADOS_BRUTOS as D, PARADO } from '../apoio';
 
 const JX = 585;
 const JY = 1266;

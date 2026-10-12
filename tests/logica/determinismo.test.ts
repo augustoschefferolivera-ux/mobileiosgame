@@ -37,7 +37,7 @@ import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, deltaNoToro } from '../../src/logica/m
 import type { DadosDaVigilia } from '../../src/logica/mundo/dados';
 import charneca from '../../src/dados/regioes/charneca_das_lanternas.json';
 import { parametrosDoCenario } from '../../src/plataforma/cenarios';
-import { DADOS_DA_CHARNECA as D, PARADO, PRODUCAO, SEM_ARMAS, SEM_HORDA, dadosDe } from './apoio';
+import { DADOS_DA_CHARNECA as D, PARADO, PRODUCAO, SEM_ARMAS, SEM_HORDA, dadosDe, semBrasaFirme } from './apoio';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SEED = Number(process.env['VDC_SEED'] ?? SEED_PADRAO);
@@ -90,22 +90,25 @@ describe('determinismo (F-001.1)', () => {
 
   it('valores de referência fixos (mudar layout, semeadura, hash, roteiro, disposição, horda, diretor ou armas exige atualizar aqui)', () => {
     // Desde a F-007 (estado v7: fase, Frasco, mancha e contadores; muda só o layout, pois nada da F-007 atua
-    // ainda e a regressão v6 prova que os campos antigos não mudaram).
+    // ainda e a regressão v6 prova que os campos antigos não mudaram). Na 3b (dano com armadura e Brasa Firme,
+    // Frasco) o HP e o contador `danoRecebido` mudam: 2175475d e de4a60fd (2c) viram os de baixo.
     // F-006: c052c6c9 e 6ddd6d39. F-005: f39dd6b4 e 7c1b6c0c; F-004: 901adb6d e 9cdc2c63; F-003: e91ed119 e 6173ca75.
-    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('2175475d');
-    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('de4a60fd');
+    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('a5721bcc');
+    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('8b2c35ab');
   });
 
   /** Vivos, spawns, mortes, passo da 1ª morte, passo do 1º acerto de contato, HP e o fluxo armas intocado, no passo 1.000. */
   const fatos = (seed: number, params: Partial<ParametrosDaVigilia> = {}): (number | boolean)[] => {
-    const e = criarEstado(seed, D, params);
+    // Sem Brasa Firme: os fatos da F-003 medem o dano bruto (o ×0,8 da F-007 muda o HP, DM7).
+    const DB = semBrasaFirme(D);
+    const e = criarEstado(seed, DB, params);
     const b = baseDoFluxo('armas');
     const rng0 = Array.from(e.rng.subarray(b, b + 4));
     const fonte = fonteDoRoteiro(ROTEIRO_REFERENCIA);
     let acerto = -1;
     let morte = -1;
     for (let k = 1; k <= PASSOS_REFERENCIA; k++) {
-      avancar(e, D, fonte, 1);
+      avancar(e, DB, fonte, 1);
       if (acerto < 0 && e.jogadorU8[JOGADOR_U8.invulContato]! > 0) acerto = k;
       if (morte < 0 && e.mundo[MUNDO.mortes]! > 0) morte = k;
     }

@@ -91,7 +91,7 @@ describe('atributos, HP e passivas (P1 a P5)', () => {
     expect(e.jogador[JOGADOR.hp]).toBe(0);
   });
 
-  it('Poder = 8% por nível das Luvas e Armadura = 4 por nível do Elmo; o dano de contato não muda com o Elmo (a redução é da F-007)', () => {
+  it('Poder = 8% por nível das Luvas e Armadura = 4 por nível do Elmo; desde a F-007 o Elmo de nível 5 (A = 20) corta o contato à metade', () => {
     for (let n = 1; n <= 5; n++) {
       const e = estadoDe([[ESPADA, 1]], [
         [ELMO, n],
@@ -104,7 +104,9 @@ describe('atributos, HP e passivas (P1 a P5)', () => {
     for (const e of [semElmo, comElmo]) por(e, TIPO.oco_das_lanternas, 20, 0);
     avancar(semElmo, D, PARADO, 60);
     avancar(comElmo, D, PARADO, 60);
-    expect(comElmo.jogador[JOGADOR.hp]).toBe(semElmo.jogador[JOGADOR.hp]);
+    const perdaSem = D.hpInicial - semElmo.jogador[JOGADOR.hp]!;
+    expect(perdaSem).toBeGreaterThan(0);
+    expect(D.hpInicial - comElmo.jogador[JOGADOR.hp]!).toBeCloseTo(perdaSem / 2, 4);
   });
 });
 

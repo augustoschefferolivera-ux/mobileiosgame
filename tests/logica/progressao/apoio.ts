@@ -7,11 +7,12 @@ import { alocar } from '../../../src/logica/nucleo/pool';
 import type { DadosDaVigilia } from '../../../src/logica/mundo/dados';
 import { ALTURA_DO_MAPA as H, LARGURA_DO_MAPA as W, normalizarNoToro } from '../../../src/logica/mundo/toro';
 import { PASSIVA } from '../../../src/logica/progressao/tabela';
-import { DADOS_SEM_OBSTACULOS } from '../apoio';
+import { DADOS_BRUTOS } from '../apoio';
 import { J } from '../armas/apoio';
 
 export { J };
-export const D = DADOS_SEM_OBSTACULOS;
+/** Sem obstáculos e sem Brasa Firme: os testes da F-005 medem o dano bruto (o líquido tem testes próprios). */
+export const D = DADOS_BRUTOS;
 export const ESPADA = ARMA.espada_longa_do_juramento;
 export const FACAS = ARMA.facas_de_sal;
 export const CIRCULO = ARMA.circulo_de_sal;

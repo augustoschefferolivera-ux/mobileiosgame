@@ -4,9 +4,11 @@
 // (empate: o menor slot), o acerto vale dano × 0,3 e o timer vai a 18. Assim o
 // contato contínuo rende exatamente 5/s no minuto 0, por mais Ocos que encostem.
 import { ARMA } from '../armas/tabela';
-import { CAB, CAPACIDADE_DE_INIMIGOS, CENARIO, JOGADOR, JOGADOR3_U8, JOGADOR_U8, PROMPT, VAGAS_DE_ARMA, type Estado } from '../nucleo/estado';
+import { CAB, CAPACIDADE_DE_INIMIGOS, CENARIO, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR3_U8, JOGADOR4, JOGADOR4_U8, JOGADOR_U8, PROMPT, VAGAS_DE_ARMA, type Estado } from '../nucleo/estado';
 import { EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
+import { armadura } from '../progressao/dano';
 import type { DadosDaVigilia } from './dados';
+import { interromperFrasco } from './frasco';
 import { RAIO_DO_JOGADOR } from './jogador';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from './toro';
 
@@ -29,15 +31,57 @@ export const BRUTO = new Float64Array(1);
 /** Desfecho de `resolverAcertoNoJogador` (o mesmo código do campo do evento `golpeInimigo`). */
 export const DESFECHO = { acertou: 1, esquivado: 2, aparado: 3 } as const;
 
+/** Dano líquido do último `danoAoJogador` (depois da armadura e da Brasa Firme): rascunho, nenhum double atravessa chamada. */
+export const LIQUIDO = new Float64Array(1);
+/** Rascunho de `reducaoDeArmadura`: [0] = redução (0 a 0,75), [1] = multiplicador do dano (1 a 0,25). */
+export const REDUCAO = new Float64Array(2);
+
+/** Teto da redução pela armadura (DM1): A = 60 já a alcança; acima, o dano fica em 25%. */
+const ARMADURA_DO_TETO = 60;
+
 /**
- * Único caminho de dano ao jogador. Aplica o valor bruto de BRUTO[0] (antes da
- * armadura e da Brasa Firme, que são das F-005 a F-007); com o jogador
- * invulnerável do cenário, não muda o HP. Em 0, nada acontece até a F-007.
+ * Curva da armadura (DM1): redução `min(0,75, A/(A+20))` e o multiplicador `20/(A+20)` (piso 0,25),
+ * escritos em REDUCAO. A negativa ou NaN é erro (a armadura vem das passivas, inteira e ≥ 0).
  */
-export function danoAoJogador(e: Estado, _origem: number): void {
-  if (e.cab[CAB.cenario]! & CENARIO.jogadorInvulneravel) return;
+export function reducaoDeArmadura(a: number): void {
+  if (!(a >= 0 && a < Infinity)) throw new Error(`armadura inválida: ${a}`);
+  REDUCAO[0] = Math.min(0.75, a / (a + 20));
+  REDUCAO[1] = a >= ARMADURA_DO_TETO ? 0.25 : 20 / (a + 20);
+}
+
+/**
+ * Único caminho de dano ao jogador (DM1, DM6). Aplica o bruto de BRUTO[0] (que fica intacto, para
+ * o evento do golpe) → armadura `× 20/(A+20)` → Brasa Firme `× 0,8` com a stamina estritamente acima
+ * do limiar, cada passo em Float32; o líquido vai a LIQUIDO[0]. Com o jogador invulnerável do
+ * cenário, não muda nada. Perdido o HP: soma o HP efetivamente perdido em `danoRecebido`, emite
+ * `danoAoJogador` e, se a cura do Frasco corre e o líquido passa de 15% do `hpMax` (estrito),
+ * interrompe a cura (FR3). Sem arredondamento: o HUD usa `ceil` (DM4).
+ */
+export function danoAoJogador(e: Estado, dados: DadosDaVigilia, origem: number): void {
+  if (e.cab[CAB.cenario]! & CENARIO.jogadorInvulneravel) {
+    LIQUIDO[0] = 0;
+    return;
+  }
+  const c = dados.combate;
+  reducaoDeArmadura(armadura(e, dados));
+  let d = Math.fround(BRUTO[0]! * REDUCAO[1]!);
+  if (e.jogador3[JOGADOR3.stamina]! > c.brasaFirmeLimiar) d = Math.fround(d * c.brasaFirmeFator);
+  LIQUIDO[0] = d;
   const j = e.jogador;
-  j[JOGADOR.hp] = Math.fround(Math.max(0, j[JOGADOR.hp]! - BRUTO[0]!));
+  const antes = j[JOGADOR.hp]!;
+  const depois = Math.fround(Math.max(0, antes - d));
+  j[JOGADOR.hp] = depois;
+  if (!(d > 0)) return;
+  const j4 = e.jogador4;
+  j4[JOGADOR4.danoRecebido] = Math.fround(j4[JOGADOR4.danoRecebido]! + (antes - depois));
+  FLOATS_DO_EVENTO[0] = j[JOGADOR.x]!;
+  FLOATS_DO_EVENTO[1] = j[JOGADOR.y]!;
+  FLOATS_DO_EVENTO[2] = d;
+  FLOATS_DO_EVENTO[3] = depois;
+  gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.danoAoJogador, 0, origem, -1, 0, 0, 0, 0);
+  if (e.jogador4U8[JOGADOR4_U8.frascoPasso]! > 0 && d > Math.fround((e.jogador2[JOGADOR2.hpMax]! * c.frascoInterrompePct) / 100)) {
+    interromperFrasco(e);
+  }
 }
 
 /**
@@ -53,7 +97,7 @@ export function resolverAcertoNoJogador(e: Estado, dados: DadosDaVigilia, origem
   const c = dados.combate;
   const passoDaEsquiva = u8[JOGADOR3_U8.esquivaPasso]!;
   if (passoDaEsquiva < c.esquivaIframesDe || passoDaEsquiva > c.esquivaIframesAte) {
-    danoAoJogador(e, origem);
+    danoAoJogador(e, dados, origem);
     // Com o prompt de aparo na tela, o golpe ou o projétil que fere conta como falha do tutorial (AP11 (b)).
     if (origem !== ORIGEM_DO_DANO.contato && u8[JOGADOR3_U8.promptAparo] === PROMPT.visivel && u8[JOGADOR3_U8.falhasDeAparo]! < 255) {
       u8[JOGADOR3_U8.falhasDeAparo] = u8[JOGADOR3_U8.falhasDeAparo]! + 1;
