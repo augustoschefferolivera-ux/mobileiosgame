@@ -15,6 +15,8 @@ import {
   TOTAL_DE_VAGAS_DO_HUD,
   caixaDaBarraDeStamina,
   caixaDaBarraDeXp,
+  formatarAlmas,
+  posicaoDoHudDeAlmas,
   estadoDoAparo,
   larguraDaStamina,
   larguraDoPreenchimento,
@@ -208,9 +210,9 @@ describe('textos da pausa e do Hud da F-006 (RE13)', () => {
     expect(pausa).toContain("'A6.PAUSA.SOM'");
     expect(pausa).toContain("'A6.PAUSA.FLASHES'");
     expect(pausa).not.toMatch(/'(Som|Flashes)'/);
-    // O Hud só cria texto para o nível, o número do HP (F-007 HB1), o rótulo do botão do Frasco (FR8, criado uma vez) e o prompt (ids); nada para a barra de stamina nem para o Aparo.
+    // O Hud só cria texto para o nível, o número do HP (F-007 HB1), as Almas (AM5), o rótulo do botão do Frasco (FR8, criado uma vez) e o prompt (ids); nada para a barra de stamina nem para o Aparo.
     const hud = readFileSync('src/cenas/Hud.ts', 'utf8');
-    expect([...hud.matchAll(/texto\(this, [^,]+, [^,]+, '([^']+)'/g)].map((m) => m[1])).toEqual(['A5.HUD.NIVEL', 'A5.HUD.HP', 'A5.HUD.FRASCO']);
+    expect([...hud.matchAll(/texto\(this, [^,]+, [^,]+, '([^']+)'/g)].map((m) => m[1])).toEqual(['A5.HUD.NIVEL', 'A5.HUD.HP', 'A5.HUD.ALMAS', 'A5.HUD.FRASCO']);
     expect(hud).toContain("texto(this, 0, 0, 'A5.HUD.HP'");
     // Os três prompts (um Text por id, TU11) vêm da lista de prompts.ts.
     expect(hud).toContain('for (const id of IDS_DOS_PROMPTS)');
@@ -231,5 +233,22 @@ describe('botão do Frasco (design/decisoes-F-007.md FR8)', () => {
     expect(t('A5.HUD.FRASCO')).toBe('Frasco');
     expect(BOTAO_DO_FRASCO_DESENHO.raioDoAnel * 2).toBeLessThanOrEqual(72);
     expect(BOTAO_DO_FRASCO_DESENHO.alfaEsmaecido).toBeLessThan(1);
+  });
+});
+
+describe('HUD de Almas (design/decisoes-F-007.md AM5)', () => {
+  it('"." de milhar: 0, 9, 999, 1.000, 1.240, 12.345', () => {
+    expect([0, 9, 999, 1000, 1240, 12345, 1_073_741_823].map(formatarAlmas)).toEqual(['0', '9', '999', '1.000', '1.240', '12.345', '1.073.741.823']);
+    expect(formatarAlmas(-5)).toBe('0');
+    expect(formatarAlmas(NaN)).toBe('0');
+  });
+
+  it('fica à esquerda, 116 pt abaixo do topo, e o texto vem do pt-BR.json', () => {
+    const o = { x: 0, y: 0 };
+    expect(posicaoDoHudDeAlmas(insetsZerados(), o)).toEqual({ x: 12, y: 116 });
+    expect(posicaoDoHudDeAlmas(IPHONE, o)).toEqual({ x: 12, y: 175 });
+    expect(posicaoDoHudDeAlmas(LATERAIS, o)).toBe(o);
+    expect(o).toEqual({ x: 32, y: 163 });
+    expect(t('A5.HUD.ALMAS', { almas: formatarAlmas(1240) })).toBe('1.240 Almas');
   });
 });

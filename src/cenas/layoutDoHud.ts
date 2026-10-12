@@ -139,6 +139,27 @@ export function numeroDoHp(hp: number): number {
   return hp > 0 ? Math.ceil(hp) : 0;
 }
 
+/** HUD de Almas (decisoes-F-007 AM5): canto esquerdo, 116 pt abaixo do topo (logo sob a linha de vagas), corpo de 14 pt. */
+export const HUD_DE_ALMAS = { abaixoDoTopo: 116, recuoEsquerdo: 12, corpo: 14 } as const;
+
+/** Posição (canto superior esquerdo) do HUD de Almas na área segura, escrita em `out` sem alocar. */
+export function posicaoDoHudDeAlmas(insets: Insets, out: { x: number; y: number }): { x: number; y: number } {
+  out.x = insets.esquerda + HUD_DE_ALMAS.recuoEsquerdo;
+  out.y = insets.topo + HUD_DE_ALMAS.abaixoDoTopo;
+  return out;
+}
+
+/** O saldo de Almas com "." de milhar (pt-BR): 0, 999, "1.000", "12.345". Só roda quando o valor muda; inteiro ≥ 0. */
+export function formatarAlmas(n: number): string {
+  const s = String(n > 0 ? Math.floor(n) : 0);
+  let saida = '';
+  for (let i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 === 0) saida += '.';
+    saida += s[i];
+  }
+  return saida;
+}
+
 /** Estados do botão Aparo (AP1, RE2). */
 export const ESTADO_DO_APARO = { normal: 0, pressionado: 1, indisponivel: 2 } as const;
 /** Quadros de render do preenchimento do botão pressionado. */

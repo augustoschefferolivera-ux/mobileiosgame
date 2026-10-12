@@ -29,6 +29,9 @@ import {
   STAMINA_DA_ESQUIVA,
   VAGAS_DO_HUD,
   caixaDaBarraDeHp,
+  formatarAlmas,
+  posicaoDoHudDeAlmas,
+  HUD_DE_ALMAS,
   caixaDaBarraDeStamina,
   numeroDoHp,
   trechosDaBarraDeHp,
@@ -100,6 +103,10 @@ export class Hud extends Phaser.Scene {
   private curaDesenhada = -1;
   private retardoDesenhado = -1;
   private numeroDeHpDesenhado = -1;
+  private almasTexto: Phaser.GameObjects.Text | null = null;
+  private readonly posicaoDeAlmas = { x: 0, y: 0 };
+  /** As Almas que o HUD já mostra; -1 = nada ainda. */
+  private almasDesenhadas = -1;
   private botaoDoAparoGrafico: Phaser.GameObjects.Graphics | null = null;
   private botaoDoFrascoGrafico: Phaser.GameObjects.Graphics | null = null;
   private rotuloDoFrasco: Phaser.GameObjects.Text | null = null;
@@ -154,6 +161,8 @@ export class Hud extends Phaser.Scene {
     this.curaDaBarraDeHp = barra(COR.brasaClara, 1).setVisible(false);
     this.preenchimentoDeHp = barra(COR.brasa, 1).setVisible(false);
     this.numeroDeHp = texto(this, 0, 0, 'A5.HUD.HP', BARRA_DE_HP.corpoDoNumero, COR.osso, { hp: 0 }).setOrigin(0, 0);
+    this.almasTexto = texto(this, 0, 0, 'A5.HUD.ALMAS', HUD_DE_ALMAS.corpo, COR.osso, { almas: '0' }).setOrigin(0, 0);
+    this.almasDesenhadas = -1;
     this.vinheta = null;
     this.alfaDaVinhetaDesenhado = 0;
     this.retardo.reiniciar();
@@ -245,6 +254,8 @@ export class Hud extends Phaser.Scene {
     this.trilhoDeHp!.setScale(escalaPara('quadrado', h.largura), escalaPara('quadrado', h.altura));
     this.numeroDeHp!.setPosition(h.x, yDoNumeroDeHp(h));
     this.hpDesenhado = -1;
+    posicaoDoHudDeAlmas(ins, this.posicaoDeAlmas);
+    this.almasTexto!.setPosition(this.posicaoDeAlmas.x, this.posicaoDeAlmas.y);
     // Barra de stamina (RE1): trilho, preenchimento e as 3 marcas de 1 pt em pedra (uma esquiva = 25 pontos).
     const s = caixaDaBarraDeStamina(ins, this.caixaDaStamina);
     const meioDaStamina = s.y + s.altura / 2;
@@ -278,7 +289,13 @@ export class Hud extends Phaser.Scene {
       this.estadoDoAparoDesenhado = -1;
       this.estadoDoFrascoDesenhado = this.cargasDesenhadas = -1;
       this.hpDesenhado = -1;
+      this.almasDesenhadas = -1;
       this.retardo.reiniciar();
+    }
+    const almas = e.progresso[PROGRESSAO.almas]!;
+    if (almas !== this.almasDesenhadas) {
+      this.almasDesenhadas = almas;
+      this.almasTexto!.setText(t('A5.HUD.ALMAS', { almas: formatarAlmas(almas) }));
     }
     const nivel = e.progresso[PROGRESSAO.nivel]!;
     const xp = e.progresso[PROGRESSAO.xp]!;
