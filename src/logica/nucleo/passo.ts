@@ -35,6 +35,9 @@ export function passo(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): v
   atualizarPromptDeMover(e, moveu);
   moverHorda(e, dados);
   rodarArmas(e, dados);
+  // Logo depois das armas e antes do contato (ET4, EP3): o Poder da esquiva perfeita vale 120 fases de armas.
+  const poder = e.jogador3U8[JOGADOR3_U8.poderPassos]!;
+  if (poder > 0) e.jogador3U8[JOGADOR3_U8.poderPassos] = poder - 1;
   rodarPickups(e, dados);
   aplicarContato(e, dados);
   aplicarRotacao(e);

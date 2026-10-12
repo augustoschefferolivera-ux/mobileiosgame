@@ -2,7 +2,7 @@
 // armas de arquétipo "mais próximo" (Facas) e o voo, o acerto e a perfuração
 // dos projéteis em voo. A salva grava direto nos campos do pool; o voo e o
 // acerto ficam em linha, sem double atravessando chamada.
-import { CAPACIDADE_DE_PROJETEIS, JOGADOR, MUNDO, PERFURACAO_INFINITA, TIPO_DE_PROJETIL, type Estado } from '../nucleo/estado';
+import { CAPACIDADE_DE_PROJETEIS, JOGADOR, JOGADOR3_U8, MUNDO, PERFURACAO_INFINITA, TIPO_DE_PROJETIL, type Estado } from '../nucleo/estado';
 import { FORMA, SEM_ALVO } from '../nucleo/eventos';
 import { alocar, liberar, quantosAtivos } from '../nucleo/pool';
 import type { DadosDaVigilia } from '../mundo/dados';
@@ -33,7 +33,9 @@ export function rodarMaisProximo(e: Estado, dados: DadosDaVigilia, v: number): v
   const t = dados.armas;
   const codigo = b.codigo[v]!;
   const i = indiceDoNivel(codigo, b.nivel[v]!);
-  const nf = t.projeteis[i]!;
+  // A faca extra da esquiva perfeita (EP4) entra em `nf` e só é consumida se alguma faca de fato sair.
+  const extra = e.jogador3U8[JOGADOR3_U8.facaExtra]!;
+  const nf = t.projeteis[i]! + extra;
   const j = e.jogador;
   const jx = j[JOGADOR.x]!;
   const jy = j[JOGADOR.y]!;
@@ -81,6 +83,7 @@ export function rodarMaisProximo(e: Estado, dados: DadosDaVigilia, v: number): v
   const pr = e.projeteis;
   const pool = e.poolDeProjeteis;
   const limiteLogico = limiteDeProjeteis(e);
+  let criadas = 0;
   const porAlvo = Math.floor(nf / M);
   const sobra = nf % M;
   for (let k = 0; k < nf; k++) {
@@ -130,7 +133,9 @@ export function rodarMaisProximo(e: Estado, dados: DadosDaVigilia, v: number): v
     pr.perfuracoes[p] = perf;
     pr.salPct[p] = salPct;
     pr.salPassos[p] = salPassos;
+    criadas = 1;
   }
+  if (criadas === 1) e.jogador3U8[JOGADOR3_U8.facaExtra] = 0;
   b.recarga[v] = t.periodo[codigo]!;
 }
 

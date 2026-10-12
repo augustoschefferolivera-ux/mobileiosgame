@@ -9,7 +9,7 @@
 import type Phaser from 'phaser';
 import { fonteConstante, fonteDoRoteiro, validarAcoes, validarRoteiro, type AcaoDeRoteiro, type Roteiro } from '../logica/nucleo/comandos';
 import {
-  BAU, BYTES_ESTADO, CAB, CAPACIDADE_DE_EFEITOS, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CAPACIDADE_DE_PROJETEIS, CARTAS, CATEGORIA_DE_ITEM, JOGADOR, JOGADOR2, JOGADOR_U8,
+  BAU, BYTES_ESTADO, CAB, CAPACIDADE_DE_EFEITOS, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CAPACIDADE_DE_PROJETEIS, CARTAS, CATEGORIA_DE_ITEM, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR3_U8, JOGADOR_U8,
   MUNDO, MUNDO2, PROGRESSAO, TIPO_DE_CARTA, TIPO_DE_PICKUP, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, hashEstado, hashPorSecao, type Estado,
 } from '../logica/nucleo/estado';
 import { BYTES_DO_ANEL, EV, FLAG, eventosEscritos, inicioDoEvento } from '../logica/nucleo/eventos';
@@ -342,6 +342,8 @@ export interface GameDebug {
     /** Progressão (F-005): nível, XP no nível e o custo do próximo, XP total, níveis por escolher. */
     nivel: number; xp: number; xpParaSubir: number; xpTotal: number; niveisPendentes: number;
     atributos: Record<string, number>; poderPct: number; armadura: number; hpMax: number; almas: number;
+    /** Stamina e esquiva (F-006; decisoes-F-006 ES8). */
+    stamina: number; esperaRegen: number; esquivaPasso: number; poderPassos: number; congelamento: number; facaExtra: number;
   } | null;
   /** O modal de level up (F-005): aberto, níveis pendentes, as 3 cartas e a carta selecionada na tela. */
   readonly levelUp: ReturnType<typeof levelUpDe> | null;
@@ -524,6 +526,12 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
         armadura: armadura(e, ctx.simulacao!.dados),
         hpMax: e.jogador2[JOGADOR2.hpMax]!,
         almas: e.progresso[PROGRESSAO.almas]!,
+        stamina: e.jogador3[JOGADOR3.stamina]!,
+        esperaRegen: e.jogador3U8[JOGADOR3_U8.esperaRegen]!,
+        esquivaPasso: e.jogador3U8[JOGADOR3_U8.esquivaPasso]!,
+        poderPassos: e.jogador3U8[JOGADOR3_U8.poderPassos]!,
+        congelamento: e.jogador3U8[JOGADOR3_U8.congelamento]!,
+        facaExtra: e.jogador3U8[JOGADOR3_U8.facaExtra]!,
       };
     },
     get levelUp() {

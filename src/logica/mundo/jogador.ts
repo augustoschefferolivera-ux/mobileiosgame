@@ -3,10 +3,13 @@
 // inimigos (design/decisoes-F-003.md §2, S4: não aumenta a sobreposição que
 // tinha com cada um no início do passo, e nunca é empurrado por eles), colide
 // com os obstáculos como um círculo de 16 px e guarda a última direção não
-// nula para o desenho. Também cuida do prompt "Deslize para mover", cujo
+// nula para o desenho. Na F-006 (decisoes-F-006 §2): a stamina e a esquiva
+// (timers, comandos, regeneração e deslocamento de 80/21 px por passo pela
+// mesma colisão, sem o bloqueio dos inimigos nos i-frames). Também cuida do prompt "Deslize para mover", cujo
 // gatilho é a intenção, e não o deslocamento: um obstáculo não segura o prompt.
-import type { ComandosDoPasso } from '../nucleo/comandos';
-import { CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR, JOGADOR_U8, PROMPT, type Estado } from '../nucleo/estado';
+import { ACAO, type ComandosDoPasso } from '../nucleo/comandos';
+import { CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR, JOGADOR3, JOGADOR3_U8, JOGADOR_U8, PROMPT, type Estado } from '../nucleo/estado';
+import { EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import { segundosEmPassos } from '../nucleo/passos';
 import type { DadosDaVigilia } from './dados';
 import { COLISAO, ES, colidirComTodos } from './obstaculos';
@@ -18,12 +21,93 @@ export const RAIO_DO_JOGADOR = 16;
 export const PASSO_DO_PROMPT_DE_MOVER = segundosEmPassos(10);
 
 /**
+ * Timers, comandos e regeneração do jogador (fase 2a a 2c da ordem do passo, ET4):
+ * a esquiva sobe de 1 (passo do comando) a 21 e volta a 0; esquiva e aparo só
+ * são aceitos fora das três travas, sem buffer; o aparo vence a esquiva no mesmo
+ * passo (a ação do aparo é da etapa seguinte); sem stamina para o custo, a ação
+ * é negada sem mexer em nada (ST3); o passo do gasto não regenera nem decrementa
+ * o atraso (ST2). Só mexe em inteiros e grava os floats em rascunhos.
+ */
+function rodarTimersEComandos(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): void {
+  const u8 = e.jogador3U8;
+  const c = dados.combate;
+  // (a) timers
+  const janela = u8[JOGADOR3_U8.aparoJanela]!;
+  if (janela > 0) u8[JOGADOR3_U8.aparoJanela] = janela - 1;
+  const falho = u8[JOGADOR3_U8.aparoFalho]!;
+  if (falho > 0) u8[JOGADOR3_U8.aparoFalho] = falho - 1;
+  let ep = u8[JOGADOR3_U8.esquivaPasso]!;
+  if (ep > 0) {
+    ep++;
+    if (ep > c.esquivaDuracao) ep = 0;
+    u8[JOGADOR3_U8.esquivaPasso] = ep;
+  }
+  // (b) comandos
+  let gasto = 0;
+  const acoes = cmd.acoes[0]!;
+  if ((acoes & ACAO.esquiva) !== 0 && (acoes & ACAO.aparo) === 0 && ep === 0 && u8[JOGADOR3_U8.aparoJanela] === 0 && u8[JOGADOR3_U8.aparoFalho] === 0) {
+    const j = e.jogador;
+    const j3 = e.jogador3;
+    const stamina = j3[JOGADOR3.stamina]!;
+    if (stamina < c.custoEsquiva) {
+      FLOATS_DO_EVENTO[0] = j[JOGADOR.x]!;
+      FLOATS_DO_EVENTO[1] = j[JOGADOR.y]!;
+      FLOATS_DO_EVENTO[2] = stamina;
+      FLOATS_DO_EVENTO[3] = c.custoEsquiva;
+      gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.acaoNegada, 0, ACAO.esquiva, -1, 0, 0, 0, 0);
+    } else {
+      j3[JOGADOR3.stamina] = stamina - c.custoEsquiva;
+      if (u8[JOGADOR3_U8.esperaRegen]! < c.esperaDoGasto) u8[JOGADOR3_U8.esperaRegen] = c.esperaDoGasto;
+      gasto = 1;
+      // Direção contínua (ES4): a mira normalizada em Float64; nula ou não finita, a última direção do jogador.
+      let mx = cmd.mira[0]!;
+      let my = cmd.mira[1]!;
+      let m2 = mx * mx + my * my;
+      if (!(m2 > 0 && m2 < Infinity)) {
+        mx = j[JOGADOR.dirX]!;
+        my = j[JOGADOR.dirY]!;
+        m2 = mx * mx + my * my;
+      }
+      if (m2 > 0) {
+        const m = Math.sqrt(m2);
+        mx /= m;
+        my /= m;
+      } else {
+        mx = 0;
+        my = -1;
+      }
+      j3[JOGADOR3.esquivaDirX] = mx;
+      j3[JOGADOR3.esquivaDirY] = my;
+      u8[JOGADOR3_U8.esquivaPasso] = 1;
+      u8[JOGADOR3_U8.esquivaPerfeitaDada] = 0;
+      FLOATS_DO_EVENTO[0] = j[JOGADOR.x]!;
+      FLOATS_DO_EVENTO[1] = j[JOGADOR.y]!;
+      FLOATS_DO_EVENTO[2] = j3[JOGADOR3.esquivaDirX]!;
+      FLOATS_DO_EVENTO[3] = j3[JOGADOR3.esquivaDirY]!;
+      gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.esquiva, 0, 0, -1, 0, 0, 0, 0);
+    }
+  }
+  // (c) regeneração: o passo que gravou o atraso não regenera nem o decrementa.
+  if (gasto === 0) {
+    const espera = u8[JOGADOR3_U8.esperaRegen]!;
+    if (espera > 0) {
+      u8[JOGADOR3_U8.esperaRegen] = espera - 1;
+    } else {
+      const j3 = e.jogador3;
+      const stamina = j3[JOGADOR3.stamina]!;
+      if (stamina < c.staminaMax) j3[JOGADOR3.stamina] = Math.min(c.staminaMax, stamina + c.regeneracaoPorPasso);
+    }
+  }
+}
+
+/**
  * Move o jogador um passo e devolve se havia intenção de movimento. A
  * intenção acima de |v| = 1 é reduzida ao círculo; NaN e infinito contam como
  * parada. Ordem (§3), em todo passo, mesmo parado: guarda a posição anterior,
  * soma o deslocamento, colide e normaliza no toro em Float32.
  */
 export function moverJogador(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): boolean {
+  rodarTimersEComandos(e, dados, cmd);
   const j = e.jogador;
   const x = j[JOGADOR.x]!;
   const y = j[JOGADOR.y]!;
@@ -46,10 +130,17 @@ export function moverJogador(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPa
     dx = mx * dados.velocidadePorPasso;
     dy = my * dados.velocidadePorPasso;
   }
+  // Esquiva (ES2, ES5): nos 21 passos o deslocamento dela substitui o da caminhada, na direção fixada.
+  const ep = e.jogador3U8[JOGADOR3_U8.esquivaPasso]!;
+  if (ep > 0) {
+    dx = e.jogador3[JOGADOR3.esquivaDirX]! * dados.combate.esquivaPorPasso;
+    dy = e.jogador3[JOGADOR3.esquivaDirY]! * dados.combate.esquivaPorPasso;
+  }
   // A posição vai por COLISAO, sem passar doubles (design/decisoes-F-003.md §2, laço quente).
   COLISAO[ES.x] = x + dx;
   COLISAO[ES.y] = y + dy;
-  bloquearPelosInimigos(e, dados);
+  // Nos i-frames (2 a 13) o jogador ignora os inimigos (ES7); os obstáculos continuam duros.
+  if (ep < dados.combate.esquivaIframesDe || ep > dados.combate.esquivaIframesAte) bloquearPelosInimigos(e, dados);
   COLISAO[ES.raio] = RAIO_DO_JOGADOR;
   COLISAO[ES.movX] = dx;
   COLISAO[ES.movY] = dy;

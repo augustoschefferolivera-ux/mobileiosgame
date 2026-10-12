@@ -340,6 +340,9 @@ export interface CamposDosEfeitos {
 export interface Derivados {
   readonly danoVivo: Float64Array;
   readonly danoOnda: Float64Array;
+  /** As mesmas duas tabelas com o Poder temporário da esquiva perfeita (+15%; decisoes-F-006 EP3): o disparo escolhe por `poderPassos > 0`. */
+  readonly danoVivoPoder: Float64Array;
+  readonly danoOndaPoder: Float64Array;
 }
 
 /** Registro do jogador da F-006, Float32 (3 campos, 12 B; decisoes-F-006 ET1). */
@@ -649,7 +652,12 @@ export function criarEstado(seed: number, dados: DadosDaVigilia, params: Partial
       arma: new Uint8Array(buffer, INICIO_EFEITOS_U8 + F, F),
     },
     eventos: criarAnel(),
-    derivados: { danoVivo: new Float64Array(POR_NIVEL), danoOnda: new Float64Array(CODIGOS_DE_ARMA) },
+    derivados: {
+      danoVivo: new Float64Array(POR_NIVEL),
+      danoOnda: new Float64Array(CODIGOS_DE_ARMA),
+      danoVivoPoder: new Float64Array(POR_NIVEL),
+      danoOndaPoder: new Float64Array(CODIGOS_DE_ARMA),
+    },
   };
   reiniciarEstado(estado, seed, dados, params);
   return estado;

@@ -8,7 +8,7 @@
 // soma no limite de 200/400 com os projéteis; cheio, a onda é recusada.
 // Nenhum double atravessa chamada: o centro, a normalização e o teste vão em
 // linha; o dano passa por ACERTO.
-import { CAB, CAPACIDADE_DE_EFEITOS, JOGADOR, MUNDO2, PALAVRAS_DO_BITSET, type Estado } from '../nucleo/estado';
+import { CAB, CAPACIDADE_DE_EFEITOS, JOGADOR, JOGADOR3_U8, MUNDO2, PALAVRAS_DO_BITSET, type Estado } from '../nucleo/estado';
 import { EVENTO, FLOATS_DO_EVENTO, FORMA, gravarEvento } from '../nucleo/eventos';
 import { alocar, liberar, quantosAtivos } from '../nucleo/pool';
 import type { DadosDaVigilia } from '../mundo/dados';
@@ -69,7 +69,7 @@ export function criarOnda(e: Estado, codigo: number): void {
   f.y[o] = y;
   f.dirX[o] = dx;
   f.dirY[o] = dy;
-  f.dano[o] = e.derivados.danoOnda[codigo]!;
+  f.dano[o] = e.jogador3U8[JOGADOR3_U8.poderPassos]! > 0 ? e.derivados.danoOndaPoder[codigo]! : e.derivados.danoOnda[codigo]!;
   f.idade[o] = 0;
   f.arma[o] = codigo;
   f.bits.fill(0, o * PALAVRAS_DO_BITSET, (o + 1) * PALAVRAS_DO_BITSET);

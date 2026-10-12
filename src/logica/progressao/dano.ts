@@ -20,7 +20,7 @@ function somaDoEfeito(e: Estado, dados: DadosDaVigilia, efeito: number): number 
   return soma;
 }
 
-/** Poder em % das passivas (P5); o temporário da esquiva perfeita entra na F-006. */
+/** Poder em % das passivas (P5); o temporário da esquiva perfeita fica na outra tabela do dano vivo (F-006 EP3). */
 export function poderPct(e: Estado, dados: DadosDaVigilia): number {
   return somaDoEfeito(e, dados, EFEITO_DE_PASSIVA.poderPct);
 }
@@ -32,7 +32,8 @@ export function armadura(e: Estado, dados: DadosDaVigilia): number {
 
 /**
  * Refaz o dano vivo de toda (arma, nível) e o da onda com os atributos e o
- * Poder do estado (P4): Σ grau × atributo em inteiros e a fórmula única da D4.
+ * Poder do estado (P4), cada um em duas tabelas: sem e com o Poder temporário
+ * da esquiva perfeita (decisoes-F-006 EP3; entrar e sair do Poder só troca o índice): Σ grau × atributo em inteiros e a fórmula única da D4.
  * Roda na criação, no cruzamento de nível, na carta, no baú, na União e na
  * cópia do buffer; nunca por disparo.
  */
@@ -41,6 +42,8 @@ export function recalcularDano(e: Estado, dados: DadosDaVigilia): void {
   const at = e.atributos;
   const poder = poderPct(e, dados);
   const vivo = e.derivados.danoVivo;
+  const vivoPoder = e.derivados.danoVivoPoder;
+  const poderTemp = poder + dados.combate.poderPct;
   for (let c = 1; c < CODIGOS_DE_ARMA; c++) {
     const max = t.nivelMax[c]!;
     if (max === 0) continue;
@@ -49,8 +52,12 @@ export function recalcularDano(e: Estado, dados: DadosDaVigilia): void {
     for (let n = 1; n <= max; n++) {
       const i = indiceDoNivel(c, n);
       gravarDanoPorAcerto(vivo, i, t.danoBase[c]!, t.numDano[c]!, t.denDano[c]!, t.somaDanoPct[i]!, poder, escala, MULT_NEUTRO_PCT, MULT_NEUTRO_PCT);
+      gravarDanoPorAcerto(vivoPoder, i, t.danoBase[c]!, t.numDano[c]!, t.denDano[c]!, t.somaDanoPct[i]!, poderTemp, escala, MULT_NEUTRO_PCT, MULT_NEUTRO_PCT);
     }
-    if (t.ondaVida[c]! > 0) gravarDanoPorAcerto(e.derivados.danoOnda, c, t.ondaDanoBase[c]!, 1, 1, 0, poder, escala, MULT_NEUTRO_PCT, MULT_NEUTRO_PCT);
+    if (t.ondaVida[c]! > 0) {
+      gravarDanoPorAcerto(e.derivados.danoOnda, c, t.ondaDanoBase[c]!, 1, 1, 0, poder, escala, MULT_NEUTRO_PCT, MULT_NEUTRO_PCT);
+      gravarDanoPorAcerto(e.derivados.danoOndaPoder, c, t.ondaDanoBase[c]!, 1, 1, 0, poderTemp, escala, MULT_NEUTRO_PCT, MULT_NEUTRO_PCT);
+    }
   }
 }
 

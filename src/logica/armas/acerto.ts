@@ -2,7 +2,7 @@
 // rascunhos das consultas, o dano por vaga calculado no passo do disparo e a
 // aplicação de um acerto (dano, Sal e evento). Só recebe inteiros: o dano do
 // acerto em curso passa por ACERTO, para nenhum double atravessar a chamada.
-import { CAB, CAPACIDADE_DE_INIMIGOS, VAGAS_DE_ARMA, type Estado } from '../nucleo/estado';
+import { CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR3_U8, VAGAS_DE_ARMA, type Estado } from '../nucleo/estado';
 import { EVENTO, FLAG, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 
 /** Resultados das consultas à grade (rascunho). */
@@ -37,8 +37,9 @@ export function acertar(e: Estado, s: number, arma: number, forma: number, salPc
 /**
  * Dano de um disparo da vaga, em DANO[vaga]: o dano vivo por (arma, nível),
  * refeito pela fórmula única quando mudam os atributos ou o Poder
- * (decisoes-F-005 P4). Lido no passo em que a vaga age.
+ * (decisoes-F-005 P4), na tabela com o Poder temporário enquanto `poderPassos` > 0
+ * (decisoes-F-006 EP3). Lido no passo em que a vaga age.
  */
 export function calcularDano(e: Estado, vaga: number, i: number): void {
-  DANO[vaga] = e.derivados.danoVivo[i]!;
+  DANO[vaga] = e.jogador3U8[JOGADOR3_U8.poderPassos]! > 0 ? e.derivados.danoVivoPoder[i]! : e.derivados.danoVivo[i]!;
 }
