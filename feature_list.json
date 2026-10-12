@@ -1069,6 +1069,127 @@
         "calibrar no iPhone o \"segurar\" (18 passos), o swipe e a cor/vinheta do HP (design/decisoes-F-007.md §13)",
         "`visibilitychange` em APAGANDO; preço da árvore pela medida de Almas (design/decisoes-F-007.md §13)"
       ]
+    },
+    {
+      "id": "F-011",
+      "nome": "Arte do jogo (até a F-007)",
+      "status": "em andamento",
+      "escopo_b": "Não está no B §4: vem do plano de arte (design/arte/plano-de-arte.md) e pedido do usuário de 2026-10-12. Arte 100% por código: pixel art escrita como grade de índices da paleta de 32 cores do doc 13 e efeitos procedurais (sem artista, sem gerador de imagem). Personagem em 24 × 24 px de arte; o resto do menor tamanho que funcione. Produção de tudo que existe até a F-007 (Aldric, inimigos, armas, projéteis, pickups, efeitos, HUD), em etapas com aprovação: style card, produção, revisão de consistência independente e teste em jogo. Só apresentação: a simulação, o layout do estado e os hashes não mudam.",
+      "criterio_b": "Checagem automática da arte (paleta, contorno, tamanhos, quadros alinhados) verde; F-001 a F-007 verdes sem regerar hash de referência; revisão de consistência independente com as divergências corrigidas; capturas 390 × 844 de cada cena conferidas.",
+      "evidencia_b": "Capturas 390 × 844 de cada cena; folhas de sprites em escala real; relatório da revisão de consistência.",
+      "criterios": [
+        {
+          "id": "F-011.1",
+          "descricao": "Paleta fixa de 32 cores em todos os sprites, procedurais e quadros derivados; W e R (ataques) em nenhum sprite.",
+          "verificacao": "vitest",
+          "como": "tests/arte: cada pixel opaco de cada grade, procedural (faca, cristal, rocha, chão, brilho, arco) e quadro derivado (acerto, cinza) tem a cor de uma das 32; nenhuma grade usa as chaves W ou R; as cores fixas do doc 13 §1.3 estão na paleta (design/arte/style-card.md §2).",
+          "origem": "plano de arte (design/arte/plano-de-arte.md) e pedido do usuário de 2026-10-12"
+        },
+        {
+          "id": "F-011.2",
+          "descricao": "Contorno de 1 px em K fechado em todo corpo, pickup, ícone e projétil do jogador.",
+          "verificacao": "vitest",
+          "como": "tests/arte: nenhum pixel opaco diferente de K encosta (4-conexo) no vazio ou na borda da imagem (design/arte/style-card.md §5).",
+          "origem": "plano de arte (design/arte/plano-de-arte.md) e pedido do usuário de 2026-10-12"
+        },
+        {
+          "id": "F-011.3",
+          "descricao": "Escala única: 1 px de arte = 2 pt (efeitos na grade fina de 1 pt), com os tamanhos do style card.",
+          "verificacao": "vitest",
+          "como": "tests/arte: Aldric 24 × 24, massa 16 × 16, médios 24 × 24, ícones 14 × 14 e os demais da tabela do design/arte/style-card.md §4; teste do render: a escala de cada sprite no jogo é inteira (2 pt por px de arte, 1 pt na grade fina).",
+          "origem": "plano de arte (design/arte/plano-de-arte.md) e pedido do usuário de 2026-10-12"
+        },
+        {
+          "id": "F-011.4",
+          "descricao": "Quadros alinhados: todos os quadros de um personagem com o mesmo tamanho e a mesma linha dos pés.",
+          "verificacao": "vitest",
+          "como": "tests/arte: para cada animação do Aldric e dos inimigos, mesma largura e altura e a última linha cheia na mesma altura (design/arte/style-card.md §7).",
+          "origem": "plano de arte (design/arte/plano-de-arte.md) e pedido do usuário de 2026-10-12"
+        },
+        {
+          "id": "F-011.5",
+          "descricao": "O jogador é a coisa mais quente da tela.",
+          "verificacao": "vitest",
+          "como": "tests/arte: cada inimigo tem no máximo 1 px das cores quentes (B, A, a, Y); a luz quente é só o brilho aditivo da brasa do Aldric (design/arte/style-card.md §3).",
+          "origem": "plano de arte (design/arte/plano-de-arte.md) e pedido do usuário de 2026-10-12"
+        },
+        {
+          "id": "F-011.6",
+          "descricao": "Só apresentação: simulação, layout do estado e hashes inalterados.",
+          "verificacao": "vitest",
+          "como": "Os testes de hash de referência, de determinismo e de layout das F-001 a F-007 passam sem regerar nenhuma referência; nenhum arquivo de src/logica muda no diff da F-011.",
+          "origem": "plano de arte (design/arte/plano-de-arte.md) e pedido do usuário de 2026-10-12"
+        },
+        {
+          "id": "F-011.7",
+          "descricao": "Atlas único com a arte, filtro NEAREST, e a horda num lote de 1 textura.",
+          "verificacao": "vitest",
+          "como": "Atlas de 1024 × 1024 gerado no Boot a partir de src/arte, molduras registradas e filtro NEAREST; a horda e os corpos usam a mesma textura (design/arte/style-card.md §0 E7).",
+          "origem": "plano de arte (design/arte/plano-de-arte.md) e pedido do usuário de 2026-10-12"
+        },
+        {
+          "id": "F-011.8",
+          "descricao": "Capturas 390 × 844 de cada cena, abertas e conferidas (legibilidade e escala) antes do Pronto.",
+          "verificacao": "playwright",
+          "como": "e2e da F-011 grava Acender, Vigília com horda, Vigília com médios e telegrafos, Modal, Pausa e Resultado em 390 × 844; cada uma é aberta e conferida, com o resultado no ADR da F-011.",
+          "origem": "plano de arte (design/arte/plano-de-arte.md) e pedido do usuário de 2026-10-12"
+        },
+        {
+          "id": "F-011.9",
+          "descricao": "Revisão de consistência por revisor independente.",
+          "verificacao": "revisao",
+          "como": "Subagente compara cada sprite com o style card e lista as divergências; as correções são aplicadas e o relatório fica em design/arte/revisao-F-011.md.",
+          "origem": "plano de arte (design/arte/plano-de-arte.md) e pedido do usuário de 2026-10-12"
+        },
+        {
+          "id": "F-011.10",
+          "descricao": "F-001 a F-007 continuam verdes; textos visíveis só por t(id) e pt-BR.json.",
+          "verificacao": "verify",
+          "como": "scripts/verify.sh --feature F-011 completo (typecheck, lint de textos e glossário, Vitest, builds e Playwright de todas as features).",
+          "origem": "plano de arte (design/arte/plano-de-arte.md) e pedido do usuário de 2026-10-12"
+        },
+        {
+          "id": "F-011.11",
+          "descricao": "Desempenho da horda mantido com a arte.",
+          "verificacao": "playwright",
+          "como": "O spec de desempenho da F-003 (300 inimigos) passa com a arte nova no mesmo limite.",
+          "origem": "plano de arte (design/arte/plano-de-arte.md) e pedido do usuário de 2026-10-12"
+        }
+      ],
+      "evidencias": [
+        {
+          "arquivo": "production/evidencias/F-011/acender-390x844.png",
+          "descricao": "Tela de Acender com a arte (F-011.8)"
+        },
+        {
+          "arquivo": "production/evidencias/F-011/vigilia-horda-390x844.png",
+          "descricao": "Vigília com a horda, o Aldric, a luz da brasa e os golpes (F-011.8)"
+        },
+        {
+          "arquivo": "production/evidencias/F-011/vigilia-medios-390x844.png",
+          "descricao": "Vigília com o Oco Grande e a Noviça telegrafando e o projétil branco (F-011.8)"
+        },
+        {
+          "arquivo": "production/evidencias/F-011/modal-390x844.png",
+          "descricao": "Modal de level up com os ícones (F-011.8)"
+        },
+        {
+          "arquivo": "production/evidencias/F-011/pausa-390x844.png",
+          "descricao": "Pausa com a build e os ícones (F-011.8)"
+        },
+        {
+          "arquivo": "production/evidencias/F-011/resultado-390x844.png",
+          "descricao": "Resultado depois do Apagar (F-011.8)"
+        },
+        {
+          "arquivo": "production/evidencias/F-011/folhas.png",
+          "descricao": "Folhas de todos os sprites e procedurais lado a lado, em escala real (F-011.3, F-011.4)"
+        }
+      ],
+      "pendencias_antes_de_comecar": [
+        "Aprovação do style card (design/arte/style-card.md, etapa 1) pelo usuário",
+        "Aprovação da produção (etapa 2) pelo usuário, antes da revisão independente"
+      ]
     }
   ]
 }
