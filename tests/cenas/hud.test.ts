@@ -205,9 +205,10 @@ describe('textos da pausa e do Hud da F-006 (RE13)', () => {
     expect(pausa).toContain("'A6.PAUSA.SOM'");
     expect(pausa).toContain("'A6.PAUSA.FLASHES'");
     expect(pausa).not.toMatch(/'(Som|Flashes)'/);
-    // O Hud só cria texto para o nível e o prompt (ids); nada para a barra de stamina nem para o Aparo.
+    // O Hud só cria texto para o nível, o número do HP (F-007 HB1) e o prompt (ids); nada para a barra de stamina nem para o Aparo.
     const hud = readFileSync('src/cenas/Hud.ts', 'utf8');
-    expect([...hud.matchAll(/texto\(this, [^,]+, [^,]+, '([^']+)'/g)].map((m) => m[1])).toEqual(['A5.HUD.NIVEL']);
+    expect([...hud.matchAll(/texto\(this, [^,]+, [^,]+, '([^']+)'/g)].map((m) => m[1])).toEqual(['A5.HUD.NIVEL', 'A5.HUD.HP']);
+    expect(hud).toContain("texto(this, 0, 0, 'A5.HUD.HP'");
     // Os três prompts (um Text por id, TU11) vêm da lista de prompts.ts.
     expect(hud).toContain('for (const id of IDS_DOS_PROMPTS)');
     expect(hud).not.toMatch(/add\.text\(/);
