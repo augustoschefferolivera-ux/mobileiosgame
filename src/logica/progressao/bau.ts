@@ -29,8 +29,13 @@ const ELEGIVEIS = new Int32Array(VAGAS_DE_ARMA + VAGAS_DE_PASSIVA);
 
 /** Índice da União que o baú daria agora, ou −1 (B2). */
 export function uniaoDisponivel(e: Estado, dados: DadosDaVigilia): number {
+  if (e.cab[CAB.relogio]! < dados.progressao.relogioDaUniaoNoBau) return -1;
+  return uniaoForjavel(e, dados);
+}
+
+/** Índice da União que a Forja da Fogueira daria agora, ou −1: as mesmas condições do baú, sem o gate de relógio (FG5). */
+export function uniaoForjavel(e: Estado, dados: DadosDaVigilia): number {
   const t = dados.progressao;
-  if (e.cab[CAB.relogio]! < t.relogioDaUniaoNoBau) return -1;
   for (let u = 0; u < t.uniaoArma.length; u++) {
     const v = vagaDaArma(e, t.uniaoArma[u]!);
     if (v < 0 || e.build.nivel[v]! < t.uniaoArmaNivel[u]!) continue;

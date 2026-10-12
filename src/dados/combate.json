@@ -70,6 +70,7 @@
   },
   "fogueira": {
     "raio_px": 64,
-    "distancia_px": 96
+    "distancia_px": 96,
+    "autosave_passos": 3600
   }
 }

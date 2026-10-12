@@ -357,9 +357,15 @@
       "additionalProperties": false,
       "required": [
         "raio_px",
-        "distancia_px"
+        "distancia_px",
+        "autosave_passos"
       ],
       "properties": {
+        "autosave_passos": {
+          "description": "Intervalo, em passos, do save `andamento` (SV3): 3.600 = 60 s.",
+          "type": "integer",
+          "minimum": 1
+        },
         "raio_px": {
           "description": "Raio em que a Fogueira abre, de centro a centro (FG2).",
           "type": "number",

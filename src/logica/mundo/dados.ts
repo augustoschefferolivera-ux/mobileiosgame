@@ -185,6 +185,8 @@ export interface TabelaDeCombate {
   /** Fogueira: raio em que abre (64) e distância do jogador em que acende no fim do marco (96), em px (FG1, FG2). */
   readonly fogueiraRaio: number;
   readonly fogueiraDistancia: number;
+  /** Passos entre dois saves `andamento` (SV3): 3.600 = 60 s. */
+  readonly autosavePassos: number;
 }
 
 /** O que se lê de combate.json (combate.schema.json). */
@@ -420,6 +422,7 @@ export function criarTabelaDeCombate(c: CombateDoJson, vigilante: VigilanteDoJso
     arenaRaio: c.arena.raio_px,
     fogueiraRaio: c.fogueira.raio_px,
     fogueiraDistancia: c.fogueira.distancia_px,
+    autosavePassos: c.fogueira.autosave_passos,
   };
 }
 

@@ -10,11 +10,12 @@
 /**
  * Bits de `ComandosDoPasso.acoes`. O Frasco (4) e `frascoCancelar` (8, emitido pelo tradutor ao segurar)
  * valem desde a F-007; `abandonar` (16, só da pausa) o `passo` consome antes de qualquer outra coisa (PE5, LY3);
+ * `descansar` (32), `forjar` (64) e `partir` (128) são da Fogueira (F-008 FG3 a FG6) e só valem com a etapa FOGUEIRA e o modal fechado;
  * os códigos só crescem no fim.
  */
-export const ACAO = { esquiva: 1, aparo: 2, frasco: 4, frascoCancelar: 8, abandonar: 16 } as const;
+export const ACAO = { esquiva: 1, aparo: 2, frasco: 4, frascoCancelar: 8, abandonar: 16, descansar: 32, forjar: 64, partir: 128 } as const;
 /** Os bits que um roteiro pode pedir hoje (o 16 só vale com a fase VIVA: em APAGANDO e FIM o `passo` o ignora). */
-const ACOES_PERMITIDAS = ACAO.esquiva | ACAO.aparo | ACAO.frasco | ACAO.frascoCancelar | ACAO.abandonar;
+const ACOES_PERMITIDAS = ACAO.esquiva | ACAO.aparo | ACAO.frasco | ACAO.frascoCancelar | ACAO.abandonar | ACAO.descansar | ACAO.forjar | ACAO.partir;
 
 export interface ComandosDoPasso {
   /** [mx, my]: intenção de movimento, |v| ≤ 1. */

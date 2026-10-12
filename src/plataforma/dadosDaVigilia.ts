@@ -11,7 +11,7 @@ import { criarDadosDaVigilia, type DadosDaVigilia, type RegiaoDoJson } from '../
 import type { FontesDaProgressao } from '../logica/progressao/tabela';
 
 /** progressao.json, passivas.json e unioes.json (design/decisoes-F-005.md §7). */
-export const FONTES_DA_PROGRESSAO: FontesDaProgressao = { progressao, passivas: passivas.passivas, unioes: unioes.unioes };
+export const FONTES_DA_PROGRESSAO: FontesDaProgressao = { progressao, passivas: passivas.passivas, unioes: unioes.unioes, forjaCustoPorHora: unioes.forja_custo_almas_por_hora };
 
 /** Os dados da Charneca com Aldric, trocando as partes dadas da região. */
 export function criarDadosDaCharneca(regiao: Partial<RegiaoDoJson> = {}): DadosDaVigilia {

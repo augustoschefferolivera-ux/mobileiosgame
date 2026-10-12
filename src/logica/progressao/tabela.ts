@@ -70,6 +70,8 @@ export interface FontesDaProgressao {
   readonly progressao: ProgressaoDoJson;
   readonly passivas: readonly PassivaDoJson[];
   readonly unioes: readonly UniaoDoJson[];
+  /** `forja_custo_almas_por_hora` de unioes.json (FG5): custo em Almas por hora da Fogueira ("1" a "3"). */
+  readonly forjaCustoPorHora: Readonly<Record<string, number>>;
 }
 
 /** 2³² (os limiares e a escolha uniforme sobre um u32). */
@@ -108,6 +110,8 @@ export interface TabelaDeProgressao {
   readonly uniaoArmaNivel: Uint8Array;
   readonly uniaoPassiva: Uint8Array;
   readonly uniaoResultado: Uint8Array;
+  /** Custo da Forja em Almas por hora da Fogueira (índice 1 a 3; o 0 não se usa; FG5). */
+  readonly forjaCusto: Uint16Array;
   /** Perfil inicial do Vigilante, na ordem de ATRIBUTOS. */
   readonly atributosIniciais: Uint8Array;
   /** Índice do atributo que recebe o ponto de cada nível, quanto e o teto. */
@@ -191,6 +195,13 @@ export function criarTabelaDeProgressao(f: FontesDaProgressao, v: VigilanteDaPro
     if (armas.uniao[uniaoResultado[i]!] !== 1 || armas.nivelMax[uniaoArma[i]!]! < u.arma_nivel) throw new Error(`unioes.json: ${u.resultado}`);
   });
 
+  const forjaCusto = new Uint16Array(4);
+  for (let h = 1; h <= 3; h++) {
+    const custo = f.forjaCustoPorHora[String(h)];
+    if (custo === undefined) throw new Error(`unioes.json: sem custo da Forja para a hora ${h}`);
+    forjaCusto[h] = custo;
+  }
+
   const atributosIniciais = new Uint8Array(NUMERO_DE_ATRIBUTOS);
   ATRIBUTOS.forEach((a, k) => {
     const x = v.atributos[a];
@@ -226,6 +237,7 @@ export function criarTabelaDeProgressao(f: FontesDaProgressao, v: VigilanteDaPro
     uniaoArmaNivel,
     uniaoPassiva,
     uniaoResultado,
+    forjaCusto,
     atributosIniciais,
     atributoDoNivel,
     pontoPorNivel: v.ponto_por_nivel.quantidade,

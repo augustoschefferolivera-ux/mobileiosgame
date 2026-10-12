@@ -89,7 +89,7 @@ describe('constantes novas (LY3, LY4, AG4)', () => {
   it('tabela literal das fases, das causas do fim, dos bits de ACAO e do pickup', () => {
     expect(FASE).toEqual({ viva: 0, apagando: 1, fim: 2 });
     expect(CAUSA_DO_FIM).toEqual({ nenhuma: 0, apagar: 1, abandonar: 2, aFome: 3, amanhecer: 4 });
-    expect(ACAO).toEqual({ esquiva: 1, aparo: 2, frasco: 4, frascoCancelar: 8, abandonar: 16 });
+    expect(ACAO).toEqual({ esquiva: 1, aparo: 2, frasco: 4, frascoCancelar: 8, abandonar: 16, descansar: 32, forjar: 64, partir: 128 });
     expect(TIPO_DE_PICKUP).toEqual({ vazio: 0, cinza: 1, bauComum: 2, bauDourado: 3, alma: 4 });
     expect(LIMITE_DE_ALMAS).toBe(2 ** 30);
   });

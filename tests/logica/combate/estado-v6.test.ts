@@ -153,7 +153,7 @@ describe('constantes novas (ET2)', () => {
     expect(TUTORIAL).toEqual({ mover: 1, esquiva: 2, aparo: 4 });
     expect(TODOS_OS_TUTORIAIS).toBe(7);
     expect(CENARIO).toEqual({ jogadorInvulneravel: 1, diretorDesligado: 2, semCinzas: 4, ataques: 8 });
-    expect(ACAO).toEqual({ esquiva: 1, aparo: 2, frasco: 4, frascoCancelar: 8, abandonar: 16 });
+    expect(ACAO).toEqual({ esquiva: 1, aparo: 2, frasco: 4, frascoCancelar: 8, abandonar: 16, descansar: 32, forjar: 64, partir: 128 });
     expect(TIPO_DE_PROJETIL).toEqual({ vazio: 0, faca: 1, sal: 2 });
     expect(PROMPT).toEqual({ aguardando: 0, visivel: 1, cumprido: 2 });
     expect(ORIGEM_DO_DANO).toEqual({ contato: 1, golpe: 2, projetil: 3 });
