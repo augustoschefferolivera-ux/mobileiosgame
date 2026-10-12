@@ -152,6 +152,45 @@
       "description": "Relógio da Vigília no início, em segundos; > 0 exige linha_fixa (a escala por minuto não salta).",
       "type": "integer",
       "minimum": 0
+    },
+    "ataques_inimigos": {
+      "description": "true liga CENARIO.ataques: os médios telegrafam, golpeiam e lançam (design/decisoes-F-006.md VT1). Desligado por padrão e nas receitas antigas.",
+      "type": "boolean"
+    },
+    "inimigos": {
+      "description": "Inimigos postos no início, em px relativos ao início do jogador (como baus).",
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tipo",
+          "dx",
+          "dy"
+        ],
+        "properties": {
+          "tipo": {
+            "$ref": "comum.schema.json#/$defs/idConteudo"
+          },
+          "dx": {
+            "type": "number",
+            "minimum": -500,
+            "maximum": 500
+          },
+          "dy": {
+            "type": "number",
+            "minimum": -500,
+            "maximum": 500
+          }
+        }
+      }
+    },
+    "stamina_inicial": {
+      "description": "Stamina no início (padrão: a capacidade do Vigilante); serve para provar o teto e a negação sem esperar a regeneração.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
     }
   }
 }

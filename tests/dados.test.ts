@@ -53,6 +53,7 @@ const ARQUIVOS: { arquivo: string; schema: string }[] = [
   { arquivo: 'chefes.json', schema: 'chefe.schema.json' },
   { arquivo: 'arvore.json', schema: 'no-arvore.schema.json' },
   { arquivo: 'vigilantes.json', schema: 'vigilante.schema.json' },
+  { arquivo: 'combate.json', schema: 'combate.schema.json' },
   { arquivo: 'textos/pt-BR.json', schema: 'texto.schema.json' },
   ...readdirSync(join(RAIZ, 'regioes'))
     .filter((f) => f.endsWith('.json'))
@@ -202,6 +203,32 @@ describe('integridade referencial', () => {
       if (Number(c['relogio_inicial_s']) > 0 && c['linha_fixa'] === null) problemas.push(`${arquivo}: relogio_inicial_s > 0 sem linha_fixa`);
     }
     expect(problemas).toEqual([]);
+  });
+
+  it('as receitas de cenário com `inimigos` usam tipos que existem e a stamina inicial cabe na capacidade (decisoes-F-006 VT1)', () => {
+    const problemas: string[] = [];
+    const capacidade = Number(vigilantes[0]!['stamina']);
+    for (const { arquivo } of ARQUIVOS.filter((a) => a.arquivo.startsWith('cenarios/'))) {
+      const c = d(arquivo);
+      for (const item of (c['inimigos'] ?? []) as Objeto[]) {
+        if (!inimigos.some((x) => x['id'] === item['tipo'])) problemas.push(`${arquivo}: inimigo ${String(item['tipo'])} não existe`);
+      }
+      if (c['stamina_inicial'] !== undefined && Number(c['stamina_inicial']) > capacidade) problemas.push(`${arquivo}: stamina_inicial acima da capacidade`);
+    }
+    expect(problemas).toEqual([]);
+  });
+
+  it('só as receitas antigas ficam sem ataques_inimigos e as três novas o ligam (decisoes-F-006 VT1)', () => {
+    const antigas = ['horda', 'horda_rotativa', 'tres_armas', 'bau_uniao', 'sem_horda', 'nivel_tres', 'vigilia_sem_cinzas'];
+    for (const id of antigas) {
+      const c = d(`cenarios/${id}.json`);
+      expect(c['ataques_inimigos'], id).toBeUndefined();
+      expect(c['inimigos'], id).toBeUndefined();
+    }
+    for (const id of ['oco_grande_sozinho', 'novica_sozinha', 'horda_com_ataques']) {
+      const c = d(`cenarios/${id}.json`);
+      expect([c['ataques_inimigos'], c['diretor_desligado'] || id === 'horda_com_ataques', c['tutoriais_vistos'], c['cinzas']], id).toEqual([true, true, true, false]);
+    }
   });
 
   it('a soma das chances de quantidade do baú é 100 e as faixas das Cinzas crescem (decisoes-F-005 §7)', () => {
@@ -404,6 +431,43 @@ describe('números do briefing técnico (design/gdd/18 §3)', () => {
     expect(porId(lista(porId(inimigos, 'oco_grande_coroado'), 'ataques'), 'grito')['dano']).toBeNull();
     // Coroado = Oco Grande com HP ×6 (Guardião) e ×10 (Chefe Menor) (B §2)
     expect(Number(porId(inimigos, 'oco_grande_coroado')['hp_base'])).toBe(Number(porId(inimigos, 'oco_grande')['hp_base']) * 6);
+  });
+
+  it('combate.json bate com B §3.4 (21, 12, 3, 11, 24, 30, 0,5 por passo, 120, 90, 5) e com as outras fontes (decisoes-F-006 ET9)', () => {
+    const c = ler('combate.json');
+    const st = obj(c, 'stamina');
+    const es = obj(c, 'esquiva');
+    const ap = obj(c, 'aparo');
+    expect([st['custo_esquiva'], st['custo_aparo'], st['regeneracao_por_passo'], st['espera_regeneracao_passos'], st['devolucao_do_aparo']]).toEqual([25, 15, 0.5, 30, 30]);
+    expect([es['duracao_passos'], es['recuperacao_passos'], es['distancia_px']]).toEqual([21, 3, 80]);
+    // 12 passos de i-frames (2 a 13); o passo 1 é o do comando.
+    expect(Number(es['iframes_ultimo_passo']) - Number(es['iframes_primeiro_passo']) + 1).toBe(12);
+    expect([ap['janela_passos'], ap['janela_tutorial_extra_passos'], ap['falho_passos']]).toEqual([11, 6, 24]);
+    expect(c['congelamento_passos']).toBe(5);
+    expect(obj(c, 'poder_da_esquiva_perfeita')).toEqual({ pct: 15, duracao_passos: 120 });
+    expect(obj(c, 'postura_quebrada')).toEqual({ duracao_passos: 120, raio_px: 64 });
+    expect(c['contra_ataque_passos']).toBe(90);
+    // O que está em outros JSON não se repete aqui.
+    expect(JSON.stringify(c)).not.toMatch(/capacidade|stamina_max|sem_regen/);
+    expect(Number(vigilantes[0]!['stamina'])).toBe(100);
+    expect(obj(porId(armas, 'facas_de_sal'), 'base')['projeteis_extra_esquiva_perfeita']).toBe(1);
+  });
+
+  it('inimigos.json fecha as pendências da F-006: arco de 2 corpos, projétil de 0,25 corpo e 2,5 s, postura_quebrada por tipo', () => {
+    const grande = lista(porId(inimigos, 'oco_grande'), 'ataques')[0]!;
+    expect([grande['alcance_corpos'], grande['angulo_graus'], grande['aparavel']]).toEqual([2, 120, true]);
+    const novica = lista(porId(inimigos, 'novica_de_sal'), 'ataques')[0]!;
+    expect(obj(novica, 'projetil')).toEqual({ velocidade_corpos_s: 3, raio_corpos: 0.25, vida_s: 2.5 });
+    expect(inimigos.map((i) => [i['id'], i['postura_quebrada']])).toEqual([
+      ['oco_das_lanternas', true],
+      ['oco_grande', true],
+      ['novica_de_sal', true],
+      ['oco_grande_coroado', false],
+    ]);
+    for (const id of ['oco_das_lanternas', 'oco_grande', 'novica_de_sal']) {
+      expect(porId(inimigos, id)['pendentes'], id).toBeUndefined();
+      expect(porId(inimigos, id)['pendencias'], id).toBeUndefined();
+    }
   });
 
   it('armas batem com a tabela B §3.8', () => {

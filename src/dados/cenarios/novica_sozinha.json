@@ -1,0 +1,19 @@
+{
+  "id": "novica_sozinha",
+  "versao": 1,
+  "linha_fixa": null,
+  "jogador": { "invulneravel": false },
+  "diretor_desligado": true,
+  "tutoriais_vistos": true,
+  "rotacao": 0,
+  "armas": [],
+  "cinzas": false,
+  "passivas": [],
+  "baus": [],
+  "xp_inicial": 0,
+  "relogio_inicial_s": 0,
+  "ataques_inimigos": true,
+  "inimigos": [
+    { "tipo": "novica_de_sal", "dx": 0, "dy": -128 }
+  ]
+}

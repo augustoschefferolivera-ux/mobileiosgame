@@ -18,12 +18,11 @@
         "chance": 0.5
       },
       "bau": false,
+      "postura_quebrada": true,
       "comportamento": {
         "tipo": "perseguir_reto"
       },
-      "ataques": [],
-      "pendentes": {},
-      "pendencias": []
+      "ataques": []
     },
     {
       "id": "oco_grande",
@@ -42,6 +41,7 @@
         "chance": 1
       },
       "bau": false,
+      "postura_quebrada": true,
       "comportamento": {
         "tipo": "aproximar_e_atacar",
         "para_a_corpos": 1.5
@@ -57,15 +57,9 @@
           "aparavel": true,
           "dano": 20,
           "angulo_graus": 120,
-          "alcance_corpos": null,
+          "alcance_corpos": 2,
           "recuperacao_s": 1.5
         }
-      ],
-      "pendentes": {
-        "ataques[0].alcance_corpos": "F-006"
-      },
-      "pendencias": [
-        "F-006: alcance do arco (brief §11.3)"
       ]
     },
     {
@@ -85,6 +79,7 @@
         "chance": 1
       },
       "bau": false,
+      "postura_quebrada": true,
       "comportamento": {
         "tipo": "manter_distancia",
         "distancia_corpos": 4
@@ -102,8 +97,8 @@
           "intervalo_s": 3,
           "projetil": {
             "velocidade_corpos_s": 3,
-            "raio_corpos": null,
-            "vida_s": null
+            "raio_corpos": 0.25,
+            "vida_s": 2.5
           },
           "aplica": {
             "status": "sal",
@@ -111,13 +106,6 @@
             "duracao_s": 3
           }
         }
-      ],
-      "pendentes": {
-        "ataques[0].projetil.raio_corpos": "F-006",
-        "ataques[0].projetil.vida_s": "F-006"
-      },
-      "pendencias": [
-        "F-006: tamanho e duração do projétil (brief §11.3)"
       ]
     },
     {
@@ -137,6 +125,7 @@
         "chance": 1
       },
       "bau": true,
+      "postura_quebrada": false,
       "comportamento": {
         "tipo": "elite_convocador"
       },

@@ -40,9 +40,9 @@
         "xp",
         "almas",
         "bau",
+        "postura_quebrada",
         "comportamento",
-        "ataques",
-        "pendencias"
+        "ataques"
       ],
       "properties": {
         "id": {
@@ -119,6 +119,10 @@
           }
         },
         "bau": {
+          "type": "boolean"
+        },
+        "postura_quebrada": {
+          "description": "false: imune à Postura Quebrada (a área e o aparo no atacante não o atordoam). Coroado e Lanterneiro ficam false como valor provisório até a F-008 e a F-009 (design/decisoes-F-006.md §4.2).",
           "type": "boolean"
         },
         "comportamento": {
