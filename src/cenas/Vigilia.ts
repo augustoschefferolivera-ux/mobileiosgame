@@ -31,6 +31,7 @@ import inimigos from '../dados/inimigos.json';
 import vigilantes from '../dados/vigilantes.json';
 import charneca from '../dados/regioes/charneca_das_lanternas.json';
 import type { ContextoDoJogo, Simulacao } from './contexto';
+import type { OfertaDeRetomada } from './retomada';
 import { TelemetriaDeCombate } from './telemetriaDeCombate';
 import type { Modal } from './Modal';
 import type { Pausa } from './Pausa';
@@ -56,6 +57,8 @@ export class Vigilia extends Phaser.Scene {
   private readonly marcador = criarMarcador();
   /** A tela de Resultado já foi aberta (em APAGANDO ou no Abandonar); o FIM só completa o que ela mostra. */
   private resultadoIniciado = false;
+  /** A retomada abriu a pausa no estado antes de as cenas Pausa e Hud existirem; o 1º update as mostra. */
+  private pausaDaRetomadaPendente = false;
 
   constructor(private readonly ctx: ContextoDoJogo) {
     super({ key: 'Vigilia' });
@@ -90,8 +93,11 @@ export class Vigilia extends Phaser.Scene {
       // As camadas das armas trocam de modo junto com a horda (decisoes-F-004 §6).
       { criar: (cena, capacidade) => criarCamada(cena, modo, capacidade, bufferDinamico), opcoes: this.ctx.opcoes },
     );
-    const estado = criarEstado(this.ctx.seed, dados, params);
-    if (this.ctx.cenario) prepararFogueiraDoCenario(estado, this.ctx.cenario.id);
+    // Continuar uma Vigília guardada (F-008 SV5): o estado já vem carregado do Acender, e a Vigília abre na pausa.
+    const retomada = this.ctx.retomada;
+    this.ctx.retomada = null;
+    const estado = retomada !== null ? retomada.estado : criarEstado(this.ctx.seed, dados, params);
+    if (retomada === null && this.ctx.cenario) prepararFogueiraDoCenario(estado, this.ctx.cenario.id);
     this.sim = {
       estado,
       dados,
@@ -111,7 +117,7 @@ export class Vigilia extends Phaser.Scene {
       efeitos: this.render.efeitos,
     };
     this.ctx.simulacao = this.sim;
-    this.iniciarSave();
+    this.iniciarSave(retomada);
     this.ctx.tela = 'VIGILIA';
     this.eventosLidos = 0;
     this.resultadoIniciado = false;
@@ -125,6 +131,8 @@ export class Vigilia extends Phaser.Scene {
     this.scene.launch('Modal');
     this.scene.launch('Pausa');
     this.scene.launch('Resultado');
+    this.pausaDaRetomadaPendente = false;
+    if (retomada !== null) this.abrirPausaDaRetomada();
     const eventos = this.game.events;
     eventos.on(Phaser.Core.Events.PRE_STEP, this.aoPreStep, this);
     eventos.on(Phaser.Core.Events.STEP, this.aoStep, this);
@@ -217,9 +225,16 @@ export class Vigilia extends Phaser.Scene {
    * Save da Vigília (F-008 SV3, SV4): na produção (e no cenário fogueira_hora1) reserva o `idVigilia` no meta, grava o meta e
    * só então o `vigilia` do passo 0. Os outros cenários não gravam.
    */
-  private iniciarSave(): void {
+  private iniciarSave(retomada: OfertaDeRetomada | null): void {
     const c = this.ctx;
     const sim = this.sim!;
+    if (retomada !== null) {
+      // Continuar: o mesmo `idVigilia` e a sequência de onde parou (nenhum id novo é reservado).
+      sim.idVigilia = retomada.envelope.idVigilia;
+      sim.gravador = new GravadorDaVigilia(c.vigiliaGuardada, sim.estado, sim.dados.combate.autosavePassos, retomada.envelope.seq);
+      c.telemetria.registrar('erro_recuperacao', sim.estado.cab[CAB.passo]!, { aba_morreu: true, retomou_da_fogueira: retomada.envelope.hora > 0 });
+      return;
+    }
     if (c.cenario !== null && c.cenario.id !== 'fogueira_hora1') return;
     const { meta, id } = reservarIdDaVigilia(c.meta.atual);
     c.meta.atual = meta;
@@ -228,6 +243,21 @@ export class Vigilia extends Phaser.Scene {
     sim.estado.fogueiraU32[FOGUEIRA_U32.idVigilia] = id;
     sim.gravador = new GravadorDaVigilia(c.vigiliaGuardada, sim.estado, sim.dados.combate.autosavePassos);
     sim.gravador.gravarInicio(sim.estado);
+  }
+
+  /**
+   * Abre a pausa no estado, antes do 1º passo (SV5: "um toque a mais; o hash confere antes de qualquer passo"). A tela de pausa e
+   * a saída da Hud vêm no 1º update, quando as cenas lançadas já existem.
+   */
+  private abrirPausaDaRetomada(): void {
+    const sim = this.sim!;
+    sim.pausa.ativa = true;
+    sim.pausa.abandonarArmado = false;
+    sim.pausa.origem = 'botao';
+    sim.pausa.alfa = 1;
+    this.ctx.entrada.tradutor.mudarModo('pausa');
+    this.game.sound.setMute(true);
+    this.pausaDaRetomadaPendente = true;
   }
 
   /** Alterna uma opção da pausa e grava no meta na hora do toque (SV4, SV6). */
@@ -373,6 +403,12 @@ export class Vigilia extends Phaser.Scene {
     for (let n = Math.max(this.eventosLidos, escritos - 1024); n < escritos; n++) {
       const i = inicioDoEvento(n);
       const taf = anel.u32[i + EV.tipoArmaForma]!;
+      if ((taf & 0xff) === EVENTO.fogueiraPartiu) {
+        // Telemetria `fogueira` ao Partir (F-008): a Hora e as ações usadas (bit 1 Descansar, bit 2 Forjar).
+        const acoes = anel.f32[i + EV.floats + 3]!;
+        this.ctx.telemetria.registrar('fogueira', sim.estado.cab[CAB.passo]!, { hora: anel.f32[i + EV.floats + 2]!, descansou: (acoes & 1) !== 0, forjou: (acoes & 2) !== 0, oferenda: false });
+        continue;
+      }
       if ((taf & 0xff) !== EVENTO.uniao) continue;
       const arma = (taf >>> 8) & 0xff;
       const passiva = anel.f32[i + EV.floats]!;
@@ -410,6 +446,11 @@ export class Vigilia extends Phaser.Scene {
   override update(): void {
     const sim = this.sim;
     if (!sim || !this.render) return;
+    if (this.pausaDaRetomadaPendente && this.scene.isActive('Pausa') && this.scene.isActive('Hud')) {
+      this.pausaDaRetomadaPendente = false;
+      this.scene.get('Hud').sys.setVisible(false);
+      (this.scene.get('Pausa') as Pausa).mostrar();
+    }
     // Pausada pelo debug, desenha o estado atual: a imagem depende só da seed e do passo (decisoes-F-003 §8).
     // Na pausa do jogador, o alfa fica o do instante em que ela abriu (P4).
     // Durante o congelamento (FB1) o render usa alfa 1: senão xAnt e x interpolariam vai-e-volta com o passo parado.

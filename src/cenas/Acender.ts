@@ -5,13 +5,18 @@
 // puder rodar neste aparelho, passa a horda para o plano B
 // (design/decisoes-F-003.md §7).
 import Phaser from 'phaser';
-import { acharAlvo, alvosDoAcender, type Alvo } from '../entrada/alvos';
+import { acharAlvo, alvosDaRetomada, alvosDoAcender, type Alvo } from '../entrada/alvos';
 import { desbloquearAudio, type SomDesbloqueavel } from '../plataforma/audio';
 import { FPS_MINIMO_PARA_O_CACHE, armazenamentoLocal, gravarCacheDoTeto } from '../plataforma/sonda';
 import { decidirTeto } from '../plataforma/teto';
 import { ALTURA_LOGICA, LARGURA_LOGICA, medirSafeArea } from '../plataforma/safeArea';
 import type { ContextoDoJogo } from './contexto';
 import { COR, cameraLogica, texto } from './estilo';
+import { horaEmRomano } from './linhasDoResultado';
+import { formatarAlmas } from './layoutDoHud';
+import { lerOferta, recusarOferta, type OfertaDeRetomada } from './retomada';
+import { criarDadosDaCharneca } from '../plataforma/dadosDaVigilia';
+import { t } from './textos';
 import { criarLayerDaHorda, liberarLayer } from './render/escritores';
 import { CHAVE_DO_ATLAS } from './render/atlas';
 import { ESCALA_DA_GRADE } from '../arte/catalogo';
@@ -31,6 +36,11 @@ export class Acender extends Phaser.Scene {
   private aldric: Phaser.GameObjects.Image | null = null;
   private brilho: Phaser.GameObjects.Image | null = null;
   private aquecimento: Phaser.GameObjects.SpriteGPULayer | null = null;
+  /** A Vigília guardada oferecida (F-008 SV5), ou null: o botão vira Continuar e aparece o Recusar. */
+  private oferta: OfertaDeRetomada | null = null;
+  private recusar: Phaser.GameObjects.Text | null = null;
+  private avisoDoRecusar: Phaser.GameObjects.Text | null = null;
+  private recusarArmado = false;
 
   constructor(private readonly ctx: ContextoDoJogo) {
     super({ key: 'Acender' });
@@ -45,6 +55,20 @@ export class Acender extends Phaser.Scene {
     this.frase = texto(this, 0, 0, 'A1.ACENDER.FRASE', 16, COR.sal).setOrigin(0.5);
     this.aviso = texto(this, 0, 0, 'A1.ACENDER.AVISO_AUDIO', 13, COR.sal).setOrigin(0.5).setAlpha(0.7);
     this.aviso.setWordWrapWidth(300);
+    this.rotulo.setWordWrapWidth(260);
+    this.recusar = texto(this, 0, 0, 'A1.ACENDER.RECUSAR', 18, COR.osso).setOrigin(0.5).setVisible(false);
+    this.avisoDoRecusar = texto(this, 0, 0, 'A6.PAUSA.ABANDONAR_AVISO', 14, COR.sal).setOrigin(0.5).setVisible(false);
+    this.recusarArmado = false;
+    this.oferta = null;
+    this.ctx.retomada = null;
+    // Sem ?cenario: a Vigília guardada, se houver, é oferecida (a Recusar e o Continuar vêm dos toques).
+    if (this.ctx.cenario === null) {
+      this.oferta = lerOferta(this.ctx.vigiliaGuardada, this.ctx.meta.atual, criarDadosDaCharneca, this.ctx.seed, (novo) => {
+        this.ctx.meta.armazenamento.gravar(novo);
+        this.ctx.meta.atual = novo;
+      });
+    }
+    this.textosDaOferta();
     // F-011: a luz da brasa (aditiva) e o Aldric a 4 pt por px (96 pt), respirando a 2 quadros por segundo.
     this.brilho = this.add.image(0, 0, CHAVE_DO_ATLAS, 'brilho').setScale(ESCALA_DA_GRADE.arte).setBlendMode(Phaser.BlendModes.ADD);
     this.aldric = this.add.image(0, 0, CHAVE_DO_ATLAS, 'aldric_parado').setScale(2 * ESCALA_DA_GRADE.arte);
@@ -101,7 +125,7 @@ export class Acender extends Phaser.Scene {
   /** Recalcula a safe-area e reposiciona tudo; o canvas não muda. */
   private diagramar(): void {
     const ins = medirSafeArea(this.ctx.sonda, this.game.canvas, this.ctx.container, this.ctx.insets);
-    const b = alvosDoAcender(ins, this.alvos)[0]!;
+    const b = (this.oferta === null ? alvosDoAcender(ins, this.alvos) : alvosDaRetomada(ins, this.alvos))[0]!;
     const cx = b.x + b.largura / 2;
     const g = this.desenho!;
     g.clear();
@@ -112,7 +136,15 @@ export class Acender extends Phaser.Scene {
     g.fillStyle(COR.cinzaFrio).fillRect(b.x, b.y, b.largura, b.altura);
     g.lineStyle(2, COR.laranjaQueimado).strokeRect(b.x, b.y, b.largura, b.altura);
     this.rotulo!.setPosition(cx, b.y + b.altura / 2);
-    this.frase!.setPosition(cx, b.y + b.altura + 32);
+    this.frase!.setPosition(cx, b.y + b.altura + (this.oferta === null ? 32 : 24));
+    if (this.oferta !== null) {
+      const r = this.alvos[1]!;
+      g.fillStyle(COR.cinzaFrio).fillRect(r.x, r.y, r.largura, r.altura);
+      if (this.recusarArmado) g.lineStyle(4, COR.brasa).strokeRect(r.x, r.y, r.largura, r.altura);
+      else g.lineStyle(2, COR.laranjaQueimado).strokeRect(r.x, r.y, r.largura, r.altura);
+      this.recusar!.setPosition(cx, r.y + r.altura / 2);
+      this.avisoDoRecusar!.setPosition(cx, r.y + r.altura + 24);
+    }
     const yAviso = ALTURA_LOGICA - ins.baixo - 40;
     this.aviso!.setPosition(cx + 10, yAviso);
     // Ícone de áudio visível ao lado do aviso (doc 12 §8): alto-falante geométrico.
@@ -121,9 +153,51 @@ export class Acender extends Phaser.Scene {
     g.fillTriangle(xi - 7, yAviso, xi, yAviso - 7, xi, yAviso + 7);
   }
 
+  /** Os textos do botão, do resumo e do Recusar conforme haja ou não uma Vigília guardada (SV5). */
+  private textosDaOferta(): void {
+    const o = this.oferta;
+    this.recusar!.setVisible(o !== null);
+    this.avisoDoRecusar!.setVisible(o !== null && this.recusarArmado);
+    const trocar = (obj: Phaser.GameObjects.Text, id: string, params?: Record<string, string | number>): void => {
+      obj.setText(t(id, params)).setData('idTexto', id);
+    };
+    if (o === null) {
+      trocar(this.rotulo!, 'A1.ACENDER.BOTAO');
+      trocar(this.frase!, 'A1.ACENDER.FRASE');
+      return;
+    }
+    if (o.envelope.hora === 0) trocar(this.rotulo!, 'A1.ACENDER.RETOMAR_INICIO');
+    else trocar(this.rotulo!, 'A1.ACENDER.RETOMAR', { hora: horaEmRomano(o.envelope.hora) });
+    trocar(this.frase!, 'A1.ACENDER.RESUMO', { nivel: o.envelope.nivel, almas: formatarAlmas(o.envelope.almas), frascos: o.envelope.frascos });
+  }
+
+  /** Recusar (PE4): o 1º toque arma (borda de brasa e aviso), o 2º abandona a Vigília guardada e volta ao Acender de sempre. */
+  private tocarRecusar(): void {
+    const oferta = this.oferta;
+    if (oferta === null) return;
+    if (!this.recusarArmado) {
+      this.recusarArmado = true;
+      this.textosDaOferta();
+      this.diagramar();
+      return;
+    }
+    this.ctx.meta.atual = recusarOferta(oferta, criarDadosDaCharneca(), this.ctx.meta.atual, this.ctx.meta.armazenamento, this.ctx.vigiliaGuardada);
+    this.oferta = null;
+    this.recusarArmado = false;
+    this.textosDaOferta();
+    this.diagramar();
+  }
+
   /** Chamado de forma síncrona pela camada de toque, dentro do touchend. */
   private readonly aoSoltar = (x: number, y: number): void => {
-    if (this.acendeu || acharAlvo(this.alvos, x, y)?.id !== 'acender') return;
+    if (this.acendeu) return;
+    const alvo = acharAlvo(this.alvos, x, y)?.id;
+    if (alvo === 'recusar') {
+      this.tocarRecusar();
+      return;
+    }
+    if (alvo !== 'acender' && alvo !== 'continuar') return;
+    this.ctx.retomada = alvo === 'continuar' ? this.oferta : null;
     this.acendeu = true;
     const nav = navigator as Navigator & NavegadorComSessao;
     void desbloquearAudio(this.sound as unknown as SomDesbloqueavel, {

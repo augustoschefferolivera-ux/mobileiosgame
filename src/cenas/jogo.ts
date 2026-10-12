@@ -87,6 +87,7 @@ export function iniciarJogo(): Phaser.Game | null {
     almasIniciais: params.almas,
     meta: { armazenamento: armazenamentoDoMeta, atual: meta },
     vigiliaGuardada: new ArmazenamentoDaVigilia(),
+    retomada: null,
     telemetria: new RegistroDeTelemetria(),
     sonda: elemento('sonda-safe-area'),
     container: elemento('jogo'),

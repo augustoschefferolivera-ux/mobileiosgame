@@ -6,6 +6,7 @@ import type { AcaoDeRoteiro, ComandosDoPasso, FonteDeComandos, Roteiro } from '.
 import type { Estado } from '../logica/nucleo/estado';
 import type { ResultadoDaVigilia } from '../logica/mundo/vigilia';
 import type { Meta } from '../logica/save/meta';
+import type { OfertaDeRetomada } from './retomada';
 import type { ArmazenamentoDoMeta } from '../plataforma/armazenamento';
 import type { ArmazenamentoDaVigilia, GravadorDaVigilia } from '../plataforma/vigiliaGuardada';
 import type { DadosDaVigilia } from '../logica/mundo/dados';
@@ -100,6 +101,8 @@ export interface ContextoDoJogo {
   readonly meta: { readonly armazenamento: ArmazenamentoDoMeta; atual: Meta };
   /** O `vigilia` e o `andamento` guardados (F-008 SV2): o gravador escreve, o Acender lê. */
   readonly vigiliaGuardada: ArmazenamentoDaVigilia;
+  /** A Vigília guardada que o Acender ofereceu e o jogador aceitou: a Vigília usa o estado dela e abre na pausa (F-008 SV5); null sem retomada. */
+  retomada: OfertaDeRetomada | null;
   readonly telemetria: RegistroDeTelemetria;
   readonly sonda: HTMLElement;
   readonly container: HTMLElement;

@@ -56,6 +56,20 @@ export function alvosDoAcender(insets: Insets, out: Alvo[]): Alvo[] {
   return out;
 }
 
+/**
+ * Tela de Acender com uma Vigília guardada (design/decisoes-F-008.md SV5): o botão de Continuar no lugar do de Acender e,
+ * abaixo do resumo, o de Recusar (Abandonar Vigília), com o mesmo tamanho; o Recusar pede dois toques (PE4).
+ */
+export const RECUSAR_ABAIXO_DO_CONTINUAR = 56;
+
+export function alvosDaRetomada(insets: Insets, out: Alvo[]): Alvo[] {
+  alvosDoAcender(insets, out);
+  const c = out[0]!;
+  c.id = 'continuar';
+  out.push({ id: 'recusar', x: c.x, y: c.y + c.altura + RECUSAR_ABAIXO_DO_CONTINUAR, largura: c.largura, altura: c.altura });
+  return out;
+}
+
 /** Fração da largura útil, à esquerda, que cria o joystick (doc 02 §4: "60% larg."). */
 export const FRACAO_DA_AREA_DO_JOYSTICK = 0.6;
 
@@ -256,6 +270,7 @@ export function alvosDaFogueira(insets: Insets, out: Alvo[]): Alvo[] {
 /** Todas as telas com alvos; o teste de safe-area (F-001.13 e F-002.7) percorre esta tabela. */
 export const ALVOS_POR_TELA: Record<string, (insets: Insets, out: Alvo[]) => Alvo[]> = {
   acender: alvosDoAcender,
+  retomada: alvosDaRetomada,
   vigilia: alvosDaVigilia,
   pausa: alvosDaTelaDePausa,
   resultado: alvosDoResultado,
