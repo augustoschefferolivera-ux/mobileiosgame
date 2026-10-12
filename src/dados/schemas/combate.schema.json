@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "combate.schema.json",
   "title": "Combate (src/dados/combate.json)",
-  "description": "Só o que nenhum outro JSON tem: stamina, esquiva, aparo, congelamento, Poder, Postura Quebrada, Contra-ataque e gestos (design/decisoes-F-006.md ET9; B §3.4 e §3.5). Durações em passos de 60 Hz, exatas como em B; os gestos em ms e pt.",
+  "description": "Só o que nenhum outro JSON tem: stamina, esquiva, aparo, congelamento, Poder, Postura Quebrada, Contra-ataque, gestos e, na F-007, o cancelar do Frasco, o Apagar, a mancha e a agregação da telemetria (design/decisoes-F-006.md ET9; design/decisoes-F-007.md §14; B §3.4 e §3.5). Durações em passos de 60 Hz, exatas como em B; os gestos em ms e pt.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -16,6 +16,10 @@
     "contra_ataque_passos",
     "contra_ataque_fator",
     "ataques_dos_inimigos",
+    "frasco",
+    "apagar",
+    "mancha",
+    "telemetria",
     "gestos"
   ],
   "properties": {
@@ -177,6 +181,88 @@
     "contra_ataque_fator": {
       "type": "integer",
       "minimum": 1
+    },
+    "frasco": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cancelar_segurando_passos"
+      ],
+      "properties": {
+        "cancelar_segurando_passos": {
+          "description": "Passos que um novo toque no botão do Frasco precisa durar para cancelar a cura (FR6; a calibrar no iPhone, F-010).",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "apagar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "duracao_passos",
+        "camera_lenta_fator"
+      ],
+      "properties": {
+        "duracao_passos": {
+          "description": "Passos de APAGANDO até FIM (AG2).",
+          "type": "integer",
+          "minimum": 1
+        },
+        "camera_lenta_fator": {
+          "description": "Escala do deltaMs do driver enquanto a fase for APAGANDO (só apresentação).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "mancha": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pct_das_almas",
+        "raio_px",
+        "margem_dos_obstaculos_px"
+      ],
+      "properties": {
+        "pct_das_almas": {
+          "description": "Parte das Almas da Vigília que fica na mancha no Apagar (MC1).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "raio_px": {
+          "description": "Distância toroidal, de centro a centro, em que encostar devolve as Almas (MC7).",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "margem_dos_obstaculos_px": {
+          "description": "Folga somada ao raio do obstáculo na zona proibida da posição da mancha (MC4).",
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "telemetria": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agregacao_do_contato_s",
+        "teto_por_fonte"
+      ],
+      "properties": {
+        "agregacao_do_contato_s": {
+          "description": "Janela, em segundos, em que o dano de contato vira uma só linha de dano_recebido (TL1).",
+          "type": "integer",
+          "minimum": 1
+        },
+        "teto_por_fonte": {
+          "description": "Linhas de dano_recebido, esquiva, aparo e frasco que cada fonte guarda (anel por fonte; TL1).",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
     },
     "gestos": {
       "type": "object",

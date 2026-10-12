@@ -34,6 +34,22 @@
   "ataques_dos_inimigos": {
     "alcance_de_tiro_novica_corpos": 6
   },
+  "frasco": {
+    "cancelar_segurando_passos": 18
+  },
+  "apagar": {
+    "duracao_passos": 30,
+    "camera_lenta_fator": 0.5
+  },
+  "mancha": {
+    "pct_das_almas": 30,
+    "raio_px": 32,
+    "margem_dos_obstaculos_px": 16
+  },
+  "telemetria": {
+    "agregacao_do_contato_s": 5,
+    "teto_por_fonte": 128
+  },
   "gestos": {
     "swipe": {
       "velocidade_min_pt_s": 400,

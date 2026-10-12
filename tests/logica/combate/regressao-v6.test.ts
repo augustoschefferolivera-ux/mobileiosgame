@@ -3,13 +3,13 @@
 // da F-007 atua. Os valores foram gravados com o código do commit e0d0f68 (o da D7, ainda com o layout v6), antes
 // de qualquer mudança de código da F-007. Os casos rodam com `semCinzas` (nenhuma Cinza nem Alma cai, então o
 // fluxo `drops` não mexe) e `jogadorInvulneravel` (nenhum dano, então a armadura e a Brasa Firme não aparecem), e
-// três palavras que a F-007 muda de propósito ficam mascaradas: o HP do jogador, o `hpMax` (150 de Aldric, F-007.6)
+// duas palavras que a F-007 muda de propósito ficam mascaradas: o HP do jogador (armadura e Brasa Firme, DM1 e DM2)
 // e `mortes` (o convertido passa a valer 10, RS4). Os casos usam esquiva e aparo por roteiro (bits 1 e 2 de ACAO),
 // os mesmos bits do replay v6.
 import { describe, expect, it } from 'vitest';
 import { ACAO, fonteDoRoteiro, type AcaoDeRoteiro } from '../../../src/logica/nucleo/comandos';
 import { FNV_BASE, fnv1aBytes, hex8 } from '../../../src/logica/nucleo/hash';
-import { CENARIO, JOGADOR, JOGADOR2, LAYOUT, MUNDO, TODOS_OS_TUTORIAIS, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
+import { CENARIO, JOGADOR, LAYOUT, MUNDO, TODOS_OS_TUTORIAIS, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { PASSOS_REFERENCIA, ROTEIRO_REFERENCIA } from '../../../src/logica/nucleo/referencia';
 import { parametrosDoCenario } from '../../../src/plataforma/cenarios';
@@ -18,13 +18,12 @@ import { DADOS_DA_CHARNECA as D, PARADO } from '../apoio';
 const BYTES_V6 = 74_636;
 const SEGURO = CENARIO.semCinzas | CENARIO.jogadorInvulneravel;
 
-/** Os 74.636 bytes do v6 a partir do byte 4, sem o HP, o `hpMax` e `mortes` (os três que a F-007 muda no início). */
+/** Os 74.636 bytes do v6 a partir do byte 4, sem o HP e sem `mortes` (as duas palavras que a F-007 muda). */
 function hashDosCamposV6(e: Estado): string {
   expect(e.bytes.length).toBeGreaterThanOrEqual(BYTES_V6);
   const copia = e.bytes.slice(4, BYTES_V6);
   const f = new DataView(copia.buffer);
   f.setUint32(LAYOUT.jogador + JOGADOR.hp * 4 - 4, 0, true);
-  f.setUint32(LAYOUT.jogador2 + JOGADOR2.hpMax * 4 - 4, 0, true);
   f.setUint32(LAYOUT.mundo + MUNDO.mortes * 4 - 4, 0, true);
   return hex8(fnv1aBytes(FNV_BASE, copia));
 }
@@ -45,13 +44,13 @@ function cenario(id: string, seed: number): Estado {
 }
 
 const V6 = {
-  vigilia: { 1: '6fb59c72', 424242: 'e9f97311' },
-  horda: { 1: 'cfe4c0b0', 424242: '5139fd74' },
-  hordaComAtaques: { 1: 'f5dd34e4', 424242: '47d6cb58' },
-  ocoGrande: { 1: 'aa2db7c6', 424242: '87d642cf' },
-  novica: { 1: '0142a500', 424242: '0c5fb789' },
-  telegrafos: { 1: '011a9569', 424242: 'e55377f0' },
-  tresArmas: { 1: 'd2c3aaf6', 424242: 'c39e85a2' },
+  vigilia: { 1: 'a4ac1215', 424242: 'ef9c0bf6' },
+  horda: { 1: '43a81a37', 424242: 'debf4623' },
+  hordaComAtaques: { 1: 'd50c8e4f', 424242: 'cca9e2ef' },
+  ocoGrande: { 1: 'e1813bb9', 424242: '3272dd80' },
+  novica: { 1: '82cb704f', 424242: 'f0b689c6' },
+  telegrafos: { 1: '22ed6946', 424242: '23b45b8f' },
+  tresArmas: { 1: '8c64aa99', 424242: '930f2539' },
 } as const;
 
 describe('os campos do v6 evoluem como na F-006 enquanto nada da F-007 atua', () => {

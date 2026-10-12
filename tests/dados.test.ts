@@ -454,6 +454,24 @@ describe('números do briefing técnico (design/gdd/18 §3)', () => {
     expect(obj(porId(armas, 'facas_de_sal'), 'base')['projeteis_extra_esquiva_perfeita']).toBe(1);
   });
 
+  it('combate.json traz as constantes da F-007 (D7 §14) e o Frasco, a Brasa Firme e a mancha leem o que já existe nos outros JSON', () => {
+    const c = ler('combate.json');
+    expect(obj(c, 'frasco')).toEqual({ cancelar_segurando_passos: 18 });
+    expect(obj(c, 'apagar')).toEqual({ duracao_passos: 30, camera_lenta_fator: 0.5 });
+    expect(obj(c, 'mancha')).toEqual({ pct_das_almas: 30, raio_px: 32, margem_dos_obstaculos_px: 16 });
+    expect(obj(c, 'telemetria')).toEqual({ agregacao_do_contato_s: 5, teto_por_fonte: 128 });
+    // 1 s reais = 30 passos × 16,67 ms ÷ 0,5 (AG2).
+    expect((Number(obj(c, 'apagar')['duracao_passos']) * 1000) / 60 / Number(obj(c, 'apagar')['camera_lenta_fator'])).toBe(1000);
+    // O que já existia em vigilantes.json não se repete aqui (DM1, DM2, FR2, FR5).
+    const aldric = vigilantes[0]!;
+    expect(obj(aldric, 'frascos')).toEqual({ cargas: 3, cura_pct: 40, duracao_s: 2, interrompe_acima_pct_hp: 15, sem_regen_stamina_s: 2 });
+    expect(obj(aldric, 'passiva')['reducao_dano_pct']).toBe(20);
+    expect(obj(aldric, 'passiva')['condicao_stamina_acima_pct']).toBe(50);
+    expect(JSON.stringify(c)).not.toMatch(/cargas|cura_pct|reducao_dano|interrompe_acima/);
+    // As pendências da F-007 do Aldric foram resolvidas na D7.
+    expect(((aldric['pendencias'] ?? []) as string[]).filter((p) => p.startsWith('F-007'))).toEqual([]);
+  });
+
   it('inimigos.json fecha as pendências da F-006: arco de 2 corpos, projétil de 0,25 corpo e 2,5 s, postura_quebrada por tipo', () => {
     const grande = lista(porId(inimigos, 'oco_grande'), 'ataques')[0]!;
     expect([grande['alcance_corpos'], grande['angulo_graus'], grande['aparavel']]).toEqual([2, 120, true]);

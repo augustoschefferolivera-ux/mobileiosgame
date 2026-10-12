@@ -46,10 +46,7 @@
         "efeito_id": "C1.ALDRIC.MALDICAO_EFEITO"
       },
       "hp_por_nivel": 2,
-      "pendencias": [
-        "F-007: se o Frasco interrompido consome a carga; quanto tempo 'segurar' leva para cancelar; se dá para mover, esquivar ou aparar durante a cura (brief §11.3)",
-        "F-007: ordem entre a armadura e a Brasa Firme; se os 15% que interrompem o Frasco são medidos antes ou depois da redução (brief §11.3)"
-      ]
+      "pendencias": []
     }
   ]
 }

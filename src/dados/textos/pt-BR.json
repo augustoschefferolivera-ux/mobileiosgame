@@ -117,6 +117,12 @@
       "limite_palavras": null
     },
     {
+      "id": "A5.HUD.FRASCO",
+      "texto": "Frasco",
+      "contexto": "HUD: rótulo do botão do Frasco, 72 pt, 16 pt acima do Aparo (B §3.5; design/decisoes-F-007.md FR8); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
       "id": "A6.PAUSA.TITULO",
       "texto": "Vigília em pausa",
       "contexto": "Tela de pausa: título (doc 11 §3.9); placeholder até o roteiro (doc 17)",
@@ -171,6 +177,24 @@
       "limite_palavras": null
     },
     {
+      "id": "A6.PAUSA.MORTES",
+      "texto": "Mortes",
+      "contexto": "Tela de pausa: estatística, mortes causadas (doc 11 §3.9; design/decisoes-F-007.md PE1); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A6.PAUSA.DANO",
+      "texto": "Dano recebido",
+      "contexto": "Tela de pausa: estatística (doc 11 §3.9; design/decisoes-F-007.md PE1); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A6.PAUSA.APAROS",
+      "texto": "Aparos",
+      "contexto": "Tela de pausa: estatística, aparos bem-sucedidos (doc 11 §3.9; design/decisoes-F-007.md PE1); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
       "id": "A7.RESULTADO.TEMPO",
       "texto": "Tempo",
       "contexto": "Resultado: rótulo (doc 11 §3.12)",
@@ -186,6 +210,12 @@
       "id": "A7.RESULTADO.MORTES",
       "texto": "Mortes causadas",
       "contexto": "Resultado: rótulo (doc 11 §3.12); fica até o roteiro propor outro (Q-31)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A7.RESULTADO.DANO",
+      "texto": "Dano recebido",
+      "contexto": "Resultado: rótulo (doc 02 §8; design/decisoes-F-007.md RS1); placeholder até o roteiro (doc 17)",
       "limite_palavras": null
     },
     {
