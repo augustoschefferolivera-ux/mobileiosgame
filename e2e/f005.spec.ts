@@ -9,7 +9,7 @@ import { alvoDaPausa, alvosDasCartas, alvosDoBau, type Alvo } from '../src/entra
 import type { Roteiro } from '../src/logica/nucleo/comandos';
 import { COR } from '../src/cenas/paleta';
 import { insetsZerados } from '../src/plataforma/safeArea';
-import { EVIDENCIAS, RAIZ, SEED, abrir, arrastarDevagar, paraPagina, proximoFrame, tocarAcender } from './apoio';
+import { EVIDENCIAS, RAIZ, SEED, abrir, arrastarDevagar, corNoCanvas, distancia, paraPagina, proximoFrame, rgb, tocarAcender } from './apoio';
 
 const INSETS = insetsZerados();
 const CARTAS = alvosDasCartas(INSETS, []);
@@ -49,26 +49,6 @@ async function tocar(page: Page, p: { x: number; y: number }): Promise<void> {
   const q = await paraPagina(page, p.x, p.y);
   await page.touchscreen.tap(q.x, q.y);
 }
-
-/** Cor (r, g, b) do canvas num ponto em pt, pelos pixels na escala do dispositivo. */
-async function corNoCanvas(page: Page, p: { x: number; y: number }): Promise<number[]> {
-  const png = await page.locator('#jogo canvas').screenshot({ scale: 'device' });
-  return page.evaluate(
-    async ({ b64, x, y }) => {
-      const img = new Image();
-      img.src = `data:image/png;base64,${b64}`;
-      await img.decode();
-      const c = document.createElement('canvas');
-      [c.width, c.height] = [img.width, img.height];
-      const ctx = c.getContext('2d', { willReadFrequently: true })!;
-      ctx.drawImage(img, 0, 0);
-      return Array.from(ctx.getImageData(Math.floor((x * img.width) / 390), Math.floor((y * img.height) / 844), 1, 1).data.slice(0, 3));
-    },
-    { b64: png.toString('base64'), x: p.x, y: p.y },
-  );
-}
-const rgb = (cor: number): number[] => [(cor >> 16) & 255, (cor >> 8) & 255, cor & 255];
-const distancia = (a: number[], b: number[]): number => Math.max(...a.map((v, i) => Math.abs(v - b[i]!)));
 
 const levelUp = (page: Page) => page.evaluate(() => window.__GAME_DEBUG__.levelUp!);
 

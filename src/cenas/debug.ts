@@ -92,6 +92,8 @@ export interface EventoDebug {
   forma: number;
   alvo: { slot: number; geracao: number } | null;
   valor: number;
+  /** O 4º float do evento (no golpeInimigo, o desfecho: 1 acertou, 2 esquivado, 3 aparado, 4 errou). */
+  extra: number;
   x: number;
   y: number;
   critico: boolean;
@@ -121,6 +123,7 @@ function lerEventos(e: Estado): EventoDebug[] {
       forma: (taf >>> 16) & 0xff,
       alvo: alvo === 0xffffffff ? null : { slot: alvo & 0xffff, geracao: alvo >>> 16 },
       valor: f[i + EV.floats + 2]!,
+      extra: f[i + EV.floats + 3]!,
       x: f[i + EV.floats]!,
       y: f[i + EV.floats + 1]!,
       critico: (flags & FLAG.critico) !== 0,

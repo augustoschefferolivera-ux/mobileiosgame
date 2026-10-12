@@ -37,8 +37,8 @@ declare global {
  * A sonda do TETO fica desligada (`&sonda=0`): o TETO não depende da máquina e nenhum spec grava `vdc.teto`
  * (design/decisoes-F-004.md §5); só o spec da sonda a liga, com `sonda = true`.
  */
-export async function abrir(page: Page, extra = '', sonda = false): Promise<void> {
-  await page.goto(`/?seed=${SEED}${sonda ? '' : '&sonda=0'}${extra}`);
+export async function abrir(page: Page, extra = '', sonda = false, seed = SEED): Promise<void> {
+  await page.goto(`/?seed=${seed}${sonda ? '' : '&sonda=0'}${extra}`);
   await page.waitForFunction(() => window.__GAME_DEBUG__?.estado === 'ACENDER');
 }
 
@@ -132,3 +132,23 @@ export async function arrastarDevagar(
     await page.waitForTimeout(40);
   }
 }
+
+/** Cor (r, g, b) do canvas num ponto em pt, pelos pixels na escala do dispositivo. */
+export async function corNoCanvas(page: Page, p: { x: number; y: number }): Promise<number[]> {
+  const png = await page.locator('#jogo canvas').screenshot({ scale: 'device' });
+  return page.evaluate(
+    async ({ b64, x, y }) => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${b64}`;
+      await img.decode();
+      const c = document.createElement('canvas');
+      [c.width, c.height] = [img.width, img.height];
+      const ctx = c.getContext('2d', { willReadFrequently: true })!;
+      ctx.drawImage(img, 0, 0);
+      return Array.from(ctx.getImageData(Math.floor((x * img.width) / 390), Math.floor((y * img.height) / 844), 1, 1).data.slice(0, 3));
+    },
+    { b64: png.toString('base64'), x: p.x, y: p.y },
+  );
+}
+export const rgb = (cor: number): number[] => [(cor >> 16) & 255, (cor >> 8) & 255, cor & 255];
+export const distancia = (a: number[], b: number[]): number => Math.max(...a.map((v, i) => Math.abs(v - b[i]!)));
