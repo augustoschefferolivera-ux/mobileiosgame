@@ -34,7 +34,7 @@
     },
     {
       "id": "A1.ACENDER.RESUMO",
-      "texto": "Nível {nivel} · {almas} Almas · {frascos} Frascos",
+      "texto": "Nível {nivel} · Almas {almas} · Frascos {frascos}",
       "contexto": "Tela de Acender: resumo do save a retomar, sob a oferta (design/decisoes-F-008.md SV5); {almas} com ponto de milhar",
       "limite_palavras": null
     },
@@ -970,7 +970,7 @@
     },
     {
       "id": "I1.FOGUEIRA.PARTIR_EFEITO",
-      "texto": "…",
+      "texto": "A Fogueira se apaga.",
       "contexto": "Fogueira: consequência em 1 linha (doc 17 I1); placeholder até o roteiro (doc 17)",
       "limite_palavras": null
     },
