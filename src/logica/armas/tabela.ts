@@ -11,7 +11,8 @@ import { PASSOS_POR_SEGUNDO, segundosEmPassos } from '../nucleo/passos';
 import { FORMA } from '../nucleo/eventos';
 import { MULT_NEUTRO_PCT, PODER_PCT, danoPorAcerto } from './dano';
 import { CORPO_PX } from '../mundo/tipos';
-import combate from '../../dados/combate.json';
+// Com o atributo de importação, o Node (a Playwright carrega estado.ts, que chega aqui) lê o JSON sem o Vite.
+import combate from '../../dados/combate.json' with { type: 'json' };
 
 /** Códigos de arma; 0 = vaga vazia. */
 export const ARMA = {
