@@ -22,7 +22,7 @@ import { CamadaPorGPU, criarSaidaDeSprites } from '../../src/cenas/render/camada
 import { CAPACIDADE_DE_MORTES, EfeitosDaVigilia } from '../../src/cenas/render/efeitos';
 import { criarSaidaDaHorda, criarTabelaDeDesenho, prepararHorda } from '../../src/cenas/render/horda';
 import { BRUTO, ORIGEM_DO_DANO, danoAoJogador } from '../../src/logica/mundo/contato';
-import { CAB, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CENARIO, FASE, JOGADOR, JOGADOR4, JOGADOR4_U32, JOGADOR4_U8, MUNDO, MUNDO2, PROGRESSAO, TIPO_DE_PICKUP, TODOS_OS_TUTORIAIS, TIPO_DE_PROJETIL, criarEstado, type ParametrosDaVigilia } from '../../src/logica/nucleo/estado';
+import { FOGUEIRA_U32, FOGUEIRA_U8, CAB, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CENARIO, FASE, JOGADOR, JOGADOR4, JOGADOR4_U32, JOGADOR4_U8, MUNDO, MUNDO2, PROGRESSAO, TIPO_DE_PICKUP, TODOS_OS_TUTORIAIS, TIPO_DE_PROJETIL, criarEstado, type ParametrosDaVigilia } from '../../src/logica/nucleo/estado';
 import { ACAO, criarComandos, fonteConstante, fonteDoRoteiro, type AcaoDeRoteiro } from '../../src/logica/nucleo/comandos';
 import { EVENTO, LeitorDeEventos, inicioDoEvento } from '../../src/logica/nucleo/eventos';
 import { PASSIVA } from '../../src/logica/progressao/tabela';
@@ -477,5 +477,38 @@ describe('alocação no caminho quente (E4)', () => {
     );
     expect(b.caSeq.every((x) => x === 0)).toBe(true);
     expect(total, maiores.join('; ')).toBeLessThanOrEqual(64);
+  }, 300_000);
+
+  // F-008.8 (decisoes-F-008 §1, LY3): o marco de 5 minutos com o Coroado vivo o tempo todo (o HP é refeito a cada passo), a
+  // Patada e o Grito no ciclo fixo, uma convocação de 10 Ocos a cada 600 passos, a arena de 224 px com a borda que prende e as
+  // armas matando os convocados; jogador invulnerável e parado dentro da arena. Só a simulação (o render do Coroado é da 2c).
+  it(`F-008.8: marco com o Coroado, a Patada e o Grito, as convocações e a arena, ${MEDIDOS} passos: ≤ ${LIMITE} B por passo, sem lista branca`, async () => {
+    const base = parametrosDoCenario('tres_armas');
+    const e = criarEstado(1, D, {
+      armas: base.armas,
+      cenario: CENARIO.ataques | CENARIO.jogadorInvulneravel | CENARIO.semCinzas,
+      tutoriaisVistos: TODOS_OS_TUTORIAIS,
+      teto: 300,
+      relogioInicial: D.marcos.limiar[0]! - 1,
+      inicioLivre: true,
+    });
+    avancar(e, D, PARADO, 1);
+    expect(e.fogueiraU8[FOGUEIRA_U8.arenaAtiva]).toBe(1);
+    const coroado = e.pool.ativos.find((s, k) => k < quantosAtivos(e.pool) && e.inimigos.tipo[s] === TIPO.oco_grande_coroado)!;
+    expect(coroado).toBeDefined();
+    const { porPasso, maiores } = await medir((n) => {
+      for (let k = 0; k < n; k++) {
+        // O marco dura o teste todo: o Coroado não morre e o relógio fica onde o marco começou (senão passaria dos 10 e dos 20 min).
+        e.inimigos.hp[coroado] = 1_000_000;
+        e.cab[CAB.relogio] = D.marcos.limiar[0]! + 1;
+        avancar(e, D, PARADO, 1);
+      }
+    }, AQUECIMENTO_DOS_ATAQUES);
+    // O que o teste mede aconteceu: arena viva, Coroado vivo, várias convocações e golpes (Patada e Grito), mortes dos convocados.
+    expect(e.fogueiraU8[FOGUEIRA_U8.arenaAtiva]).toBe(1);
+    expect(e.fogueiraU8[FOGUEIRA_U8.coroadosVivos]).toBe(1);
+    expect(e.fogueiraU32[FOGUEIRA_U32.convocacoes]).toBeGreaterThanOrEqual(20);
+    expect(e.mundo[MUNDO.mortes]).toBeGreaterThan(50);
+    expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
   }, 300_000);
 });
