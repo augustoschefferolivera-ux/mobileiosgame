@@ -22,7 +22,7 @@ import { CamadaPorGPU, criarSaidaDeSprites } from '../../src/cenas/render/camada
 import { CAPACIDADE_DE_MORTES, EfeitosDaVigilia } from '../../src/cenas/render/efeitos';
 import { criarSaidaDaHorda, criarTabelaDeDesenho, prepararHorda } from '../../src/cenas/render/horda';
 import { BRUTO, ORIGEM_DO_DANO, danoAoJogador } from '../../src/logica/mundo/contato';
-import { FOGUEIRA_U32, FOGUEIRA_U8, CAB, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CENARIO, FASE, JOGADOR, JOGADOR4, JOGADOR4_U32, JOGADOR4_U8, MUNDO, MUNDO2, PROGRESSAO, TIPO_DE_PICKUP, TODOS_OS_TUTORIAIS, TIPO_DE_PROJETIL, criarEstado, type ParametrosDaVigilia } from '../../src/logica/nucleo/estado';
+import { ETAPA, FOGUEIRA_F32, FOGUEIRA_U32, FOGUEIRA_U8, CAB, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CENARIO, FASE, JOGADOR, JOGADOR4, JOGADOR4_U32, JOGADOR4_U8, MUNDO, MUNDO2, PROGRESSAO, TIPO_DE_PICKUP, TODOS_OS_TUTORIAIS, TIPO_DE_PROJETIL, criarEstado, type ParametrosDaVigilia } from '../../src/logica/nucleo/estado';
 import { ACAO, criarComandos, fonteConstante, fonteDoRoteiro, type AcaoDeRoteiro } from '../../src/logica/nucleo/comandos';
 import { EVENTO, LeitorDeEventos, inicioDoEvento } from '../../src/logica/nucleo/eventos';
 import { PASSIVA } from '../../src/logica/progressao/tabela';
@@ -509,6 +509,36 @@ describe('alocação no caminho quente (E4)', () => {
     expect(e.fogueiraU8[FOGUEIRA_U8.coroadosVivos]).toBe(1);
     expect(e.fogueiraU32[FOGUEIRA_U32.convocacoes]).toBeGreaterThanOrEqual(20);
     expect(e.mundo[MUNDO.mortes]).toBeGreaterThan(50);
+    expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
+  }, 300_000);
+
+  // F-008.8, Fogueira aberta (FG3, FG9): a horda do diretor viva em volta, parada, e a cópia-sombra de cada passo (um `set` num
+  // Uint8Array fixo, alocado na abertura); o jogador invulnerável e parado dentro do raio.
+  it(`F-008.8: Fogueira aberta com a horda parada e a sombra, ${MEDIDOS} passos: ≤ ${LIMITE} B por passo, sem lista branca`, async () => {
+    const e = criarEstado(1, D, {
+      armas: [],
+      cenario: CENARIO.ataques | CENARIO.jogadorInvulneravel,
+      tutoriaisVistos: TODOS_OS_TUTORIAIS,
+      teto: 300,
+      relogioInicial: D.marcos.limiar[0]! - 1500,
+      inicioLivre: true,
+    });
+    for (let k = 0; k < 150; k++) {
+      const ang = k * 2.399963;
+      const r = 60 + k * 4;
+      nascerInimigo(e, D, TIPO.oco_das_lanternas, e.jogador[JOGADOR.x]! + r * Math.cos(ang), e.jogador[JOGADOR.y]! + r * Math.sin(ang), false);
+    }
+    e.fogueiraU8[FOGUEIRA_U8.fogueiraAcesa] = 1;
+    e.fogueiraU8[FOGUEIRA_U8.fogueiraHora] = 1;
+    e.fogueiraF32[FOGUEIRA_F32.fogueiraX] = e.jogador[JOGADOR.x]! + 20;
+    e.fogueiraF32[FOGUEIRA_F32.fogueiraY] = e.jogador[JOGADOR.y]!;
+    avancar(e, D, PARADO, 1);
+    expect(e.fogueiraU8[FOGUEIRA_U8.etapa]).toBe(ETAPA.fogueira);
+    expect(quantosAtivos(e.pool), 'a horda está viva').toBeGreaterThan(40);
+    const relogio = e.cab[CAB.relogio]!;
+    const { porPasso, maiores } = await medir((n) => avancar(e, D, PARADO, n), AQUECIMENTO_DOS_ATAQUES);
+    expect(e.fogueiraU8[FOGUEIRA_U8.etapa]).toBe(ETAPA.fogueira);
+    expect(e.cab[CAB.relogio]).toBe(relogio);
     expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
   }, 300_000);
 });
