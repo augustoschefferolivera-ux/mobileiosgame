@@ -187,7 +187,7 @@ test('F-004.5: com a opção desligada na pausa, nenhum número vivo enquanto os
 });
 
 test.describe('F-004.6: botão, gesto e tela de pausa', () => {
-  test('(a) botão: pausa com origem botao; passo, relógio e hash parados; a tela mostra a build sem o que é das F-006 e F-007', async ({ page }) => {
+  test('(a) botão: pausa com origem botao; passo, relógio e hash parados; a tela mostra a build, Som e Flashes (F-006), as estatísticas e o Abandonar (F-007)', async ({ page }) => {
     await abrir(page, '&teto=300' + SEM_CINZAS);
     await tocarAcender(page);
     const toque = await dedos(page);
@@ -207,8 +207,9 @@ test.describe('F-004.6: botão, gesto e tela de pausa', () => {
     expect(antes.estado).toBe('VIGILIA');
     const textos = await page.evaluate(() => window.__GAME_DEBUG__.textoAtivo);
     for (const id of ['A6.PAUSA.TITULO', 'A6.PAUSA.NUMEROS', 'A6.PAUSA.SOM', 'A6.PAUSA.FLASHES', 'A6.PAUSA.CONTINUAR', 'F1.ESPADA_LONGA_DO_JURAMENTO.NOME', 'A6.PAUSA.NIVEL']) expect(textos).toContain(id);
-    // Som e Flashes entram na F-006 (decisoes-F-006 FB3); Abandonar é da F-007.
-    expect(textos).not.toContain('A6.PAUSA.ABANDONAR');
+    // Som e Flashes entram na F-006 (decisoes-F-006 FB3); o Abandonar e as estatísticas, na F-007 (PE3); o aviso só armado.
+    for (const id of ['A6.PAUSA.ABANDONAR', 'A6.PAUSA.MORTES', 'A6.PAUSA.DANO', 'A6.PAUSA.APAROS']) expect(textos).toContain(id);
+    expect(textos).not.toContain('A6.PAUSA.ABANDONAR_AVISO');
   });
 
   test('(b) gesto: dois dedos parados na metade de cima por 1 s pausam; 300 ms, movidos 20 pt ou um deles no joystick, não', async ({ page }) => {

@@ -1,5 +1,5 @@
 # F-006 — janelas medidas pelo caminho real (Vitest, tests/logica/combate/referencias.test.ts)
-# Gerado em 2026-10-12T13:56:46.479Z com Node v22.22.0; esperado vem da D6 (design/decisoes-F-006.md), obtido da simulação.
+# Gerado em 2026-10-12T14:00:12.620Z com Node v22.22.0; esperado vem da D6 (design/decisoes-F-006.md), obtido da simulação.
 janela=esquiva passo=2 esperado=sem_dano obtido=sem_dano iguais=true
 janela=esquiva passo=13 esperado=sem_dano obtido=sem_dano iguais=true
 janela=esquiva passo=14 esperado=dano obtido=dano iguais=true
