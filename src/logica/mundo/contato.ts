@@ -23,7 +23,8 @@ export const FATOR_DO_ACERTO_DE_CONTATO = 0.3;
 export const FOLGA_DO_CONTATO = 1 / 16;
 
 /** Origem do dano ao jogador (código numérico; as features seguintes acrescentam). */
-export const ORIGEM_DO_DANO = { contato: 1, golpe: 2, projetil: 3 } as const;
+/** `efeito` (F-009 AT4): os ticks da cegueira e da zona da Lanterneiro; `fome` (FM2): o dreno de A Fome. */
+export const ORIGEM_DO_DANO = { contato: 1, golpe: 2, projetil: 3, efeito: 4, fome: 5 } as const;
 
 /** Dano bruto do acerto em curso no jogador: rascunho, para nenhum double atravessar as chamadas (F-006 ET11). */
 export const BRUTO = new Float64Array(1);

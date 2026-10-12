@@ -8,6 +8,7 @@ import {
   BYTES_DO_LAYOUT_5,
   BYTES_DO_LAYOUT_6,
   BYTES_DO_LAYOUT_7,
+  BYTES_DO_LAYOUT_8,
   BYTES_ESTADO,
   CAPACIDADE_DE_PROJETEIS,
   CENARIO,
@@ -35,14 +36,15 @@ const E = ARMA.espada_longa_do_juramento;
 const F = ARMA.facas_de_sal;
 const C = ARMA.circulo_de_sal;
 
-describe('layout v8 (o v4 da F-004, o v5 da F-005, o v6 da F-006 e o v7 da F-007 intactos no começo)', () => {
-  it('versão 8, 76.788 bytes; os 42.988 do v4, os 67.488 do v5, os 74.636 do v6 e os 74.680 do v7 no mesmo lugar; cada seção em múltiplo de 4 e cada view alinhada à sua largura', () => {
-    expect(VERSAO_LAYOUT).toBe(8);
+describe('layout v9 (o v4 da F-004, o v5 da F-005, o v6 da F-006, o v7 da F-007 e o v8 da F-008 intactos no começo)', () => {
+  it('versão 9, 76.868 bytes; os 42.988 do v4, os 67.488 do v5, os 74.636 do v6, os 74.680 do v7 e os 76.788 do v8 no mesmo lugar; cada seção em múltiplo de 4 e cada view alinhada à sua largura', () => {
+    expect(VERSAO_LAYOUT).toBe(9);
     expect(BYTES_DO_LAYOUT_4).toBe(42988);
     expect(BYTES_DO_LAYOUT_5).toBe(67488);
     expect(BYTES_DO_LAYOUT_6).toBe(74636);
     expect(BYTES_DO_LAYOUT_7).toBe(74680);
-    expect(BYTES_ESTADO).toBe(76788);
+    expect(BYTES_DO_LAYOUT_8).toBe(76788);
+    expect(BYTES_ESTADO).toBe(76868);
     expect(Object.values(LAYOUT).every((o) => o % 4 === 0)).toBe(true);
     const e = criarEstado(1, D);
     const views = [
@@ -54,10 +56,11 @@ describe('layout v8 (o v4 da F-004, o v5 da F-005, o v6 da F-006 e o v7 da F-007
     expect(e.projeteis.salPassos.byteOffset + CAPACIDADE_DE_PROJETEIS).toBe(BYTES_DO_LAYOUT_4);
     expect(LAYOUT.progressao).toBe(BYTES_DO_LAYOUT_4);
     expect(e.efeitos.arma.byteOffset + e.efeitos.arma.length).toBe(BYTES_DO_LAYOUT_5);
-    // Os donos dos projéteis fecham o v6, o bloco da F-007 fecha o v7 e o da F-008 fecha o buffer.
+    // Os donos dos projéteis fecham o v6, o bloco da F-007 fecha o v7, o da F-008 o v8 e o da F-009 fecha o buffer.
     expect(e.projeteis.donoGeracao.byteOffset + e.projeteis.donoGeracao.byteLength).toBe(BYTES_DO_LAYOUT_6);
     expect(e.jogador4U8.byteOffset + e.jogador4U8.byteLength).toBe(BYTES_DO_LAYOUT_7);
-    expect(e.inimigos.convocaEspera.byteOffset + e.inimigos.convocaEspera.byteLength).toBe(BYTES_ESTADO);
+    expect(e.inimigos.convocaEspera.byteOffset + e.inimigos.convocaEspera.byteLength).toBe(BYTES_DO_LAYOUT_8);
+    expect(e.chefeU8.byteOffset + e.chefeU8.byteLength).toBe(BYTES_ESTADO);
   });
 
   it('a Vigília normal começa com a Espada nv1 na vaga 0, as outras vazias', () => {

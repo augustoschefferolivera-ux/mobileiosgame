@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BYTES_DO_LAYOUT_6,
   BYTES_DO_LAYOUT_7,
-  BYTES_ESTADO,
+  BYTES_DO_LAYOUT_8,
   CAPACIDADE_DE_INIMIGOS,
   ETAPA,
   FOGUEIRA_F32,
@@ -23,11 +23,11 @@ import { avancar } from '../../../src/logica/nucleo/passo';
 import { DADOS_DA_CHARNECA as D, PARADO, dadosDe } from '../apoio';
 
 describe('layout v8 (LY1)', () => {
-  it('versão 8, 76.788 bytes; o v7 (74.680) no mesmo lugar e o bloco novo em ordem, cada deslocamento literal', () => {
-    expect(VERSAO_LAYOUT).toBe(8);
+  it('o v8 de 76.788 bytes; o v7 (74.680) no mesmo lugar e o bloco novo em ordem, cada deslocamento literal', () => {
+    expect(VERSAO_LAYOUT).toBe(9);
     expect(BYTES_DO_LAYOUT_7).toBe(74_680);
-    expect(BYTES_ESTADO).toBe(76_788);
-    expect(BYTES_ESTADO - BYTES_DO_LAYOUT_7).toBe(6 * 4 + 2 * 4 + 12 + 64 + 2 * 500 + 2 * 500);
+    expect(BYTES_DO_LAYOUT_8).toBe(76_788);
+    expect(BYTES_DO_LAYOUT_8 - BYTES_DO_LAYOUT_7).toBe(6 * 4 + 2 * 4 + 12 + 64 + 2 * 500 + 2 * 500);
     expect({
       fimDoV7: LAYOUT.fimDoV7,
       fogueira: LAYOUT.fogueira,
@@ -45,7 +45,7 @@ describe('layout v8 (LY1)', () => {
       obstaculoAtivo: 74_724,
       inimigos8U8: 74_788,
       inimigos8U16: 75_788,
-      fim: 76_788,
+      fim: 76_868,
     });
     expect(LAYOUT.jogador4U8 + 8).toBe(BYTES_DO_LAYOUT_7);
     expect(BYTES_DO_LAYOUT_6).toBe(74_636);
@@ -62,7 +62,7 @@ describe('layout v8 (LY1)', () => {
     expect(fim(e.obstaculoAtivo)).toBe(e.inimigos.ataqueId.byteOffset);
     expect(fim(e.inimigos.ataqueId)).toBe(e.inimigos.ataqueSeq.byteOffset);
     expect(fim(e.inimigos.ataqueSeq)).toBe(e.inimigos.convocaEspera.byteOffset);
-    expect(fim(e.inimigos.convocaEspera)).toBe(BYTES_ESTADO);
+    expect(fim(e.inimigos.convocaEspera)).toBe(BYTES_DO_LAYOUT_8);
     expect(e.inimigos.convocaEspera.byteOffset % 2).toBe(0);
     expect([e.fogueiraF32.length, e.fogueiraU32.length, e.fogueiraU8.length, e.obstaculoAtivo.length]).toEqual([6, 2, 12, OBSTACULOS_MAXIMOS]);
     avancar(e, D, PARADO, 100);
@@ -74,10 +74,10 @@ describe('layout v8 (LY1)', () => {
     expect(Object.keys(FOGUEIRA_U32)).toEqual(['idVigilia', 'convocacoes']);
     expect(Object.keys(FOGUEIRA_U8)).toEqual(['etapa', 'marcosIniciados', 'arenaAtiva', 'coroadosVivos', 'fogueiraAcesa', 'fogueiraHora', 'fogueiraAcoes', 'empurraoPassos']);
     expect(Object.values(FOGUEIRA_U8)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
-    expect(ETAPA).toEqual({ hora: 0, marco: 1, fogueira: 2, chefe: 3, aFome: 4 });
+    expect(ETAPA).toEqual({ hora: 0, marco: 1, fogueira: 2, chefe: 3, aFome: 4, amanhecer: 5 });
   });
 
-  it('um campo do v8 escrito só muda a seção `fogueira` do hash; as outras ficam', () => {
+  it('um campo do v8 escrito só muda a seção `fogueira` do hash; as outras ficam (a `chefe` é o bloco do v9)', () => {
     const e = criarEstado(1, D);
     const antes = hashPorSecao(e);
     const h0 = hashEstado(e);
@@ -88,16 +88,16 @@ describe('layout v8 (LY1)', () => {
       else expect(depois[k], k).toBe(antes[k]);
     }
     expect(hashEstado(e)).not.toBe(h0);
-    // O último byte do buffer (o fim de `convocaEspera`) também entra no hash.
+    // O último byte do v8 (o fim de `convocaEspera`) também entra no hash.
     e.fogueiraU8[FOGUEIRA_U8.etapa] = ETAPA.hora;
-    e.bytes[BYTES_ESTADO - 1] = 1;
+    e.bytes[BYTES_DO_LAYOUT_8 - 1] = 1;
     expect(hashPorSecao(e).fogueira).not.toBe(antes.fogueira);
     expect(hashPorSecao(e).vigilia).toBe(antes.vigilia);
   });
 });
 
 describe('constantes novas (LY2)', () => {
-  it('eventos 29 a 38, formas 9 e 10 e causas 2 e 3, só no fim', () => {
+  it('eventos 29 a 38, formas 9 e 10 e causas 2 e 3, só no fim (a F-009 acrescenta as suas depois)', () => {
     expect(EVENTO.danoAoJogador).toBe(28);
     expect(EVENTO.marcoIniciado).toBe(29);
     expect(EVENTO.marcoVencido).toBe(30);
@@ -112,7 +112,7 @@ describe('constantes novas (LY2)', () => {
     expect(FORMA.projetilSal).toBe(8);
     expect(FORMA.coneInimigo).toBe(9);
     expect(FORMA.gritoInimigo).toBe(10);
-    expect(CAUSA).toEqual({ arma: 1, arena: 2, cinza: 3 });
+    expect(CAUSA).toMatchObject({ arma: 1, arena: 2, cinza: 3 });
   });
 });
 

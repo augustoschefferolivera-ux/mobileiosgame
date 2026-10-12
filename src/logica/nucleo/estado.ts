@@ -16,7 +16,9 @@
 // depois dos 74.636 bytes do v6: a fase da Vigília, o Frasco, a mancha das
 // Cinzas Perdidas e os contadores da pausa e do Resultado. Na F-008 (VERSAO_LAYOUT 8;
 // design/decisoes-F-008.md §1), outra vez só no fim, depois dos 74.680 bytes do v7: a etapa e os marcos, a
-// arena, a Fogueira, o empurrão do Grito, os obstáculos ativos e, por inimigo, o ataque e a convocação do Coroado.
+// arena, a Fogueira, o empurrão do Grito, os obstáculos ativos e, por inimigo, o ataque e a convocação do Coroado. Na F-009
+// (VERSAO_LAYOUT 9; design/decisoes-F-009.md §1), mais um bloco só no fim, depois dos 76.788 bytes do v8: o Lanterneiro
+// (Postura, fases, esperas, mira e zonas), a cegueira, o Agarrar, A Fome e o Amanhecer.
 import type { DadosDaVigilia } from '../mundo/dados';
 import { criarAnel, esvaziarAnel, type AnelDeEventos } from './eventos';
 import { fnv1aByte, fnv1aBytes, FNV_BASE } from './hash';
@@ -29,7 +31,7 @@ import { gravarDanoNoSpawn, gravarHpNoSpawn } from '../mundo/escala';
 import { TIPO } from '../mundo/tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, normalizarNoToro } from '../mundo/toro';
 
-export const VERSAO_LAYOUT = 8;
+export const VERSAO_LAYOUT = 9;
 
 /** Palavras do cabeçalho (Uint32). As não usadas ficam em zero e entram no hash. */
 export const CAB = {
@@ -75,6 +77,8 @@ export const CENARIO = {
   semCinzas: 4,
   /** Os médios telegrafam, golpeiam e lançam (decisoes-F-006 VT1); desligado por padrão. */
   ataques: 8,
+  /** A Fome não desce aos 23:00 (F-009 FU1): a Fúria do chefe vira testável; só os testes ligam. */
+  semFome: 16,
 } as const;
 /** `CAB.linhaFixa` sem linha fixa: o diretor segue o relógio. */
 export const LINHA_LIVRE = 0xffffffff;
@@ -439,7 +443,8 @@ const CAMPOS_INIMIGO3_U8 = ['quebradaPassos', 'ataqueFase', 'ataqueTimer'] as co
 const CAMPOS_PROJETIL3_U16 = ['donoSlot', 'donoGeracao'] as const;
 
 /** Fases da Vigília (decisoes-F-007 AG4): em FIM o `passo` não faz nada e o hash fica congelado. */
-export const FASE = { viva: 0, apagando: 1, fim: 2 } as const;
+/** 3 e 4 (F-009 FM1, AN1): A Fome e o Amanhecer, em que as armas, os ataques, o diretor e os pickups também não rodam. */
+export const FASE = { viva: 0, apagando: 1, fim: 2, aFome: 3, amanhecer: 4 } as const;
 /** Por que a Vigília acabou; 3 e 4 ficam reservados às F-009 (decisoes-F-007 AG4). */
 export const CAUSA_DO_FIM = { nenhuma: 0, apagar: 1, abandonar: 2, aFome: 3, amanhecer: 4 } as const;
 
@@ -485,7 +490,7 @@ export const JOGADOR4_U8 = {
 const BYTES_JOGADOR4_U8 = 8;
 
 /** Etapas da Vigília (decisoes-F-008 AR1): a máquina de horas, marcos e Fogueira. */
-export const ETAPA = { hora: 0, marco: 1, fogueira: 2, chefe: 3, aFome: 4 } as const;
+export const ETAPA = { hora: 0, marco: 1, fogueira: 2, chefe: 3, aFome: 4, amanhecer: 5 } as const;
 /** Registro da F-008, Float32 (6 campos, 24 B; decisoes-F-008 §1): a Fogueira, o centro da arena e o empurrão do Grito. */
 export const FOGUEIRA_F32 = {
   fogueiraX: 0,
@@ -529,6 +534,73 @@ const BYTES_FOGUEIRA_U8 = 12;
 export const OBSTACULOS_MAXIMOS = 64;
 /** Campos Uint8 novos dos inimigos (F-008): qual ataque do Coroado está em curso e o contador do ciclo (CR4). */
 const CAMPOS_INIMIGO8_U8 = ['ataqueId', 'ataqueSeq'] as const;
+
+/** Registro da F-009, Float32 (10 campos, 40 B; decisoes-F-009 §1): o Lanterneiro, a mira do ataque em curso e as 3 zonas da Lanterna. */
+export const CHEFE_F32 = {
+  /** HP máximo do chefe, fixado no surgimento (LN2). */
+  hpMax: 0,
+  /** Postura, 0 a 100 (PO1). */
+  postura: 1,
+  /** Mira fixada no início do telegrafo (AT1), unitária. */
+  miraX: 2,
+  miraY: 3,
+  zonaX0: 4,
+  zonaX1: 5,
+  zonaX2: 6,
+  zonaY0: 7,
+  zonaY1: 8,
+  zonaY2: 9,
+} as const;
+const FLOATS_CHEFE = 10;
+/** Registro da F-009, Uint32 (2 campos, 8 B; ambos < 2^30). */
+export const CHEFE_U32 = {
+  /** Ataques do ciclo já iniciados (FS2): o ciclo fixo da fase lê a posição `chefeAtaqueSeq % tamanho`. */
+  ataqueSeq: 0,
+  /** Passos de A Fome já decorridos (FM1, parte 2b). */
+  fomePassos: 1,
+} as const;
+const PALAVRAS_CHEFE_U32 = 2;
+/** Registro da F-009, Uint16 (12 campos, 24 B; o 12º é folga em zero). */
+export const CHEFE_U16 = {
+  /** Slot do Lanterneiro, ou `SEM_CHEFE` (0xFFFF). */
+  slot: 0,
+  /** Passos que faltam da Quebra de Postura (PO2). */
+  quebraPassos: 1,
+  /** Passos sem ganho de Postura nem acerto de arma, saturando em 60 (PO3). */
+  posturaOciosa: 2,
+  /** Passos que faltam da transição de fase (FS1). */
+  transicaoPassos: 3,
+  /** Passos até o próximo Convocar (FS3). */
+  convocaEspera: 4,
+  /** Passos até a próxima Explosão (FS4). */
+  explosaoEspera: 5,
+  /** Passos que faltam da cegueira do jogador (AT3). */
+  cegoPassos: 6,
+  /** Passos do Amanhecer (AN4, parte 2b). */
+  amanhecerPassos: 7,
+  zonaTimer0: 8,
+  zonaTimer1: 9,
+  zonaTimer2: 10,
+} as const;
+const HALFWORDS_CHEFE = 12;
+/** "Sem Lanterneiro" em `CHEFE_U16.slot`. */
+export const SEM_CHEFE = 0xffff;
+/** Registro da F-009, Uint8 (8 B; 2 de folga em zero). */
+export const CHEFE_U8 = {
+  /** Fase atual: 0 (sem chefe), 1 a 3 (FS1). */
+  fase: 0,
+  /** Maior fase alcançada na Vigília (Resultado, RE1). */
+  faseMax: 1,
+  /** 1 se o Lanterneiro morreu nesta Vigília (AN1). */
+  morto: 2,
+  /** Passos que faltam do Agarrar (AT6). */
+  presoPassos: 3,
+  /** 1 se o anel da Explosão em curso já teve a sua chance de acerto (AT5). */
+  explosaoAcertou: 4,
+  /** Quebras de Postura da luta (telemetria, RE2). */
+  quebras: 5,
+} as const;
+const BYTES_CHEFE_U8 = 8;
 
 const PALAVRAS_RNG = FLUXOS.length * PALAVRAS_POR_FLUXO;
 const BYTES_CAB = PALAVRAS_CAB * 4;
@@ -597,7 +669,14 @@ const INICIO_FOGUEIRA_U8 = INICIO_FOGUEIRA_U32 + PALAVRAS_FOGUEIRA_U32 * 4;
 const INICIO_OBSTACULO_ATIVO = INICIO_FOGUEIRA_U8 + BYTES_FOGUEIRA_U8;
 const INICIO_INIMIGOS8_U8 = INICIO_OBSTACULO_ATIVO + OBSTACULOS_MAXIMOS;
 const INICIO_INIMIGOS8_U16 = INICIO_INIMIGOS8_U8 + CAMPOS_INIMIGO8_U8.length * CAPACIDADE_DE_INIMIGOS;
-export const BYTES_ESTADO = INICIO_INIMIGOS8_U16 + CAPACIDADE_DE_INIMIGOS * 2;
+/** Fim do layout v8 da F-008 (a regressão v8 compara os bytes até aqui). */
+export const BYTES_DO_LAYOUT_8 = INICIO_INIMIGOS8_U16 + CAPACIDADE_DE_INIMIGOS * 2;
+// F-009: tudo depois de BYTES_DO_LAYOUT_8, em múltiplos de 4 bytes (decisoes-F-009 §1).
+const INICIO_CHEFE = BYTES_DO_LAYOUT_8;
+const INICIO_CHEFE_U32 = INICIO_CHEFE + FLOATS_CHEFE * 4;
+const INICIO_CHEFE_U16 = INICIO_CHEFE_U32 + PALAVRAS_CHEFE_U32 * 4;
+const INICIO_CHEFE_U8 = INICIO_CHEFE_U16 + HALFWORDS_CHEFE * 2;
+export const BYTES_ESTADO = INICIO_CHEFE_U8 + BYTES_CHEFE_U8;
 
 /** Deslocamento de cada seção no buffer (o teste de layout trava todos e o alinhamento de cada view). */
 export const LAYOUT = {
@@ -649,6 +728,11 @@ export const LAYOUT = {
   obstaculoAtivo: INICIO_OBSTACULO_ATIVO,
   inimigos8U8: INICIO_INIMIGOS8_U8,
   inimigos8U16: INICIO_INIMIGOS8_U16,
+  fimDoV8: BYTES_DO_LAYOUT_8,
+  chefe: INICIO_CHEFE,
+  chefeU32: INICIO_CHEFE_U32,
+  chefeU16: INICIO_CHEFE_U16,
+  chefeU8: INICIO_CHEFE_U8,
   fim: BYTES_ESTADO,
 } as const;
 
@@ -683,6 +767,14 @@ export interface Estado {
   readonly fogueiraU8: Uint8Array;
   /** 1 = o obstáculo i (na ordem do JSON da região) colide; 0 = tirado pela arena (AR3). Nasce em 1 nos `n` primeiros. */
   readonly obstaculoAtivo: Uint8Array;
+  /** O Lanterneiro (Postura, esperas, mira, zonas), pelos índices de CHEFE_F32 (F-009). */
+  readonly chefeF32: Float32Array;
+  /** Sequência do ciclo de ataques e passos de A Fome, pelos índices de CHEFE_U32 (F-009). */
+  readonly chefeU32: Uint32Array;
+  /** Slot, Quebra, esperas, cegueira e Amanhecer, pelos índices de CHEFE_U16 (F-009). */
+  readonly chefeU16: Uint16Array;
+  /** Fase do chefe, preso, morto e quebras, pelos índices de CHEFE_U8 (F-009). */
+  readonly chefeU8: Uint8Array;
   /** Build: as 5 vagas de arma. */
   readonly build: Build;
   /** Bloco do mundo e do diretor, pelos índices de MUNDO. */
@@ -747,6 +839,10 @@ export function criarEstado(seed: number, dados: DadosDaVigilia, params: Partial
     fogueiraU32: new Uint32Array(buffer, INICIO_FOGUEIRA_U32, PALAVRAS_FOGUEIRA_U32),
     fogueiraU8: new Uint8Array(buffer, INICIO_FOGUEIRA_U8, BYTES_FOGUEIRA_U8),
     obstaculoAtivo: new Uint8Array(buffer, INICIO_OBSTACULO_ATIVO, OBSTACULOS_MAXIMOS),
+    chefeF32: new Float32Array(buffer, INICIO_CHEFE, FLOATS_CHEFE),
+    chefeU32: new Uint32Array(buffer, INICIO_CHEFE_U32, PALAVRAS_CHEFE_U32),
+    chefeU16: new Uint16Array(buffer, INICIO_CHEFE_U16, HALFWORDS_CHEFE),
+    chefeU8: new Uint8Array(buffer, INICIO_CHEFE_U8, BYTES_CHEFE_U8),
     build: {
       recarga: new Uint16Array(buffer, INICIO_BUILD, V),
       esperaPulso: new Uint16Array(buffer, INICIO_BUILD + 2 * V, V),
@@ -906,6 +1002,8 @@ export function reiniciarEstado(e: Estado, seed: number, dados: DadosDaVigilia, 
     e.jogador4U32[JOGADOR4_U32.manchaAlmas] = p.mancha.almas;
   }
   e.mundo[MUNDO.intensidade10] = 10;
+  // F-009: ainda não há Lanterneiro.
+  e.chefeU16[CHEFE_U16.slot] = SEM_CHEFE;
   // F-008: obstáculos ativos e a etapa de partida (decisoes-F-008 AR1, ADR-0010 §1): os marcos que o relógio
   // inicial já passou contam como iniciados (um ?inicio=19:00 não abre os marcos de 5, 10 e 15), e de 20:00 em diante é CHEFE.
   if (dados.obstaculos.n > OBSTACULOS_MAXIMOS) throw new Error(`obstáculos demais: ${dados.obstaculos.n} > ${OBSTACULOS_MAXIMOS}`);
@@ -1085,7 +1183,7 @@ export function hashDoBufferDoEstado(b: Uint8Array): number {
  */
 export function hashPorSecao(
   e: Estado,
-): Record<'cabecalho' | 'rng' | 'jogador' | 'mundo' | 'inimigos' | 'projeteis' | 'progressao' | 'pickups' | 'efeitos' | 'combate' | 'vigilia' | 'fogueira', number> {
+): Record<'cabecalho' | 'rng' | 'jogador' | 'mundo' | 'inimigos' | 'projeteis' | 'progressao' | 'pickups' | 'efeitos' | 'combate' | 'vigilia' | 'fogueira' | 'chefe', number> {
   const secao = (inicio: number, fim: number): number => fnv1aBytes(FNV_BASE, new Uint8Array(e.buffer, inicio, fim - inicio));
   return {
     cabecalho: secao(0, BYTES_CAB),
@@ -1099,6 +1197,7 @@ export function hashPorSecao(
     efeitos: secao(INICIO_POOL_EFEITOS, BYTES_DO_LAYOUT_5),
     combate: secao(BYTES_DO_LAYOUT_5, BYTES_DO_LAYOUT_6),
     vigilia: secao(BYTES_DO_LAYOUT_6, BYTES_DO_LAYOUT_7),
-    fogueira: secao(BYTES_DO_LAYOUT_7, BYTES_ESTADO),
+    fogueira: secao(BYTES_DO_LAYOUT_7, BYTES_DO_LAYOUT_8),
+    chefe: secao(BYTES_DO_LAYOUT_8, BYTES_ESTADO),
   };
 }

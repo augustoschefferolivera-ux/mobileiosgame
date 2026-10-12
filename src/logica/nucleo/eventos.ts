@@ -54,10 +54,41 @@ export const EVENTO = {
   fogueiraPartiu: 36,
   fogueiraApagada: 37,
   convocacao: 38,
+  // F-009 (design/decisoes-F-009.md §0.B, EV); os códigos só crescem no fim.
+  chefeSurgiu: 39,
+  /** forma 1: início da transição; forma 2: fim dela. */
+  chefeFase: 40,
+  /** forma 1: acúmulo de Postura que enche a barra; forma 2: Agarrar aparado. */
+  quebraDoChefe: 41,
+  quebraAcabou: 42,
+  /** forma 1: cego; forma 2: preso; forma 3: queimando (zona da Lanterna). */
+  efeitoNoJogador: 43,
+  furia: 44,
+  chefeMorreu: 45,
+  amanhecerIniciado: 46,
+  fomeDesceu: 47,
 } as const;
 /** Formas de ataque do evento; os códigos só crescem no fim. */
 /** 7 e 8 (F-006): o arco do Oco Grande e o projétil de Sal da Noviça; 9 e 10 (F-008): a Patada (cone) e o Grito (círculo) do Coroado. */
-export const FORMA = { ida: 1, volta: 2, estocada: 3, faca: 4, tick: 5, onda: 6, arcoInimigo: 7, projetilSal: 8, coneInimigo: 9, gritoInimigo: 10 } as const;
+export const FORMA = {
+  ida: 1,
+  volta: 2,
+  estocada: 3,
+  faca: 4,
+  tick: 5,
+  onda: 6,
+  arcoInimigo: 7,
+  projetilSal: 8,
+  coneInimigo: 9,
+  gritoInimigo: 10,
+  // F-009 (AT1): os ataques do Lanterneiro.
+  varaArco: 11,
+  varaLinha: 12,
+  luzCega: 13,
+  lanternaZona: 14,
+  explosaoAnel: 15,
+  agarrar: 16,
+} as const;
 /** Bits de flags. */
 /** `contra` (F-006): evento `golpe` ou `acerto` de uma salva extra do Contra-ataque. */
 export const FLAG = { critico: 1, matou: 2, convertido: 4, contra: 8 } as const;
@@ -65,7 +96,7 @@ export const FLAG = { critico: 1, matou: 2, convertido: 4, contra: 8 } as const;
  * Causa de morte (a F-009 acrescenta as suas). Só `arma` solta Cinza, Alma, baú e soma `mortes`; `arena` é a massa e os
  * médios mortos ao formar a arena (AR4) e `cinza` os Coroados do marco vencido ou do 20:00 (AR7, AR8).
  */
-export const CAUSA = { arma: 1, arena: 2, cinza: 3 } as const;
+export const CAUSA = { arma: 1, arena: 2, cinza: 3, lanterneiro: 4 } as const;
 /** Handle de "sem alvo". */
 export const SEM_ALVO = 0xffffffff;
 
@@ -104,6 +135,11 @@ export const EV = {
    * fogueiraApagada: x, y da Fogueira, hora, 0; convocacao: x, y do Coroado, quantos entraram, quantos
    * foram descartados (TETO ou obstáculo); golpeInimigo e telegrafo com a forma 9 ou 10 levam os mesmos
    * floats do arco. Os eventos 33 a 36 (Fogueira aberta, Descansar, Forjar, Partir) são da parte 2b.
+   * F-009: chefeSurgiu: x, y, hpMax, nível; chefeFase: x, y, fase, HP (forma 1 início, 2 fim da transição);
+   * quebraDoChefe: x, y, Postura, passos da Quebra; quebraAcabou: x, y, 0, 0; efeitoNoJogador: x, y, passos, 0;
+   * furia: x, y, n, fator; chefeMorreu: x, y, Almas creditadas, fase; amanhecerIniciado e fomeDesceu: x, y, 0, 0;
+   * telegrafo e golpeInimigo com as formas 11 a 16 levam x, y do chefe, duração e alcance (telegrafo) ou x, y, dano
+   * bruto (0 se evitado), desfecho (golpe); o chefe é o atacante (tipo 5).
    */
   floats: 4,
 } as const;

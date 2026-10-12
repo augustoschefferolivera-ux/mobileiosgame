@@ -96,6 +96,15 @@ export const NOMES_DOS_EVENTOS = [
   'fogueiraPartiu',
   'fogueiraApagada',
   'convocacao',
+  'chefeSurgiu',
+  'chefeFase',
+  'quebraDoChefe',
+  'quebraAcabou',
+  'efeitoNoJogador',
+  'furia',
+  'chefeMorreu',
+  'amanhecerIniciado',
+  'fomeDesceu',
 ] as const;
 const NOMES_DAS_CARTAS = ['', 'melhoriaDeArma', 'armaNova', 'melhoriaDePassiva', 'passivaNova', 'bolsa'] as const;
 const NOMES_DAS_CATEGORIAS = ['', 'arma', 'passiva', 'bolsa'] as const;
