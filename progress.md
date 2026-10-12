@@ -2,13 +2,18 @@
 
 ## Sessão 8 — F-011 "Arte do jogo (até a F-007)"
 
-### Estado: etapa 1 pronta, aguarda a aprovação do usuário; etapas 2 a 4 não começadas
+### Estado: etapas 1 e 2 prontas (style card aprovado em 2026-10-12, "Aprovo o style card, pode seguir para a etapa 2"); a etapa 2 aguarda a aprovação do usuário; etapas 3 e 4 não começadas
 
 Branch `claude/clever-galileo-26bjed`, criada de `origin/claude/f006-esquiva-weodg1`. Pedido do usuário (2026-10-12): arte 100% por código (grade de índices da paleta do doc 13 e efeitos procedurais), personagem 24 × 24, o resto do menor tamanho que funcione, muitos detalhes de efeitos e de armas, só apresentação, em 4 etapas com parada para aprovação ao fim da 1 e da 2.
 
 - [x] **Etapa 1, pesquisa e style card:** `design/arte/style-card.md` (pesquisa com fontes, paleta de 32, luz, contorno, escala de cada coisa, efeitos, animação, checagem automática e as decisões E1 a E8 para aprovar) e as 3 amostras em PNG (`design/arte/amostra-1-paleta-e-aldric.png`, `amostra-2-modelos.png`, `amostra-3-cena-390x844.png`). F-011 registrada no `feature_list.json` (11 critérios e 7 evidências).
 - [x] **Base de código da arte:** `src/arte/` (paleta, rasterizador, procedurais e os modelos: Aldric, Oco das Lanternas, Oco Grande, Noviça de Sal, Alma, baús, ícone da espada), `scripts/arte/` (amostras e prévia, rodando o TypeScript pelo Vite: `node scripts/arte/rodar.mjs amostras`) e `tests/arte/arte.test.ts` (paleta, contorno fechado, tamanhos, cor quente nos inimigos). A checagem já pegou um defeito real: o pomo da espada sem contorno.
-- [ ] Etapa 2, produção da arte de tudo até a F-007 (aguarda a aprovação do style card).
+- [x] **Etapa 2, produção da arte de tudo até a F-007** (só apresentação: simulação, layout do estado e hashes intactos):
+  - **modelos em grade:** Aldric 24 × 24 (parado, andar, agachado, rolando, aparo, Frasco, ajoelhado no Apagar), Oco das Lanternas 16 × 16, Oco Grande e Noviça de Sal 24 × 24 (andar, telegrafo, ataque e acerto), Oco Grande Coroado 32 × 32 (o elite da F-008, que chegou à branch durante a produção e quebrava a cena sem desenho), Alma, baús, cristais, rochas, chão em ladrilho e os 9 ícones das armas e passivas;
+  - **efeitos:** faca em 16 direções, arco do golpe (ida, volta e forte, 2 quadros), estocada, onda, grãos e pulso do Círculo, cunha do telegrafo com silhueta branca, projéteis de Sal, marcadores de Atordoado e de Sal, cinza das mortes em 3 quadros, partículas (faíscas do acerto, cinza da morte, anel do aparo, brasas do Frasco e do Apagar) num pool fixo de 256, rastro da esquiva e a luz da brasa;
+  - **render:** `src/arte/catalogo.ts` → atlas 1024 (NEAREST depois do `refresh`), quadro por passo da simulação (pausado, a imagem só depende do estado), inimigos virados para o jogador, GPU e Image idênticos no pixel; HUD em pixel (joystick, Aparo, Frasco, pausa), Aldric respirando no Acender e a mancha com anel, Alma e seta;
+  - **testes:** `tests/arte/` (paleta, contorno fechado, tamanhos, linha dos pés, cor quente, cor de identidade no centro, atlas) e `tests/cenas/` (465 verdes, alocação ≤ 16 B por passo); `e2e/f011.spec.ts` grava as 6 capturas 390 × 844 em `production/evidencias/F-011/`, e `tests/arte/folhas.test.ts` a folha de todas as molduras.
+  - **branch compartilhada:** outra sessão faz a F-008 na mesma branch; cada envio foi rebaseado sobre o dela, e os conflitos em `src/cenas/render/horda.ts` mantiveram o `COR_DOS_ELITES` e o molde provisório dela, com a arte do Coroado por cima. Decisões da produção no style card §11.
 - [ ] Etapa 3, revisão de consistência por subagente.
 - [ ] Etapa 4, capturas 390 × 844 de cada cena, roteiro do iPhone e `verify.sh` completo.
 
@@ -304,7 +309,7 @@ Branch `claude/clever-galileo-26bjed`, criada de `origin/claude/f006-esquiva-weo
 - **Sessão 5:** fechou na F-005.
 - **Sessão 6:** fechou na F-006.
 - **Sessão 7:** fecha na F-007, que aguarda a revisão do usuário. A F-008 não foi começada.
-- **Sessão 8 (F-011, arte):** parou ao fim da etapa 1, à espera da aprovação do style card. Para retomar: ler `design/arte/style-card.md` (§0 e §10) e a F-011 no `feature_list.json`; a produção segue o §10.
+- **Sessão 8 (F-011, arte):** parou ao fim da etapa 2, à espera da aprovação do usuário. Para retomar: ler `design/arte/style-card.md` (§0, §10 e §11) e a F-011 no `feature_list.json`; seguem a etapa 3 (revisão de consistência por subagente, contra as capturas e a folha em `production/evidencias/F-011/`) e a 4.
 - **Próxima sessão (F-008), com o mesmo método:**
   - ler este arquivo, o ADR-0009, `design/decisoes-F-007.md` (sobretudo a §13, as recomendações para as F-008 a F-010) e a entrada da F-008 no `feature_list.json`;
   - antes de implementar, fechar as pendências da F-008 (levantamento, revisão adversarial e §0 para veto), e só então a Etapa 2;
