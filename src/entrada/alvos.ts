@@ -102,12 +102,27 @@ export function alvoDoAparo(insets: Insets, out: Alvo): Alvo {
   return out;
 }
 
-/** Vigília: o botão de pausa (F-004), a área do joystick (F-002) e o botão Aparo (F-006); o Frasco entra com a F-007. */
+/** Botão do Frasco (design/decisoes-F-007.md FR8): 72 × 72 pt, centrado sobre o Aparo e 16 pt acima dele. */
+export const BOTAO_DO_FRASCO = { lado: ALVO_MINIMO_PT, acimaDoAparo: 16 } as const;
+
+/** Botão do Frasco, escrito em `out` sem alocar. */
+export function alvoDoFrasco(insets: Insets, out: Alvo): Alvo {
+  alvoDoAparo(insets, out);
+  out.id = 'frasco';
+  out.x += (out.largura - BOTAO_DO_FRASCO.lado) / 2;
+  out.y -= BOTAO_DO_FRASCO.acimaDoAparo + BOTAO_DO_FRASCO.lado;
+  out.largura = BOTAO_DO_FRASCO.lado;
+  out.altura = BOTAO_DO_FRASCO.lado;
+  return out;
+}
+
+/** Vigília: o botão de pausa (F-004), a área do joystick (F-002), o botão Aparo (F-006) e o do Frasco (F-007). */
 export function alvosDaVigilia(insets: Insets, out: Alvo[]): Alvo[] {
   out.length = 0;
   out.push(alvoDaPausa(insets, { id: '', x: 0, y: 0, largura: 0, altura: 0 }));
   out.push(areaDoJoystick(insets, { id: '', x: 0, y: 0, largura: 0, altura: 0 }));
   out.push(alvoDoAparo(insets, { id: '', x: 0, y: 0, largura: 0, altura: 0 }));
+  out.push(alvoDoFrasco(insets, { id: '', x: 0, y: 0, largura: 0, altura: 0 }));
   return out;
 }
 
@@ -121,8 +136,9 @@ const ENTRE_BOTOES = 16;
 export const OPCAO_DUPLA = { largura: 136, entre: 16, acimaDeNumeros: 8, margem: 12 } as const;
 
 /**
- * Tela de pausa (P5, P6, P9, FB3): a opção de números (a linha inteira é o alvo), o Continuar e, depois dele (o
- * baú usa o índice 1), Som e Flashes lado a lado acima de "números", na zona de controles, centrados na área segura.
+ * Tela de pausa (P5, P6, P9, FB3, PE3): a opção de números (a linha inteira é o alvo), o Continuar e, depois dele (o
+ * baú usa o índice 1), Som e Flashes lado a lado acima de "números" e, por último, o Abandonar (288 × 72 pt, 16 pt
+ * acima de Som e Flashes: o mais longe do Continuar), na zona de controles, centrados na área segura.
  */
 export function alvosDaTelaDePausa(insets: Insets, out: Alvo[]): Alvo[] {
   const larguraUtil = LARGURA_LOGICA - insets.esquerda - insets.direita;
@@ -139,6 +155,41 @@ export function alvosDaTelaDePausa(insets: Insets, out: Alvo[]): Alvo[] {
   const xDupla = insets.esquerda + (larguraUtil - 2 * larguraDaOpcao - d.entre) / 2;
   out.push({ id: 'som', x: xDupla, y: yDupla, largura: larguraDaOpcao, altura: BOTAO_DA_PAUSA.altura });
   out.push({ id: 'flashes', x: xDupla + larguraDaOpcao + d.entre, y: yDupla, largura: larguraDaOpcao, altura: BOTAO_DA_PAUSA.altura });
+  out.push({ id: 'abandonar', x, y: yDupla - ENTRE_BOTOES - BOTAO_DA_PAUSA.altura, largura, altura: BOTAO_DA_PAUSA.altura });
+  return out;
+}
+
+/** Estatísticas e aviso do Abandonar na pausa (PE3): linhas de 18 pt, o aviso em 2 linhas a 18 pt do botão. */
+export const BLOCO_DO_ABANDONAR = { linha: 18, linhasDoAviso: 2, folgaDoAviso: 18, folgaDasEstatisticas: 28 } as const;
+
+export interface BlocoDaPausa {
+  /** Topo do aviso (2 linhas) e das estatísticas, e quantas linhas as estatísticas ocupam (3, ou 1 sem espaço: "12 · 340 · 3"). */
+  readonly yDoAviso: number;
+  readonly yDasEstatisticas: number;
+  readonly linhasDasEstatisticas: 1 | 3;
+}
+
+/**
+ * Onde ficam o aviso e as estatísticas acima do Abandonar. `topoLivre` é o fim da build desenhada (y); com menos de
+ * 3 linhas de folga entre ela e o aviso, as estatísticas viram uma linha só (PE3).
+ */
+export function blocoDaPausa(abandonar: Alvo, topoLivre: number): BlocoDaPausa {
+  const b = BLOCO_DO_ABANDONAR;
+  const yDoAviso = abandonar.y - b.folgaDoAviso - b.linhasDoAviso * b.linha;
+  const fundo = yDoAviso - b.folgaDasEstatisticas;
+  const tres = fundo - 3 * b.linha >= topoLivre;
+  return { yDoAviso, yDasEstatisticas: tres ? fundo - 3 * b.linha : fundo - b.linha, linhasDasEstatisticas: tres ? 3 : 1 };
+}
+
+/** Resultado (design/decisoes-F-007.md RS6): Voltar e Repetir, 288 × 72 pt, 16 pt entre eles, o último a 24 pt do inset de baixo. */
+export function alvosDoResultado(insets: Insets, out: Alvo[]): Alvo[] {
+  const larguraUtil = LARGURA_LOGICA - insets.esquerda - insets.direita;
+  const largura = Math.max(ALVO_MINIMO_PT, Math.min(BOTAO_DA_PAUSA.largura, larguraUtil));
+  const x = insets.esquerda + (larguraUtil - largura) / 2;
+  const yRepetir = ALTURA_LOGICA - insets.baixo - MARGEM_DO_CONTINUAR - BOTAO_DA_PAUSA.altura;
+  out.length = 0;
+  out.push({ id: 'voltar', x, y: yRepetir - ENTRE_BOTOES - BOTAO_DA_PAUSA.altura, largura, altura: BOTAO_DA_PAUSA.altura });
+  out.push({ id: 'repetir', x, y: yRepetir, largura, altura: BOTAO_DA_PAUSA.altura });
   return out;
 }
 
@@ -186,6 +237,7 @@ export const ALVOS_POR_TELA: Record<string, (insets: Insets, out: Alvo[]) => Alv
   acender: alvosDoAcender,
   vigilia: alvosDaVigilia,
   pausa: alvosDaTelaDePausa,
+  resultado: alvosDoResultado,
   cartas: alvosDasCartas,
   bau: alvosDoBau,
 };

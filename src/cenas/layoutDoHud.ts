@@ -153,3 +153,20 @@ export function estadoDoAparo(quadrosPressionado: number, stamina: number, custo
   if (stamina < custoDoAparo || esquivaPasso > 0 || aparoJanela > 0 || aparoFalho > 0) return ESTADO_DO_APARO.indisponivel;
   return ESTADO_DO_APARO.normal;
 }
+
+/** Estados do botão do Frasco (FR8): esmaecido sem cargas ou com o HP cheio; ativo durante a cura. */
+export const ESTADO_DO_FRASCO = { normal: 0, pressionado: 1, esmaecido: 2, curando: 3 } as const;
+
+/**
+ * Estado do botão do Frasco: pressionado (preenchido por 4 quadros) tem a vez; a cura em curso fica acesa; sem cargas ou
+ * com o HP cheio ele esmaece (o toque segue valendo para o cancelamento, e a simulação ignora o resto).
+ */
+export function estadoDoFrasco(quadrosPressionado: number, cargas: number, hp: number, hpMax: number, frascoPasso: number): number {
+  if (quadrosPressionado > 0) return ESTADO_DO_FRASCO.pressionado;
+  if (frascoPasso > 0) return ESTADO_DO_FRASCO.curando;
+  if (cargas === 0 || !(hp < hpMax)) return ESTADO_DO_FRASCO.esmaecido;
+  return ESTADO_DO_FRASCO.normal;
+}
+
+/** Desenho do botão do Frasco: anel de 64 pt, rótulo de 12 pt e uma marca por carga (até 3), sem texto por quadro. */
+export const BOTAO_DO_FRASCO_DESENHO = { raioDoAnel: 32, traco: 3, raioDaMarca: 4, entreMarcas: 14, marcasAbaixoDoCentro: 16, alfaEsmaecido: 0.35 } as const;

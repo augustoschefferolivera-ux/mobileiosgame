@@ -6,7 +6,7 @@
 // e R5). Mede a safe-area em create e resize e passa as áreas ao tradutor. Os demais
 // elementos entram com as suas features.
 import Phaser from 'phaser';
-import { alvoDaPausa, alvoDoAparo, areaDoJoystick, type Alvo } from '../entrada/alvos';
+import { alvoDaPausa, alvoDoAparo, alvoDoFrasco, areaDoJoystick, type Alvo } from '../entrada/alvos';
 import { RAIO_DO_JOYSTICK_PT, RAIO_DO_PINO_PT } from '../entrada/joystick';
 import { CAB, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR3_U8, JOGADOR4, JOGADOR4_U8, PROGRESSAO, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, type Estado } from '../logica/nucleo/estado';
 import { ALTURA_LOGICA, LARGURA_LOGICA, medirSafeArea, type Insets } from '../plataforma/safeArea';
@@ -16,10 +16,13 @@ import { IDS_DOS_PROMPTS, promptEmTela } from './prompts';
 import { RetardoDeHp } from './retardoDeHp';
 import {
   BARRA_DE_HP,
+  BOTAO_DO_FRASCO_DESENHO,
   BARRA_DE_STAMINA,
   BARRA_DE_XP,
   VINHETA_DO_ACERTO,
   ESTADO_DO_APARO,
+  ESTADO_DO_FRASCO,
+  estadoDoFrasco,
   PRIMEIRA_PASSIVA_NO_HUD,
   PULSO_DA_STAMINA,
   QUADROS_DO_APARO_PRESSIONADO,
@@ -98,6 +101,13 @@ export class Hud extends Phaser.Scene {
   private retardoDesenhado = -1;
   private numeroDeHpDesenhado = -1;
   private botaoDoAparoGrafico: Phaser.GameObjects.Graphics | null = null;
+  private botaoDoFrascoGrafico: Phaser.GameObjects.Graphics | null = null;
+  private rotuloDoFrasco: Phaser.GameObjects.Text | null = null;
+  private readonly botaoDoFrasco: Alvo = { id: 'frasco', x: 0, y: 0, largura: 0, altura: 0 };
+  private estadoDoFrascoDesenhado = -1;
+  private cargasDesenhadas = -1;
+  private frascoApertosVistos = 0;
+  private quadrosDoFrascoPressionado = 0;
   private flashGrafico: Phaser.GameObjects.Graphics | null = null;
   private readonly caixaDaStamina: CaixaDaBarra = { x: 0, y: 0, largura: 0, altura: 0 };
   private readonly botaoDoAparo: Alvo = { id: 'aparo', x: 0, y: 0, largura: 0, altura: 0 };
@@ -152,6 +162,11 @@ export class Hud extends Phaser.Scene {
     this.preenchimentoDaStamina = barra(COR.osso, 1).setVisible(false);
     this.marcasDaStamina = this.add.graphics();
     this.botaoDoAparoGrafico = this.add.graphics();
+    this.botaoDoFrascoGrafico = this.add.graphics();
+    this.rotuloDoFrasco = texto(this, 0, 0, 'A5.HUD.FRASCO', 12, COR.osso).setOrigin(0.5);
+    this.estadoDoFrascoDesenhado = this.cargasDesenhadas = -1;
+    this.frascoApertosVistos = this.ctx.entrada.tradutor.frascoApertos;
+    this.quadrosDoFrascoPressionado = 0;
     this.staminaDesenhada = -1;
     this.alfaDaStaminaDesenhado = -1;
     this.estadoDoAparoDesenhado = -1;
@@ -243,6 +258,9 @@ export class Hud extends Phaser.Scene {
     this.staminaDesenhada = -1;
     this.alfaDaStaminaDesenhado = -1;
     alvoDoAparo(ins, this.botaoDoAparo);
+    alvoDoFrasco(ins, this.botaoDoFrasco);
+    this.rotuloDoFrasco!.setPosition(this.botaoDoFrasco.x + this.botaoDoFrasco.largura / 2, this.botaoDoFrasco.y + this.botaoDoFrasco.altura / 2 - 8);
+    this.estadoDoFrascoDesenhado = this.cargasDesenhadas = -1;
     this.estadoDoAparoDesenhado = -1;
     this.xpDesenhado = -1;
     this.assinaturaDasVagas = -1;
@@ -258,6 +276,7 @@ export class Hud extends Phaser.Scene {
       this.assinaturaDasVagas = -1;
       this.staminaDesenhada = -1;
       this.estadoDoAparoDesenhado = -1;
+      this.estadoDoFrascoDesenhado = this.cargasDesenhadas = -1;
       this.hpDesenhado = -1;
       this.retardo.reiniciar();
     }
@@ -355,6 +374,42 @@ export class Hud extends Phaser.Scene {
       this.estadoDoAparoDesenhado = estado;
       this.desenharAparo(estado);
     }
+  }
+
+  /**
+   * Botão do Frasco (FR8): anel de 64 pt com o rótulo e uma marca por carga (0 a 3), por Graphics, sem Text por quadro;
+   * redesenhado só quando o estado ou as cargas mudam. Esmaecido com 0 cargas ou HP cheio, aceso durante a cura.
+   */
+  private atualizarFrasco(sim: NonNullable<ContextoDoJogo['simulacao']>): void {
+    const tr = this.ctx.entrada.tradutor;
+    if (tr.frascoApertos !== this.frascoApertosVistos) {
+      if (tr.frascoApertos > this.frascoApertosVistos) this.quadrosDoFrascoPressionado = QUADROS_DO_APARO_PRESSIONADO;
+      this.frascoApertosVistos = tr.frascoApertos;
+    }
+    const e = sim.estado;
+    const cargas = e.jogador4U8[JOGADOR4_U8.frascoCargas]!;
+    const estado = estadoDoFrasco(this.quadrosDoFrascoPressionado, cargas, e.jogador[JOGADOR.hp]!, e.jogador2[JOGADOR2.hpMax]!, e.jogador4U8[JOGADOR4_U8.frascoPasso]!);
+    if (this.quadrosDoFrascoPressionado > 0) this.quadrosDoFrascoPressionado--;
+    if (estado === this.estadoDoFrascoDesenhado && cargas === this.cargasDesenhadas) return;
+    this.estadoDoFrascoDesenhado = estado;
+    this.cargasDesenhadas = cargas;
+    const d = BOTAO_DO_FRASCO_DESENHO;
+    const b = this.botaoDoFrasco;
+    const bx = b.x + b.largura / 2;
+    const by = b.y + b.altura / 2;
+    const alfa = estado === ESTADO_DO_FRASCO.esmaecido ? d.alfaEsmaecido : 1;
+    const g = this.botaoDoFrascoGrafico!;
+    g.clear().setAlpha(alfa);
+    this.rotuloDoFrasco!.setAlpha(alfa);
+    g.fillStyle(COR.pedra, ALFA_DA_BASE).fillCircle(bx, by, d.raioDoAnel);
+    if (estado === ESTADO_DO_FRASCO.pressionado) g.fillStyle(COR.osso, BOTAO_DO_APARO_DESENHO.alfaPressionado).fillCircle(bx, by, d.raioDoAnel);
+    if (estado === ESTADO_DO_FRASCO.curando) g.fillStyle(COR.brasaClara, BOTAO_DO_APARO_DESENHO.alfaPressionado).fillCircle(bx, by, d.raioDoAnel);
+    g.lineStyle(d.traco, estado === ESTADO_DO_FRASCO.curando ? COR.brasa : COR.osso, 1).strokeCircle(bx, by, d.raioDoAnel);
+    // Uma marca por carga, centradas abaixo do rótulo; carga gasta não desenha (a falta é o contador).
+    const y = by + d.marcasAbaixoDoCentro;
+    const x0 = bx - ((cargas - 1) * d.entreMarcas) / 2;
+    g.fillStyle(COR.brasa, 1);
+    for (let k = 0; k < cargas; k++) g.fillCircle(x0 + k * d.entreMarcas, y, d.raioDaMarca);
   }
 
   private desenharAparo(estado: number): void {
@@ -458,6 +513,7 @@ export class Hud extends Phaser.Scene {
       this.atualizarHp(sim);
       this.atualizarStamina(sim);
       this.atualizarAparo(sim);
+      this.atualizarFrasco(sim);
       this.atualizarFeedback(sim);
     }
   }

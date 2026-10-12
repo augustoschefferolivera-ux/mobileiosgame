@@ -6,7 +6,10 @@ import type Phaser from 'phaser';
 import { describe, expect, it } from 'vitest';
 import {
   BARRA_DE_STAMINA,
+  BOTAO_DO_FRASCO_DESENHO,
   ESTADO_DO_APARO,
+  ESTADO_DO_FRASCO,
+  estadoDoFrasco,
   LARGURA_DA_LINHA_DE_VAGAS,
   STAMINA_DA_ESQUIVA,
   TOTAL_DE_VAGAS_DO_HUD,
@@ -205,12 +208,28 @@ describe('textos da pausa e do Hud da F-006 (RE13)', () => {
     expect(pausa).toContain("'A6.PAUSA.SOM'");
     expect(pausa).toContain("'A6.PAUSA.FLASHES'");
     expect(pausa).not.toMatch(/'(Som|Flashes)'/);
-    // O Hud só cria texto para o nível, o número do HP (F-007 HB1) e o prompt (ids); nada para a barra de stamina nem para o Aparo.
+    // O Hud só cria texto para o nível, o número do HP (F-007 HB1), o rótulo do botão do Frasco (FR8, criado uma vez) e o prompt (ids); nada para a barra de stamina nem para o Aparo.
     const hud = readFileSync('src/cenas/Hud.ts', 'utf8');
-    expect([...hud.matchAll(/texto\(this, [^,]+, [^,]+, '([^']+)'/g)].map((m) => m[1])).toEqual(['A5.HUD.NIVEL', 'A5.HUD.HP']);
+    expect([...hud.matchAll(/texto\(this, [^,]+, [^,]+, '([^']+)'/g)].map((m) => m[1])).toEqual(['A5.HUD.NIVEL', 'A5.HUD.HP', 'A5.HUD.FRASCO']);
     expect(hud).toContain("texto(this, 0, 0, 'A5.HUD.HP'");
     // Os três prompts (um Text por id, TU11) vêm da lista de prompts.ts.
     expect(hud).toContain('for (const id of IDS_DOS_PROMPTS)');
     expect(hud).not.toMatch(/add\.text\(/);
+  });
+});
+
+describe('botão do Frasco (design/decisoes-F-007.md FR8)', () => {
+  it('estado: pressionado tem a vez; curando acende; sem cargas ou com HP cheio esmaece; senão normal', () => {
+    expect(estadoDoFrasco(2, 0, 150, 150, 0)).toBe(ESTADO_DO_FRASCO.pressionado);
+    expect(estadoDoFrasco(0, 2, 80, 150, 30)).toBe(ESTADO_DO_FRASCO.curando);
+    expect(estadoDoFrasco(0, 0, 80, 150, 0)).toBe(ESTADO_DO_FRASCO.esmaecido);
+    expect(estadoDoFrasco(0, 3, 150, 150, 0)).toBe(ESTADO_DO_FRASCO.esmaecido);
+    expect(estadoDoFrasco(0, 3, 149.5, 150, 0)).toBe(ESTADO_DO_FRASCO.normal);
+  });
+
+  it('o rótulo e as marcas de carga saem por t(id) e por Graphics, sem Text por quadro: o texto do botão é um id só', () => {
+    expect(t('A5.HUD.FRASCO')).toBe('Frasco');
+    expect(BOTAO_DO_FRASCO_DESENHO.raioDoAnel * 2).toBeLessThanOrEqual(72);
+    expect(BOTAO_DO_FRASCO_DESENHO.alfaEsmaecido).toBeLessThan(1);
   });
 });

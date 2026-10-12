@@ -14,7 +14,7 @@
 // e nunca os desliga (a fonte ao vivo consome a borda). Não aloca.
 import combate from '../dados/combate.json';
 import { ACAO, type ComandosDoPasso } from '../logica/nucleo/comandos';
-import { alvoDaPausa, alvoDoAparo, alvosDaTelaDePausa, alvosDasCartas, alvosDoBau, areaDoJoystick, contem, type Alvo } from './alvos';
+import { alvoDaPausa, alvoDoAparo, alvoDoFrasco, alvosDaTelaDePausa, alvosDasCartas, alvosDoBau, alvosDoResultado, areaDoJoystick, contem, type Alvo } from './alvos';
 import { CAMPOS_POR_EVENTO, TIPO_DE_TOQUE, type FilaDeToques } from './filaDeToques';
 import { GIRO_MAX_GRAUS_S, pinoDoJoystick, REVERSAO_IMEDIATA_GRAUS, vetorDoJoystick, type Vetor } from './joystick';
 import type { Insets } from '../plataforma/safeArea';
@@ -27,7 +27,7 @@ export const ID_DO_MOUSE = -1;
 /** Papel do dedo, pelo lugar onde começou: um botão (pausa, Aparo) não cria joystick nem conta para o gesto (P1, P3, AP1). */
 const PAPEL = { livre: 0, joystick: 1, outro: 2, botao: 3 } as const;
 /** Qual botão da Vigília o dedo de papel `botao` tocou. */
-const BOTAO = { pausa: 0, aparo: 1 } as const;
+const BOTAO = { pausa: 0, aparo: 1, frasco: 2 } as const;
 
 /** Gesto de pausa (P3): "parado" = até 10 pt do ponto do touchstart, por pelo menos 500 ms (o UILongPressGestureRecognizer). */
 export const GESTO_DE_PAUSA = { movimentoMaximoPt: 10, duracaoMs: 500, dedos: 2 } as const;
@@ -45,13 +45,15 @@ const TOQUE_DUPLO = {
   distanciaMaxPt: combate.gestos.toque_duplo.distancia_entre_toques_max_pt,
   deslocamentoMaxPt: combate.gestos.toque_duplo.deslocamento_max_pt,
 } as const;
+/** Quanto um novo toque no botão do Frasco precisa durar para cancelar a cura (FR6): 18 passos, em ms (18 × 1000 / 60 = 300). */
+const SEGURAR_DO_FRASCO_MS = (combate.frasco.cancelar_segurando_passos * 1000) / 60;
 const GIRO_MAX_RAD_MS = (GIRO_MAX_GRAUS_S * Math.PI) / 180 / 1000;
 const COS_REVERSAO = Math.cos((REVERSAO_IMEDIATA_GRAUS * Math.PI) / 180);
 /** Um timeStamp a mais de 60 s do relógio do quadro está em outro relógio: vale o agora do quadro (P3). */
 const RELOGIO_SUSPEITO_MS = 60_000;
 
 export type OrigemDaPausa = 'botao' | 'gesto';
-export type ModoDoTradutor = 'vigilia' | 'pausa' | 'modal';
+export type ModoDoTradutor = 'vigilia' | 'pausa' | 'modal' | 'resultado';
 export type TipoDeModal = 'cartas' | 'bau';
 /** Toques em alvo do modal guardados por quadro (M4): a 8 fps, um toque duplo entre dois quadros conta como 2. */
 export const MAX_TOQUES_NO_MODAL = 8;
@@ -80,8 +82,14 @@ export class TradutorDeGestos {
   pedidoDePausa: OrigemDaPausa | null = null;
   /** Toques que acionaram o botão Aparo desde a criação; o Hud o lê para o preenchimento de 4 quadros (RE2). */
   aparoApertos = 0;
+  /** Toques que acionaram o botão do Frasco desde a criação; o Hud o lê para o preenchimento de 4 quadros. */
+  frascoApertos = 0;
+  /** A cura do Frasco corre agora (a cena escreve antes de traduzir): decide entre iniciar (bit 4) e cancelar (bit 8, FR6). */
+  frascoEmCura = false;
   /** No modo pausa: o alvo da tela de pausa acionado neste frame (começou e soltou dentro). */
   toqueNaPausa: string | null = null;
+  /** No modo resultado: o botão acionado neste frame ('voltar' ou 'repetir'). */
+  toqueNoResultado: string | null = null;
   /** 'vigilia': joystick, botão e gesto; 'pausa': só os alvos da tela de pausa (P8); 'modal': só os do modal (M5). */
   modo: ModoDoTradutor = 'vigilia';
   /** No modo modal: os alvos tocados neste quadro (índice da carta, ou 0 = Continuar do baú), em ordem. */
@@ -101,6 +109,11 @@ export class TradutorDeGestos {
   /** Lista de botões da Vigília (AP1): `botaoDaPausa` e `botaoDoAparo`; o papel `botao` guarda qual em `qualBotao`. */
   private readonly botaoDaPausa: Alvo = { id: 'pausa', x: 0, y: 0, largura: 0, altura: 0 };
   private readonly botaoDoAparo: Alvo = { id: 'aparo', x: 0, y: 0, largura: 0, altura: 0 };
+  private readonly botaoDoFrasco: Alvo = { id: 'frasco', x: 0, y: 0, largura: 0, altura: 0 };
+  /** Por dedo no botão do Frasco: 1 se este dedo iniciou a cura (não cancela), e 1 se já cancelou (uma vez por toque). */
+  private readonly iniciouCura = new Uint8Array(MAX_DEDOS);
+  private readonly cancelouCura = new Uint8Array(MAX_DEDOS);
+  private readonly alvosDoResultado: Alvo[] = [];
   private readonly qualBotao = new Uint8Array(MAX_DEDOS);
   private readonly alvosDaPausa: Alvo[] = [];
   private readonly alvosDasCartas: Alvo[] = [];
@@ -153,6 +166,8 @@ export class TradutorDeGestos {
     this.modo = 'vigilia';
     this.pedidoDePausa = null;
     this.toqueNaPausa = null;
+    this.toqueNoResultado = null;
+    this.frascoEmCura = false;
     this.nToquesNoModal = 0;
     this.gestoTravado = false;
   }
@@ -162,6 +177,8 @@ export class TradutorDeGestos {
     areaDoJoystick(insets, this.area);
     alvoDaPausa(insets, this.botaoDaPausa);
     alvoDoAparo(insets, this.botaoDoAparo);
+    alvoDoFrasco(insets, this.botaoDoFrasco);
+    alvosDoResultado(insets, this.alvosDoResultado);
     alvosDaTelaDePausa(insets, this.alvosDaPausa);
     alvosDasCartas(insets, this.alvosDasCartas);
     alvosDoBau(insets, this.alvosDoBau);
@@ -202,6 +219,7 @@ export class TradutorDeGestos {
     this.saida = out;
     this.pedidoDePausa = null;
     this.toqueNaPausa = null;
+    this.toqueNoResultado = null;
     this.nToquesNoModal = 0;
     if (fila.soltarTodos) {
       for (let s = 0; s < MAX_DEDOS; s++) this.soltar(s);
@@ -243,6 +261,7 @@ export class TradutorDeGestos {
     this.reconciliar(fila, fila.n);
     fila.n = 0;
     this.avaliarGesto(agora);
+    this.avaliarSegurarDoFrasco(out, agora);
     if (this.esquivaDoTeclado) {
       this.esquivaDoTeclado = false;
       if (this.modo === 'vigilia') this.pedirEsquiva(out, this.teclado.x, this.teclado.y);
@@ -359,6 +378,14 @@ export class TradutorDeGestos {
       this.qualBotao[s] = BOTAO.aparo;
       this.aparoApertos++;
       if (this.saida) this.saida.acoes[0] = this.saida.acoes[0]! | ACAO.aparo;
+    } else if (contem(this.botaoDoFrasco, x, y)) {
+      // Frasco (FR6, FR8): o toque novo inicia a cura (bit 4) se ela não corre; com ela em curso, só vale segurando.
+      this.papel[s] = PAPEL.botao;
+      this.qualBotao[s] = BOTAO.frasco;
+      this.frascoApertos++;
+      this.cancelouCura[s] = 0;
+      this.iniciouCura[s] = this.frascoEmCura ? 0 : 1;
+      if (!this.frascoEmCura && this.saida) this.saida.acoes[0] = this.saida.acoes[0]! | ACAO.frasco;
     } else if (this.dono < 0 && contem(this.area, x, y)) {
       // Toque duplo (GE2): dispara no touchstart do 2º toque, que segue como dono do joystick.
       if (this.temToque && this.saida) {
@@ -386,6 +413,21 @@ export class TradutorDeGestos {
       this.dirValida = false;
     } else {
       this.papel[s] = PAPEL.outro;
+    }
+  }
+
+  /**
+   * Segurar o botão do Frasco (FR6): um dedo que NÃO iniciou a cura e a mantém há `SEGURAR_DO_FRASCO_MS` (18 passos), com a
+   * cura em curso, liga o bit 8 uma vez por toque. Toque curto na cura é ignorado; o dedo que iniciou nunca cancela.
+   */
+  private avaliarSegurarDoFrasco(out: ComandosDoPasso, agora: number): void {
+    if (this.modo !== 'vigilia' || !this.frascoEmCura) return;
+    for (let s = 0; s < MAX_DEDOS; s++) {
+      if (this.papel[s] !== PAPEL.botao || this.qualBotao[s] !== BOTAO.frasco || this.iniciouCura[s] === 1 || this.cancelouCura[s] === 1) continue;
+      if (agora - this.inicioT[s]! >= SEGURAR_DO_FRASCO_MS) {
+        this.cancelouCura[s] = 1;
+        out.acoes[0] = out.acoes[0]! | ACAO.frascoCancelar;
+      }
     }
   }
 
@@ -481,6 +523,11 @@ export class TradutorDeGestos {
       if (this.papel[s] === PAPEL.botao && this.qualBotao[s] === BOTAO.pausa && contem(this.botaoDaPausa, x, y)) this.pedidoDePausa = 'botao';
       return;
     }
+    if (this.modo === 'resultado') {
+      const k = this.alvoInicial[s]!;
+      if (k >= 0 && contem(this.alvosDoResultado[k]!, x, y)) this.toqueNoResultado = this.alvosDoResultado[k]!.id;
+      return;
+    }
     const k = this.alvoInicial[s]!;
     const alvos = this.alvosDoModo();
     if (k < 0 || !contem(alvos[k]!, x, y)) return;
@@ -490,6 +537,7 @@ export class TradutorDeGestos {
 
   private alvosDoModo(): Alvo[] {
     if (this.modo === 'pausa') return this.alvosDaPausa;
+    if (this.modo === 'resultado') return this.alvosDoResultado;
     return this.tipoDeModal === 'bau' ? this.alvosDoBau : this.alvosDasCartas;
   }
 

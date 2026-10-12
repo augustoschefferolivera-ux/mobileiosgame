@@ -13,6 +13,8 @@ import {
   alvosDaVigilia,
   alvosDoAcender,
   alvosDoBau,
+  alvosDoResultado,
+  blocoDaPausa,
   caixaDaOpcao,
   areaDoJoystick,
   type Alvo,
@@ -53,10 +55,10 @@ describe('área do joystick (F-002.7)', () => {
     expect(areaDoJoystick({ ...ins, topo: 500 }, a).y).toBe(500);
   });
 
-  it.each(CASOS)('%s: os 40% da direita da largura útil ficam livres para os botões (o Aparo fica todo à direita da área)', (_nome, insets) => {
+  it.each(CASOS)('%s: os 40% da direita da largura útil ficam livres para os botões (o Aparo e o Frasco ficam todos à direita da área)', (_nome, insets) => {
     const limite = insets.esquerda + 0.6 * (390 - insets.esquerda - insets.direita);
     for (const a of alvosDaVigilia(insets, [])) {
-      if (a.id === 'aparo') expect(a.x).toBeGreaterThanOrEqual(limite - 1e-9);
+      if (a.id === 'aparo' || a.id === 'frasco') expect(a.x).toBeGreaterThanOrEqual(limite - 1e-9);
       else expect(a.x + a.largura).toBeLessThanOrEqual(limite + 1e-9);
     }
   });
@@ -77,6 +79,7 @@ describe('pausa (design/decisoes-F-004.md P1, P6)', () => {
       { id: 'continuar', x: 51, y: 714, largura: 288, altura: 72 },
       { id: 'som', x: 51, y: 546, largura: 136, altura: 72 },
       { id: 'flashes', x: 203, y: 546, largura: 136, altura: 72 },
+      { id: 'abandonar', x: 51, y: 458, largura: 288, altura: 72 },
     ]);
   });
 
@@ -169,8 +172,8 @@ describe('botão Aparo (design/decisoes-F-006.md AP1)', () => {
     expect(alvoDoAparo({ topo: 0, direita: 59, baixo: 0, esquerda: 0 }, novo()).x).toBe(390 - 59 - 24 - 80);
   });
 
-  it('entra em alvosDaVigilia depois da pausa e da área do joystick', () => {
-    expect(alvosDaVigilia(insetsZerados(), []).map((a) => a.id)).toEqual(['pausa', 'joystick', 'aparo']);
+  it('entra em alvosDaVigilia depois da pausa, da área do joystick e do Frasco depois dele', () => {
+    expect(alvosDaVigilia(insetsZerados(), []).map((a) => a.id)).toEqual(['pausa', 'joystick', 'aparo', 'frasco']);
   });
 
   it.each(CASOS)('%s: fora dos insets, sem cruzar a área do joystick nem o botão de pausa, com a caixa do Frasco (72 pt, 16 pt acima) cabendo', (_nome, insets) => {
@@ -191,5 +194,57 @@ describe('botão Aparo (design/decisoes-F-006.md AP1)', () => {
   it('na vertical sem insets, 52 pt à direita da área do joystick', () => {
     const insets = insetsZerados();
     expect(alvoDoAparo(insets, novo()).x - (areaDoJoystick(insets, novo()).x + areaDoJoystick(insets, novo()).largura)).toBe(52);
+  });
+});
+
+describe('Abandonar e o bloco acima dele (design/decisoes-F-007.md PE3)', () => {
+  const alturas: [string, Insets][] = [
+    ['844 (notch 47/34)', { topo: 47, direita: 0, baixo: 34, esquerda: 0 }],
+    ['812 (sem rodapé)', { topo: 44, direita: 0, baixo: 0, esquerda: 0 }],
+    ['736 (barra de 20 pt)', { topo: 20, direita: 0, baixo: 0, esquerda: 0 }],
+    ['667 (barra de 20 pt)', { topo: 20, direita: 0, baixo: 0, esquerda: 0 }],
+  ];
+
+  it('o Abandonar tem 288 × 72 pt, 16 pt acima de Som e Flashes e é o mais longe do Continuar', () => {
+    const ins: Insets = { topo: 47, direita: 0, baixo: 34, esquerda: 0 };
+    const alvos = alvosDaTelaDePausa(ins, []);
+    const por = (id: string): Alvo => alvos.find((a) => a.id === id)!;
+    expect([por('abandonar').largura, por('abandonar').altura, por('som').y - (por('abandonar').y + 72)]).toEqual([288, 72, 16]);
+    expect(Math.max(...alvos.map((a) => Math.abs(a.y - por('continuar').y)))).toBe(por('continuar').y - por('abandonar').y);
+  });
+
+  it.each(alturas)('%s: nenhum alvo da pausa se sobrepõe, todos têm ≥ 72 pt e ficam na área segura; o aviso e as estatísticas cabem acima do botão', (_nome, ins) => {
+    const alvos = alvosDaTelaDePausa(ins, []);
+    for (const a of alvos) {
+      expect(a.altura).toBeGreaterThanOrEqual(72);
+      expect(a.largura).toBeGreaterThanOrEqual(72);
+      expect(alvoInvadeInsets(a, ins)).toBe(false);
+    }
+    for (let i = 0; i < alvos.length; i++) {
+      for (let j = i + 1; j < alvos.length; j++) {
+        const a = alvos[i]!;
+        const b = alvos[j]!;
+        expect(a.x < b.x + b.largura && b.x < a.x + a.largura && a.y < b.y + b.altura && b.y < a.y + a.altura, `${a.id} × ${b.id}`).toBe(false);
+      }
+    }
+    const abandonar = alvos.find((a) => a.id === 'abandonar')!;
+    const bloco = blocoDaPausa(abandonar, ins.topo + 120);
+    expect(bloco.yDoAviso + 2 * 18).toBeLessThanOrEqual(abandonar.y - 18 + 1e-9);
+    expect(bloco.yDasEstatisticas + bloco.linhasDasEstatisticas * 18).toBeLessThanOrEqual(bloco.yDoAviso - 28 + 1e-9);
+  });
+
+  it('com folga as estatísticas ocupam 3 linhas (y 322 a 376 em 844); sem folga, uma linha só', () => {
+    const abandonar = alvosDaTelaDePausa({ topo: 47, direita: 0, baixo: 34, esquerda: 0 }, []).find((a) => a.id === 'abandonar')!;
+    expect(blocoDaPausa(abandonar, 300)).toEqual({ yDoAviso: 404, yDasEstatisticas: 322, linhasDasEstatisticas: 3 });
+    expect(blocoDaPausa(abandonar, 340)).toEqual({ yDoAviso: 404, yDasEstatisticas: 358, linhasDasEstatisticas: 1 });
+  });
+
+  it('o Resultado tem Voltar e Repetir de 288 × 72 pt dentro da área segura, sem se tocar', () => {
+    for (const [, ins] of CASOS.slice(0, 3)) {
+      const [voltar, repetir] = alvosDoResultado(ins, []);
+      expect([voltar!.id, repetir!.id, voltar!.largura, voltar!.altura]).toEqual(['voltar', 'repetir', 288, 72]);
+      expect(voltar!.y + voltar!.altura + 16).toBe(repetir!.y);
+      expect(alvoInvadeInsets(repetir!, ins) || alvoInvadeInsets(voltar!, ins)).toBe(false);
+    }
   });
 });
