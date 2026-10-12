@@ -1,6 +1,6 @@
 # Decisões da F-008 "Horas, marcos e Fogueira"
 
-- Status: proposta, aguarda aprovação do usuário (Etapa 1; nenhum código escrito).
+- Status: aprovada pelo usuário sem veto em 2026-10-12 ("Aprovo tudo"), inclusive as divergências em negrito e as correções da Revisão. Etapa 2 (implementação) em curso.
 - Fontes: B §3.6, §3.10, §5.4, §5.7, §5.10 e §11.3 (F-008); ADR-0002 §3, §5, §8 a §10, §14 e §15; D2 a D7 (§9/§10/§13); ADR-0005 a ADR-0009; GDD 02 §3, 07 §4, 11 §3.6 e §3.8, 13 §1.2; `feature_list.json` (F-008); código lido por `grep` (estado v7, `ataques.ts`, `diretor.ts`, `inimigos.ts`, `pickups.ts`, `meta.ts`).
 - Nomes: B = game-brief; D2 a D7 = `design/decisoes-F-002.md` a `-F-007.md`.
 

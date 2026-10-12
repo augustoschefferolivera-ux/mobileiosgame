@@ -705,85 +705,99 @@
           "id": "F-008.1",
           "descricao": "Save versionado serializa e restaura build/nível/Almas/Frascos/I.",
           "verificacao": "vitest",
-          "como": "restaurar o vigilia dá o mesmo hash do estado gravado (ADR-0002 §10).",
+          "como": "vitest. Salvar no passo 500 de `horda_com_ataques` (3 armas nv ≥ 3, Frasco em curso, `I10` = 11) → `serializarVigilia` → `lerVigilia` → `restaurar`: `hash` e buffer iguais ao gravado; campo a campo: as 5 vagas (`codigo`, `nivel`, `recarga`, `golpe`, `esperaGolpe`, `esperaPulso`), nível, XP, Almas, `frascoCargas`, `intensidade10`, `hp`, `hpMax` e as tabelas de dano vivo. Com modal aberto: `modalAberto` verdadeiro e `avancar` devolve 0.",
           "origem": "B §4"
         },
         {
           "id": "F-008.2",
           "descricao": "Migração de versão.",
           "verificacao": "vitest",
-          "como": "o teste exercita pelo menos uma função vN → vN+1 de src/logica/save/migracoes.ts. Se a versão atual ainda for 1, o teste registra, só no seu escopo, uma migração v1 → v2 que acrescenta ou renomeia um campo, migra um save v1 sintético e confere campo a campo e a validação no schema de destino. Com versões reais acima de 1, há um teste por versão (ADR-0002 §10).",
+          "como": "como no registro: v1 → v2 do teste renomeia `frascos` para `cargas` no envelope; save v1 sintético migrado, conferido campo a campo e validado no schema v2; `lerVigilia` recusa `versao` maior e `soma` errada.",
           "origem": "B §4"
         },
         {
           "id": "F-008.3",
           "descricao": "Fechar a página na Hora II e reabrir mostra a oferta de retomada e restaura o estado (Playwright).",
           "verificacao": "playwright",
-          "como": "?cenario=fogueira_hora1; Partir; fechar a página na Hora II; reabrir: textoAtivo contém A1.ACENDER.RETOMAR; tocar Continuar; __GAME_DEBUG__.hash() = __GAME_DEBUG__.save.hash (ADR-0002 §10).",
+          "como": "Playwright, 390 × 844, debug: `?cenario=fogueira_hora1&seed=1`; Acender; Partir (toque); `avancar(120)`; fechar a página; reabrir sem `cenario`: `textoAtivo` contém `A1.ACENDER.RETOMAR`; tocar Continuar (abre na pausa): `hash()` = `save.hash` e `relogio` = 18.000.",
           "origem": "B §4"
         },
         {
           "id": "F-008.4a",
           "descricao": "HP do Coroado escalado.",
           "verificacao": "vitest",
-          "como": "HP do Coroado com I = 1,0: 960 às 5:00, 2.200 às 10:00 e 1.680 cada às 15:00 (Q-12).",
+          "como": "com `I10` = 10, o Coroado nascido pelo marco tem HP 960 (5:00), 2.200 (10:00) e 1.680 (15:00, cada) e dano 31,25 / 37,5 / 43,75; com `I10` = 11 o HP é `hpNoSpawn(base, min, 11)`.",
           "origem": "B §4 (escopo)"
         },
         {
           "id": "F-008.4b",
           "descricao": "Convocação do Coroado.",
           "verificacao": "vitest",
-          "como": "cada Coroado convoca 10 Ocos das Lanternas a cada 600 passos, dentro da arena, respeitando o TETO e a regra de excedente (B §3.6; Q-08; ADR-0002 §8 item 7 e §9).",
+          "como": "`teto` 300 com 295 vivos: a convocação aos 600 passos põe 5, descarta 5, `slots ≤ 300`, nenhum convertido; com 0 vivos põe 10 a 80 ± 0,01 px do Coroado e a ≤ 207,5 px do centro; a 2ª sai 600 passos depois; Coroado morto antes não convoca.",
           "origem": "B §4 (escopo)"
         },
         {
           "id": "F-008.4c",
           "descricao": "Arena do marco.",
           "verificacao": "vitest",
-          "como": "centro no jogador, raio de 224 px; obstáculos dentro com ativo = 0, massa dentro morta e diretor sem spawn (Q-02; Q-09; ADR-0002 §9).",
+          "como": "marco 1 a partir de `inicio_jogador` (585, 1266): `obstaculoAtivo` = 0 exatamente nos obstáculos com `d ≤ 224 + r_o` (contagem independente no teste) e nunca volta a 1; 0 massa e médios com `d < 224`; `mortes`, Cinzas, Almas e baús inalterados; `spawns` constante por 600 passos; inimigo de fora a 230 px não entra; jogador empurrando a borda por 120 passos fica a ≤ 208 px do centro.",
           "origem": "B §4 (escopo)"
         },
         {
           "id": "F-008.4d",
           "descricao": "Fim do marco.",
           "verificacao": "vitest",
-          "como": "último Coroado morto: 1 baú por Coroado e a Fogueira acende a 96 px do jogador (B §3.10).",
+          "como": "último Coroado morto: `bausSoltos` + 1 (marcos 1 e 2; dourado só no 2) ou + 2 (marco 3); `fogueiraAcesa` = 1 a 96,0 ± 0,01 px do jogador; `etapa` = HORA; `arenaAtiva` = 0; `intensidade10` = 10.",
           "origem": "B §4 (escopo)"
         },
         {
           "id": "F-008.4e",
           "descricao": "Fogueira: Descansar e Forjar.",
           "verificacao": "vitest",
-          "como": "dentro do raio de 64 px, relógio e inimigos param; Descansar → HP 100%, 3 Frascos e I = 1,1; Forjar, com Espada nv8 + Elmo, cobra 150, 250 ou 400 Almas na Fogueira da Hora I, II ou III (B §3.10).",
+          "como": "a < 64 px, em 120 passos: `relogio`, posições e HP dos inimigos, timers das armas (`recarga`, `golpe`, `esperaPulso`, `caSeq`, `caEspera`) e HP do jogador (com um inimigo sobre ele) não mudam e não há evento `acerto`. Descansar: HP = `hpMax`, cargas = 3, `intensidade10` = 11, 2ª vez negada. Forjar (Espada nv8 + Elmo, relógio < 10:00): 149 Almas negado; 150 na Hora I debita 150 e a vaga vira a União nv1; 250 (Hora II) e 400 (Hora III) idem.",
           "origem": "B §4 (escopo)"
         },
         {
           "id": "F-008.4f",
           "descricao": "Fogueira: sair e ignorar.",
           "verificacao": "vitest",
-          "como": "sair do raio = Partir: grava o vigilia e apaga a Fogueira; sem entrar, ela fica acesa até o próximo marco; a da Hora III se apaga às 20:00 (Q-24; ADR-0002 §15 item 8).",
+          "como": "a 65 px: `etapa` = HORA, `fogueiraAcesa` = 0, evento 36 (forma 2), e a sombra tem o hash do estado anterior ao passo; Fogueira ignorada: acesa até `relogio` 36.000 e apagada no início do marco 2; a da Hora III: apagada e `etapa` = CHEFE em 72.000.",
           "origem": "Q-24; ADR-0002 §9 e §15"
         },
         {
           "id": "F-008.4g",
           "descricao": "Marco vencido pelo relógio.",
           "verificacao": "vitest",
-          "como": "Guardião I vivo até 10:00 → MARCO(chefe_menor); Guardião II vivo até 20:00 → CHEFE; 23:00 → A_FOME (ADR-0002 §9 e §15 item 7).",
+          "como": "Guardião I vivo em 36.000: `marcosIniciados` = 2, arena nova com centro novo, 0 baús, Cinzas, Almas e `mortes` dos Coroados cinza; Guardião II vivo em 72.000: `etapa` = CHEFE; 82.800 em CHEFE: `etapa` = A_FOME, `fase` = FIM, `causaDoFim` = aFome.",
           "origem": "Q-24; ADR-0002 §9 e §15"
         },
         {
           "id": "F-008.5",
           "descricao": "Autosave na Fogueira e a cada 60 s; FIM atômico (idVigilia/ultimaEncerrada).",
           "verificacao": "vitest",
-          "como": "armazenamento simulado; a mesma Vigília nunca é creditada e oferecida de novo (ADR-0002 §10).",
+          "como": "armazenamento simulado: Acender grava `meta` e depois `vigilia`; o passo 3.600 grava `andamento`; FIM grava `meta` antes de remover os dois; falha injetada entre o `meta` e as remoções: a leitura descarta o `vigilia`, sem oferta, Almas creditadas uma vez; FIM repetido é no-op; cota estourada cai na memória sem lançar.",
           "origem": "B §3.10; ADR-0002 §10"
         },
         {
           "id": "F-008.6",
           "descricao": "Salvar no meio e continuar dá o mesmo hash.",
           "verificacao": "vitest",
-          "como": "salvar no passo 500, restaurar e continuar até o 1.000 dá o mesmo hash que sem salvar (ADR-0002 §5).",
+          "como": "salvar no passo 500, restaurar e continuar até 1.000 dá o mesmo hash que sem salvar (`horda_com_ataques`, com Frasco e Sal ativos); idem em `marco_coroado` (relógio 17.970, salvar no passo 100, já dentro da arena, continuar 500 passos).",
           "origem": "ADR-0002 §5"
+        },
+        {
+          "id": "F-008.7",
+          "descricao": "Patada e Grito do Coroado.",
+          "verificacao": "vitest",
+          "como": "Patada a 112 px no cone acerta, a 112,1 não, fora do cone não; o aparo absorve a Patada e não o Grito; o Grito a 111 px acerta e empurra 64 px em 8 passos (≤ 8 por passo); a esquiva evita os dois; ciclo Patada, Patada, Grito.",
+          "origem": "design/decisoes-F-008.md CR2 a CR4"
+        },
+        {
+          "id": "F-008.8",
+          "descricao": "Alocação e regressão do layout v8.",
+          "verificacao": "vitest",
+          "como": "E7 (≤ 16 B por passo) com Coroado, convocação e arena, e com a Fogueira aberta; regressão v7 do §1.",
+          "origem": "design/decisoes-F-008.md §1; ADR-0005 §2"
         }
       ],
       "evidencias": [
@@ -794,31 +808,26 @@
         {
           "arquivo": "production/evidencias/F-008/save.json",
           "descricao": "JSON do save (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-008/fogueira-390x844.png",
+          "descricao": "Menu da Fogueira aberto (design/decisoes-F-008.md, Evidências)"
+        },
+        {
+          "arquivo": "production/evidencias/F-008/coroado-arena-390x844.png",
+          "descricao": "`?cenario=marco_coroado`: borda da arena e telegrafo da Patada e do Grito (design/decisoes-F-008.md, Evidências)"
+        },
+        {
+          "arquivo": "production/evidencias/F-008/acender-retomada-390x844.png",
+          "descricao": "Oferta de retomada ao acender (design/decisoes-F-008.md, Evidências)"
+        },
+        {
+          "arquivo": "production/evidencias/F-008/u7.log",
+          "descricao": "Simulação de 20 minutos com Coroado e Fogueira: minuto da 1ª União e Almas por Vigília contra Q-21 (medida, sem gate; design/decisoes-F-008.md §6)"
         }
       ],
       "pendencias_antes_de_comecar": [
-        "brief §11.3 F-008: Patada, Grito, cadência e tamanho do Coroado; escurecimento",
-        "Raio, em volta do Coroado, em que nascem os convocados dentro da arena (ADR-0002 §9)",
-        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): obstáculos da arena (quais e até quando); Fogueira e baús sem colisão e direção da Fogueira; save com outra disposição; Grito com obstáculos e no máximo 32 px por passo",
-        "Recomendações da F-003 a fechar (design/decisoes-F-003.md §9): diretor com relógio parado e arena (R2); Fogueira congela a horda; convocações; corpos grandes e R_MAX; obstáculos inativos na lista por célula; Grito; cenário como vigilia; save do pool; escurecimento",
-        "Fogueira: armas sem dano nem knockback e timers parados, atrás de um teste único de \"armas ativas\"; o Sal corre ou congela (design/decisoes-F-004.md §9)",
-        "Save da build (codigo, nivel, recarga, golpe, esperaGolpe, esperaPulso), dos projéteis vivos e dos metadados dos dois pools; o anel fica fora (design/decisoes-F-004.md §9)",
-        "Coroado imune ao pulso, e se ele leva Sal; consultas das armas com o raio da forma + R_MAX ou a lista de corpos grandes (design/decisoes-F-004.md §9)",
-        "Massa morta pela arena e Coroados que viram cinza por matarInimigo com causa própria; se dão XP, Almas e contagem (design/decisoes-F-004.md §9)",
-        "Coroado chama soltarBau na morte (dourado às 10:00) e solta Cinza de 25; massa morta pela arena e Coroados do marco vencido não soltam Cinza nem baú; a Forja usa uniaoDisponivel e aplicarUniao (design/decisoes-F-005.md §9)",
-        "Fogueira: a fase de pickups continua e um level up pode abrir, antes das ações da Fogueira; baú no disco da arena alcançável (design/decisoes-F-005.md §9)",
-        "Save grava o buffer v5 inteiro (progressão, atributos, passivas, oferta, fila de baús, pickups, efeitos de chão) e chama sincronizarDerivados; modal aberto reabre na retomada antes de qualquer passo (design/decisoes-F-005.md §9)",
-        "Medida U7: sem elites, a 1ª União só às 10:00 ou às 15:00 (contra os minutos 12 a 15 do doc 10 §3.1); relógio no HUD com os glifos da N4 e \":\" (design/decisoes-F-005.md §9)",
-        "o save grava o buffer v6 inteiro (estado de ataque, pool com o dono, Sal, prompts, `quebradaPassos`, `caSeq`, `caEspera`, `alvoAparado`, `congelamento`); a migração de `vigilia` v5 para v6 põe a stamina em 100 e os contadores em 0; a carga chama `sincronizarDerivados`, que refaz as **duas** tabelas de dano vivo, e reabre o modal antes de qualquer passo (design/decisoes-F-006.md §10)",
-        "na Fogueira o passo roda e o relógio para: stamina, regeneração e congelamento andam; os timers do Contra-ataque (`caSeq`, `caEspera`) ficam parados junto com os das armas (D4 §9); \"ninguém ataca\" e os marcos vencidos congelam a fase 6, cancelam o telegrafo e decidem o projétil em voo (design/decisoes-F-006.md §10)",
-        "o Coroado reusa a máquina de ataque por dados (Patada branca em cone) e acrescenta o Grito vermelho (`aparavel: false`, empurrão); define `postura_quebrada`; a convocação não nasce atordoada; cunha e brilho para corpos de 64 a 128 px; seta de telegrafo na borda da tela quando o atacante está fora de vista (doc 11 §3.6; brief §5.12), que a F-006 deixou de fora: nenhum telegrafo seu nasce fora da vista, mas a Noviça pode sair da vista durante os 30 passos do telegrafo (§0.A) (design/decisoes-F-006.md §10)",
-        "recarrega os Frascos na Fogueira (Descansar exige cura parada e a zera) (design/decisoes-F-007.md §13)",
-        "reaproveita a seta da mancha (MC9) (design/decisoes-F-007.md §13)",
-        "os campos v7 (`fase`, Frasco, mancha, contadores) entram no `vigilia`; a mancha recuperada só se confirma com o `vigilia` seguinte (Q-03); `idVigilia` e `ultimaEncerrada` passam a ser ativos (design/decisoes-F-007.md §13)",
-        "Recusar da retomada usa `encerrarVigilia(abandonar)` (design/decisoes-F-007.md §13)",
-        "`sincronizarDerivados` refaz hpMax e as tabelas de dano (design/decisoes-F-007.md §13)",
-        "mancha dentro de uma arena (sem decisão) (design/decisoes-F-007.md §13)",
-        "Coroado que vira cinza não solta Cinza nem Alma e não soma `mortes` (design/decisoes-F-007.md §13)"
+        "Resolvidas em design/decisoes-F-008.md (aprovadas pelo usuário sem veto, 2026-10-12): brief §11.3 F-008 (CR1 a CR4, ES1); raio da convocação (CR7); recomendações da D2 §9 (AR3, FG1, SV6, CR3), da D3 §9 (AR5, FG3, CR7, CR10, CR3, CE1, SV1, ES1), da D4 §9 (FG3), da D5 §9 (FG3, CR9, FG5, SV1, SV7, §6, HU1), da D6 §10 (SV1, SV7, FG3, CR2 a CR4, CR7, CR8, CR11) e da D7 §13 (FG4, CR11, SV1, SV4, SV5, SV8, AR9, CR9); dois critérios novos (F-008.7 e F-008.8)"
       ]
     },
     {
