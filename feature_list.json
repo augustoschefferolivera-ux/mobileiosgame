@@ -487,116 +487,115 @@
           "id": "F-006.1",
           "descricao": "Acerto no passo 2 e no 13 da esquiva não causa dano, no passo 14 causa.",
           "verificacao": "vitest",
-          "como": "Vigília com tutoriais marcados como vistos (ADR-0002 §3).",
+          "como": "Vigília com `TODOS_OS_TUTORIAIS` (7) e HP cheio. Base `sem_horda` com `inimigos` por parâmetro. Um Oco das Lanternas é posto para encostar no jogador (parado, esquiva pedida no passo T, que é o passo 1) exatamente no passo-alvo K: posição gravada em K−1 e `invulContato` = 0, com a distância de encosto 16 + 16 + 1/16 (`contato.ts`), já descontando o deslocamento da esquiva no passo K (3,8095 px) e a perseguição do Oco (1,32 px) que a horda faz antes do contato, para o contato cair exatamente no passo K. Tabela dos passos K = 1 a 22, uma execução por K: nos passos 1 e 14 a 21 o contato causa o dano de contato (5 × 0,3 = 1,5) e liga `invulContato` (18); nos passos 2 a 13 não causa dano, não liga o timer e dá exatamente 1 evento `esquivaPerfeita` (só a primeira); K = 22 (T+21, o 1º passo livre) é o controle e causa dano. Tabela de 24 linhas (T a T+23) com `esquivaPasso`, i-frames (só 2 a 13) e se aceita ação (só de T+21 em diante). Motivo do Oco posto: um acerto no passo 1 liga o timer de 18 passos e esconderia o dano do passo 14. Reprova: i-frames em 1 a 12 ou 3 a 14, recuperação fora dos 21, timer ligado nos i-frames. (design/decisoes-F-006.md §9, VT8)",
           "origem": "B §4"
         },
         {
           "id": "F-006.2",
           "descricao": "Aparo no passo 11 após o toque funciona, no 12 não.",
           "verificacao": "vitest",
-          "como": "sem prompt de aparo ativo (janela +0,1 s só no tutorial, Q-26).",
+          "como": "Tutoriais vistos (7) e prompt de aparo cumprido (sem a janela de +0,1 s, Q-26), jogador sem `jogadorInvulneravel`, stamina 100, cenário `oco_grande_sozinho`. O golpe tem `h` = T+36, lido do evento `golpeInimigo`. Matriz de `c` de `h−13` a `h`: aparam exatamente os `c` com `h − c` entre 1 e 11 (evento `aparo` e HP intacto); `h − c` = 0 (o mesmo passo) e `h − c` ≥ 12 levam o dano do golpe. Quadros de 1 e de 5 passos dão o mesmo resultado. Variante com `promptAparo` = visível e `falhasDeAparo` = 2: aparam `h − c` de 1 a 17, e 18 não. Reprova: janela que grava 11 (protege 10), que grava 13, o comando que protege, janela de 10 ou de 12, ataques antes do jogador na ordem do passo (o golpe no passo 14 da esquiva daria 'esquivado', OG5 (c)). (design/decisoes-F-006.md §9, VT8)",
           "origem": "B §4"
         },
         {
           "id": "F-006.3",
           "descricao": "Aparo falho bloqueia regen por 24 passos.",
           "verificacao": "vitest",
-          "como": "tutoriais marcados como vistos (ADR-0002 §3). Provocar um aparo falho pela definição que a pendência da F-006 fechar. Registrar G = passo do toque (gasto de 15) e P0 = passo em que o aparo falho começa. Asserção 1: stamina constante de P0 a P0 + 24. Asserção 2: esse intervalo vai além de G + 30, o fim do atraso normal de 0,5 s (B §3.4). Controle: no mesmo estado, 'aparar sem ataque chegando' (doc 02 §5.4: só custa a stamina) volta a regenerar em G + 30, e o caso falho não. Se a definição aprovada der P0 + 24 ≤ G + 30, o critério de B não aparece na stamina: levar ao usuário antes da F-006.",
+          "como": "Tutoriais vistos. G = passo do toque (gasto de 15). Provocar o aparo falho tocando com o telegrafo do Oco Grande em curso e o golpe a mais de 11 passos: a janela G+1..G+11 termina sem aparar, P0 = c+12 = G+12 e `ameacasAparaveis` do passo anterior é > 0. Asserção 1: a stamina é constante de P0 a P0+24 (25 valores) e a 1ª regeneração é em P0+25 = G+37; esquiva e aparo são ignorados (sem custo) de P0 a P0+23 e aceitos em P0+24. Asserção 2: o intervalo passa de G+30, o último passo sem regeneração do atraso normal de 0,5 s (B §3.4), em 6 passos (3 pontos de stamina). Controle: no mesmo estado, o toque sem nenhuma ameaça aparável a 36 passos ou menos do impacto (aparo vazio, evento `aparoVazio`) volta a regenerar em G+31, e o caso falho, em G+37. Caso `novica_sozinha`: com o projétil da Noviça a `h − c` = 30 e 47 passos do impacto o toque é falho; a 48 e a 60, vazio; projétil que errou o jogador ou já passou: vazio. Caso de linha alta: 40 Noviças em telegrafo ao fundo e nenhum projétil a caminho: toque errado = vazio. Oco Grande com o jogador fora do arco no telegrafo: vazio. Reprova: `esperaRegen += 24` (regeneração em ≈ G+67), `= 24` sem `max`, falho sem prazo, vazio que bloqueia. (design/decisoes-F-006.md §9, VT8)",
           "origem": "B §4"
         },
         {
           "id": "F-006.4",
           "descricao": "Contra-ataque dispara todas as armas uma vez.",
           "verificacao": "vitest",
-          "como": "com as 3 armas, a Espada e as Facas geram exatamente 1 salva extra ×2 cada, em até 90 passos depois do aparo, redirecionada ao handle do inimigo aparado (doc 04 §10; ADR-0002 §7). O Círculo de Sal participa como a pendência 'como a aura participa do Contra-ataque' decidir, e não tem asserção antes dessa decisão.",
+          "como": "`oco_grande_sozinho` com Espada nv8, Facas nv8 e Círculo nv8 por parâmetros e o `hp` do aparado posto em 9.999 depois do spawn (o Oco Grande tem 100 de HP no minuto 0, e o 2º golpe da Espada nv8, 113,4 contra o aparado, o mataria; como `uniao.test.ts` faz com 5.000; CA5 mantém um teste próprio com HP baixo). Com o aparo bem-sucedido em `h` (congelamento de 5 passos, `passo` parado), no 1º passo vivo (t0+1, com t0 = h) todas disparam exatamente **uma** salva extra, com `FLAG.contra` nos eventos: a Espada, 4 golpes em t0+1, t0+13, t0+25 e t0+37, mirados no aparado sem sobrescrever a direção do jogador; as Facas, `nf` facas no mesmo passo, todas no aparado, com `dano × 2` gravado no disparo; o Círculo, 1 tick extra ×2, sem pulso. Tudo em até 90 passos. `recarga`, `golpe` e `esperaPulso` ficam como numa execução sem aparo (hash dos cooldowns igual). Com a Lâmina na vaga da Espada: 4 golpes e 4 ondas com `danoOnda × 2`. O dano contra o aparado é o produto dos fatores (×4, ×6 com o nv4 da Espada). Com só a Espada nv1 (o padrão de `oco_grande_sozinho`): 1 golpe com ×2 e as vagas vazias sem erro; União durante a sequência: `caSeq` da vaga em 0. Reprova: Círculo sem asserção, Contra-ataque que mexe nos cooldowns, mira que sobrescreve `dirX/dirY`, `new Float32Array(2)` na salva. (design/decisoes-F-006.md §9, VT8)",
           "origem": "B §4"
         },
         {
           "id": "F-006.5",
           "descricao": "Swipe sintético gera esquiva (Playwright).",
           "verificacao": "playwright",
-          "como": "__GAME_DEBUG__.entrada.injetar com timestamps de velocidade > 400 pt/s; confirmação: jogador.stamina cai 25 no passo da esquiva (B §3.4).",
+          "como": "Build de debug, `?seed=N`, `pausar()`. `__GAME_DEBUG__.entrada.injetar('inicio', id, x, y, t0)` na área do joystick e `injetar('move', id, x+50, y, t0+80)`, com `t0 = Math.round(performance.now())` (as marcas ficam a menos de 60 s do relógio do quadro; D4 P3): deslocamento de 50 pt em 80 ms = 625 pt/s (≥ 24 pt e > 400 pt/s). Entre o `injetar` e o `avancar`, esperar 2 quadros: `await page.evaluate(() => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))))`, porque o `traduzir` só roda dentro do passo do quadro (`Vigilia.aoStep`) e o `injetar` só empurra na fila. `avancar(1)`: `jogador.stamina` cai de 100 para 75 no passo da esquiva, `esquivaPasso` sai de 0 e `ultimosEventos` traz `esquiva`. Contraprova: 50 pt em 130 ms (385 pt/s) não gera esquiva; a igualdade exata em 400 pt/s fica no Vitest, com milissegundos inteiros (`tradutor.test.ts`). Segundo caso: dois toques de 100 ms, 150 ms entre eles e a 20 pt, geram esquiva na última direção (toque duplo). (design/decisoes-F-006.md §9, VT8)",
           "origem": "B §4"
         },
         {
           "id": "F-006.6",
           "descricao": "Toque no botão durante o telegrafo gera aparo (Playwright).",
           "verificacao": "playwright",
-          "como": "?seed=N&tutorial=0&inicio=01:00 (Oco Grande garantido; ADR-0002 §8 item 9 e §14). Quando 'telegrafo iniciado' do Oco Grande aparecer em ultimosEventos no passo T, pausar a simulação e usar avancar(n) até o golpe (T + 36, fim do telegrafo de 0,6 s) ficar entre 1 e 11 passos à frente; então tocar o botão Aparo (toque real por CDP ou entrada.injetar) e avançar até o golpe. Confirmação: evento 'aparo' em ultimosEventos e jogador.stamina = valor antes do toque − 15 + 30 (B §3.4).",
+          "como": "`?seed=N&tutorial=0&inicio=01:00`, jogador parado, build de debug, `pausar()`. Com `avancar(1)` em passos curtos, esperar em `ultimosEventos` o 1º `telegrafo` de **qualquer** Oco Grande (nascem 3 já no passo 1; guardar o handle do evento e o passo T); a espera é pelo evento e não por tempo (limite de 1.500 passos). `avancar(n)` até o golpe (T+36) ficar de 1 a 11 passos à frente (por exemplo T+30); ler a stamina (100); tocar o botão Aparo (toque real por CDP, e uma segunda execução por `injetar`) e esperar 2 quadros (como no F-006.5: o `traduzir` só roda dentro do passo do quadro); `avancar(1)`: stamina = 85 (custo exato, sem regeneração no passo do gasto); `avancar` até depois de T+36 comparando `CAB.passo` (o congelamento para o passo). Confirmação: evento `aparo` com o handle daquele Oco, evento `golpeInimigo` do mesmo handle com desfecho 3 (aparado) e a stamina = `min(100, antes − 15 + 30)` = 100. Complemento em vitest: `antes` = 60 dá 75 e `antes` = 95 dá 100, por `staminaInicial`. (design/decisoes-F-006.md §9, VT8)",
           "origem": "B §4"
         },
         {
           "id": "F-006.7",
           "descricao": "Esquiva perfeita dá +15% Poder por 2 s; feedback de flash de 2 frames + congelamento de 80 ms (5 passos) + som placeholder.",
           "verificacao": "vitest",
-          "como": "Poder temporário por 120 passos; congelamento de 5 passos sem avanço do relógio (ADR-0002 §3).",
+          "como": "O que a simulação prova (vitest): o Poder vale nas fases de armas N+1 a N+120 (120 fases; 119 e 121 reprovam), soma com as Luvas, renova sem acumular, e as duas tabelas de dano vivo são iguais ao `recalcularDano` por força bruta (uma faca já disparada mantém o dano); a spec lê `poderPassos` ao fim de cada passo: 120 no passo N da perfeita, 1 em N+119 e 0 em N+120 (o decremento depois do contato daria 119 em N); o congelamento dura 5 passos com `CAB.passo` e `CAB.relogio` parados e o hash igual, salvo o byte do contador; o 6º passo anda. O que é de render (vitest da cena, sem Phaser): função pura do flash (alfa 0,35, 0,35, 0; opção desligada dá 0; no máximo 3 por segundo) e síntese do som por hash, com 1 disparo por evento. Os testes comparam `passo`, nunca `inicio + n`. (design/decisoes-F-006.md §9, VT8)",
           "origem": "B §3.4 e §4 (escopo)"
         },
         {
           "id": "F-006.8",
           "descricao": "Prompts de tutorial nos minutos 1 e 3.",
           "verificacao": "playwright",
-          "como": "contexto limpo, sem ?tutorial e com ?inicio= perto de 1:00 e de 3:00: __GAME_DEBUG__.textoAtivo contém A2.TUTORIAL.02 a partir de 1:00 e A2.TUTORIAL.03 a partir de 3:00; com ?tutorial=0, nenhum dos dois (Q-26).",
+          "como": "Contexto limpo, sem `?tutorial`. (a) `?inicio=01:00&visto=mover` (o relógio em 3.600 liga o prompt de mover com o jogador parado), jogador parado, `pausar()`: antes do 1º `telegrafo` de Oco Grande, `textoAtivo` **não** contém `A2.TUTORIAL.02` (mesmo com o relógio em 3.700); `avancar` até o evento e rodar um quadro: contém; sem esquiva do jogador o prompt continua visível depois do golpe; depois de uma esquiva por swipe sintético, deixa de conter. (b) `?inicio=03:00&visto=mover,esquiva`: `A2.TUTORIAL.03` aparece depois do 1º `telegrafo` de uma Noviça, não antes; com o projétil dentro da janela de aparo (anel sólido), tocar o botão: evento `aparo` com sucesso e `A2.TUTORIAL.03` deixa de estar em `textoAtivo`. (c) `?tutorial=0`: nenhum dos dois, mesmo com telegrafos acontecendo. Em vitest: duas falhas de aparo ligam a janela de 17 passos (aparo em 17 funciona, em 18 não) só com o prompt visível; com o prompt cumprido o passo 12 não funciona; a câmera lenta roda 15 passos em 500 ms de tempo real. A prioridade dos três prompts (TU4) e o texto do aparo dentro da tela (TU11) entram no teste da cena (Vitest), não no Playwright. (design/decisoes-F-006.md §9, VT8)",
           "origem": "B §4 (escopo)"
         },
         {
           "id": "F-006.9",
           "descricao": "Custos e regeneração de stamina.",
           "verificacao": "vitest",
-          "como": "esquiva custa 25 e desloca 2,5 corpos (80 px) em 21 passos; aparo custa 15; a regeneração (0,5 por passo = 30/s) só volta depois de 30 passos sem gasto (B §3.4; ADR-0002 §3).",
+          "como": "A esquiva custa 25 (100 → 75, exato mesmo com a regeneração ativa: 50 → 25) e desloca 2,5 corpos em 21 passos: 80 ± 0,005 px no campo livre, maior passo ≤ 4 px (80/21 = 3,81); o caso cortado por obstáculo fica à parte (nenhum passo acima de 32 px, sem dano ao jogador). O aparo custa 15 (−15 exato). A regeneração (0,5 por passo = 30/s) só volta depois de 30 passos sem gasto: no passo do gasto G não há regeneração nem decremento; G+1 a G+30 mantêm a stamina e a 1ª regeneração é em **G+31**. Teto 100, piso 0; com stamina menor que o custo a ação é negada (nada muda, o comando é consumido, 1 evento `acaoNegada`). Reprova: `<` por `<=` na regeneração, regeneração antes do gasto (−24,5), teto ausente (115). (design/decisoes-F-006.md §9, VT8)",
           "origem": "B §3.4 e §4 (escopo)"
         },
         {
           "id": "F-006.10",
           "descricao": "Aparo bem-sucedido.",
           "verificacao": "vitest",
-          "como": "stamina − 15 + 30; Postura Quebrada por 120 passos, com dano recebido × 2, no atacante e em todos a até 64 px do centro que a pendência fechar (B §3.4).",
+          "como": "stamina = `min(100, antes − 15 + 30)`; `quebradaPassos` = 121 no passo do sucesso (120 depois dele) e 0 em `h+121`; parada, ×2, ausência de ataque e de contato valem de `h+1` a `h+120`; dano recebido ×2 (×3 contra a Espada nv4 ou mais), no atacante (qualquer distância) e em todos os inimigos cuja hitbox está a `d ≤ 64 + r` do **centro do jogador** (Oco das Lanternas 80 px, médios 88 px; a 80 + 1/16 e a 88 + 1/16 não), em coordenadas Float32 exatas e pelo toro, com `rodarAtaques(e, D)` chamada direto (por `passo()` um Oco parado a 80 + 1/16 chegaria a 78,7). O atordoado não persegue, é separado e empurrado, não ataca (cancela o telegrafo e o golpe pendente) e o Oco das Lanternas atordoado não fere por contato de `h+1` a `h+120` (volta em `h+121`); renova sem acumular; tipo com `postura_quebrada: false` ignora a área e o atacante. Reprova: centro no atacante, raio de 64 do centro, soma no lugar do produto. (design/decisoes-F-006.md §9, VT8)",
           "origem": "B §3.4 e §4 (escopo)"
         },
         {
           "id": "F-006.11",
           "descricao": "Duração dos telegrafos brancos.",
           "verificacao": "vitest",
-          "como": "o telegrafo do Oco Grande dura 36 passos (0,6 s) e o da Noviça, 30 (0,5 s) (B §3.6 e F-006).",
+          "como": "Pelos eventos: do `telegrafo` no passo T ao `golpeInimigo` do Oco Grande em **T+36** (nem 35 nem 37) e ao `projetilLancado` da Noviça em **T+30**; as durações vêm de `inimigos.json` (0,6 s e 0,5 s × 60). Recuperação do Oco Grande de 90 passos (o próximo telegrafo só em T+126 com o jogador parado) e período de 180 da Noviça (3 lançamentos em 540 passos); mira fixada em T; o Sal e o pulso não mexem nos timers; um Oco Grande morto pela Espada em T+36 não golpeia. Gatilho: com `rodarAtaques` chamada direto, o Oco a 79,9 px telegrafa e a 80,1 px não; por `passo()`, só com margem ≥ 0,1 px depois de somar 1,68 px por passo. (design/decisoes-F-006.md §9, VT8)",
           "origem": "B §3.4 e §4 (escopo)"
         },
         {
           "id": "F-006.12",
           "descricao": "Contato durante os i-frames conta como esquiva perfeita.",
           "verificacao": "vitest",
-          "como": "contato de Ocos das Lanternas durante os i-frames: +15% Poder por 120 passos e +1 faca na salva seguinte (Q-15).",
+          "como": "Base `sem_horda` com 10 Ocos por `inimigos`. Contato de Ocos das Lanternas nos passos 2 a 13 da esquiva, **só com `invulContato` = 0**: HP intacto, timer não ligado, exatamente 1 evento `esquivaPerfeita` por esquiva (10 Ocos nos i-frames dão 1 evento, 1 congelamento de 5 passos, `poderPassos` = 120), e duas esquivas encadeadas dão 2. +15% de Poder por 120 passos e +1 faca na salva seguinte **só com Facas na build** e só na salva que dispara de fato (nv1 dispara 3, e o flag zera; nv8, 6); sem Facas o flag não liga. Golpe e projétil nos i-frames contam mesmo com `invulContato` > 0; o contato com `invulContato` > 0 não. Os 12 passos de i-frames terminam. Reprova: tirar a guarda 'uma por esquiva' (10 Ocos dariam 12 eventos). (design/decisoes-F-006.md §9, VT8)",
           "origem": "Q-15"
         }
       ],
       "evidencias": [
         {
           "arquivo": "production/evidencias/F-006/esquiva-e-aparo.webm",
-          "descricao": "Vídeo de 10 s com esquiva perfeita e aparo (B)"
+          "descricao": "Vídeo de 10 s com esquiva perfeita e aparo (B); roteiro e seed fixos em .verify/referencia-f006.json (design/decisoes-F-006.md §9, VT9)"
         },
         {
           "arquivo": "production/evidencias/F-006/janelas.log",
-          "descricao": "Log dos testes de janela (B)"
+          "descricao": "Log dos testes de janela (B): 16 linhas iguais=true (esquiva, aparo, regeneração, aparo falho e controle, Contra-ataque, congelamento) (design/decisoes-F-006.md §9, VT9)"
+        },
+        {
+          "arquivo": "production/evidencias/F-006/telegrafos-390x844.png",
+          "descricao": "Captura de revisão: a cunha do Oco Grande no fim do telegrafo, a faixa e o projétil da Noviça, uma faca no ar, o botão Aparo e a barra de stamina (design/decisoes-F-006.md §9, VT9)"
+        },
+        {
+          "arquivo": "production/evidencias/F-006/esquiva-perfeita-390x844.png",
+          "descricao": "Captura de revisão: o flash da esquiva perfeita, com ?flash=segurar (design/decisoes-F-006.md §9, VT9)"
+        },
+        {
+          "arquivo": "production/evidencias/F-006/tutorial-esquiva-390x844.png",
+          "descricao": "Captura de revisão: o prompt de esquiva no 1º telegrafo de um Oco Grande (design/decisoes-F-006.md §6 e §9)"
+        },
+        {
+          "arquivo": "production/evidencias/F-006/tutorial-aparo-390x844.png",
+          "descricao": "Captura de revisão: o prompt de aparo no 1º telegrafo de uma Noviça, com o glifo ⟲ conferido (design/decisoes-F-006.md §6 e §9)"
         }
       ],
       "pendencias_antes_de_comecar": [
-        "brief §11.3 F-006: alcance do Oco Grande, projétil da Noviça, recuperação da esquiva, toque duplo, janela do swipe, câmera lenta do tutorial, centro do raio da Postura Quebrada, aparo falho, aparo de vermelho, stamina insuficiente; o que 'vulnerável' bloqueia no aparo falho (brief §11.3 F-006)",
-        "Build de teste em iPhone depois da F-006 (Q-29)",
-        "Como a aura do Círculo de Sal participa do Contra-ataque (brief §11.3 F-004; armas.json circulo_de_sal)",
-        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): esquiva com obstáculos e no máximo 32 px por passo; aparo só no 1º passo do frame; swipe por timeStamp",
-        "Recomendações da F-003 a fechar (design/decisoes-F-003.md §9): solidez e contato nos i-frames; prompt de esquiva pelo telegrafo do garantido (muda o 'como' do F-006.8); ?inicio e garantidos; atordoado separado; médios acima da massa; telegrafo por tintMode/tintBlend; no build de iPhone, o F-003.4 literal, gpu × image, STATIC × DYNAMIC e a reavaliação de S2 e S4",
-        "Ordem de empilhamento do multStatus, adiada pela DN3: Postura Quebrada ×2, Contra-ataque ×2 e Espada nv4 +50% somam ou multiplicam (×4 ou ×3; ×6 ou ×3,5 com o nv4); quebradaPassos por inimigo; números críticos amarelos (design/decisoes-F-004.md §9)",
-        "Multiplicador por alvo: Postura Quebrada e o +50% do nv4 dependem do inimigo e entram por acerto, não pela tabela por (arma, nível); a faca fixa no disparo só a parte comum, e o Contra-ataque ×2 pode ir no disparo (DN1, W13; design/decisoes-F-004.md §9)",
-        "Contra-ataque: Espada com a sequência inteira e a mira no aparado; Facas todas no aparado; Círculo com um tick extra ×2; Postura Quebrada do aparo pela regra da hitbox; esquiva perfeita = +1 faca na próxima salva (design/decisoes-F-004.md §9)",
-        "Projétil da Noviça como tipo 2 no mesmo pool, contando no limite, e se precisa de dono; nenhuma arma acerta projétil inimigo; a faca em sal se distingue do projétil branco (design/decisoes-F-004.md §9)",
-        "Sal no jogador em campos próprios, com a regra S1 (design/decisoes-F-004.md §9)",
-        "Sal e pulso não mexem nos timers de ataque nem no telegrafo; a silhueta acompanha o corpo empurrado; a morte cancela o telegrafo e o golpe pendente; o projétil lançado continua (design/decisoes-F-004.md §9)",
-        "Telegrafo branco como silhueta preenchida, nunca só um anel de traço (V6; design/decisoes-F-004.md §9)",
-        "Pausa: toggles de Som e Flashes e setMute/pauseAll; flash de acerto, se vier, pelo tintBlend e respeitando \"desligar flashes\" (design/decisoes-F-004.md §9)",
-        "No build de iPhone: o TouchEvent.timeStamp do Safari no relógio de performance.now() (P3; design/decisoes-F-004.md §9)",
-        "Aparo, Frasco, swipe e toque duplo não existem no modo modal do tradutor; esquiva ou aparo pendente não atravessa o modal; congelamento de 80 ms e modal no mesmo passo: o congelamento roda depois que o modal fecha (design/decisoes-F-005.md §9)",
-        "Poder temporário (+15%) como campo do registro, disparando o recálculo do dano (danoVivo) na entrada e na saída; facas e ondas no ar mantêm o dano fixado (design/decisoes-F-005.md §9)",
-        "Contra-ataque da União: a salva é a sequência de 4 golpes, cada um com sua onda, com o ×2 fixado na criação (design/decisoes-F-005.md §9)",
-        "Códigos de EVENTO e FORMA só crescem no fim (EVENTO 5 a 10 e FORMA 6 já usados pela F-005) (design/decisoes-F-005.md §9)"
+        "Resolvidas em design/decisoes-F-006.md (proposta da Etapa 1, aguarda a aprovação do usuário pela tabela §0): brief §11.3 (OG3, NV4, ES1, GE1, GE2, FB5, PQ1, AP5, AP7, AP8, AP10, ST3, AP9); build do iPhone (VT10); aura no Contra-ataque (CA4); recomendações da D2 §9 (ES3, AP2, ET6, GE1), da D3 §9 (ES7, EP1, TU1, TU7, PQ3, RE8, RE4, VT10), da D4 §9 (PQ6, PQ2, PQ8, PQ7, CA2 a CA4, EP4, NV5, NV6, RE6, NV7, OG9, RE5, FB3, RE11, FB2) e da D5 §9 (AP2, GE3, FB1, EP3, CA2, ET10)"
       ]
     },
     {
@@ -685,7 +684,18 @@
         "Com HP 0 (APAGANDO) e no A_FOME: nenhuma arma ativa, facas em voo somem e nenhuma morte nova soma em mortes, XP ou Almas (design/decisoes-F-004.md §9)",
         "Redução A/(A+20) com a Armadura derivada do Elmo (4 por nível) e a ordem com a Brasa Firme; o hpMax da F-005 (⌊(base × (100 + Σ%) + 50)/100⌋) é a base da Brasa Firme e do Frasco (design/decisoes-F-005.md §9)",
         "Almas dos inimigos e pickup de Alma no contador almas da F-005 e no pool de 512 com tipo próprio; junção por tipo (sem vizinho do mesmo tipo, a nova é descartada e conta); o baú nunca é descartado; HUD de Almas em topo + 116 com os glifos da N4 e \".\" (design/decisoes-F-005.md §9)",
-        "APAGANDO: nenhuma morte nova solta Cinza nem soma XP; morte do jogador e modal no mesmo passo: a morte vale primeiro e a fila de modais é descartada; o Resultado mostra o nível do estado (design/decisoes-F-005.md §9)"
+        "APAGANDO: nenhuma morte nova solta Cinza nem soma XP; morte do jogador e modal no mesmo passo: a morte vale primeiro e a fila de modais é descartada; o Resultado mostra o nível do estado (design/decisoes-F-005.md §9)",
+        "a armadura A/(A + 20) e a Brasa Firme entram em `danoAoJogador`, depois do aparo e dos i-frames de `resolverAcertoNoJogador`; valem para o golpe (20 a 39; 39 passa de 15% de 150 e interrompe o Frasco) e para o projétil (18 a 35). A Brasa Firme lê `stamina > 50%` estritamente (≥ 50,5) do registro novo (design/decisoes-F-006.md §10)",
+        "o F-003.5 continua medindo o dano bruto; com a Brasa Firme, o teste fixa stamina ≤ 50 ou afirma o valor bruto (design/decisoes-F-006.md §10)",
+        "o bit `ACAO.frasco` durante a esquiva e o aparo: a F-006 não o liga e a validação o recusa; a F-007 decide se ele é ignorado, guardado ou cancela a ação (brief §11.3 F-007) (design/decisoes-F-006.md §10)",
+        "o Frasco usa o bit `ACAO.frasco` (4) e `esperaRegen = max(esperaRegen, 120)`; nada mais zera o relógio da regeneração; o \"vulnerável\" do aparo falho não o bloqueia (a trava de ações é só de esquiva e aparo) (design/decisoes-F-006.md §10)",
+        "em APAGANDO: zerar `congelamento`, `esquivaPasso`, `aparoJanela`, `aparoFalho` e as bordas travadas; esquiva e aparo são ignorados sem custo; nenhuma máquina de ataque age e os projéteis em voo somem (D4 §9) (design/decisoes-F-006.md §10)",
+        "custos vindos de passivas saem em múltiplo de 0,5 (Passo Leve −30% = 17,5); \"+stamina máxima\" por Vigor lê o teto de `vigilantes.json` (design/decisoes-F-006.md §10)",
+        "gravar no meta os bits de tutorial (`tutoriaisCumpridos(e)`) e as opções Som e Flashes, junto de `numerosDeDano` (design/decisoes-F-006.md §10)",
+        "a câmera lenta do Apagar reaproveita a escala do `deltaMs` (FB5) (design/decisoes-F-006.md §10)",
+        "as estatísticas da pausa e do Resultado (\"aparos\", \"esquivas perfeitas\") não têm contadores no estado: leem o anel ou a telemetria, ou a F-007 acrescenta os contadores num layout v7; a política de agregação da telemetria `aparo` junto de `dano_recebido` (só os golpes e o projétil), dentro das 1.024 entradas, é dela (design/decisoes-F-006.md §10)",
+        "o sinal de acerto no jogador não usa branco nem `#ff2a2a` e respeita \"Flashes\" (design/decisoes-F-006.md §10)",
+        "a caixa do Frasco (72 pt, 16 pt acima do Aparo) já está reservada (design/decisoes-F-006.md §10)"
       ]
     },
     {
@@ -803,7 +813,10 @@
         "Coroado chama soltarBau na morte (dourado às 10:00) e solta Cinza de 25; massa morta pela arena e Coroados do marco vencido não soltam Cinza nem baú; a Forja usa uniaoDisponivel e aplicarUniao (design/decisoes-F-005.md §9)",
         "Fogueira: a fase de pickups continua e um level up pode abrir, antes das ações da Fogueira; baú no disco da arena alcançável (design/decisoes-F-005.md §9)",
         "Save grava o buffer v5 inteiro (progressão, atributos, passivas, oferta, fila de baús, pickups, efeitos de chão) e chama sincronizarDerivados; modal aberto reabre na retomada antes de qualquer passo (design/decisoes-F-005.md §9)",
-        "Medida U7: sem elites, a 1ª União só às 10:00 ou às 15:00 (contra os minutos 12 a 15 do doc 10 §3.1); relógio no HUD com os glifos da N4 e \":\" (design/decisoes-F-005.md §9)"
+        "Medida U7: sem elites, a 1ª União só às 10:00 ou às 15:00 (contra os minutos 12 a 15 do doc 10 §3.1); relógio no HUD com os glifos da N4 e \":\" (design/decisoes-F-005.md §9)",
+        "o save grava o buffer v6 inteiro (estado de ataque, pool com o dono, Sal, prompts, `quebradaPassos`, `caSeq`, `caEspera`, `alvoAparado`, `congelamento`); a migração de `vigilia` v5 para v6 põe a stamina em 100 e os contadores em 0; a carga chama `sincronizarDerivados`, que refaz as **duas** tabelas de dano vivo, e reabre o modal antes de qualquer passo (design/decisoes-F-006.md §10)",
+        "na Fogueira o passo roda e o relógio para: stamina, regeneração e congelamento andam; os timers do Contra-ataque (`caSeq`, `caEspera`) ficam parados junto com os das armas (D4 §9); \"ninguém ataca\" e os marcos vencidos congelam a fase 6, cancelam o telegrafo e decidem o projétil em voo (design/decisoes-F-006.md §10)",
+        "o Coroado reusa a máquina de ataque por dados (Patada branca em cone) e acrescenta o Grito vermelho (`aparavel: false`, empurrão); define `postura_quebrada`; a convocação não nasce atordoada; cunha e brilho para corpos de 64 a 128 px; seta de telegrafo na borda da tela quando o atacante está fora de vista (doc 11 §3.6; brief §5.12), que a F-006 deixou de fora: nenhum telegrafo seu nasce fora da vista, mas a Noviça pode sair da vista durante os 30 passos do telegrafo (§0.A) (design/decisoes-F-006.md §10)"
       ]
     },
     {
@@ -916,7 +929,12 @@
         "Ordem de empilhamento da Quebra ×2 e da Postura Firme −40% (exclusivas, B §3.11) com o multStatus da F-006 (DN3; design/decisoes-F-004.md §9)",
         "Multiplicador por alvo: Quebra e Postura Firme são estados do chefe e entram por acerto, não pela tabela por (arma, nível) (DN1; design/decisoes-F-004.md §9)",
         "Armas no Amanhecer e na TRANSICAO_FASE, com o chefe sem dano (design/decisoes-F-004.md §9)",
-        "HP do Lanterneiro lê o nível do estado (com os pendentes) no passo em que a arena se forma; a onda da União é acerto de arma (Postura +2) e testa o retângulo contra a caixa; A_FOME e Lanterneiro com código próprio em CAUSA, sem Cinza (design/decisoes-F-005.md §9)"
+        "HP do Lanterneiro lê o nível do estado (com os pendentes) no passo em que a arena se forma; a onda da União é acerto de arma (Postura +2) e testa o retângulo contra a caixa; A_FOME e Lanterneiro com código próprio em CAUSA, sem Cinza (design/decisoes-F-005.md §9)",
+        "o +10 de Postura só quando a esquiva perfeita vem de golpe do Lanterneiro (origem 2 no evento; Q-15); a Postura do chefe lê os eventos `aparo`, `esquivaPerfeita` e `posturaQuebrada`; `ameacasAparaveis` passa a contar os ataques brancos do chefe (design/decisoes-F-006.md §10)",
+        "o aparo no chefe soma +25 de Postura; se também atordoa fica a decidir (o valor provisório é `postura_quebrada: false`; para o Coroado, o doc 02 §5.4 (\"no atacante\") sugere `true`; para o Lanterneiro, o brief §11.3 deixa em aberto); o \"Agarrar\" branco aparado causa a Quebra imediata (design/decisoes-F-006.md §10)",
+        "a Quebra ×2 e a Postura Firme −40% são exclusivas e entram por acerto, em produto com a PQ6; os dígitos críticos da Quebra usam a mesma `FLAG.critico` (design/decisoes-F-006.md §10)",
+        "os ataques do Lanterneiro reusam a máquina e a camada de silhuetas, em vermelho `#ff2a2a`; a regra do vermelho (AP10) vale sem mudança; a imunidade ao pulso, ao Sal e à Postura Quebrada é daqui (design/decisoes-F-006.md §10)",
+        "o 3º som (quebra) já é sintetizado no boot e toca na Quebra de Postura (design/decisoes-F-006.md §10)"
       ]
     },
     {
@@ -1027,7 +1045,17 @@
         "Pausa automática reusa a tela e o flag da pausa, com o motivo automatica e A6.PAUSA.TOQUE_PARA_CONTINUAR (design/decisoes-F-004.md §9)",
         "Nível 1 da degradação corta o pool de mortes para 150 (design/decisoes-F-004.md §9)",
         "Pausa automática com o modal aberto não faz nada e solta os dedos ao voltar; nó de HP no Σ% do hpMax; Mãos de aprendiz pelos parâmetros de progresso inicial; toque único e swipe só com a tela de Opções; som do level up só se B §2 mudar; animação da União e faísca da barra com a arte (design/decisoes-F-005.md §9)",
-        "Balanceamento: Facas e Círculo não escalam com DES e FÉ em 3; níveis-alvo do doc 10 por comportamento (ajustar XP por inimigo ou mínimo na tela, nunca a curva); 1ª União só às 10:00 ou às 15:00 (design/decisoes-F-005.md §9)"
+        "Balanceamento: Facas e Círculo não escalam com DES e FÉ em 3; níveis-alvo do doc 10 por comportamento (ajustar XP por inimigo ou mínimo na tela, nunca a curva); 1ª União só às 10:00 ou às 15:00 (design/decisoes-F-005.md §9)",
+        "calibrar no aparelho o swipe (100 ms, 16 ms, 24 pt, 400 pt/s), o toque duplo (250, 200, 40 e 10), a janela do aparo, o perfil da esquiva (80/21 contra 80/18), a trava durante o falho (≈ 0,6 s; o alívio é a esquiva cancelar a janela) e o buffer de 3 passos; perguntar pela \"esquiva sem querer\" e pelo toque duplo seguido de arrasto (doc 12 §2.6) (design/decisoes-F-006.md §10)",
+        "conferir o `TouchEvent.timeStamp` do Safari (se a diferença para o `performance.now()` passar de 60.000 ms, swipe e toque duplo não funcionam no aparelho; a saída é o listener gravar `performance.now()`, decisão desta feature), a câmera lenta a 30 fps (Low Power Mode), o brilho por `tintBlend`, a cunha, a 2ª camada de médios, se 64 membros de telegrafo bastam e o indício do anel sólido (183 ms: ajuda a antecipar, não a reagir; AP12) (design/decisoes-F-006.md §10)",
+        "a esquiva com uma mão (joystick e Aparo pedem dois polegares; doc 02 §4 diz \"uma mão\"); o botão dedicado de esquiva e o aparo por segundo dedo dependem da tela de Opções; reavaliar a margem de 24 pt e uma área de toque maior que 80 pt (design/decisoes-F-006.md §10)",
+        "persistir os bits de tutorial e as opções no meta; pausa automática com `setMute`; reaproveitar o workflow do Pages (design/decisoes-F-006.md §10)",
+        "a janela do aparo é uma constante única, para o modo acessível (doc 10) poder alterá-la (design/decisoes-F-006.md §10)",
+        "Arte e áudio finais (depois da F-010): o rastro de brasas e os 4 quadros de contorno da esquiva perfeita (doc 11 §5), o \"sopro\" (doc 13 §2.2), o som real do aparo, o \"inspirar\" do telegrafo (doc 02 §5.4; doc 13 §2), o aperto de câmera de 2% no aparo, o flash de acerto no inimigo (se o acerto parecer \"mole\"), a reflexão do projétil aparado e o 4º estado \"janela ativa\" do botão; mostrar a duração do Poder, se o HUD pedir (design/decisoes-F-006.md §10)",
+        "Balanceamento, depois da F-010: um jogador em movimento quase não é atingido pela Noviça (5 a 14%): se o tutorial do aparo precisar de mais acertos, aumentar a vida ou a velocidade do projétil, ou mirar à frente, sem mudar B (design/decisoes-F-006.md §10)",
+        "Balanceamento, depois da F-010: quem anda em linha pode nunca ser telegrafado por um Oco Grande (na seed 6, nada em 1.500 passos) e ver o prompt de esquiva só muito depois (design/decisoes-F-006.md §10)",
+        "Balanceamento, depois da F-010: reavaliar o dano dos médios (20 a 39) contra o HP de 150 com 100 Grandes e 80 a 125 Noviças vivos na linha 19 (design/decisoes-F-006.md §10)",
+        "Balanceamento, depois da F-010: o aparo falho custa só 3 pontos de stamina (AP7): se a punição não for sentida, somar os 24 passos (design/decisoes-F-006.md §10)"
       ]
     }
   ]
