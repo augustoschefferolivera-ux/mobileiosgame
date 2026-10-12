@@ -11,6 +11,7 @@ import { PASSOS_POR_SEGUNDO, segundosEmPassos } from '../nucleo/passos';
 import { FORMA } from '../nucleo/eventos';
 import { MULT_NEUTRO_PCT, PODER_PCT, danoPorAcerto } from './dano';
 import { CORPO_PX } from '../mundo/tipos';
+import combate from '../../dados/combate.json';
 
 /** Códigos de arma; 0 = vaga vazia. */
 export const ARMA = {
@@ -125,6 +126,8 @@ export interface TabelaDeArmas {
   readonly salPassos: Uint16Array;
   /** 1 se o nível tem o pulso de afastamento. */
   readonly pulso: Uint8Array;
+  /** Fator do dano contra o atordoado, em %, por (arma, nível): 200, ou 300 com o marco do nv4 da Espada (PQ7). */
+  readonly pqFator: Uint16Array;
   /** Afastamento do pulso: px por passo e passos no máximo (iguais para toda arma com pulso). */
   readonly empurraoPorPasso: number;
   readonly empurraoMaxPassos: number;
@@ -185,6 +188,7 @@ export function criarTabelaDeArmas(armas: readonly ArmaDoJson[], atributos: Atri
     salPct: new Uint8Array(POR_NIVEL),
     salPassos: new Uint16Array(POR_NIVEL),
     pulso: new Uint8Array(POR_NIVEL),
+    pqFator: new Uint16Array(POR_NIVEL),
   };
   let empurraoPorPasso = 0;
   let empurraoMaxPassos = 0;
@@ -229,6 +233,7 @@ export function criarTabelaDeArmas(armas: readonly ArmaDoJson[], atributos: Atri
     let salPct = aplicaBase && aplicaBase.status === 'sal' ? aplicaBase.fator_pct : 0;
     let salPassos = aplicaBase && aplicaBase.status === 'sal' ? segundosEmPassos(aplicaBase.duracao_s) : 0;
     let pulso = 0;
+    let pqFator = combate.postura_quebrada.dano_pct;
     for (let nivel = 1; nivel <= a.nivel_max; nivel++) {
       const n = a.niveis.find((x) => x.nivel === nivel);
       if (!n) throw new Error(`armas.json: ${a.id} sem o nível ${nivel}`);
@@ -284,7 +289,8 @@ export function criarTabelaDeArmas(armas: readonly ArmaDoJson[], atributos: Atri
             break;
           }
           case 'dano_pct_vs_postura_quebrada':
-            // Condicional: entra no multStatus da F-006 (decisoes-F-004 D2 e D3).
+            // Condicional (PQ7): vira a coluna `pqFator`, acumulada do nível em diante, em produto com o ×2.
+            pqFator = (pqFator * (100 + valor!)) / 100;
             break;
           default:
             throw new Error(`armas.json: ${a.id} nv${nivel}: efeito ${tipo} sem implementação`);
@@ -316,6 +322,7 @@ export function criarTabelaDeArmas(armas: readonly ArmaDoJson[], atributos: Atri
       t.salPct[i] = inteiro(salPct, `${a.id} nv${nivel} sal`);
       t.salPassos[i] = salPassos;
       t.pulso[i] = pulso;
+      t.pqFator[i] = inteiro(pqFator, `${a.id} nv${nivel} fator contra a Postura Quebrada`);
     }
   }
   const inicial = codigoDaArma(armaInicial);
@@ -377,6 +384,8 @@ function compilarUniao(t: TabelaEmMontagem, a: ArmaDoJson, c: number, atributos:
   t.alcance[i] = t.alcance[ig]!;
   t.estocadaL[i] = t.estocadaL[ig]!;
   t.estocadaW[i] = t.estocadaW[ig]!;
+  // A Lâmina herda o fator do nível de origem (PQ7): a União não perde o marco do nv4.
+  t.pqFator[i] = t.pqFator[io]!;
   compilarOnda(t, a, c);
 }
 

@@ -9,7 +9,7 @@ import type { DadosDaVigilia } from '../mundo/dados';
 import { CONSULTA, consultarGradeDoRascunho } from '../mundo/grade';
 import { grade } from '../mundo/horda';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../mundo/toro';
-import { ACERTO, ACHADOS, DANO, acertar, calcularDano } from './acerto';
+import { ACERTO, ACHADOS, DANO, acertar, alvoAparado, calcularDano } from './acerto';
 import { indiceDoNivel } from './tabela';
 import { limiteDeProjeteis, projeteisEEfeitos } from './ondas';
 
@@ -30,6 +30,16 @@ export function rodarMaisProximo(e: Estado, dados: DadosDaVigilia, v: number): v
   let r = b.recarga[v]!;
   if (r > 0) b.recarga[v] = --r;
   if (r !== 0) return;
+  if (salvaDeFacas(e, dados, v, 0) === 1) b.recarga[v] = dados.armas.periodo[b.codigo[v]!]!;
+}
+
+/**
+ * A salva da vaga `v`; devolve 1 se havia candidato (a recarga natural recomeça), senão 0.
+ * No Contra-ataque (`contra` = 1, CA3) o único candidato é o aparado vivo, onde estiver, e
+ * o dano gravado no disparo leva o fator; sem aparado válido vale o mais próximo normal.
+ */
+export function salvaDeFacas(e: Estado, dados: DadosDaVigilia, v: number, contra: number): number {
+  const b = e.build;
   const t = dados.armas;
   const codigo = b.codigo[v]!;
   const i = indiceDoNivel(codigo, b.nivel[v]!);
@@ -40,14 +50,22 @@ export function rodarMaisProximo(e: Estado, dados: DadosDaVigilia, v: number): v
   const jx = j[JOGADOR.x]!;
   const jy = j[JOGADOR.y]!;
   const alcance = t.alcanceBusca[codigo]!;
-  CONSULTA[0] = jx;
-  CONSULTA[1] = jy;
-  CONSULTA[2] = alcance;
-  const m = consultarGradeDoRascunho(grade, e.inimigos.x, e.inimigos.y, ACHADOS);
+  const aparado = contra === 1 ? alvoAparado(e) : -1;
+  let m = 0;
+  if (aparado < 0) {
+    CONSULTA[0] = jx;
+    CONSULTA[1] = jy;
+    CONSULTA[2] = alcance;
+    m = consultarGradeDoRascunho(grade, e.inimigos.x, e.inimigos.y, ACHADOS);
+  }
   // Os nf menores por (d², slot), por seleção parcial, sem ordenar nem alocar.
   const ini = e.inimigos;
   const limite = nf < MAX_CANDIDATOS ? nf : MAX_CANDIDATOS;
   let M = 0;
+  if (aparado >= 0) {
+    CAND_SLOT[0] = aparado;
+    M = 1;
+  }
   for (let k = 0; k < m; k++) {
     const s = ACHADOS[k]!;
     if (ini.hp[s]! <= 0) continue;
@@ -71,9 +89,9 @@ export function rodarMaisProximo(e: Estado, dados: DadosDaVigilia, v: number): v
     CAND_SLOT[q] = s;
     if (M < limite) M++;
   }
-  if (M === 0) return;
+  if (M === 0) return 0;
   calcularDano(e, v, i);
-  const dano = Math.fround(DANO[v]!);
+  const dano = Math.fround(contra === 1 ? DANO[v]! * dados.combate.contraFator : DANO[v]!);
   const vel = t.velocidade[i]!;
   const vida = t.vida[i]!;
   const perf = t.perfuracoes[i]!;
@@ -136,7 +154,7 @@ export function rodarMaisProximo(e: Estado, dados: DadosDaVigilia, v: number): v
     criadas = 1;
   }
   if (criadas === 1) e.jogador3U8[JOGADOR3_U8.facaExtra] = 0;
-  b.recarga[v] = t.periodo[codigo]!;
+  return 1;
 }
 
 /** Libera o slot do projétil e zera todos os campos (o hash só vê os vivos). */
@@ -209,6 +227,8 @@ export function moverProjeteis(e: Estado, dados: DadosDaVigilia): void {
     }
     if (melhor >= 0) {
       ACERTO[0] = pr.dano[p]!;
+      // Lido no acerto, pelo alvo de agora (PQ7); as Facas têm o mesmo fator em todo nível.
+      ACERTO[1] = dados.armas.pqFator[indiceDoNivel(arma, 1)]!;
       acertar(e, melhor, arma, FORMA.faca, pr.salPct[p]!, pr.salPassos[p]!);
       const perf = pr.perfuracoes[p]!;
       if (perf === 0) {

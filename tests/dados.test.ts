@@ -445,8 +445,9 @@ describe('números do briefing técnico (design/gdd/18 §3)', () => {
     expect([ap['janela_passos'], ap['janela_tutorial_extra_passos'], ap['falho_passos']]).toEqual([11, 6, 24]);
     expect(c['congelamento_passos']).toBe(5);
     expect(obj(c, 'poder_da_esquiva_perfeita')).toEqual({ pct: 15, duracao_passos: 120 });
-    expect(obj(c, 'postura_quebrada')).toEqual({ duracao_passos: 120, raio_px: 64 });
+    expect(obj(c, 'postura_quebrada')).toEqual({ duracao_passos: 120, raio_px: 64, dano_pct: 200 });
     expect(c['contra_ataque_passos']).toBe(90);
+    expect(c['contra_ataque_fator']).toBe(2);
     // O que está em outros JSON não se repete aqui.
     expect(JSON.stringify(c)).not.toMatch(/capacidade|stamina_max|sem_regen/);
     expect(Number(vigilantes[0]!['stamina'])).toBe(100);

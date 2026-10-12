@@ -15,7 +15,8 @@ import type { DadosDaVigilia } from '../mundo/dados';
 import { CONSULTA, consultarGradeDoRascunho } from '../mundo/grade';
 import { grade } from '../mundo/horda';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../mundo/toro';
-import { ACERTO, ACHADOS, acertar } from './acerto';
+import { ACERTO, ACHADOS, MIRA, acertar } from './acerto';
+import { indiceDoNivel } from './tabela';
 
 /** Limite lógico somado de projéteis e efeitos de chão (B §3.13): 200 com TETO 300, 400 com TETO 500. */
 export function limiteDeProjeteis(e: Estado): number {
@@ -46,8 +47,11 @@ export function desmarcarInimigo(e: Estado, s: number): void {
   for (let o = 0; o < CAPACIDADE_DE_EFEITOS; o++) if (pos[o]! >= 0) bits[o * PALAVRAS_DO_BITSET + palavra] = bits[o * PALAVRAS_DO_BITSET + palavra]! & mascara;
 }
 
-/** Cria a onda do golpe da arma `codigo` (U3): na posição e na mira do jogador; recusa no limite. */
-export function criarOnda(e: Estado, codigo: number): void {
+/**
+ * Cria a onda do golpe da arma `codigo` (U3): na posição do jogador e na mira dele; recusa no limite.
+ * No Contra-ataque (`fatorContra` > 0, CA2) a mira é a que `golpear` deixou em MIRA e o dano fixado leva esse fator (×2).
+ */
+export function criarOnda(e: Estado, codigo: number, fatorContra = 0): void {
   if (projeteisEEfeitos(e) >= limiteDeProjeteis(e)) {
     e.mundo2[MUNDO2.efeitosRecusados] = e.mundo2[MUNDO2.efeitosRecusados]! + 1;
     return;
@@ -63,13 +67,14 @@ export function criarOnda(e: Estado, codigo: number): void {
   const f = e.efeitos;
   const x = j[JOGADOR.x]!;
   const y = j[JOGADOR.y]!;
-  const dx = j[JOGADOR.dirX]!;
-  const dy = j[JOGADOR.dirY]!;
+  const dx = fatorContra > 0 ? MIRA[0]! : j[JOGADOR.dirX]!;
+  const dy = fatorContra > 0 ? MIRA[1]! : j[JOGADOR.dirY]!;
   f.x[o] = x;
   f.y[o] = y;
   f.dirX[o] = dx;
   f.dirY[o] = dy;
-  f.dano[o] = e.jogador3U8[JOGADOR3_U8.poderPassos]! > 0 ? e.derivados.danoOndaPoder[codigo]! : e.derivados.danoOnda[codigo]!;
+  const danoOnda = e.jogador3U8[JOGADOR3_U8.poderPassos]! > 0 ? e.derivados.danoOndaPoder[codigo]! : e.derivados.danoOnda[codigo]!;
+  f.dano[o] = fatorContra > 0 ? danoOnda * fatorContra : danoOnda;
   f.idade[o] = 0;
   f.arma[o] = codigo;
   f.bits.fill(0, o * PALAVRAS_DO_BITSET, (o + 1) * PALAVRAS_DO_BITSET);
@@ -113,6 +118,8 @@ export function rodarOndas(e: Estado, dados: DadosDaVigilia): void {
     CONSULTA[2] = Math.SQRT2 * meia + rMax;
     const m = consultarGradeDoRascunho(grade, ini.x, ini.y, ACHADOS);
     ACERTO[0] = f.dano[o]!;
+    // A onda herda o fator da arma (a União tem um só nível; PQ7).
+    ACERTO[1] = t.pqFator[indiceDoNivel(codigo, 1)]!;
     const base = o * PALAVRAS_DO_BITSET;
     for (let k = 0; k < m; k++) {
       const s = ACHADOS[k]!;

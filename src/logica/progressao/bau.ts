@@ -53,6 +53,8 @@ export function aplicarUniao(e: Estado, dados: DadosDaVigilia, u: number): void 
   b.codigo[v] = t.uniaoResultado[u]!;
   b.nivel[v] = 1;
   b.recarga[v] = b.esperaPulso[v] = b.golpe[v] = b.esperaGolpe[v] = 0;
+  // A sequência pendente do Contra-ataque é descartada junto dos outros timers (CA5).
+  b.caSeq[v] = b.caEspera[v] = 0;
   FLOATS_DO_EVENTO[0] = t.uniaoPassiva[u]!;
   FLOATS_DO_EVENTO[1] = FLOATS_DO_EVENTO[2] = FLOATS_DO_EVENTO[3] = 0;
   gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.uniao, t.uniaoResultado[u]!, 0, -1, 0, 0, 0, 0);

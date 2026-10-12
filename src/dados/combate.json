@@ -26,9 +26,11 @@
   },
   "postura_quebrada": {
     "duracao_passos": 120,
-    "raio_px": 64
+    "raio_px": 64,
+    "dano_pct": 200
   },
   "contra_ataque_passos": 90,
+  "contra_ataque_fator": 2,
   "ataques_dos_inimigos": {
     "alcance_de_tiro_novica_corpos": 6
   },

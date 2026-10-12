@@ -91,6 +91,10 @@ export interface TabelaDeCombate {
   /** Raio da área da Postura Quebrada, de centro do jogador a borda do alvo. */
   readonly posturaRaio: number;
   readonly contraAtaquePassos: number;
+  /** Multiplicador do dano contra o atordoado, em % (200 = ×2), antes do marco do nv4 (PQ7). */
+  readonly posturaDanoPct: number;
+  /** Fator do dano da salva extra do Contra-ataque (×2). */
+  readonly contraFator: number;
   /** Por tipo: 1 se a Postura Quebrada o atinge. */
   readonly posturaQuebrada: Uint8Array;
   /** Por tipo: 1 se o ataque tem telegrafo branco (aparável). */
@@ -226,6 +230,8 @@ export function criarTabelaDeCombate(c: CombateDoJson, staminaMax: number, inimi
     posturaPassos: c.postura_quebrada.duracao_passos,
     posturaRaio: c.postura_quebrada.raio_px,
     contraAtaquePassos: c.contra_ataque_passos,
+    posturaDanoPct: c.postura_quebrada.dano_pct,
+    contraFator: c.contra_ataque_fator,
     posturaQuebrada,
     ataqueAparavel,
     telegrafoPassos,
