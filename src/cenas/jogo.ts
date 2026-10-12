@@ -15,11 +15,13 @@ import { SondaDoTeto, armazenamentoLocal, classeDaTela, lerCacheDoTeto, versaoDo
 import { decidirTeto, type EntradasDoTeto } from '../plataforma/teto';
 import { montarEstadoDaSonda } from '../logica/nucleo/sonda';
 import { criarDadosDaCharneca } from '../plataforma/dadosDaVigilia';
+import { ArmazenamentoDoMeta } from '../plataforma/armazenamento';
 import { RegistroDeTelemetria } from '../plataforma/telemetria';
 import { suportaWebGL } from '../plataforma/webgl';
 import { Acender } from './Acender';
 import { FeedbackDaInterface } from './feedback';
 import { Boot } from './Boot';
+import { Resultado } from './Resultado';
 import { Hud } from './Hud';
 import { Pausa } from './Pausa';
 import type { ContextoDoJogo } from './contexto';
@@ -71,12 +73,17 @@ export function iniciarJogo(): Phaser.Game | null {
     sondaDoTeto = { sonda: new SondaDoTeto(montarEstadoDaSonda(dados), dados, () => performance.now()), entradas, identidade };
   }
 
+  // Meta mínimo (SV2, SV5): lido uma vez no boot; as opções começam do que o jogador gravou.
+  const armazenamentoDoMeta = new ArmazenamentoDoMeta();
+  const meta = armazenamentoDoMeta.ler();
   const ctx: ContextoDoJogo = {
     seed: params.seed ?? sortearSeed(),
     ehBuildDeDebug,
     pularTutoriais: params.pularTutoriais,
     vistos: params.vistos,
     inicio: params.inicio,
+    almasIniciais: params.almas,
+    meta: { armazenamento: armazenamentoDoMeta, atual: meta },
     telemetria: new RegistroDeTelemetria(),
     sonda: elemento('sonda-safe-area'),
     container: elemento('jogo'),
@@ -93,7 +100,7 @@ export function iniciarJogo(): Phaser.Game | null {
     sondaDoTeto,
     cenario: params.cenario === null ? null : { id: params.cenario, parametros: parametrosDoCenario(params.cenario) },
     render: { modo: params.render, origem: 'parametro', bufferDinamico: params.bufferDinamico, aquecido: false },
-    opcoes: { numerosDeDano: true, som: true, flashes: true },
+    opcoes: { numerosDeDano: meta.opcoes.numerosDeDano, som: meta.opcoes.som, flashes: meta.opcoes.flashes },
     feedback: new FeedbackDaInterface(),
     sfx: null,
     flashSegurar: params.flashSegurar,
@@ -138,7 +145,7 @@ export function iniciarJogo(): Phaser.Game | null {
         if (ehBuildDeDebug) ligarTecladoDeDebug(window, ctx.entrada.tradutor.teclado, () => ctx.entrada.tradutor.pedirEsquivaDoTeclado());
       },
     },
-    scene: [new Boot(ctx), new Acender(ctx), new Vigilia(ctx), new Hud(ctx), new Modal(ctx), new Pausa(ctx)],
+    scene: [new Boot(ctx), new Acender(ctx), new Vigilia(ctx), new Hud(ctx), new Modal(ctx), new Pausa(ctx), new Resultado(ctx)],
   });
   const debug = instalarDebug(jogo, ctx);
   if (ctx.debug) instalarPainelDeDebug(document, () => instantaneoDoDebug(debug));

@@ -12,7 +12,7 @@ export class ArmazenamentoDoMeta {
 
   /** O meta gravado, ou os padrões (leitura que falha, texto quebrado ou soma errada); nunca lança. */
   ler(): Meta {
-    let texto: string | null = null;
+    let texto: string | null;
     try {
       texto = this.armazenamento?.getItem(CHAVE_DO_META) ?? null;
     } catch {

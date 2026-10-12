@@ -9,7 +9,7 @@
 import type Phaser from 'phaser';
 import { fonteConstante, fonteDoRoteiro, validarAcoes, validarRoteiro, type AcaoDeRoteiro, type Roteiro } from '../logica/nucleo/comandos';
 import {
-  BAU, BYTES_ESTADO, CAB, CAPACIDADE_DE_EFEITOS, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CAPACIDADE_DE_PROJETEIS, CARTAS, CATEGORIA_DE_ITEM, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR3_U8, JOGADOR_U8,
+  BAU, BYTES_ESTADO, CAB, CAPACIDADE_DE_EFEITOS, FASE, JOGADOR4, JOGADOR4_U32, JOGADOR4_U8, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CAPACIDADE_DE_PROJETEIS, CARTAS, CATEGORIA_DE_ITEM, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR3_U8, JOGADOR_U8,
   MUNDO, MUNDO2, PROGRESSAO, JOGADOR3_U16, TIPO_DE_CARTA, TIPO_DE_PROJETIL, TIPO_DE_PICKUP, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, hashEstado, hashPorSecao, type Estado,
 } from '../logica/nucleo/estado';
 import { BYTES_DO_ANEL, EV, FLAG, eventosEscritos, inicioDoEvento } from '../logica/nucleo/eventos';
@@ -312,7 +312,27 @@ export interface GameDebug {
   readonly passo: number;
   /** Relógio da Vigília em passos (para na Fogueira, a partir da F-008). */
   readonly relogio: number;
+  /**
+   * A fase da Vigília (decisoes-F-007 AG4): 'ACENDER' e 'BOOT' fora dela; dentro, 'VIGILIA' (fase VIVA; o nome antigo,
+   * para os testes das F-001 a F-006), 'APAGANDO' e 'FIM(apagar)' ou 'FIM(abandonar)'.
+   */
   readonly estado: string;
+  /** A tela em exibição, em minúsculas: 'boot', 'acender', 'vigilia' e 'resultado' (do Apagar em diante). */
+  readonly tela: string;
+  /** Fim da Vigília, Frasco e mancha, lidos do estado (F-007); null sem simulação. */
+  readonly vigilia: {
+    fase: string;
+    causa: number;
+    apagandoPassos: number;
+    frasco: { cargas: number; passo: number; restante: number; usados: number };
+    mancha: { ativa: boolean; x: number; y: number; almas: number };
+    danoRecebido: number;
+    aparos: number;
+    esquivasPerfeitas: number;
+    resultado: { segundos: number; nivel: number; mortes: number; danoRecebido: number; almas: number; almasAoSantuario: number; mancha: { x: number; y: number; hora: number; almas: number } | null } | null;
+  } | null;
+  /** O meta lido do armazenamento (cópia): Almas do Santuário, mancha, tutoriais e opções. */
+  readonly meta: { almas: number; mancha: { x: number; y: number; hora: number; almas: number } | null; tutoriais: number; primeiroApagarFeito: boolean; seq: number };
   readonly vivos: Record<TipoVivo, number>;
   /** Quantos dos oco_grande vivos são convertidos do excedente (ADR-0002 §8.7). */
   readonly convertidos: number;
@@ -422,6 +442,22 @@ export interface GameDebug {
   removerInimigo?: (slot: number) => void;
 }
 
+/** FIM(apagar), FIM(abandonar)...; VIVA e APAGANDO sem causa. */
+function nomeDaFase(fase: number, causa: number): string {
+  if (fase === FASE.apagando) return 'APAGANDO';
+  if (fase !== FASE.fim) return 'VIVA';
+  const nomes = ['', 'apagar', 'abandonar', 'a_fome', 'amanhecer'];
+  return `FIM(${nomes[causa] ?? ''})`;
+}
+
+/** O `estado` do debug: a tela fora da Vigília; dentro dela, 'VIGILIA' (fase VIVA), 'APAGANDO' ou 'FIM(causa)'. */
+function estadoDaVigilia(ctx: ContextoDoJogo): string {
+  const sim = ctx.simulacao;
+  if (!sim || (ctx.tela !== 'VIGILIA' && ctx.tela !== 'RESULTADO')) return ctx.tela;
+  const nome = nomeDaFase(sim.estado.jogador4U8[JOGADOR4_U8.fase]!, sim.estado.jogador4U8[JOGADOR4_U8.causaDoFim]!);
+  return nome === 'VIVA' ? 'VIGILIA' : nome;
+}
+
 function textosVisiveis(jogo: Phaser.Game): string[] {
   const ids: string[] = [];
   for (const cena of jogo.scene.getScenes(true)) {
@@ -449,7 +485,57 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
       return ctx.simulacao?.estado.cab[CAB.relogio] ?? 0;
     },
     get estado() {
-      return ctx.tela;
+      return estadoDaVigilia(ctx);
+    },
+    get tela() {
+      return ctx.tela.toLowerCase();
+    },
+    get vigilia() {
+      const sim = ctx.simulacao;
+      if (!sim) return null;
+      const e = sim.estado;
+      const u8 = e.jogador4U8;
+      return {
+        fase: nomeDaFase(u8[JOGADOR4_U8.fase]!, u8[JOGADOR4_U8.causaDoFim]!),
+        causa: u8[JOGADOR4_U8.causaDoFim]!,
+        apagandoPassos: u8[JOGADOR4_U8.apagandoPassos]!,
+        frasco: {
+          cargas: u8[JOGADOR4_U8.frascoCargas]!,
+          passo: u8[JOGADOR4_U8.frascoPasso]!,
+          restante: e.jogador4[JOGADOR4.frascoRestante]!,
+          usados: e.jogador4U32[JOGADOR4_U32.frascosUsados]!,
+        },
+        mancha: {
+          ativa: u8[JOGADOR4_U8.manchaAtiva] === 1,
+          x: e.jogador4[JOGADOR4.manchaX]!,
+          y: e.jogador4[JOGADOR4.manchaY]!,
+          almas: e.jogador4U32[JOGADOR4_U32.manchaAlmas]!,
+        },
+        danoRecebido: e.jogador4[JOGADOR4.danoRecebido]!,
+        aparos: e.jogador4U32[JOGADOR4_U32.aparos]!,
+        esquivasPerfeitas: e.jogador4U32[JOGADOR4_U32.esquivasPerfeitas]!,
+        resultado: sim.resultado
+          ? {
+              segundos: sim.resultado.segundos,
+              nivel: sim.resultado.nivel,
+              mortes: sim.resultado.mortes,
+              danoRecebido: sim.resultado.danoRecebido,
+              almas: sim.resultado.almas,
+              almasAoSantuario: sim.resultado.almasAoSantuario,
+              mancha: sim.resultado.mancha ? { x: sim.resultado.mancha.x, y: sim.resultado.mancha.y, hora: sim.resultado.mancha.hora, almas: sim.resultado.mancha.almas } : null,
+            }
+          : null,
+      };
+    },
+    get meta() {
+      const m = ctx.meta.atual;
+      return {
+        almas: m.almas,
+        mancha: m.mancha ? { x: m.mancha.x, y: m.mancha.y, hora: m.mancha.hora, almas: m.mancha.almas } : null,
+        tutoriais: m.tutoriais,
+        primeiroApagarFeito: m.primeiroApagarFeito,
+        seq: m.seq,
+      };
     },
     get vivos() {
       return contarVivos(ctx.simulacao?.estado);

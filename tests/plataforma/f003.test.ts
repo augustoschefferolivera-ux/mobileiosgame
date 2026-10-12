@@ -192,3 +192,13 @@ describe('painel do ?debug=1 (V4)', () => {
     expect(pre.textContent).toBe('quadro 2');
   });
 });
+
+describe('?almas=N (design/decisoes-F-007.md MC12)', () => {
+  it('só no build de debug; inteiro de 0 a 2^30 − 1, o resto é ignorado', () => {
+    expect(lerParametros('?almas=1000', true).almas).toBe(1000);
+    expect(lerParametros('?almas=1000', false).almas).toBeNull();
+    expect(lerParametros('', true).almas).toBeNull();
+    for (const ruim of ['-1', '1.5', 'abc', '', '1073741824', '99999999999']) expect(lerParametros(`?almas=${ruim}`, true).almas, ruim).toBeNull();
+    expect(lerParametros('?almas=1073741823', true).almas).toBe(1073741823);
+  });
+});

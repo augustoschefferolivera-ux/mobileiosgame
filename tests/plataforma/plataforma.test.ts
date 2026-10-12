@@ -198,6 +198,7 @@ describe('parâmetros de URL (ADR-0002 §14)', () => {
       flashSegurar: false,
       inicio: null,
       vistos: null,
+      almas: null,
     });
   });
 

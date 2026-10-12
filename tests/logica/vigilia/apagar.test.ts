@@ -10,8 +10,10 @@ import { CAB, CAUSA_DO_FIM, FASE, JOGADOR, JOGADOR3_U8, JOGADOR4_U8, JOGADOR_U8,
 import { CAUSA, EVENTO } from '../../../src/logica/nucleo/eventos';
 import { hashEstado } from '../../../src/logica/nucleo/estado';
 import { avancar, passo } from '../../../src/logica/nucleo/passo';
-import { alocar } from '../../../src/logica/nucleo/pool';
-import { D_LIVRE as D, TIPO, criar, eventosDe, fonteDeAcoes } from '../combate/apoio';
+import { alocar, quantosAtivos } from '../../../src/logica/nucleo/pool';
+import { ARMA } from '../../../src/logica/armas/tabela';
+import { nascerInimigo } from '../../../src/logica/mundo/inimigos';
+import { D_LIVRE as D, TIPO, criar, eventosDe, fonteDeAcoes, posJogador } from '../combate/apoio';
 
 const fase = (e: Estado): number => e.jogador4U8[JOGADOR4_U8.fase]!;
 const OCO_ENCOSTADO = { codigo: TIPO.oco_das_lanternas, dx: 20, dy: 0 };
@@ -113,6 +115,22 @@ describe('APAGANDO (AG2, AG3)', () => {
     avancar(e, D, PARADO, 100);
     expect(hashEstado(e)).toBe(h);
     expect(eventosDe(e, EVENTO.fimDaVigilia)).toHaveLength(1);
+  });
+
+  it('mutação: com a Espada pronta e um Oco ao alcance, as armas NÃO rodam em APAGANDO (mortes, XP e Almas seguem; o Oco vive)', () => {
+    const e = criar({ armas: [{ codigo: ARMA.espada_longa_do_juramento, nivel: 1 }] });
+    e.jogador[JOGADOR.hp] = 0;
+    avancar(e, D, PARADO, 1);
+    expect(fase(e)).toBe(FASE.apagando);
+    const [x, y] = posJogador(e);
+    const s = nascerInimigo(e, D, TIPO.oco_das_lanternas, x, y - 40, false);
+    e.inimigos.hp[s] = 1;
+    e.build.recarga[0] = 0;
+    const antes = [e.mundo[MUNDO.mortes], e.progresso[PROGRESSAO.xpTotal], e.progresso[PROGRESSAO.almas], quantosAtivos(e.poolDePickups)];
+    avancar(e, D, PARADO, 28);
+    expect(fase(e)).toBe(FASE.apagando);
+    expect([e.mundo[MUNDO.mortes], e.progresso[PROGRESSAO.xpTotal], e.progresso[PROGRESSAO.almas], quantosAtivos(e.poolDePickups)]).toEqual(antes);
+    expect(e.pool.posicao[s]).toBeGreaterThanOrEqual(0);
   });
 
   it('sem driver, só o passo: o FIM chega exatamente 30 passos depois do HP 0, e os inimigos andam em APAGANDO', () => {

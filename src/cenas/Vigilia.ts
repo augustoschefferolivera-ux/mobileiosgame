@@ -10,16 +10,20 @@
 // confirmação entra na simulação, por confirmarModal.
 import Phaser from 'phaser';
 import { alfa, criarAcumulador } from '../logica/nucleo/acumulador';
-import { criarCameraLenta, dispararCameraLenta, escalarDelta } from '../logica/nucleo/cameraLenta';
-import { criarComandos, fonteConstante, fonteDoRoteiro } from '../logica/nucleo/comandos';
+import { criarCameraLenta, dispararCameraLenta, escalarDelta, escalarDeltaDoApagar } from '../logica/nucleo/cameraLenta';
+import { ACAO, criarComandos, fonteConstante, fonteDoRoteiro } from '../logica/nucleo/comandos';
 import { rodarFrameComPausas } from '../logica/nucleo/driver';
-import { CAB, CENARIO, JOGADOR3_U8, PROMPT, TIPO_DE_CARTA, TODOS_OS_TUTORIAIS, criarEstado, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
+import { CAB, CAUSA_DO_FIM, CENARIO, FASE, JOGADOR, JOGADOR3_U8, JOGADOR4, JOGADOR4_U8, PROMPT, TIPO_DE_CARTA, TODOS_OS_TUTORIAIS, criarEstado, tutoriaisCumpridos, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
 import { EVENTO, EV, eventosEscritos, inicioDoEvento } from '../logica/nucleo/eventos';
 import { IDS_DE_ARMA } from '../logica/armas/tabela';
 import { modalAberto } from '../logica/progressao/modal';
 import { nivelOfertado } from '../logica/progressao/oferta';
 import { IDS_DE_PASSIVA } from '../logica/progressao/tabela';
 import { verificarNaN } from '../logica/nucleo/nan';
+import { passo } from '../logica/nucleo/passo';
+import { resultadoDaVigilia } from '../logica/mundo/vigilia';
+import { aplicarFimDeVigilia, comOpcoes, comTutoriais } from '../logica/save/meta';
+import { sortearSeed } from '../plataforma/parametros';
 import { criarDadosDaCharneca } from '../plataforma/dadosDaVigilia';
 import inimigos from '../dados/inimigos.json';
 import vigilantes from '../dados/vigilantes.json';
@@ -28,11 +32,13 @@ import type { ContextoDoJogo, Simulacao } from './contexto';
 import { TelemetriaDeCombate } from './telemetriaDeCombate';
 import type { Modal } from './Modal';
 import type { Pausa } from './Pausa';
+import type { Resultado } from './Resultado';
 import { abrirModal, tratarToquesDoModal } from './escolhaDoModal';
 import { COR, cameraLogica } from './estilo';
 import { centroDaCamera } from './render/camera';
 import { criarCamada } from './render/camadas';
 import { HordaPorGPU, HordaPorImagem } from './render/escritores';
+import { RAIO_DO_ANEL_DA_MANCHA, criarMarcador, marcadorDaMancha } from './render/mancha';
 import { criarTabelaDeDesenho } from './render/horda';
 import { RenderDaVigilia } from './render/mundo';
 
@@ -42,6 +48,11 @@ export class Vigilia extends Phaser.Scene {
   private eventosLidos = 0;
   private render: RenderDaVigilia | null = null;
   private telemetriaDeCombate = new TelemetriaDeCombate();
+  /** Anel e seta da mancha (MC9): criado no 1º quadro com a mancha ativa; o marcador é reaproveitado. */
+  private manchaGrafico: Phaser.GameObjects.Graphics | null = null;
+  private readonly marcador = criarMarcador();
+  /** A tela de Resultado já foi aberta (em APAGANDO ou no Abandonar); o FIM só completa o que ela mostra. */
+  private resultadoIniciado = false;
 
   constructor(private readonly ctx: ContextoDoJogo) {
     super({ key: 'Vigilia' });
@@ -52,10 +63,14 @@ export class Vigilia extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(COR.fundo);
     const dados = criarDadosDaCharneca();
     const comandosAoVivo = criarComandos();
-    // Os tutoriais vistos vêm do meta a partir da F-007; até lá, de ?tutorial=0 ou do cenário.
+    // Os tutoriais vistos vêm do meta (SV5); ?tutorial=0 e ?visto= vencem e não gravam. A mancha do meta nasce no passo 0 (MC6)
+    // e ?almas=N dá Almas iniciais sem gravar no meta (MC12).
+    const meta = this.ctx.meta.atual;
     const params: Partial<ParametrosDaVigilia> = {
       // Sem ?cenario, a Vigília de produção, com os ataques dos inimigos (VT1); com ele, quem decide é a receita.
-      ...(this.ctx.cenario ? this.ctx.cenario.parametros : { cenario: CENARIO.ataques }),
+      ...(this.ctx.cenario ? this.ctx.cenario.parametros : { cenario: CENARIO.ataques, tutoriaisVistos: meta.tutoriais }),
+      mancha: meta.mancha === null ? null : { x: meta.mancha.x, y: meta.mancha.y, almas: meta.mancha.almas },
+      ...(this.ctx.almasIniciais === null ? {} : { almasIniciais: this.ctx.almasIniciais }),
       teto: this.ctx.teto.valor,
       // ?tutorial=0 vence ?visto (TU6); ?inicio põe o relógio com a linha livre (TU7).
       ...(this.ctx.pularTutoriais ? { tutoriaisVistos: TODOS_OS_TUTORIAIS } : this.ctx.vistos !== null ? { tutoriaisVistos: this.ctx.vistos } : {}),
@@ -80,15 +95,18 @@ export class Vigilia extends Phaser.Scene {
       fonte: this.ctx.roteiro ? fonteDoRoteiro(this.ctx.roteiro, undefined, this.ctx.acoesDoRoteiro ?? undefined) : fonteConstante(comandosAoVivo),
       camera: { x: dados.inicioX, y: dados.inicioY },
       pausada: false,
-      pausa: { ativa: false, origem: null, alfa: 0 },
+      pausa: { ativa: false, origem: null, alfa: 0, abandonarArmado: false },
       modal: { selecionada: null },
       cameraLenta: criarCameraLenta(),
+      fimCreditado: false,
+      resultado: null,
       horda: this.render.horda,
       efeitos: this.render.efeitos,
     };
     this.ctx.simulacao = this.sim;
     this.ctx.tela = 'VIGILIA';
     this.eventosLidos = 0;
+    this.resultadoIniciado = false;
     this.telemetriaDeCombate = new TelemetriaDeCombate();
     // Toques de antes da Vigília (o de Acender) ficam de fora: só um toque novo cria o joystick.
     const { fila, tradutor } = this.ctx.entrada;
@@ -97,6 +115,7 @@ export class Vigilia extends Phaser.Scene {
     this.scene.launch('Hud');
     this.scene.launch('Modal');
     this.scene.launch('Pausa');
+    this.scene.launch('Resultado');
     const eventos = this.game.events;
     eventos.on(Phaser.Core.Events.PRE_STEP, this.aoPreStep, this);
     eventos.on(Phaser.Core.Events.STEP, this.aoStep, this);
@@ -112,6 +131,7 @@ export class Vigilia extends Phaser.Scene {
       this.scene.stop('Hud');
       this.scene.stop('Modal');
       this.scene.stop('Pausa');
+      this.scene.stop('Resultado');
     });
     // MVP: Ciclo I, Maldição 0, sem Relíquias; a árvore comprada entra com o save meta (F-010).
     this.ctx.telemetria.registrar('vigilia_inicio', 0, {
@@ -134,28 +154,117 @@ export class Vigilia extends Phaser.Scene {
     // Uma tradução por frame; ao vivo, o vetor vale para todos os passos do frame (design/decisoes-F-002.md §4).
     // O agora do quadro, no relógio do TouchEvent.timeStamp, completa os 500 ms do gesto de pausa (decisoes-F-004 P3).
     const trad = this.ctx.entrada.tradutor;
+    const fase = sim.estado.jogador4U8[JOGADOR4_U8.fase]!;
+    // A cura do Frasco corre? Decide entre iniciar (bit 4) e cancelar ao segurar (bit 8; FR6).
+    trad.frascoEmCura = sim.estado.jogador4U8[JOGADOR4_U8.frascoPasso]! > 0;
     trad.traduzir(this.ctx.entrada.fila, sim.comandosAoVivo, performance.now());
-    if (trad.pedidoDePausa !== null && !sim.pausa.ativa) this.abrirPausa(trad.pedidoDePausa);
+    // Outro botão da pausa desarma o Abandonar (PE4); o próprio Abandonar arma no 1º toque e confirma no 2º.
+    if (sim.pausa.ativa && trad.toqueNaPausa !== null && trad.toqueNaPausa !== 'abandonar') sim.pausa.abandonarArmado = false;
+    // A pausa é inerte em APAGANDO e em FIM (AG3): sem pedido de pausa, e o Resultado cuida dos toques.
+    if (trad.pedidoDePausa !== null && !sim.pausa.ativa && fase === FASE.viva) this.abrirPausa(trad.pedidoDePausa);
     else if (sim.pausa.ativa && trad.toqueNaPausa === 'continuar') this.fecharPausa();
-    else if (sim.pausa.ativa && trad.toqueNaPausa === 'numeros') this.ctx.opcoes.numerosDeDano = !this.ctx.opcoes.numerosDeDano;
-    else if (sim.pausa.ativa && trad.toqueNaPausa === 'som') this.ctx.opcoes.som = !this.ctx.opcoes.som;
-    else if (sim.pausa.ativa && trad.toqueNaPausa === 'flashes') this.ctx.opcoes.flashes = !this.ctx.opcoes.flashes;
+    else if (sim.pausa.ativa && trad.toqueNaPausa === 'abandonar') this.tocarAbandonar();
+    else if (sim.pausa.ativa && trad.toqueNaPausa === 'numeros') this.alternarOpcao('numerosDeDano');
+    else if (sim.pausa.ativa && trad.toqueNaPausa === 'som') this.alternarOpcao('som');
+    else if (sim.pausa.ativa && trad.toqueNaPausa === 'flashes') this.alternarOpcao('flashes');
     else if (trad.modo === 'modal') this.tratarToquesDoModal();
+    else if (trad.modo === 'resultado' && trad.toqueNoResultado !== null) this.tratarToqueDoResultado(trad.toqueNoResultado);
     const t0 = performance.now();
     // Câmera lenta (FB5): o fator vale sobre o delta, só com a simulação rodando (pausa e modal não gastam os 500 ms).
+    // A do Apagar (AG2) vale enquanto a fase for APAGANDO, por cima da do tutorial, sem gastar os 500 ms dela.
     const rodando = !sim.pausa.ativa && !sim.pausada && !modalAberto(sim.estado);
-    const delta = rodando ? escalarDelta(sim.cameraLenta, this.game.loop.rawDelta) : this.game.loop.rawDelta;
+    const faseAgora = sim.estado.jogador4U8[JOGADOR4_U8.fase]!;
+    const bruto = this.game.loop.rawDelta;
+    const delta = !rodando ? bruto : faseAgora === FASE.apagando ? escalarDeltaDoApagar(bruto, sim.dados.combate.apagarFator) : escalarDelta(sim.cameraLenta, bruto);
     const promptAntes = sim.estado.jogador3U8[JOGADOR3_U8.promptEsquiva];
-    const n = rodarFrameComPausas(sim.estado, sim.dados, sim.acumulador, delta, sim.fonte, sim.pausa.ativa, sim.pausada);
+    const n = faseAgora === FASE.fim ? 0 : rodarFrameComPausas(sim.estado, sim.dados, sim.acumulador, delta, sim.fonte, sim.pausa.ativa, sim.pausada);
     // Dispara uma vez, no quadro em que o prompt de esquiva fica visível; ?tutorial=0 e o bit pré-visto nunca o acendem (TU8).
     if (promptAntes === PROMPT.aguardando && sim.estado.jogador3U8[JOGADOR3_U8.promptEsquiva] === PROMPT.visivel) dispararCameraLenta(sim.cameraLenta);
     this.ctx.medidor.simulou(performance.now() - t0, n);
+    this.persistirTutoriais();
+    this.verificarFase();
     // O modal abre no passo que cruza o nível ou encosta no baú (M1); a pausa aberta tem a vez (M5).
     if (!sim.pausa.ativa && modalAberto(sim.estado) && trad.modo !== 'modal') this.abrirModal();
     this.registrarUnioes();
     this.telemetriaDeCombate.ler(sim.estado, this.ctx.telemetria);
     // Fora do tempo medido como simulação (o F-003.4 roda com ?debug=1).
     if (this.ctx.debug && n > 0) verificarNaN(sim.estado, n);
+  }
+
+  /** Alterna uma opção da pausa e grava no meta na hora do toque (SV4, SV6). */
+  private alternarOpcao(qual: 'numerosDeDano' | 'som' | 'flashes'): void {
+    const o = this.ctx.opcoes;
+    o[qual] = !o[qual];
+    this.ctx.meta.atual = comOpcoes(this.ctx.meta.atual, { som: o.som, flashes: o.flashes, numerosDeDano: o.numerosDeDano });
+    this.ctx.meta.armazenamento.gravar(this.ctx.meta.atual);
+  }
+
+  /** O tutorial cumprido vai ao meta (SV4): no máximo 3 gravações por perfil; ?tutorial=0, ?visto= e ?cenario não gravam. */
+  private persistirTutoriais(): void {
+    const c = this.ctx;
+    if (c.pularTutoriais || c.vistos !== null || c.cenario !== null) return;
+    const novos = comTutoriais(c.meta.atual, tutoriaisCumpridos(this.sim!.estado));
+    if (novos === c.meta.atual) return;
+    c.meta.atual = novos;
+    c.meta.armazenamento.gravar(novos);
+  }
+
+  /** O botão Abandonar (PE4): o 1º toque arma (borda de brasa e aviso), o 2º confirma e roda o passo com o bit 16 (PE5). */
+  private tocarAbandonar(): void {
+    const sim = this.sim!;
+    if (!sim.pausa.abandonarArmado) {
+      sim.pausa.abandonarArmado = true;
+      return;
+    }
+    sim.pausa.abandonarArmado = false;
+    const cmd = criarComandos();
+    cmd.acoes[0] = ACAO.abandonar;
+    passo(sim.estado, sim.dados, cmd);
+    this.verificarFase();
+  }
+
+  /**
+   * A Vigília saiu da fase VIVA (AG5, SV7): abre a tela de Resultado (em APAGANDO só o véu e o título; no Abandonar, direto
+   * ao FIM) e, no FIM, calcula o resultado, credita o meta uma vez, registra a telemetria e passa os toques ao Resultado.
+   */
+  private verificarFase(): void {
+    const sim = this.sim!;
+    const fase = sim.estado.jogador4U8[JOGADOR4_U8.fase]!;
+    if (fase === FASE.viva) return;
+    const resultado = this.scene.get('Resultado') as Resultado;
+    if (!this.resultadoIniciado) {
+      this.resultadoIniciado = true;
+      if (sim.pausa.ativa) this.fecharPausa();
+      this.ctx.tela = 'RESULTADO';
+      this.ctx.entrada.fila.pedirSoltarTodos();
+      if (fase === FASE.apagando) resultado.mostrarApagando();
+    }
+    if (fase !== FASE.fim || sim.fimCreditado) return;
+    sim.fimCreditado = true;
+    const r = resultadoDaVigilia(sim.estado, sim.dados);
+    sim.resultado = r;
+    this.ctx.meta.atual = aplicarFimDeVigilia(this.ctx.meta.atual, r);
+    this.ctx.meta.armazenamento.gravar(this.ctx.meta.atual);
+    const e = sim.estado;
+    this.ctx.telemetria.registrar('apagar', e.cab[CAB.passo]!, {
+      minuto: Math.floor(e.cab[CAB.relogio]! / 3600),
+      nivel: r.nivel,
+      almas: r.almas,
+      causa: r.causa === CAUSA_DO_FIM.abandonar ? 'abandonar' : 'apagar',
+      posicao: [Math.round(e.jogador[JOGADOR.x]!), Math.round(e.jogador[JOGADOR.y]!)],
+    });
+    resultado.mostrarResultado(r);
+    this.ctx.entrada.tradutor.mudarModo('resultado');
+  }
+
+  /** Voltar leva à cena Acender (o Santuário é da F-010); Repetir abre uma Vigília nova, de seed nova, com a mancha do meta (RS6). */
+  private tratarToqueDoResultado(botao: string): void {
+    if (botao === 'voltar') {
+      this.scene.start('Acender');
+    } else if (botao === 'repetir') {
+      this.ctx.seed = sortearSeed();
+      this.scene.restart();
+    }
   }
 
   /**
@@ -166,6 +275,7 @@ export class Vigilia extends Phaser.Scene {
   private abrirPausa(origem: 'botao' | 'gesto'): void {
     const sim = this.sim!;
     sim.pausa.ativa = true;
+    sim.pausa.abandonarArmado = false;
     sim.pausa.origem = origem;
     sim.pausa.alfa = alfa(sim.acumulador);
     this.ctx.entrada.fila.pedirSoltarTodos();
@@ -232,6 +342,7 @@ export class Vigilia extends Phaser.Scene {
   private fecharPausa(): void {
     const sim = this.sim!;
     sim.pausa.ativa = false;
+    sim.pausa.abandonarArmado = false;
     sim.pausa.origem = null;
     this.ctx.entrada.fila.pedirSoltarTodos();
     this.ctx.entrada.tradutor.mudarModo('vigilia');
@@ -258,6 +369,30 @@ export class Vigilia extends Phaser.Scene {
     const a = sim.pausada || congelado ? 1 : sim.pausa.ativa ? sim.pausa.alfa : alfa(sim.acumulador);
     centroDaCamera(sim.estado, a, sim.camera);
     this.render.sincronizar(sim.estado, a, sim.camera.x, sim.camera.y);
+    this.desenharMancha(sim.estado);
     this.cameras.main.centerOn(sim.camera.x, sim.camera.y);
+  }
+
+  /**
+   * Anel de brasa na cor da Alma, pulsando devagar (pelo passo), e a seta no limite da tela quando a mancha está fora da vista
+   * (MC9). Só existe com a mancha ativa; recuperada, o Graphics some.
+   */
+  private desenharMancha(e: Estado): void {
+    const u8 = e.jogador4U8;
+    if (u8[JOGADOR4_U8.manchaAtiva] === 0) {
+      this.manchaGrafico?.setVisible(false);
+      return;
+    }
+    const g = (this.manchaGrafico ??= this.add.graphics());
+    const m = marcadorDaMancha(e.jogador4[JOGADOR4.manchaX]!, e.jogador4[JOGADOR4.manchaY]!, this.sim!.camera.x, this.sim!.camera.y, this.marcador);
+    g.clear().setVisible(true);
+    if (m.dentro) {
+      const pulso = RAIO_DO_ANEL_DA_MANCHA + 3 * Math.sin(e.cab[CAB.passo]! / 30);
+      g.lineStyle(3, COR.brasa, 1).strokeCircle(m.x, m.y, pulso).fillStyle(COR.alma, 1).fillCircle(m.x, m.y, 6);
+      return;
+    }
+    const c = Math.cos(m.angulo);
+    const s = Math.sin(m.angulo);
+    g.fillStyle(COR.alma, 1).fillTriangle(m.setaX + c * 14, m.setaY + s * 14, m.setaX - c * 8 - s * 9, m.setaY - s * 8 + c * 9, m.setaX - c * 8 + s * 9, m.setaY - s * 8 - c * 9);
   }
 }

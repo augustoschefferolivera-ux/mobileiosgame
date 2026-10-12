@@ -4,7 +4,7 @@
 // ?render=gpu|image, ?buffer=dinamico, ?cenario=<id> e ?debug=1, e desde a
 // F-004 (design/decisoes-F-004.md §5) ?sonda=0; na F-006, ?flash=segurar (RE3); ?inicio entra com a F-006.
 
-import { TUTORIAL } from '../logica/nucleo/estado';
+import { LIMITE_DE_ALMAS, TUTORIAL } from '../logica/nucleo/estado';
 
 export type ModoDeRender = 'gpu' | 'image';
 
@@ -31,6 +31,8 @@ export interface Parametros {
   inicio: number | null;
   /** ?visto=mover,esquiva: bits de TUTORIAL marcados como vistos (TU6); null sem o parâmetro e na produção; ?tutorial=0 vence. */
   vistos: number | null;
+  /** ?almas=N (só no build de debug): Almas dadas no início da Vigília, sem gravar no meta (decisoes-F-007 MC12); null sem o parâmetro e na produção. */
+  almas: number | null;
 }
 
 const PRODUCAO: Parametros = {
@@ -45,6 +47,7 @@ const PRODUCAO: Parametros = {
   flashSegurar: false,
   inicio: null,
   vistos: null,
+  almas: null,
 };
 
 export function lerParametros(busca: string, ehBuildDeDebug: boolean): Parametros {
@@ -67,6 +70,7 @@ export function lerParametros(busca: string, ehBuildDeDebug: boolean): Parametro
     flashSegurar: p.get('flash') === 'segurar',
     inicio: lerInicio(p.get('inicio')),
     vistos: lerVistos(p.get('visto')),
+    almas: lerAlmas(p.get('almas')),
   };
 }
 
@@ -78,6 +82,13 @@ function lerInicio(texto: string | null): number | null {
   const segundos = Number(m[2]);
   if (minutos > 22 || segundos > 59) return null;
   return (60 * minutos + segundos) * 60;
+}
+
+/** Inteiro de 0 a 2^30 − 1; formato inválido é ignorado, como ?seed. */
+function lerAlmas(texto: string | null): number | null {
+  if (texto === null || !/^\d{1,10}$/.test(texto)) return null;
+  const n = Number(texto);
+  return n < LIMITE_DE_ALMAS ? n : null;
 }
 
 /** Bits dos nomes de TUTORIAL listados (valor desconhecido é ignorado); null sem o parâmetro. */

@@ -4,6 +4,9 @@ import type { Acumulador } from '../logica/nucleo/acumulador';
 import type { CameraLenta } from '../logica/nucleo/cameraLenta';
 import type { AcaoDeRoteiro, ComandosDoPasso, FonteDeComandos, Roteiro } from '../logica/nucleo/comandos';
 import type { Estado } from '../logica/nucleo/estado';
+import type { ResultadoDaVigilia } from '../logica/mundo/vigilia';
+import type { Meta } from '../logica/save/meta';
+import type { ArmazenamentoDoMeta } from '../plataforma/armazenamento';
 import type { DadosDaVigilia } from '../logica/mundo/dados';
 import type { CamadaDeToque } from '../entrada/camadaDeToque';
 import type { FilaDeToques } from '../entrada/filaDeToques';
@@ -26,7 +29,7 @@ import type { FeedbackDaInterface } from './feedback';
 import type { EfeitosDaVigilia } from './render/efeitos';
 import type { EscritorDaHorda } from './render/escritores';
 
-export type Tela = 'BOOT' | 'ACENDER' | 'VIGILIA';
+export type Tela = 'BOOT' | 'ACENDER' | 'VIGILIA' | 'RESULTADO';
 
 export interface Simulacao {
   estado: Estado;
@@ -45,7 +48,7 @@ export interface Simulacao {
    * estado, do hash, do replay e dos ComandosDoPasso; o driver não roda passo
    * e o render congela o alfa enquanto ela está ativa.
    */
-  readonly pausa: { ativa: boolean; origem: OrigemDaPausa | null; alfa: number };
+  readonly pausa: { ativa: boolean; origem: OrigemDaPausa | null; alfa: number; abandonarArmado: boolean };
   /**
    * Modal da simulação (level up ou baú; design/decisoes-F-005.md M1 a M5): a
    * carta selecionada é estado da UI, fora da simulação; só a confirmação chama
@@ -54,6 +57,12 @@ export interface Simulacao {
   readonly modal: { selecionada: number | null };
   /** Câmera lenta leve do tutorial da esquiva (decisoes-F-006 FB5): fora do estado, do hash e do replay. */
   readonly cameraLenta: CameraLenta;
+  /**
+   * Fim da Vigília (decisoes-F-007 SV7): `fimCreditado` garante o crédito do meta uma vez; `resultado` é o que o Resultado
+   * mostra. Fora do estado, do hash e do replay.
+   */
+  fimCreditado: boolean;
+  resultado: ResultadoDaVigilia | null;
   /** O escritor da horda desta Vigília, para o debug. */
   horda: EscritorDaHorda | null;
   /** Consumidor do anel de eventos e pools do render (números, mortes, efeitos), para o debug. */
@@ -71,7 +80,8 @@ export interface RenderDaHorda {
 }
 
 export interface ContextoDoJogo {
-  readonly seed: number;
+  /** Seed da Vigília: a do ?seed ou sorteada; Repetir Vigília sorteia outra (decisoes-F-007 RS6). */
+  seed: number;
   readonly ehBuildDeDebug: boolean;
   /** ?tutorial=0 (só no build de debug): a Vigília começa com os tutoriais vistos. */
   readonly pularTutoriais: boolean;
@@ -79,6 +89,10 @@ export interface ContextoDoJogo {
   readonly vistos: number | null;
   /** ?inicio=MM:SS (só no build de debug): relógio inicial em passos, com a linha livre; null sem o parâmetro. */
   readonly inicio: number | null;
+  /** ?almas=N (só no build de debug): Almas iniciais da Vigília, fora do meta (decisoes-F-007 MC12); null sem o parâmetro. */
+  readonly almasIniciais: number | null;
+  /** O meta: o armazenamento (localStorage com queda para a memória) e a cópia lida no boot, a que o fim da Vigília atualiza. */
+  readonly meta: { readonly armazenamento: ArmazenamentoDoMeta; atual: Meta };
   readonly telemetria: RegistroDeTelemetria;
   readonly sonda: HTMLElement;
   readonly container: HTMLElement;
@@ -104,7 +118,7 @@ export interface ContextoDoJogo {
   /** ?cenario (só no build de debug): o id e os parâmetros da Vigília que ele impõe. */
   readonly cenario: { readonly id: string; readonly parametros: ParametrosDoCenario } | null;
   readonly render: RenderDaHorda;
-  /** Opções do jogador, em memória, fora da simulação (design/decisoes-F-004.md N8 e F-006 RE11); o meta da F-007 as grava. */
+  /** Opções do jogador, em memória, fora da simulação (design/decisoes-F-004.md N8 e F-006 RE11); o meta da F-007 as lê no boot e as grava ao tocar. */
   readonly opcoes: { numerosDeDano: boolean; som: boolean; flashes: boolean };
   /** Flash, sons e pulso da stamina: a interface lida do anel (decisoes-F-006 FB2, FB4 e RE3), fora do estado. */
   readonly feedback: FeedbackDaInterface;
