@@ -14,3 +14,18 @@ Revisor independente (subagente, só leitura) comparou cada moldura com o `style
 | 8 | As rachaduras das rochas são manchas K e o musgo é um disco chapado que lembra pickup. | Confirmada: linhas internas devem ser no tom escuro do material (§5) e o chão não pode lembrar pickup (§3). | Rachaduras em D (por fora do musgo); o musgo vira uma capa de 3 a 4 px na borda de cima, com a última linha em `e`. |
 
 Fora da revisão: o que é da F-008 (borda da arena, Fogueira, relógio) não foi avaliado.
+
+## Conferência das capturas (etapa 4)
+
+As 6 capturas 390 × 844 (`e2e/f011.spec.ts`, em `production/evidencias/F-011/`) foram regeradas depois das correções e abertas uma a uma; a conferência é de legibilidade e de escala, na tela lógica do iPhone.
+
+| Captura | Conferido |
+|---|---|
+| `acender-390x844.png` | O Aldric a 96 pt no centro, nítido, com a luz da brasa em 4 faixas; o botão e os textos não encostam nele. |
+| `vigilia-horda-390x844.png` | Massa (32 pt) e médios (48 pt) distintos pela silhueta e pela facção; o Aldric achado de imediato no meio da luz; arco do golpe com o fio amarelo; facas e grãos do Círculo legíveis; números de dano por cima; rochas com tampo, frente e musgo, sem parecer pickup. |
+| `vigilia-medios-390x844.png` | A tela cheia de inimigos sem perder o Aldric (a brasa do peito e a capa); silhueta branca dos médios telegrafando, cunhas e projéteis brancos sem contorno; as vagas e as Almas legíveis sobre a horda com o fundo de pedra. A cunha sólida cobre parte do Aldric no fim do telegrafo (item 7 acima, para o iPhone). |
+| `modal-390x844.png` | Ícones a 56 pt (espada, luvas, círculo) nítidos e reconhecíveis ao lado do texto. |
+| `pausa-390x844.png` | A build em texto por cima, o jogo pausado atrás com o Aldric e o Círculo; nada da arte disputa com os botões. |
+| `resultado-390x844.png` | O painel do Resultado e a linha lilás da mancha legíveis sobre a cena escurecida. |
+
+Nenhuma captura pediu correção nova. O que só o aparelho decide (nitidez na Retina de 3×, fps com a arte, a luz e a cunha) está nos itens A1 a A12 de `docs/roteiro-iphone.md`.

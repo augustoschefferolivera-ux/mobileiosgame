@@ -1,4 +1,4 @@
-# Roteiro do iPhone (build de teste da F-007)
+# Roteiro do iPhone (build de teste da F-007, com a arte da F-011)
 
 Este roteiro é da Q-29 do brief ("build de teste em iPhone real logo depois da F-006") e da VT10 de `design/decisoes-F-006.md`. Não é evidência do `verify`: a execução no aparelho é sua. O build é o de **debug** (aceita os parâmetros de URL abaixo), publicado pelo workflow `.github/workflows/pages-teste.yml` ou servido por `npm run build:debug` e `npx vite preview --outDir dist-debug`.
 
@@ -38,6 +38,25 @@ Este roteiro é da Q-29 do brief ("build de teste em iPhone real logo depois da 
 
 Dica: `?flash=segurar` mantém o flash branco do aparo na tela para ver a intensidade; `?tutorial=0` pula os três tutoriais.
 
+## Arte (F-011)
+
+A arte é toda em pixel (1 px de arte = 2 pt) e não muda o jogo: o que se confere é leitura, escala e fluidez no aparelho. As regras estão em `design/arte/style-card.md`; as capturas de referência, em `production/evidencias/F-011/`.
+
+| # | Conferência | Como | Passa quando |
+|---|---|---|---|
+| A1 | Nitidez | `?cenario=horda&debug=1`, olhar de perto e tirar uma captura de tela | bordas de pixel nítidas, sem borrão nem pixel de tamanho diferente nos corpos (a Retina de 3× mostra cada pixel de arte com 6 × 6 pixels da tela) |
+| A2 | Achar o Aldric | `?cenario=horda_com_ataques` | o Aldric (48 pt, capa escura e brasa no peito) é encontrado em menos de 1 s no meio da horda; a luz âmbar em volta dele aparece no chão. Anote se a luz incomoda ou falta |
+| A3 | Escala e facções | `?cenario=horda_com_ataques` | Oco das Lanternas (32 pt, musgo, lanterna), Oco Grande (48 pt, largo, braço-clava) e Noviça de Sal (48 pt, triângulo preto e osso) distinguíveis à primeira vista; nenhum parece pickup |
+| A4 | Animação | andar em círculos no jogo normal; depois parar | o passo do Aldric aparece (o corpo sobe e desce), sem tremor na troca de quadro; parado ele respira; a horda não anda em sincronia; os inimigos olham para o Aldric |
+| A5 | Armas | `?cenario=tres_armas&tutorial=0`; depois `?cenario=bau_uniao` e encostar no baú depois das 10:00 | a faca de Sal aponta para onde voa (16 direções), o golpe é um arco de brasa com o fio amarelo e a estocada uma lança de brasa, os grãos de sal do Círculo giram e o pulso se apaga; a Lâmina do Juramento Eterno tem o arco mais grosso e solta a onda de brasa |
+| A6 | Ataques dos inimigos | `?cenario=oco_grande_sozinho` e `?cenario=novica_sozinha` | o corpo "inspira" com a silhueta branca antes do golpe; a cunha e a faixa no chão e os projéteis de Sal são brancos e lisos (sem contorno). Anote se a cunha sólida cobrir o Aldric a ponto de atrapalhar (revisão da etapa 3, item 7) |
+| A7 | Efeitos | jogo normal com a build cheia; aparar; beber o Frasco (`?cenario=sem_horda`); morrer (item 10) | faíscas no acerto na cor da arma, a cinza dos mortos em 3 quadros, o anel de faíscas do aparo, as brasas do Frasco subindo e, no Apagar, o Aldric ajoelhando e virando cinza; nada disso derruba o fps |
+| A8 | Marcadores | `?cenario=horda_com_ataques`, atordoar (aparo) e salgar (Círculo de Sal) | a estrela do Atordoado e o cristal do Sal ficam acima da cabeça sem cobrir o rosto, legíveis com dezenas de inimigos ao mesmo tempo |
+| A9 | HUD em pixel | jogo normal e `?cenario=horda_com_ataques` | joystick, botões Aparo e Frasco e o botão de pausa nítidos; os ícones das vagas e "Almas" legíveis sobre a horda (fundo e traço de pedra) |
+| A10 | Chão e rochas | jogo normal, andar até a borda do mapa | o chão não pisca nem mostra emenda que distraia; as rochas leem como obstáculo (tampo claro, frente escura, musgo na borda) |
+| A11 | Acender e Resultado | abrir o jogo; morrer (item 10) | o Aldric grande respira na tela de Acender com a luz da brasa; no Resultado ele aparece ajoelhado virando cinza |
+| A12 | Desempenho com a arte | itens 3 e 4 de novo | fps ≥ 55 com `teto=300`; `?render=image` dá a mesma imagem que o padrão |
+
 ## O que anotar
 
-Para cada item: passou, passou com ressalva ou não passou, o modelo do aparelho, a versão do iOS e o fps do painel. Os itens 2, 5 e 13 decidem ajustes da F-010; os 10, 15, 16 e 20 decidem ajustes da F-007 (câmera lenta, Frasco, segurar e a mancha); os itens 3 e 4 decidem o TETO no aparelho.
+Para cada item: passou, passou com ressalva ou não passou, o modelo do aparelho, a versão do iOS e o fps do painel. Os itens 2, 5 e 13 decidem ajustes da F-010; os 10, 15, 16 e 20 decidem ajustes da F-007 (câmera lenta, Frasco, segurar e a mancha); os itens 3 e 4 decidem o TETO no aparelho; os itens A1 a A12 decidem os ajustes da arte (F-011).
