@@ -225,7 +225,8 @@ function rodarAura(e: Estado, dados: DadosDaVigilia, v: number): void {
     if (ep > 0) b.esperaPulso[v] = --ep;
     pulso = ep === 0;
   }
-  if (!tick && !pulso) return;
+  const contra = b.caSeq[v]! > 0;
+  if (!tick && !pulso && !contra) return;
   const j = e.jogador;
   const jx = j[JOGADOR.x]!;
   const jy = j[JOGADOR.y]!;
@@ -236,25 +237,38 @@ function rodarAura(e: Estado, dados: DadosDaVigilia, v: number): void {
   const m = consultarGradeDoRascunho(grade, e.inimigos.x, e.inimigos.y, ACHADOS);
   const ini = e.inimigos;
   const raio = dados.tipos.raio;
-  if (tick) {
-    calcularDano(e, v, i);
-    ACERTO[0] = DANO[v]!;
-    ACERTO[1] = t.pqFator[i]!;
-    const salPct = t.salPct[i]!;
-    const salPassos = t.salPassos[i]!;
-    for (let k = 0; k < m; k++) {
-      const s = ACHADOS[k]!;
-      if (ini.hp[s]! <= 0) continue;
-      let dx = ini.x[s]! - jx;
-      if (dx > MEIA_LARGURA_DO_MAPA) dx -= LARGURA_DO_MAPA;
-      if (dx < -MEIA_LARGURA_DO_MAPA) dx += LARGURA_DO_MAPA;
-      let dy = ini.y[s]! - jy;
-      if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
-      if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
-      const lim = R + raio[ini.tipo[s]!]!;
-      if (dx * dx + dy * dy <= lim * lim) acertar(e, s, codigo, FORMA.tick, salPct, salPassos);
+  if (tick || contra) {
+    // Duas passadas pelo mesmo laço, para a função continuar pequena (cabe na inlinada de rodarArmas): a 0 é o tick
+    // natural; a 1, o tick extra do Contra-ataque (CA4), que vem depois do natural, com dano × 2, o Sal do nível e a
+    // flag `contra`, sem tocar nos relógios do tick e do pulso. Em função à parte, o extra (uma vez por aparo)
+    // nunca esquentava e guardava cada double como objeto (≈ 58 B por passo no E7b; ADR-0008).
+    for (let passada = 0; passada < 2; passada++) {
+      if (passada === 0 ? !tick : !contra) continue;
+      calcularDano(e, v, i);
+      ACERTO[0] = passada === 0 ? DANO[v]! : DANO[v]! * dados.combate.contraFator;
+      ACERTO[1] = t.pqFator[i]!;
+      const salPct = t.salPct[i]!;
+      const salPassos = t.salPassos[i]!;
+      const flags = passada === 0 ? 0 : FLAG.contra;
+      for (let k = 0; k < m; k++) {
+        const s = ACHADOS[k]!;
+        if (ini.hp[s]! <= 0) continue;
+        let dx = ini.x[s]! - jx;
+        if (dx > MEIA_LARGURA_DO_MAPA) dx -= LARGURA_DO_MAPA;
+        if (dx < -MEIA_LARGURA_DO_MAPA) dx += LARGURA_DO_MAPA;
+        let dy = ini.y[s]! - jy;
+        if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
+        if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
+        const lim = R + raio[ini.tipo[s]!]!;
+        if (dx * dx + dy * dy <= lim * lim) acertar(e, s, codigo, FORMA.tick, salPct, salPassos, flags);
+      }
+      if (passada === 0) {
+        b.recarga[v] = t.periodo[codigo]!;
+      } else {
+        b.caSeq[v] = 0;
+        b.caEspera[v] = 0;
+      }
     }
-    b.recarga[v] = t.periodo[codigo]!;
   }
   if (pulso) {
     const passo = t.empurraoPorPasso;
@@ -281,40 +295,6 @@ function rodarAura(e: Estado, dados: DadosDaVigilia, v: number): void {
       ini.kbPassos[s] = kb < maximo ? kb : maximo;
     }
     b.esperaPulso[v] = t.periodoPulso[codigo]!;
-  }
-}
-
-/**
- * O tick extra da aura no Contra-ataque (CA4), em todo inimigo vivo que a hitbox toca (`m` achados
- * da consulta já feita): dano do nível ×2 e o Sal do nível, com a flag `contra` nos acertos; o
- * relógio do tick e o pulso não são tocados. Função fria (uma por aparo), separada de `rodarAura`
- * para o tick natural seguir em linha, como antes.
- */
-function tickExtraDaAura(e: Estado, dados: DadosDaVigilia, v: number, i: number, m: number): void {
-  const t = dados.armas;
-  const j = e.jogador;
-  const jx = j[JOGADOR.x]!;
-  const jy = j[JOGADOR.y]!;
-  const R = t.alcance[i]!;
-  const ini = e.inimigos;
-  const raio = dados.tipos.raio;
-  const codigo = e.build.codigo[v]!;
-  calcularDano(e, v, i);
-  ACERTO[0] = DANO[v]! * dados.combate.contraFator;
-  ACERTO[1] = t.pqFator[i]!;
-  const salPct = t.salPct[i]!;
-  const salPassos = t.salPassos[i]!;
-  for (let k = 0; k < m; k++) {
-    const s = ACHADOS[k]!;
-    if (ini.hp[s]! <= 0) continue;
-    let dx = ini.x[s]! - jx;
-    if (dx > MEIA_LARGURA_DO_MAPA) dx -= LARGURA_DO_MAPA;
-    if (dx < -MEIA_LARGURA_DO_MAPA) dx += LARGURA_DO_MAPA;
-    let dy = ini.y[s]! - jy;
-    if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
-    if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
-    const lim = R + raio[ini.tipo[s]!]!;
-    if (dx * dx + dy * dy <= lim * lim) acertar(e, s, codigo, FORMA.tick, salPct, salPassos, FLAG.contra);
   }
 }
 
@@ -350,14 +330,5 @@ function rodarContraAtaque(e: Estado, dados: DadosDaVigilia, v: number, arquetip
   b.caEspera[v] = 0;
   if (arquetipo === ARQUETIPO.maisProximo) {
     salvaDeFacas(e, dados, v, 1);
-  } else if (arquetipo === ARQUETIPO.aura) {
-    const t = dados.armas;
-    const i = indiceDoNivel(b.codigo[v]!, b.nivel[v]!);
-    const j = e.jogador;
-    CONSULTA[0] = j[JOGADOR.x]!;
-    CONSULTA[1] = j[JOGADOR.y]!;
-    CONSULTA[2] = t.alcance[i]! + dados.tipos.raioMaximo;
-    const m = consultarGradeDoRascunho(grade, e.inimigos.x, e.inimigos.y, ACHADOS);
-    tickExtraDaAura(e, dados, v, i, m);
   }
 }
