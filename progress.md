@@ -2,13 +2,33 @@
 
 ## Sessão 6 — F-006 "Stamina, esquiva e aparo"
 
-### Estado: Etapa 1 (decisões) pronta, aguarda a aprovação do usuário; nada implementado
+### Estado: F-006 pronta (aguarda a revisão do usuário); F-007 não começada
 
 - [x] Leitura: este arquivo (Sessão 5 e Retomada), ADR-0007, `design/decisoes-F-005.md` §9 e a entrada da F-006. Branch `claude/f006-esquiva-weodg1`, a partir do fim da F-005 (`bc999b3`); `verify.sh --feature F-005 --taps-game --seed 1` verde no início.
-- [x] **Etapa 1, decisões:** `design/decisoes-F-006.md` (aqui, D6). Levantamento com 4 pesquisadores, cada um com verificador cético, e um crítico de completude (99 perguntas mais 49 dos verificadores; 17 conflitos entre áreas resolvidos); revisão adversarial com 3 lentes, cada uma com verificador (65 achados: 32 confirmados, 31 ajustados e 2 refutados; aplicados, D6 §12). Todos os agentes em Sonnet com esforço médio.
-- [x] `feature_list.json`: o "como" dos F-006.1 a F-006.12 (D6 §9, VT8), as seis evidências (VT9), as pendências da F-006 resolvidas na D6 e as recomendações da §10 nas pendências das F-007 a F-010.
-- [x] D6 aprovada sem veto (2026-10-12, "Aprovo, mas precisamos economizar tokens").
-- [ ] Etapa 2: implementação só da F-006.
+- [x] **Etapa 1, decisões:** `design/decisoes-F-006.md` (aqui, D6). Levantamento com 4 pesquisadores, cada um com verificador cético, e um crítico de completude (99 perguntas mais 49 dos verificadores; 17 conflitos entre áreas resolvidos); revisão adversarial com 3 lentes, cada uma com verificador (65 achados: 32 confirmados, 31 ajustados e 2 refutados; aplicados, D6 §12). Todos os agentes em Sonnet com esforço médio. D6 aprovada sem veto (2026-10-12, "Aprovo, mas precisamos economizar tokens"). `feature_list.json` recebeu o "como" dos F-006.1 a F-006.12, as seis evidências e as pendências resolvidas.
+- [x] **Etapa 2, implementação** (`bc999b3..HEAD`):
+  - **simulação:** estado v6 (74.636 B, o v5 intacto nos primeiros 67.488): stamina (custos, regeneração com atraso, teto 100), esquiva de 80 px em 21 passos com i-frames nos passos 2 a 13 e esquiva perfeita (congelamento de 5 passos, Poder +15% por 120 passos, faca extra); aparo (janela de 11 passos, +6 com o prompt e 2 falhas, falho de 24 passos, vazio, Postura Quebrada em área, Contra-ataque por arma); ataques dos inimigos (golpe em arco do Oco Grande, projétil de Sal da Noviça, Sal no jogador); resolução única do acerto no jogador (aparo > i-frames > dano); ordem do passo v6 com o congelamento na fase 0 e os ataques na fase 6;
+  - **entrada:** `ComandosDoPasso` com `acoes` e `mira`; swipe do dedo do joystick e toque duplo no tradutor; botão Aparo; Espaço no teclado de debug; borda consumida na fonte ao vivo;
+  - **render:** médios em 2ª camada, telegrafos (cunha e faixa), projéteis de Sal, flash branco de 2 quadros, barra de stamina, botão Aparo, Som e Flashes lado a lado, câmera lenta do tutorial, prompts de esquiva e aparo, sons sintetizados;
+  - **dados:** `combate.json` e schema; receitas `oco_grande_sozinho`, `novica_sozinha`, `horda_com_ataques` e `telegrafos`; atlas com `estrela` e `anel_pequeno`;
+  - **testes:** 1.322 no Vitest (eram 917; esquiva, aparo, Contra-ataque, congelamento, telegrafo, estado v6, regressão v5, referências, tradutor, alocação E7a/E7b e as mutações do crítico) e 52 na Playwright (`e2e/f006.spec.ts`: F-006.5, .6 e .8, Node × Chromium);
+  - **decisões técnicas** em `docs/decisoes/ADR-0008-implementacao-da-f006.md`, com as divergências (§9).
+- [x] `scripts/verify.sh --feature F-006 --taps-game --seed 1` verde (typecheck, lint, Vitest, builds, Playwright e as evidências); F-001 a F-005 também verdes, uma por vez, com as evidências regravadas pelo verify da própria feature.
+- [x] Evidências em `production/evidencias/F-006/`: `esquiva-e-aparo.webm` (vídeo de 10 s, esquiva no passo 302, aparo no 417), `janelas.log`, `esquiva-perfeita-390x844.png`, `telegrafos-390x844.png`, `tutorial-esquiva-390x844.png` e `tutorial-aparo-390x844.png`.
+- [x] Determinismo (seed 1; o layout mudou, então os hashes mudaram; ADR-0008 §1): passo 1.000 `f39dd6b4` → `c052c6c9` (seed 424242: `7c1b6c0c` → `6ddd6d39`); `nivel_tres` `2aa5a85f`/`e776db53` → `ca1c0824`/`286ca680`; 1ª morte parada `51d4c5cd` → `741c1990` (só o layout; com os ataques da produção, `3b6ee2e8`); F-001.11 `f39dd6b4` → `fa024a61`; `horda` 1.800 `9ceef9c5` → `1b64832e`; `tres_armas` 601 `6acdb6e2` → `82e929e9`; `bau_uniao` `9e6a33ae`/`472f3e31` → `32848ffd`/`369426c6`. A regressão v5 confere os bytes 4 a 67.488 bit a bit contra o código de `bc999b3`. Replay de 1 passo e de 5 por quadro dá o mesmo hash com ataques ligados. Node e Chromium batem nas 5 marcas do vídeo.
+- [x] Crítico independente: nota **8,0**, sem bloqueante (a F-005 teve 7, com 3 bloqueantes). 81 mutações; os 3 achados médios e os baixos aplicados; as sobreviventes (74, 24, 29, 31, 59, 60, 65, 09, 10, E2) viraram testes que as reprovam, a 33 travava a suíte (laços `while` sem teto nos testes de combate; agora `laco()` em `tests/logica/combate/apoio.ts`), a 69 virou teste (o crítico a dera como equivalente), 18, 27 e 73 são equivalentes e E7 e 71 ficaram inconclusivas (ADR-0008 §10). Vitest: 1.322 testes.
+
+### Decidido nesta sessão (técnico; detalhes no ADR-0008)
+- **Estado v6** cresce no fim do buffer (nada nos bytes reservados nem nas palavras do cabeçalho); nenhum fluxo novo de RNG; ordem do passo com o congelamento na fase 0 e os ataques na fase 6 (ADR-0008 §1).
+- **Bit `CENARIO.ataques`** desligado por padrão: só a Vigília de produção e as receitas novas o ligam, e as receitas antigas ficam intactas; `PRODUCAO` nas referências que a Playwright confere.
+- **Alocação:** tudo dentro de linha; o tick extra do Contra-ataque foi para dentro de `rodarAura` (duas passadas pelo mesmo laço); aquecimento de 63.000 passos nos testes E7 (é o JIT do V8, não o código); nenhum gate de tempo novo.
+- **Commits acima de ~300 linhas na Etapa 2** (inserções + remoções; a maior parte é teste e dado gerado): `ee2291f` 475, `4f7a207` 514, `af4e1d3` 395, `75c3e04` 1.067, `1ee87e8` 517, `c744719` 955, `643cf19` 1.608, `a00706b` 510, `8d10198` 984, `1e2de7e` 680, `5556d15` 386 e `64caeb2` 538 (12 no total, já enviados).
+- **Trailer de atribuição:** quatro commits da Etapa 2e (`a00706b`, `8d10198`, `c1d799a` e `2b93b17`) saíram com um trailer diferente do dos demais; já estavam enviados e reescrevê-los exigiria reescrever o histórico de uma branch publicada (ADR-0008 §9, item 23).
+- **Divergências** do ADR-0002, das D3 a D5 e do `feature_list.json` em ADR-0008 §9 (25 itens).
+
+### Pendente de aparelho / para revisar
+- Os mesmos itens de aparelho da Sessão 5, mais os sons sintetizados da F-006 e o corte do Som e Flashes com Dynamic Island (1,15 pt abaixo do corte de 65%; ADR-0008 §9, item 16).
+- O determinismo só foi medido no V8; o JavaScriptCore será conferido no aparelho.
 
 ## Sessão 5 — F-005 "XP, level up, passivas e União"
 
@@ -232,12 +252,12 @@
 
 ### Como rodar
 - `npm install`.
-- `scripts/verify.sh --feature F-00N [--seed N] [--taps-game]` (o Pronto; F-001 a F-005 verdes; ≈ 15 min, dos quais ≈ 4 nos specs de desempenho e de heap da F-003).
+- `scripts/verify.sh --feature F-00N [--seed N] [--taps-game]` (o Pronto; F-001 a F-006 verdes; ≈ 15 min, dos quais ≈ 4 nos specs de desempenho e de heap da F-003).
 - Avulsos: `npm test` (Vitest), `npm run typecheck`, `npm run lint`, `npm run build:debug` e depois `npm run e2e`, `npm run dev`.
 - Módulo novo: `scripts/novo-modulo.sh <area>/<nome> [--cena NomeDaCena]`.
 - Disposição dos obstáculos: `scripts/gerar-disposicao.py --conferir`; direções do anel: `scripts/gerar-direcoes.py --conferir` (Python 3).
 - Simulação de 20 min (medida): `npx --no-install tsx scripts/sim20.ts` (saída em `.verify/sim20.json`).
-- Cenários do build de debug: `?cenario=horda|horda_rotativa|sem_horda|tres_armas|nivel_tres|bau_uniao|vigilia_sem_cinzas`, `?teto=300|500`, `?sonda=0` (desliga a sonda do TETO), `?render=gpu|image`, `?buffer=dinamico`, `?debug=1` (painel e verificação de NaN).
+- Cenários do build de debug: `?cenario=horda|horda_rotativa|sem_horda|tres_armas|nivel_tres|bau_uniao|vigilia_sem_cinzas|oco_grande_sozinho|novica_sozinha|horda_com_ataques|telegrafos`, `?inicio=MM:SS` (relógio inicial com a linha livre, 00:00 a 22:59), `?visto=mover,esquiva,aparo` (tutoriais já vistos; `?tutorial=0` vence), `?flash=segurar` (o flash não decai, para a captura), `?teto=300|500`, `?sonda=0` (desliga a sonda do TETO), `?render=gpu|image`, `?buffer=dinamico`, `?debug=1` (painel e verificação de NaN).
 
 ### Ambiente
 - Não existem: `CLAUDE.md`, `playbook/` e os comandos `/brief-do-jogo`, `/checkpoint-e-retomada`, `/ciclo-de-feature` e `/critico-independente`. O crítico é um subagente (Q-33). `scripts/` e o ADR-0001 foram criados nesta sessão.
@@ -252,9 +272,9 @@
 - **Sessão 2:** fechou na F-002.
 - **Sessão 3:** fechou na F-003.
 - **Sessão 4:** fechou na F-004.
-- **Sessão 5:** fecha na F-005, que aguarda a revisão do usuário. A F-006 não foi começada.
-- **Sessão 6 (em andamento):** a D6 e o `feature_list.json` da F-006 estão prontos e aguardam a aprovação da §0; a Etapa 2 só começa depois dela.
-- **Próxima sessão (F-006 "Stamina, esquiva e aparo"):**
-  - ler este arquivo, o ADR-0007, `design/decisoes-F-005.md` (sobretudo a §9, as recomendações para as F-006 a F-010) e a entrada da F-006 no `feature_list.json`;
-  - antes de implementar, fechar as pendências da F-006 pelo mesmo método (levantamento, revisão adversarial e §0 para veto);
-  - rodar `scripts/verify.sh --feature F-005 --taps-game --seed 1` para conferir que a progressão continua verde.
+- **Sessão 5:** fechou na F-005.
+- **Sessão 6:** fecha na F-006, que aguarda a revisão do usuário. A F-007 não foi começada.
+- **Próxima sessão (F-007), com o mesmo método:**
+  - ler este arquivo, o ADR-0008, `design/decisoes-F-006.md` (sobretudo as recomendações para as F-007 a F-010) e a entrada da F-007 no `feature_list.json`;
+  - antes de implementar, fechar as pendências da F-007 (levantamento, revisão adversarial e §0 para veto), e só então a Etapa 2;
+  - rodar `scripts/verify.sh --feature F-006 --taps-game --seed 1` para conferir que a esquiva e o aparo continuam verdes.

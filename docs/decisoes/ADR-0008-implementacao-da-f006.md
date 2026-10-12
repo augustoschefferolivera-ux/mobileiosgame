@@ -141,4 +141,21 @@ Do processo:
 
 ## 10. Crítico independente
 
-_A preencher._
+Nota **8,0**, sem achado bloqueante (na F-005 foi 7, com 3 bloqueantes). Foram 81 mutações no código da simulação e do tradutor, cada uma aplicada, com os testes afetados rodados e desfeita em seguida. Os 3 achados médios e os baixos foram aplicados antes desta rodada.
+
+- **Reprovadas pelos testes que já existiam:** a maior parte das 81.
+- **Sobreviventes, todas viradas em teste** (cada teste novo reprova com a mutação aplicada e passa sem ela, conferido aplicando e desfazendo):
+  - **74** (o golpe ou o projétil ligando `invulContato`): golpe e projétil com `invulContato` = 0 antes deixam 0 depois (OG7), em `ataques.test.ts`;
+  - **24** (aparo aceito durante o aparo falho): `aparoEm(P0 + 10)` não muda a stamina nem a janela (AP8);
+  - **29** (ameaça do Oco Grande sem o teste do arco): jogador a 60 px atrás do eixo da mira, dentro do alcance, toque = vazio;
+  - **31** (Noviça em telegrafo contando como ameaça): Noviça em telegrafo colada no jogador e nenhum projétil, toque = vazio;
+  - **59** (limite de 400 pt/s com ms inteiros dentro da janela de 100 ms: 32 pt em 80 ms, 30 em 75 e 40 em 100 não disparam; 33 em 80 e 41 em 100 disparam), **60** (rearme quando a velocidade cai a 400 pt/s ou menos com amostras ainda na janela, em 250 e em 400 pt/s exatos), **65** (swipe do dono que já existe com o modo trocado direto para pausa ou modal não gera ação) e **E2** (a amostra a 101 ms já saiu da janela: 50 pt não disparam; a 99 e a 100 ms disparam), em `tradutor.test.ts`;
+  - **09** e **10** (`max` do atraso de regeneração no aparo falho e no gasto do aparo): com `esperaRegen` = 100 injetado antes, o falho e o gasto o deixam em 100 (D6 ST2);
+  - **33** (travou a suíte): `avancar` parado deixava laços `while` sem teto nos testes de combate (e no `ateOPasso`). Foi criado `laco()` em `tests/logica/combate/apoio.ts`, que lança passado um teto de 20.000 voltas, e aplicado a todos os `while` sem guarda (tutoriais, congelamento, referências, aparo, ataques). Com `avancar` retornando 0 sempre, 184 testes reprovam em segundos com "laço sem fim", em vez de travar.
+- **Equivalentes** (nenhum teste pode distinguir):
+  - **18** (Postura Quebrada sem o `cancelarAtaque` em `aparo.ts`): o laço de `rodarAtaques` (`ataques.ts`, `quebradaPassos > 0`) repete o cancelamento no passo seguinte, antes de qualquer leitura da fase do ataque;
+  - **27** (regeneração sem o `Math.min` do teto): a regeneração só roda com `stamina < 100`, e a stamina vive numa grade de 0,5 (custos 15 e 25, devolução 30, regeneração 0,5), então `stamina + 0,5` nunca passa de 100;
+  - **69** (esquiva com o aparo no mesmo passo): o crítico a deu como equivalente; **não é**. Com stamina 14,5 o aparo é negado e, sem a trava, a esquiva também seria negada e gravaria um 2º evento 19. Virou o teste "os dois bits com stamina 14,5" (`aparo.test.ts`), que reprova a mutação. Com o aparo aceito a trava é de fato redundante (`aparoJanela` > 0 já bloqueia a esquiva);
+  - **73** (`ameacasAparaveis` zerado no início de `rodarAtaques`): o contador é reescrito no fim da mesma função, sem retorno antecipado e sem leitura entre os dois pontos; a decisão do falho (fase 2 do passo seguinte) lê o valor final.
+- **Inconclusivas:** **E7** (Oco atordoado continuando a perseguir) e **71** (Espada com intervalo −1, que a rodada não conseguiu aplicar ao código). Ficam registradas, sem teste novo.
+- **Vitest ao final:** 1.322 testes em 69 arquivos (eram 1.312 antes do crítico; +10: 3 em `ataques.test.ts`, 3 em `aparo.test.ts` e 4 em `tradutor.test.ts`). Os 5 commits do crítico ficaram em até ~300 linhas.

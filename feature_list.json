@@ -478,7 +478,7 @@
     {
       "id": "F-006",
       "nome": "Stamina, esquiva e aparo",
-      "status": "pendente",
+      "status": "pronta",
       "escopo_b": "barra de stamina, esquiva por swipe (> 400 pt/s) com 12 passos de i-frames e 3 de recuperação, esquiva perfeita (+15% Poder 2 s), botão de Aparo com janela de 11 passos, aparo falho (24 passos), Postura Quebrada em área, Contra-ataque, Oco Grande e Noviça de Sal com telegrafos brancos (0,6 s / 0,5 s), feedback (flash 2 frames + congelamento 80 ms + som placeholder), prompts de tutorial nos min 1 e 3",
       "criterio_b": "Teste: acerto no passo 2 e no 13 da esquiva não causa dano, no passo 14 causa; aparo no passo 11 após o toque funciona, no 12 não; aparo falho bloqueia regen por 24 passos; Contra-ataque dispara todas as armas uma vez. Playwright: swipe sintético gera esquiva; toque no botão durante o telegrafo gera aparo",
       "evidencia_b": "Vídeo de 10 s com esquiva perfeita e aparo; log dos testes de janela",
