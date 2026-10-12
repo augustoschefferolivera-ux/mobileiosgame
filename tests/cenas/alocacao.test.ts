@@ -87,6 +87,8 @@ async function medir(rodar: (n: number) => void, aquecimento = AQUECIMENTO, medi
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([f, b]) => `${f}: ${(b / medidos).toFixed(1)} B/passo`);
+  // VDC_MEDIDAS=1 imprime a medida de cada teste (os números do ADR); sem ele, só o limite reprova.
+  if (process.env['VDC_MEDIDAS'] === '1') console.info(`[alocacao] ${(nossos / medidos).toFixed(1)} B/passo (${medidos} passos); ${maiores.slice(0, 2).join('; ')}`);
   return { porPasso: nossos / medidos, total: nossos, maiores };
 }
 
