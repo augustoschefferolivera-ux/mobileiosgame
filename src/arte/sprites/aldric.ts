@@ -54,16 +54,24 @@ export const ALDRIC_PARADO_2: Grade = comPixels(ALDRIC_PARADO, [
   [13, 11, 'a'],
 ]);
 
-/** Andar: a bota esquerda (do Aldric, à direita da tela) e a direita sobem 2 px, alternadas com o passo neutro. */
-export const ALDRIC_ANDAR_1: Grade = comLinhas(ALDRIC_PARADO, 20, [
+/**
+ * Quadro de contato do andar: do elmo ao cinto o corpo desce 1 px (some a linha
+ * da barra da capa) e as pernas trocam pelas `pernas` a partir da linha `de`;
+ * os pés ficam na mesma linha (style card §7).
+ */
+function comPasso(de: number, pernas: readonly string[]): Grade {
+  const abaixado = ALDRIC_PARADO.map((l, y) => (y === 0 ? '.'.repeat(24) : y <= 18 ? ALDRIC_PARADO[y - 1]! : l));
+  return comLinhas(abaixado, de, pernas);
+}
+
+/** Andar: a bota esquerda (do Aldric, à direita da tela) e a direita sobem 2 px e o corpo desce 1 px, alternados com o passo neutro (o parado). */
+export const ALDRIC_ANDAR_1: Grade = comPasso(20, [
   '...KSKKKMLMKKMDK.K......',
   '...KSK.KKKKKKDDK........',
   '...KSK......KMLMK.......',
   '....K.......KKKKK.......',
 ]);
-export const ALDRIC_ANDAR_3: Grade = comLinhas(ALDRIC_PARADO, 18, [
-  '...KSKcKKDDKKDDKKcK.....',
-  '...KSKCKKDMKKMDKKCK.....',
+export const ALDRIC_ANDAR_3: Grade = comPasso(20, [
   '...KSKK.KDMKKMLMKK......',
   '...KSK..KDDKKKKKK.......',
   '...KSK.KMLMK............',

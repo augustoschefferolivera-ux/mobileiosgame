@@ -64,8 +64,9 @@ export function girado(r: number, graus: number, f: Amostra): ImagemComOrigem {
 /**
  * Arco do golpe: setor de 120° de raio `r` na grade fina. `volta` inverte o
  * sentido da varredura; `forte` é a Lâmina do Juramento Eterno (mais grossa, o
- * núcleo em Y). Quadro 0: a varredura até 55% com a ponta mais quente; quadro
- * 1: o arco inteiro, esfriando do fim para o começo.
+ * núcleo em Y). A borda externa é o fio em Y (a no começo do rastro); para
+ * dentro, a, A, B e C. Quadro 0: a varredura até 55% com a ponta mais quente;
+ * quadro 1: o arco inteiro, esfriando do fim para o começo (style card §6).
  */
 export function arco(r: number, graus: number, quadro: 0 | 1, volta: boolean, forte: boolean): ImagemComOrigem {
   const espessura = r * (forte ? 0.36 : 0.28) * (quadro === 0 ? 1.1 : 1);
@@ -78,8 +79,11 @@ export function arco(r: number, graus: number, quadro: 0 | 1, volta: boolean, fo
     let t = (ang + 60) / 120;
     if (volta) t = 1 - t;
     if (t > varredura) return null;
+    const frio = 1 - t / varredura;
+    // A borda externa (2 px) fica no fio da brasa ao longo do arco todo: Y, e a no começo do rastro.
+    if (r - d < 2) return frio < 0.7 ? 'Y' : 'a';
     const fundo = (r - d) / espessura;
-    const calor = fundo * (forte ? 0.8 : 1) + (1 - t / varredura) * 0.9 + (b / 16) * 0.25;
+    const calor = fundo * (forte ? 0.8 : 1) + frio * 0.75 + (b / 16) * 0.25;
     if (calor > 1.35) return null;
     if (calor < (forte ? 0.32 : 0.18)) return 'Y';
     if (calor < 0.45) return 'a';

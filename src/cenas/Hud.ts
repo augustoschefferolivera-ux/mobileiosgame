@@ -11,7 +11,7 @@ import { RAIO_DO_JOYSTICK_PT, RAIO_DO_PINO_PT } from '../entrada/joystick';
 import { CAB, FASE, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR3_U8, JOGADOR4, JOGADOR4_U8, PROGRESSAO, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, type Estado } from '../logica/nucleo/estado';
 import { ALTURA_LOGICA, LARGURA_LOGICA, medirSafeArea, type Insets } from '../plataforma/safeArea';
 import type { ContextoDoJogo } from './contexto';
-import { COR, cameraLogica, texto } from './estilo';
+import { COR, cameraLogica, css, texto } from './estilo';
 import { IDS_DOS_PROMPTS, promptEmTela } from './prompts';
 import { RetardoDeHp } from './retardoDeHp';
 import {
@@ -77,6 +77,9 @@ const TRACO_DO_ANEL_PT = 4;
 const BOTAO_DO_APARO_DESENHO = { raioDoAnel: 32, traco: 3, raioDoGlifo: 14, tracoDoGlifo: 3, alfaPressionado: 0.35, alfaIndisponivel: 0.35, arco: [4.2, -0.6] as const } as const;
 /** Vaga vazia: contorno de 1 pt em osso a 30% (R5). */
 const ALFA_DA_VAGA_VAZIA = 0.3;
+/** Fundo de pedra de cada vaga e o traço de pedra das Almas: o ícone, a vaga vazia e o número legíveis sobre a horda (F-011, revisão). */
+const ALFA_DO_FUNDO_DA_VAGA = 0.55;
+const TRACO_DAS_ALMAS = 3;
 
 export class Hud extends Phaser.Scene {
   private base: Phaser.GameObjects.Image | null = null;
@@ -178,7 +181,7 @@ export class Hud extends Phaser.Scene {
     this.curaDaBarraDeHp = barra(COR.brasaClara, 1).setVisible(false);
     this.preenchimentoDeHp = barra(COR.brasa, 1).setVisible(false);
     this.numeroDeHp = texto(this, 0, 0, 'A5.HUD.HP', BARRA_DE_HP.corpoDoNumero, COR.osso, { hp: 0 }).setOrigin(0, 0);
-    this.almasTexto = texto(this, 0, 0, 'A5.HUD.ALMAS', HUD_DE_ALMAS.corpo, COR.osso, { almas: '0' }).setOrigin(0, 0);
+    this.almasTexto = texto(this, 0, 0, 'A5.HUD.ALMAS', HUD_DE_ALMAS.corpo, COR.osso, { almas: '0' }).setOrigin(0, 0).setStroke(css(COR.pedra), TRACO_DAS_ALMAS);
     this.almasDesenhadas = -1;
     this.relogioTexto = texto(this, 0, 0, 'A5.HUD.RELOGIO', HUD_DO_RELOGIO.corpoDoRelogio, COR.osso, { min: 0, seg: '00' }).setOrigin(1, 0);
     this.horaTexto = texto(this, 0, 0, 'A5.HUD.HORA', HUD_DO_RELOGIO.corpoDaHora, COR.sal, { hora: 'I' }).setOrigin(0, 0);
@@ -555,6 +558,7 @@ export class Hud extends Phaser.Scene {
       let icone: ReturnType<typeof iconeDaArma> = null;
       if (i < VAGAS_DE_ARMA) icone = iconeDaArma(e.build.codigo[i]!);
       else if (i >= PRIMEIRA_PASSIVA_NO_HUD) icone = iconeDaPassiva(e.passivas.codigo[i - PRIMEIRA_PASSIVA_NO_HUD]!);
+      g.fillStyle(COR.pedra, ALFA_DO_FUNDO_DA_VAGA).fillRect(x, y, lado, lado);
       if (icone !== null) desenharIcone(g, icone, x + lado / 2, y + lado / 2, lado);
       else g.lineStyle(1, COR.osso, ALFA_DA_VAGA_VAZIA).strokeRect(x + 0.5, y + 0.5, lado - 1, lado - 1);
     }

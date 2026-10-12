@@ -71,7 +71,7 @@ Rampas com deslocamento de matiz: o frio vai do preto-azulado ao cinza-azul (K �
 ## 3. Luz e cor
 
 - **Luz de cima, fria.** As superfícies de cima ganham o tom claro do material, as de baixo o escuro; nunca luz lateral (o espelho a inverteria). Cada material tem 3 tons (sombra, base, luz) e no máximo 1 a 3 px de brilho H por sprite.
-- **Luz quente só da brasa do Aldric** (doc 13 §1.4): um brilho aditivo de raio 5 corpos (160 pt), em 4 faixas quantizadas (A e B com alfa de 12 a 70) e dither de Bayer na fronteira. Não se pinta a luz quente nos inimigos: o brilho aditivo é que os aquece quando chegam perto.
+- **Luz quente só da brasa do Aldric** (doc 13 §1.4): um brilho aditivo de raio 5 corpos (160 pt), em 4 faixas quantizadas (A e B com alfa de 18 a 110, de 255; eram 12 a 70 até a revisão da etapa 3) e dither de Bayer na fronteira, logo acima do chão (§11). Não se pinta a luz quente nos inimigos.
 - **O jogador é a coisa mais quente da tela.** Inimigos usam no máximo 1 px quente (B, a lanterna do Oco); nenhum inimigo usa A, a nem Y.
 - **W e R são dos ataques** (doc 13 §1.3): nenhum sprite os pinta. O quadro de acerto usa H, não W.
 - **Valor antes de matiz:** em tons de cinza, o miolo de todo corpo tem valor acima do chão (F) e o contorno abaixo dele. O chão fica em F com pedriscos D e tufos e esparsos, sem nada que lembre pickup.

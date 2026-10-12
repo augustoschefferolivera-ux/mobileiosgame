@@ -5,7 +5,7 @@
 // (COR_DO_INIMIGO), que o teste da horda confere no centro de cada inimigo.
 import type { Grade } from '../imagem';
 
-/** Oco das Lanternas (massa): curvado, o capuz baixo entre os ombros, a lanterna pendurada à direita. */
+/** Oco das Lanternas (massa): curvado, o capuz baixo entre os ombros, a lanterna pendurada à direita; o manto tem 2 dobras contínuas, uma em cada flanco (style card §5). */
 export const OCO_DAS_LANTERNAS: Grade = [
   '.....KKKKK......',
   '....KEEEEEK.....',
@@ -14,13 +14,13 @@ export const OCO_DAS_LANTERNAS: Grade = [
   '..KEeKKPKKeEK...',
   '.KEEeKpPpKeEEK..',
   '.KEEEeKKKeEEEK..',
-  'KEEEEEEEEeEEEEK.',
+  'KEEEEeEEEEeEEEK.',
   'KPKEEeEEEEeEKPK.',
   'KpKEEeEEEEeEKpK.',
-  'KPKEeEEEEEEeKPK.',
+  'KPKEEeEEEEeEKPK.',
   '.KKEEeEEEEeEKKKK',
-  '..KEeEEeEEeEKZZK',
-  '..KeEEeEEeEEKBZK',
+  '..KEEeEEEEeEKZZK',
+  '..KEEeEEEEeEKBZK',
   '..KEeKEeKEeKKKKK',
   '...KK.KK.KK.....',
 ];
@@ -29,8 +29,8 @@ export const OCO_DAS_LANTERNAS: Grade = [
 export const OCO_DAS_LANTERNAS_2: Grade = [
   ...OCO_DAS_LANTERNAS.slice(0, 11),
   '.KKEEeEEEEeEKKK.',
-  '..KEeEEeEEeEKZK.',
-  '..KeEEeEEeEKZBZK',
+  '..KEEeEEEEeEKZK.',
+  '..KEEeEEEEeKZBZK',
   '..KeEKeEKeEKKKKK',
   '...KK.KK.KK.....',
 ];
