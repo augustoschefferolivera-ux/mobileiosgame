@@ -13,6 +13,17 @@ describe('sim20', () => {
     expect(JSON.stringify(simular(OPCOES))).toBe(JSON.stringify(a));
   });
 
+  it('o jogador parado morre em poucos segundos, com e sem a Brasa Firme (AG8), em 8 seeds', () => {
+    for (const lado of [a.tempoAteAMorte.comBrasaFirme, a.tempoAteAMorte.semBrasaFirme]) {
+      expect(Object.keys(lado)).toEqual(['1', '2', '3', '4', '5', '6', '7', '8']);
+      for (const passos of Object.values(lado)) {
+        expect(passos).not.toBeNull();
+        expect(passos!).toBeGreaterThan(60);
+        expect(passos!).toBeLessThan(900);
+      }
+    }
+  });
+
   it('roda 3.600 passos nos três comportamentos e traz os campos', () => {
     expect(a.passos).toBe(3600);
     expect(Object.keys(a.resultados)).toEqual(['1']);
@@ -22,6 +33,8 @@ describe('sim20', () => {
       expect(r.final.nivel).toBeGreaterThanOrEqual(1);
       expect(r.final.dps).toBeGreaterThanOrEqual(0);
       expect(r.picoDeCinzas).toBeGreaterThanOrEqual(0);
+      expect(r.picoDePickups).toBeLessThanOrEqual(r.capacidadeDePickups);
+      expect(r.creditosDiretosDeAlma).toBeGreaterThanOrEqual(0);
       expect(r.juncoes).toBeGreaterThanOrEqual(0);
       expect(r.bolsas).toBeGreaterThanOrEqual(0);
       expect(r.marcos).toEqual([]);
