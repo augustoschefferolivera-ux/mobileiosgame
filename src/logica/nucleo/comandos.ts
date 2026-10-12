@@ -9,12 +9,12 @@
 
 /**
  * Bits de `ComandosDoPasso.acoes`. O Frasco (4) e `frascoCancelar` (8, emitido pelo tradutor ao segurar)
- * valem desde a F-007; `abandonar` (16, só da pausa) a validação ainda recusa, até o `passo` aprendê-lo (LY3);
+ * valem desde a F-007; `abandonar` (16, só da pausa) o `passo` consome antes de qualquer outra coisa (PE5, LY3);
  * os códigos só crescem no fim.
  */
 export const ACAO = { esquiva: 1, aparo: 2, frasco: 4, frascoCancelar: 8, abandonar: 16 } as const;
-/** Os bits que um roteiro pode pedir hoje (o 16 entra com o Apagar). */
-const ACOES_PERMITIDAS = ACAO.esquiva | ACAO.aparo | ACAO.frasco | ACAO.frascoCancelar;
+/** Os bits que um roteiro pode pedir hoje (o 16 só vale com a fase VIVA: em APAGANDO e FIM o `passo` o ignora). */
+const ACOES_PERMITIDAS = ACAO.esquiva | ACAO.aparo | ACAO.frasco | ACAO.frascoCancelar | ACAO.abandonar;
 
 export interface ComandosDoPasso {
   /** [mx, my]: intenção de movimento, |v| ≤ 1. */
@@ -87,7 +87,7 @@ export type Roteiro = readonly TrechoDeRoteiro[];
 /** Ação de roteiro: vale só no passo exato `passo` (a lista é paralela aos trechos; ET5). */
 export interface AcaoDeRoteiro {
   readonly passo: number;
-  /** Bits de ACAO (esquiva, aparo, Frasco e cancelar). */
+  /** Bits de ACAO (esquiva, aparo, Frasco, cancelar e abandonar). */
   readonly acoes: number;
   /** Direção da esquiva, |mira| ≤ 1; ausente ou (0, 0): a última direção do jogador. */
   readonly mira?: readonly [number, number];

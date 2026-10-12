@@ -43,6 +43,8 @@ export interface InimigoDoJson {
   readonly velocidade: number;
   /** XP da Cinza que o inimigo solta (B §3.6). */
   readonly xp: number;
+  /** Alma que o inimigo solta: valor e chance de 0 a 1 (AM1); ausente = não solta. */
+  readonly almas?: { readonly valor: number; readonly chance: number };
   readonly comportamento: { readonly tipo: string; readonly para_a_corpos?: number; readonly distancia_corpos?: number };
   /** Imune (false) ou não à Postura Quebrada (design/decisoes-F-006.md §4.2); ausente = true. */
   readonly postura_quebrada?: boolean;
@@ -77,6 +79,9 @@ export interface TiposDeInimigo {
   readonly danoBase: Float64Array;
   /** XP da Cinza (B §3.6); o convertido solta 10 × a do Oco das Lanternas (Q-08). */
   readonly xp: Uint16Array;
+  /** Alma do tipo (AM1): valor e chance (0 a 1); chance ≥ 1 solta sem sorteio. O convertido sorteia 10 vezes com os do Oco das Lanternas. */
+  readonly almasValor: Uint16Array;
+  readonly almasChance: Float64Array;
   /** 1 se causa dano de contato (dano_tipo "contato_por_s"). */
   readonly contato: Uint8Array;
   readonly comportamento: Uint8Array;
@@ -112,6 +117,8 @@ export function criarTiposDeInimigo(inimigos: readonly InimigoDoJson[]): TiposDe
     hpBase: new Float64Array(CODIGOS),
     danoBase: new Float64Array(CODIGOS),
     xp: new Uint16Array(CODIGOS),
+    almasValor: new Uint16Array(CODIGOS),
+    almasChance: new Float64Array(CODIGOS),
     contato: new Uint8Array(CODIGOS),
     comportamento: new Uint8Array(CODIGOS),
     distancia: new Float64Array(CODIGOS),
@@ -128,6 +135,8 @@ export function criarTiposDeInimigo(inimigos: readonly InimigoDoJson[]): TiposDe
     t.hpBase[codigo] = i.hp_base;
     t.danoBase[codigo] = i.dano_base;
     t.xp[codigo] = i.xp;
+    t.almasValor[codigo] = i.almas?.valor ?? 0;
+    t.almasChance[codigo] = i.almas?.chance ?? 0;
     t.contato[codigo] = i.dano_tipo === 'contato_por_s' ? 1 : 0;
     t.comportamento[codigo] = comp.codigo;
     t.distancia[codigo] = comp.distancia;

@@ -1,5 +1,5 @@
-// Pickups (design/decisoes-F-005.md §2 e §4, X2 a X6 e B3): Cinzas e baús no
-// mesmo pool de 512. A Cinza nasce na morte por arma, com o XP do tipo; com o
+// Pickups (design/decisoes-F-005.md §2 e §4, X2 a X6 e B3; F-007 AM1 a AM3): Cinzas, Almas e baús no
+// mesmo pool de 512. A Alma segue a Cinza (Ímã, voo, coleta), mas soma em `almas`. A Cinza nasce na morte por arma, com o XP do tipo; com o
 // pool cheio, o valor se junta na Cinza viva mais próxima. O baú nunca é
 // recusado: com o pool cheio, a Cinza mais próxima do ponto de queda é juntada
 // na vizinha dela, e o slot vai para o baú. Fase 7e do passo, em slot
@@ -10,8 +10,9 @@
 // estado.ts: nada no nível do módulo usa os valores de lá.
 import type { DadosDaVigilia } from '../mundo/dados';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../mundo/toro';
-import { CAB, CAPACIDADE_DE_PICKUPS, CENARIO, JOGADOR, MUNDO2, PROGRESSAO, TIPO_DE_PICKUP, type Estado } from '../nucleo/estado';
+import { CAB, CAPACIDADE_DE_PICKUPS, CENARIO, JOGADOR, LIMITE_DE_ALMAS, MUNDO2, PROGRESSAO, TIPO_DE_PICKUP, baseDoFluxo, type Estado } from '../nucleo/estado';
 import { alocar, liberar } from '../nucleo/pool';
+import { DOIS_A_MENOS_32, SORTEADO, sortear } from '../nucleo/rng';
 import { MASSA_POR_CONVERTIDO } from '../mundo/inimigos';
 import { TIPO } from '../mundo/tipos';
 import { cruzarNiveis } from './atributos';
@@ -28,10 +29,10 @@ export function liberarPickup(e: Estado, s: number): void {
 }
 
 /**
- * Cinza viva mais próxima de (x, y), pelo delta toroidal (empate: menor slot),
+ * Pickup vivo do `tipo` (Cinza ou Alma) mais próximo de PONTO, pelo delta toroidal (empate: menor slot),
  * sem contar o slot `exceto`; −1 se não há. Lê x e y de PONTO (rascunho).
  */
-function cinzaMaisProxima(e: Estado, exceto: number): number {
+function maisProximoDoTipo(e: Estado, exceto: number, tipo: number): number {
   const px = PONTO[0]!;
   const py = PONTO[1]!;
   const p = e.pickups;
@@ -39,7 +40,7 @@ function cinzaMaisProxima(e: Estado, exceto: number): number {
   let melhor = -1;
   let melhorD2 = Infinity;
   for (let s = 0; s < CAPACIDADE_DE_PICKUPS; s++) {
-    if (pos[s]! < 0 || s === exceto || p.tipo[s] !== TIPO_DE_PICKUP.cinza) continue;
+    if (pos[s]! < 0 || s === exceto || p.tipo[s] !== tipo) continue;
     let dx = p.x[s]! - px;
     if (dx > MEIA_LARGURA_DO_MAPA) dx -= LARGURA_DO_MAPA;
     if (dx < -MEIA_LARGURA_DO_MAPA) dx += LARGURA_DO_MAPA;
@@ -90,9 +91,59 @@ export function soltarCinza(e: Estado, dados: DadosDaVigilia, slot: number): voi
 
 /** Soma `valor` na Cinza mais próxima de PONTO (fora `exceto`) e conta a junção. */
 function juntar(e: Estado, exceto: number, valor: number): void {
-  const alvo = cinzaMaisProxima(e, exceto);
+  const alvo = maisProximoDoTipo(e, exceto, TIPO_DE_PICKUP.cinza);
   if (alvo >= 0) e.pickups.valor[alvo] = e.pickups.valor[alvo]! + valor;
   e.mundo2[MUNDO2.juncoes] = e.mundo2[MUNDO2.juncoes]! + 1;
+}
+
+/** Soma `v` (< 2^30) em `almas`, com o teto de LIMITE_DE_ALMAS − 1 (AM7); a conta fica em linha. */
+export function creditarAlmas(e: Estado, v: number): void {
+  const soma = e.progresso[PROGRESSAO.almas]! + v;
+  e.progresso[PROGRESSAO.almas] = soma < LIMITE_DE_ALMAS ? soma : LIMITE_DE_ALMAS - 1;
+}
+
+/**
+ * Alma da morte do inimigo `slot` por arma (AM1): `chance ≥ 1` dá o valor fixo, sem sorteio; senão um
+ * sorteio do fluxo `drops` por tentativa (o convertido faz 10, com o valor e a chance do Oco das Lanternas,
+ * e solta um pickup só, com a soma). Nada com CENARIO.semCinzas. Pool cheio (AM2): junta na Alma viva mais
+ * próxima; sem Alma viva, credita direto em `almas`.
+ */
+export function soltarAlma(e: Estado, dados: DadosDaVigilia, slot: number): void {
+  if ((e.cab[CAB.cenario]! & CENARIO.semCinzas) !== 0) return;
+  const ini = e.inimigos;
+  const t = dados.tipos;
+  const convertido = ini.convertido[slot] === 1;
+  const tipo = convertido ? TIPO.oco_das_lanternas : ini.tipo[slot]!;
+  const unidade = t.almasValor[tipo]!;
+  if (unidade === 0) return;
+  const chance = t.almasChance[tipo]!;
+  const tentativas = convertido ? MASSA_POR_CONVERTIDO : 1;
+  let acertos = tentativas;
+  if (!(chance >= 1)) {
+    acertos = 0;
+    const base = baseDoFluxo('drops');
+    for (let k = 0; k < tentativas; k++) {
+      sortear(e.rng, base);
+      if (SORTEADO[0]! * DOIS_A_MENOS_32 < chance) acertos++;
+    }
+  }
+  if (acertos === 0) return;
+  const valor = acertos * unidade;
+  PONTO[0] = ini.x[slot]!;
+  PONTO[1] = ini.y[slot]!;
+  if (ocupar(e, TIPO_DE_PICKUP.alma, valor) >= 0) return;
+  juntarAlma(e, -1, valor);
+}
+
+/** Pool cheio (AM2): soma `valor` na Alma viva mais próxima de PONTO (fora `exceto`); sem nenhuma, credita direto em `almas`. */
+function juntarAlma(e: Estado, exceto: number, valor: number): void {
+  const alvo = maisProximoDoTipo(e, exceto, TIPO_DE_PICKUP.alma);
+  if (alvo >= 0) {
+    const soma = e.pickups.valor[alvo]! + valor;
+    e.pickups.valor[alvo] = soma < LIMITE_DE_ALMAS ? soma : LIMITE_DE_ALMAS - 1;
+  } else {
+    creditarAlmas(e, valor);
+  }
 }
 
 /**
@@ -108,13 +159,17 @@ export function soltarBau(e: Estado, x: number, y: number, dourado: boolean): nu
   PONTO[1] = y;
   let s = ocupar(e, tipo, indice);
   if (s >= 0) return s;
-  const cedida = cinzaMaisProxima(e, -1);
-  if (cedida < 0) return -1;
-  const valor = e.pickups.valor[cedida]!;
-  PONTO[0] = e.pickups.x[cedida]!;
-  PONTO[1] = e.pickups.y[cedida]!;
-  juntar(e, cedida, valor);
-  liberarPickup(e, cedida);
+  // O baú cede a Cinza mais próxima (AM2); sem Cinza, a Alma mais próxima, que se junta na vizinha ou é creditada.
+  const cedida = maisProximoDoTipo(e, -1, TIPO_DE_PICKUP.cinza);
+  const cedidaAlma = cedida < 0 ? maisProximoDoTipo(e, -1, TIPO_DE_PICKUP.alma) : -1;
+  if (cedida < 0 && cedidaAlma < 0) return -1;
+  const origem = cedida >= 0 ? cedida : cedidaAlma;
+  const valor = e.pickups.valor[origem]!;
+  PONTO[0] = e.pickups.x[origem]!;
+  PONTO[1] = e.pickups.y[origem]!;
+  if (cedida >= 0) juntar(e, origem, valor);
+  else juntarAlma(e, origem, valor);
+  liberarPickup(e, origem);
   PONTO[0] = x;
   PONTO[1] = y;
   s = ocupar(e, tipo, indice);
@@ -146,11 +201,16 @@ export function rodarPickups(e: Estado, dados: DadosDaVigilia): void {
     if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
     if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
     const d2 = dx * dx + dy * dy;
-    if (p.tipo[s] === TIPO_DE_PICKUP.cinza) {
+    const tp = p.tipo[s]!;
+    if (tp === TIPO_DE_PICKUP.cinza || tp === TIPO_DE_PICKUP.alma) {
       if (d2 <= coleta2) {
         const v = p.valor[s]!;
-        pr[PROGRESSAO.xp] = pr[PROGRESSAO.xp]! + v;
-        pr[PROGRESSAO.xpTotal] = pr[PROGRESSAO.xpTotal]! + v;
+        if (tp === TIPO_DE_PICKUP.cinza) {
+          pr[PROGRESSAO.xp] = pr[PROGRESSAO.xp]! + v;
+          pr[PROGRESSAO.xpTotal] = pr[PROGRESSAO.xpTotal]! + v;
+        } else {
+          creditarAlmas(e, v);
+        }
         liberarPickup(e, s);
       } else if (d2 <= ima2) {
         const k = voo / Math.sqrt(d2);

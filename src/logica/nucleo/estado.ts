@@ -344,7 +344,7 @@ export interface CamposDosPickups {
   readonly y: Float32Array;
   readonly xAnt: Float32Array;
   readonly yAnt: Float32Array;
-  /** XP da Cinza, ou o índice de queda do baú. */
+  /** XP da Cinza, valor da Alma (< 2^30) ou o índice de queda do baú. */
   readonly valor: Uint32Array;
   readonly tipo: Uint8Array;
 }

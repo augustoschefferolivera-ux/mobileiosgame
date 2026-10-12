@@ -27,6 +27,14 @@ export function semBrasaFirme(d: DadosDaVigilia): DadosDaVigilia {
   return { ...d, combate: { ...d.combate, brasaFirmeFator: 1 } };
 }
 
+/**
+ * Os mesmos dados sem Almas (valor 0: nenhum drop, nenhum sorteio do fluxo drops): as regressões v4 e v5 comparam com o
+ * código das F-004 e F-005, que não soltava Almas (decisoes-F-007 AM1; a Alma é um pickup novo e move o fluxo drops).
+ */
+export function semAlmas(d: DadosDaVigilia): DadosDaVigilia {
+  return { ...d, tipos: { ...d.tipos, almasValor: new Uint16Array(d.tipos.almasValor.length) } };
+}
+
 export const DADOS_DA_CHARNECA = dadosDe();
 export const DADOS_SEM_OBSTACULOS = dadosDe({ obstaculos: [] });
 export const DADOS_BRUTOS = semBrasaFirme(DADOS_SEM_OBSTACULOS);

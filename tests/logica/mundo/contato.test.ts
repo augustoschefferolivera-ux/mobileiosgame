@@ -172,12 +172,12 @@ describe('dano ao jogador', () => {
     expect([timer(e), hp(e)]).toEqual([18, 150]);
   });
 
-  it('o HP para em 0 e a Vigília continua (sem efeito até a F-007)', () => {
+  it('o HP para em 0 e a Vigília apaga (AG1): APAGANDO por 30 passos e FIM, com o passo parado (31)', () => {
     const e = estadoEm(JX, JY);
     e.jogador[JOGADOR.hp] = 1;
     nascerInimigo(e, D, TIPO.oco_das_lanternas, JX + 32, JY, false);
     avancar(e, D, PARADO, 40);
     expect(hp(e)).toBe(0);
-    expect(e.cab[CAB.passo]).toBe(40);
+    expect(e.cab[CAB.passo]).toBe(31);
   });
 });

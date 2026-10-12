@@ -5,7 +5,7 @@
 // toroidal e `(64 + r)²` vão em linha; as posições entram por FLOATS_DO_EVENTO;
 // nenhum double atravessa chamada.
 import { SEM_APARADO } from '../armas/acerto';
-import { CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR, JOGADOR3, JOGADOR3_U16, JOGADOR3_U8, PROMPT, VAGAS_DE_ARMA, type Estado } from '../nucleo/estado';
+import { CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR, JOGADOR3, JOGADOR3_U16, JOGADOR3_U8, JOGADOR4_U32, PROMPT, VAGAS_DE_ARMA, type Estado } from '../nucleo/estado';
 import { EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import type { DadosDaVigilia } from './dados';
 import { FASE_DO_ATAQUE } from './tipos';
@@ -46,6 +46,7 @@ export function aparar(e: Estado, dados: DadosDaVigilia, aparadosAntes: number, 
     j3[JOGADOR3.stamina] = stamina < c.staminaMax ? stamina : c.staminaMax;
     FLOATS_DO_EVENTO[2] = j3[JOGADOR3.stamina]!;
     FLOATS_DO_EVENTO[3] = 0;
+    e.jogador4U32[JOGADOR4_U32.aparos] = e.jogador4U32[JOGADOR4_U32.aparos]! + 1;
     gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.aparo, 0, 0, slot, slot < 0 ? 0 : e.pool.geracao[slot]!, tipo, 0, 0);
     e.jogador3U8[JOGADOR3_U8.congelamento] = c.congelamento;
     // O aparo bem-sucedido cumpre o prompt (TU2); o vazio e o falho não chegam aqui.

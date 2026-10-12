@@ -111,17 +111,18 @@ describe('atributos, HP e passivas (P1 a P5)', () => {
 });
 
 describe('Cinzas (X2, X3, X6)', () => {
-  it('toda morte por arma solta 1 Cinza com o XP do tipo: Oco 1, Grande 5, Noviça 5, convertido 10; o fluxo drops fica intocado', () => {
+  it('toda morte por arma solta 1 Cinza com o XP do tipo: Oco 1, Grande 5, Noviça 5, convertido 10; só o fluxo drops se move (a Alma sorteia, F-007 AM1)', () => {
     const e = estadoDe([]);
-    const drops = [...e.rng.slice(8, 12)];
+    const demais = (): number[] => [...e.rng.slice(0, 8), ...e.rng.slice(12)];
+    const antes = demais();
     const slots = [TIPO.oco_das_lanternas, TIPO.oco_grande, TIPO.novica_de_sal].map((t, i) => por(e, t, 200 + 40 * i, 0));
     const conv = por(e, TIPO.oco_grande, 400, 0);
     e.inimigos.convertido[conv] = 1;
     for (const s of [...slots, conv]) matarInimigo(e, D, s, CAUSA.arma);
     const valores = [];
-    for (let s = 0; s < 512; s++) if (e.poolDePickups.posicao[s]! >= 0) valores.push(e.pickups.valor[s]);
+    for (let s = 0; s < 512; s++) if (e.poolDePickups.posicao[s]! >= 0 && e.pickups.tipo[s] === TIPO_DE_PICKUP.cinza) valores.push(e.pickups.valor[s]);
     expect(valores).toEqual([1, 5, 5, 10]);
-    expect([...e.rng.slice(8, 12)]).toEqual(drops);
+    expect(demais()).toEqual(antes);
   });
 
   it('com semCinzas, a morte não solta Cinza; removerInimigo sozinho nunca solta', () => {

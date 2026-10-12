@@ -22,7 +22,7 @@ import { CamadaPorGPU, criarSaidaDeSprites } from '../../src/cenas/render/camada
 import { CAPACIDADE_DE_MORTES, EfeitosDaVigilia } from '../../src/cenas/render/efeitos';
 import { criarSaidaDaHorda, criarTabelaDeDesenho, prepararHorda } from '../../src/cenas/render/horda';
 import { BRUTO, ORIGEM_DO_DANO, danoAoJogador } from '../../src/logica/mundo/contato';
-import { CAB, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CENARIO, JOGADOR, JOGADOR4_U8, MUNDO, MUNDO2, PROGRESSAO, TIPO_DE_PICKUP, TODOS_OS_TUTORIAIS, TIPO_DE_PROJETIL, criarEstado, type ParametrosDaVigilia } from '../../src/logica/nucleo/estado';
+import { CAB, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CENARIO, FASE, JOGADOR, JOGADOR4_U8, MUNDO, MUNDO2, PROGRESSAO, TIPO_DE_PICKUP, TODOS_OS_TUTORIAIS, TIPO_DE_PROJETIL, criarEstado, type ParametrosDaVigilia } from '../../src/logica/nucleo/estado';
 import { ACAO, criarComandos, fonteConstante, fonteDoRoteiro, type AcaoDeRoteiro } from '../../src/logica/nucleo/comandos';
 import { EVENTO, LeitorDeEventos, inicioDoEvento } from '../../src/logica/nucleo/eventos';
 import { PASSIVA } from '../../src/logica/progressao/tabela';
@@ -376,6 +376,13 @@ describe('alocação no caminho quente (E4)', () => {
     let passo = 0;
     const { porPasso, maiores } = await medir((n) => {
       for (let k = 0; k < n; k++) {
+        // A morte entra na medida (LY4): chegando em FIM, a Vigília renasce com HP 60 para o laço seguir.
+        if (e.jogador4U8[JOGADOR4_U8.fase] === FASE.fim) {
+          e.jogador4U8[JOGADOR4_U8.fase] = FASE.viva;
+          e.jogador4U8[JOGADOR4_U8.causaDoFim] = 0;
+          e.jogador4U8[JOGADOR4_U8.apagandoPassos] = 0;
+          e.jogador[JOGADOR.hp] = 60;
+        }
         if (passo % 400 === 0) {
           e.jogador[JOGADOR.hp] = 60;
           e.jogador4U8[JOGADOR4_U8.frascoCargas] = 3;
@@ -390,7 +397,7 @@ describe('alocação no caminho quente (E4)', () => {
       }
     }, AQUECIMENTO_DOS_ATAQUES);
     expect(c.leitor.perdidos).toBe(0);
-    for (const ev of ['frascoIniciado', 'frascoInterrompido', 'danoAoJogador', 'golpeInimigo'] as const) expect(c.porTipo[EVENTO[ev]], ev).toBeGreaterThan(0);
+    for (const ev of ['frascoIniciado', 'frascoInterrompido', 'danoAoJogador', 'golpeInimigo', 'apagou', 'fimDaVigilia'] as const) expect(c.porTipo[EVENTO[ev]], ev).toBeGreaterThan(0);
     expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
   }, 600_000);
 

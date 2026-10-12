@@ -13,7 +13,7 @@ import { PASSOS_POR_MINUTO } from '../diretor/timeline';
 import { gravarDanoNoSpawn, gravarHpNoSpawn } from './escala';
 import { TIPO } from './tipos';
 import { desmarcarInimigo } from '../armas/ondas';
-import { soltarCinza } from '../progressao/pickups';
+import { soltarAlma, soltarCinza } from '../progressao/pickups';
 
 export { gravarDanoNoSpawn, gravarHpNoSpawn };
 
@@ -99,7 +99,7 @@ export function removerInimigo(e: Estado, slot: number): void {
 
 /**
  * Morte de um inimigo (M3): grava o evento `morte` com o handle da geração
- * que morreu, a posição, o tipo, a causa e o bit de convertido; soma 1 em
+ * que morreu, a posição, o tipo, a causa e o bit de convertido; soma 1 (o convertido, 10) em
  * `mortes` se a causa é arma; solta a Cinza de XP, só com causa arma
  * (decisoes-F-005 X3); e só então remove. Chamada só pela varredura do fim da
  * fase de armas.
@@ -113,8 +113,10 @@ export function matarInimigo(e: Estado, dados: DadosDaVigilia, slot: number, cau
   const flags = ini.convertido[slot] === 1 ? FLAG.convertido : 0;
   gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.morte, 0, 0, slot, e.pool.geracao[slot]!, ini.tipo[slot]!, flags, causa);
   if (causa === CAUSA.arma) {
-    e.mundo[MUNDO.mortes] = e.mundo[MUNDO.mortes]! + 1;
+    // RS4: o convertido por arma vale 10 (o mesmo 10 do XP e das Almas); a massa que morre por outra causa vale 0.
+    e.mundo[MUNDO.mortes] = e.mundo[MUNDO.mortes]! + (flags === FLAG.convertido ? MASSA_POR_CONVERTIDO : 1);
     soltarCinza(e, dados, slot);
+    soltarAlma(e, dados, slot);
   }
   removerInimigo(e, slot);
 }

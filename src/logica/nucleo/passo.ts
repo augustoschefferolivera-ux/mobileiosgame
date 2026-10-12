@@ -19,10 +19,11 @@ import type { DadosDaVigilia } from '../mundo/dados';
 import { rodarFrasco } from '../mundo/frasco';
 import { moverHorda } from '../mundo/horda';
 import { atualizarPromptDeMover, moverJogador } from '../mundo/jogador';
+import { encerrarVigilia, rodarApagando, rodarMancha, verificarMorte } from '../mundo/vigilia';
 import { confirmarModal, modalAberto } from '../progressao/modal';
 import { rodarPickups } from '../progressao/pickups';
-import { criarComandos, type ComandosDoPasso, type FonteDeComandos } from './comandos';
-import { CAB, CAPACIDADE_DE_INIMIGOS, CENARIO, JOGADOR3_U8, PROGRESSAO, type Estado } from './estado';
+import { ACAO, criarComandos, type ComandosDoPasso, type FonteDeComandos } from './comandos';
+import { CAB, CAPACIDADE_DE_INIMIGOS, CAUSA_DO_FIM, CENARIO, FASE, JOGADOR, JOGADOR3_U8, JOGADOR4_U8, PROGRESSAO, type Estado } from './estado';
 
 /** `quebradaPassos` cai 1 em todo inimigo com valor > 0: gravado 121 na fase 6, vale > 0 de h+1 a h+120 (PQ2). */
 function decrementarPostura(e: Estado): void {
@@ -31,7 +32,12 @@ function decrementarPostura(e: Estado): void {
   for (let s = 0; s < CAPACIDADE_DE_INIMIGOS; s++) if (q[s]! > 0 && pos[s]! >= 0) q[s] = q[s]! - 1;
 }
 
-export function passo(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): void {
+/**
+ * Um passo da fase VIVA (o corpo de sempre). Fica sem nenhuma linha da F-007: a fase, o Abandonar, a morte e a
+ * mancha moram em `passo` e em `avancar`, para o orçamento de inlining do V8 ficar onde estava (E4: um byte
+ * a mais aqui, e as chamadas de toro.ts deixavam de ser inlinadas: +9 B/passo).
+ */
+export function passoVivo(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): void {
   // Fase 0 (ET4, ET7): o passo congelado só decrementa o contador; `passo`, `relogio`
   // e as posições anteriores não andam. Nada liga o contador ainda (esquiva perfeita e aparo, adiante).
   const congelamento = e.jogador3U8[JOGADOR3_U8.congelamento]!;
@@ -60,6 +66,38 @@ export function passo(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): v
   rodarDiretor(e, dados, moveu);
 }
 
+const INDICE_DA_FASE = JOGADOR4_U8.fase;
+const FASE_VIVA = FASE.viva;
+const BIT_ABANDONAR = ACAO.abandonar;
+
+/** Fase APAGANDO, FIM ou o Abandonar da fase VIVA (a fase não é VIVA, ou o bit 16 veio). */
+function passoFora(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): void {
+  const fase = e.jogador4U8[INDICE_DA_FASE]!;
+  if (fase === FASE.apagando) rodarApagando(e, dados);
+  else if (fase === FASE_VIVA && (cmd.acoes[0]! & BIT_ABANDONAR) !== 0) encerrarVigilia(e, dados, CAUSA_DO_FIM.abandonar);
+}
+
+/** Depois do passo vivo: encostar na mancha (MC7) e a morte (AG1), que descarta a fila de modais do passo. */
+function depoisDoPasso(e: Estado, dados: DadosDaVigilia): void {
+  if (e.jogador4U8[JOGADOR4_U8.manchaAtiva] !== 0) rodarMancha(e, dados);
+  if (e.jogador[JOGADOR.hp]! <= 0) verificarMorte(e);
+}
+
+/**
+ * O passo completo (ADR-0002 §3; F-007 AG4, PE5): o bit abandonar vem antes de qualquer outra coisa e só vale com a
+ * fase VIVA; em FIM não faz nada (hash congelado); em APAGANDO só os inimigos andam (AG3); na fase VIVA roda
+ * `passoVivo` e, depois dele, a mancha e a morte. Só o passo exato de Abandonar da pausa o chama direto; `avancar`
+ * traz as mesmas linhas em linha.
+ */
+export function passo(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): void {
+  if (e.jogador4U8[INDICE_DA_FASE]! !== FASE_VIVA || (cmd.acoes[0]! & BIT_ABANDONAR) !== 0) {
+    passoFora(e, dados, cmd);
+    return;
+  }
+  passoVivo(e, dados, cmd);
+  depoisDoPasso(e, dados);
+}
+
 const comandos = criarComandos();
 
 /**
@@ -80,7 +118,12 @@ export function avancar(e: Estado, dados: DadosDaVigilia, fonte: FonteDeComandos
     }
     // Passo congelado (ET7): roda sem consultar a fonte (não consome a borda) e conta 1 dos n pedidos.
     if (e.jogador3U8[JOGADOR3_U8.congelamento]! === 0) fonte.comandosDoPasso(e.cab[CAB.passo]!, comandos);
-    passo(e, dados, comandos);
+    if (e.jogador4U8[INDICE_DA_FASE]! !== FASE_VIVA || (comandos.acoes[0]! & BIT_ABANDONAR) !== 0) {
+      passoFora(e, dados, comandos);
+    } else {
+      passoVivo(e, dados, comandos);
+      if (e.jogador4U8[JOGADOR4_U8.manchaAtiva] !== 0 || e.jogador[JOGADOR.hp]! <= 0) depoisDoPasso(e, dados);
+    }
     i++;
   }
   return i;

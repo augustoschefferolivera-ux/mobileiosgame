@@ -4,7 +4,7 @@
 // (empate: o menor slot), o acerto vale dano × 0,3 e o timer vai a 18. Assim o
 // contato contínuo rende exatamente 5/s no minuto 0, por mais Ocos que encostem.
 import { ARMA } from '../armas/tabela';
-import { CAB, CAPACIDADE_DE_INIMIGOS, CENARIO, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR3_U8, JOGADOR4, JOGADOR4_U8, JOGADOR_U8, PROMPT, VAGAS_DE_ARMA, type Estado } from '../nucleo/estado';
+import { CAB, CAPACIDADE_DE_INIMIGOS, CENARIO, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR3_U8, JOGADOR4, JOGADOR4_U32, JOGADOR4_U8, JOGADOR_U8, PROMPT, VAGAS_DE_ARMA, type Estado } from '../nucleo/estado';
 import { EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import { armadura } from '../progressao/dano';
 import type { DadosDaVigilia } from './dados';
@@ -108,6 +108,7 @@ export function resolverAcertoNoJogador(e: Estado, dados: DadosDaVigilia, origem
     u8[JOGADOR3_U8.esquivaPerfeitaDada] = 1;
     u8[JOGADOR3_U8.congelamento] = c.congelamento;
     u8[JOGADOR3_U8.poderPassos] = c.poderPassos;
+    e.jogador4U32[JOGADOR4_U32.esquivasPerfeitas] = e.jogador4U32[JOGADOR4_U32.esquivasPerfeitas]! + 1;
     for (let v = 0; v < VAGAS_DE_ARMA; v++) if (e.build.codigo[v] === ARMA.facas_de_sal) u8[JOGADOR3_U8.facaExtra] = 1;
     FLOATS_DO_EVENTO[0] = e.jogador[JOGADOR.x]!;
     FLOATS_DO_EVENTO[1] = e.jogador[JOGADOR.y]!;

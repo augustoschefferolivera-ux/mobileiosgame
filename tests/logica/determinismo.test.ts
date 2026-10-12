@@ -92,9 +92,10 @@ describe('determinismo (F-001.1)', () => {
     // Desde a F-007 (estado v7: fase, Frasco, mancha e contadores; muda só o layout, pois nada da F-007 atua
     // ainda e a regressão v6 prova que os campos antigos não mudaram). Na 3b (dano com armadura e Brasa Firme,
     // Frasco) o HP e o contador `danoRecebido` mudam: 2175475d e de4a60fd (2c) viram os de baixo.
+    // Na 3c (Almas soltas pelas mortes, fluxo drops) a seed 424242 muda: 8b2c35ab → 88a3a4f0 (a seed 1 ainda não soltou Alma até o passo 1.000).
     // F-006: c052c6c9 e 6ddd6d39. F-005: f39dd6b4 e 7c1b6c0c; F-004: 901adb6d e 9cdc2c63; F-003: e91ed119 e 6173ca75.
     expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('a5721bcc');
-    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('8b2c35ab');
+    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('88a3a4f0');
   });
 
   /** Vivos, spawns, mortes, passo da 1ª morte, passo do 1º acerto de contato, HP e o fluxo armas intocado, no passo 1.000. */

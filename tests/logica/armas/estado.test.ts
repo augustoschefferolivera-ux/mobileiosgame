@@ -217,11 +217,11 @@ describe('morte (M1 a M3) e remoções', () => {
     expect(e.jogadorU8[JOGADOR_U8.invulContato]).toBe(0);
   });
 
-  it('M3: matar um convertido soma 1 em mortes e grava 1 morte com a flag convertido; a rotação não mexe em mortes', () => {
+  it('M3 (RS4): matar um convertido por arma soma 10 em mortes e grava 1 morte com a flag convertido; a rotação não mexe em mortes', () => {
     const e = estadoCom([]);
     const s = nascerInimigo(e, D, TIPO.oco_grande, J.x, J.y - 300, true);
     matarInimigo(e, D, s, CAUSA.arma);
-    expect(e.mundo[MUNDO.mortes]).toBe(1);
+    expect(e.mundo[MUNDO.mortes]).toBe(10);
     const [m] = eventos(e).filter((v) => v.tipo === EVENTO.morte);
     expect([m!.inimigo, m!.flags & FLAG.convertido, m!.causa, m!.slot]).toEqual([TIPO.oco_grande, FLAG.convertido, CAUSA.arma, s]);
     const r = criarEstado(1, DADOS_DA_CHARNECA, { ...parametrosDoCenario('horda_rotativa'), teto: 300, armas: [] });
