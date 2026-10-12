@@ -429,6 +429,8 @@ export interface GameDebug {
   readonly entrada: EntradaDebug;
   /** Eventos de toque descartados (fila de 64 por frame) e dedos além de 5, na Vigília. */
   readonly toquesPerdidos: number;
+  /** O último `vigilia` gravado: a sequência e o hash do buffer gravado (F-008 SV9); null antes da 1ª gravação e nos cenários que não gravam. */
+  readonly save: { seq: number; hash: string } | null;
   hash(): string | null;
   audio(): string;
   pausar?: () => void;
@@ -722,6 +724,9 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     },
     get toquesPerdidos() {
       return ctx.entrada.fila.perdidos + ctx.entrada.tradutor.dedosPerdidos;
+    },
+    get save() {
+      return ctx.simulacao?.gravador?.ultimo ?? null;
     },
     hash() {
       return ctx.simulacao ? hex8(hashEstado(ctx.simulacao.estado)) : null;

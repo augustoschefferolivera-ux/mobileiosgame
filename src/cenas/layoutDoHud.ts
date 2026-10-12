@@ -160,6 +160,31 @@ export function formatarAlmas(n: number): string {
   return saida;
 }
 
+/**
+ * Relógio e Hora (design/decisoes-F-008.md HU1): a linha de cima, acima da barra de XP (topo + 40). O relógio "m:ss" fica
+ * encostado à direita, a 12 pt da borda, e a Hora (romanos) à esquerda, 12 pt depois do botão de pausa; corpo de 16 e 14 pt.
+ */
+export const HUD_DO_RELOGIO = { acimaDaBarra: 10, recuoDireito: 12, corpoDoRelogio: 16, corpoDaHora: 14, folgaDaPausa: 12 } as const;
+
+/** Canto superior direito do relógio (origem (1, 0)) e esquerdo da Hora (origem (0, 0)), escritos em `out` sem alocar. */
+export function posicoesDoRelogio(insets: Insets, out: { relogioX: number; hora: number; y: number }): { relogioX: number; hora: number; y: number } {
+  out.relogioX = LARGURA_LOGICA - insets.direita - HUD_DO_RELOGIO.recuoDireito;
+  out.hora = insets.esquerda + 72 + HUD_DO_RELOGIO.folgaDaPausa;
+  out.y = insets.topo + HUD_DO_RELOGIO.acimaDaBarra;
+  return out;
+}
+
+/** O segundo inteiro do relógio da Vigília (60 passos por segundo): o HUD só reescreve o texto quando ele muda. */
+export function segundosDoRelogio(passos: number): number {
+  return Math.floor(passos / 60);
+}
+
+/** "m:ss" em partes: os minutos sem zero à esquerda e os segundos com dois algarismos. */
+export function partesDoRelogio(segundos: number): { min: number; seg: string } {
+  const seg = segundos % 60;
+  return { min: Math.floor(segundos / 60), seg: seg < 10 ? `0${seg}` : String(seg) };
+}
+
 /** Estados do botão Aparo (AP1, RE2). */
 export const ESTADO_DO_APARO = { normal: 0, pressionado: 1, indisponivel: 2 } as const;
 /** Quadros de render do preenchimento do botão pressionado. */

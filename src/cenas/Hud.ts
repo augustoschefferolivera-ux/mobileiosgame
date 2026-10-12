@@ -30,7 +30,11 @@ import {
   VAGAS_DO_HUD,
   caixaDaBarraDeHp,
   formatarAlmas,
+  partesDoRelogio,
   posicaoDoHudDeAlmas,
+  posicoesDoRelogio,
+  segundosDoRelogio,
+  HUD_DO_RELOGIO,
   HUD_DE_ALMAS,
   caixaDaBarraDeStamina,
   numeroDoHp,
@@ -49,6 +53,8 @@ import { CHAVE_DO_ATLAS, escalaPara } from './render/atlas';
 import { desenharIcone, iconeDaArma, iconeDaPassiva } from './render/icones';
 import { circuloDePixels, desenharIconeDePixels } from './pixel';
 import { ESCALA_DA_GRADE } from '../arte/catalogo';
+import { horaDoRelogio, HORA_A_FOME } from '../logica/mundo/mancha';
+import { horaEmRomano } from './linhasDoResultado';
 import { t } from './textos';
 
 /** Estilo "pedra e osso" (doc 13 §1.7): fundo a 35% na base do joystick e a 60% no painel. */
@@ -108,6 +114,12 @@ export class Hud extends Phaser.Scene {
   private retardoDesenhado = -1;
   private numeroDeHpDesenhado = -1;
   private almasTexto: Phaser.GameObjects.Text | null = null;
+  /** Relógio "m:ss" e Hora em romanos (HU1); -1 = nada ainda. */
+  private relogioTexto: Phaser.GameObjects.Text | null = null;
+  private horaTexto: Phaser.GameObjects.Text | null = null;
+  private readonly posicoesDoRelogio = { relogioX: 0, hora: 0, y: 0 };
+  private segundosDesenhados = -1;
+  private horaDesenhada = -1;
   private readonly posicaoDeAlmas = { x: 0, y: 0 };
   /** As Almas que o HUD já mostra; -1 = nada ainda. */
   private almasDesenhadas = -1;
@@ -168,6 +180,9 @@ export class Hud extends Phaser.Scene {
     this.numeroDeHp = texto(this, 0, 0, 'A5.HUD.HP', BARRA_DE_HP.corpoDoNumero, COR.osso, { hp: 0 }).setOrigin(0, 0);
     this.almasTexto = texto(this, 0, 0, 'A5.HUD.ALMAS', HUD_DE_ALMAS.corpo, COR.osso, { almas: '0' }).setOrigin(0, 0);
     this.almasDesenhadas = -1;
+    this.relogioTexto = texto(this, 0, 0, 'A5.HUD.RELOGIO', HUD_DO_RELOGIO.corpoDoRelogio, COR.osso, { min: 0, seg: '00' }).setOrigin(1, 0);
+    this.horaTexto = texto(this, 0, 0, 'A5.HUD.HORA', HUD_DO_RELOGIO.corpoDaHora, COR.sal, { hora: 'I' }).setOrigin(0, 0);
+    this.segundosDesenhados = this.horaDesenhada = -1;
     this.vinheta = null;
     this.alfaDaVinhetaDesenhado = 0;
     this.retardo.reiniciar();
@@ -259,6 +274,9 @@ export class Hud extends Phaser.Scene {
     this.trilhoDeHp!.setScale(escalaPara('quadrado', h.largura), escalaPara('quadrado', h.altura));
     this.numeroDeHp!.setPosition(h.x, yDoNumeroDeHp(h));
     this.hpDesenhado = -1;
+    const pr = posicoesDoRelogio(ins, this.posicoesDoRelogio);
+    this.relogioTexto!.setPosition(pr.relogioX, pr.y);
+    this.horaTexto!.setPosition(pr.hora, pr.y + 1);
     posicaoDoHudDeAlmas(ins, this.posicaoDeAlmas);
     this.almasTexto!.setPosition(this.posicaoDeAlmas.x, this.posicaoDeAlmas.y);
     // Barra de stamina (RE1): trilho, preenchimento e as 3 marcas de 1 pt em pedra (uma esquiva = 25 pontos).
@@ -295,11 +313,13 @@ export class Hud extends Phaser.Scene {
       this.estadoDoFrascoDesenhado = this.cargasDesenhadas = -1;
       this.hpDesenhado = -1;
       this.almasDesenhadas = -1;
+      this.segundosDesenhados = this.horaDesenhada = -1;
       this.retardo.reiniciar();
     }
     // As Almas ficam de fora da pausa (AM5) e do fim da Vigília (o Resultado tem as suas).
     const mostrarAlmas = e.jogador4U8[JOGADOR4_U8.fase] === FASE.viva && !sim.pausa.ativa;
     if (mostrarAlmas !== this.almasTexto!.visible) this.almasTexto!.setVisible(mostrarAlmas);
+    this.atualizarRelogio(e, mostrarAlmas);
     const almas = e.progresso[PROGRESSAO.almas]!;
     if (almas !== this.almasDesenhadas) {
       this.almasDesenhadas = almas;
@@ -323,6 +343,28 @@ export class Hud extends Phaser.Scene {
       this.assinaturaDasVagas = assinatura;
       this.desenharVagas(e);
     }
+  }
+
+  /**
+   * Relógio e Hora (HU1): o `Text` do relógio é reescrito uma vez por segundo de relógio da Vigília (o relógio para na
+   * Fogueira, então o texto também); a Hora em romanos muda a cada 5 minutos e some de 20:00 em diante (sem Hora). Somem
+   * com as Almas (pausa e fim da Vigília).
+   */
+  private atualizarRelogio(e: Estado, mostrar: boolean): void {
+    if (mostrar !== this.relogioTexto!.visible) this.relogioTexto!.setVisible(mostrar);
+    const relogio = e.cab[CAB.relogio]!;
+    const segundos = segundosDoRelogio(relogio);
+    if (segundos !== this.segundosDesenhados) {
+      this.segundosDesenhados = segundos;
+      this.relogioTexto!.setText(t('A5.HUD.RELOGIO', partesDoRelogio(segundos)));
+    }
+    const hora = horaDoRelogio(relogio);
+    if (hora !== this.horaDesenhada) {
+      this.horaDesenhada = hora;
+      if (hora < HORA_A_FOME) this.horaTexto!.setText(t('A5.HUD.HORA', { hora: horaEmRomano(hora) }));
+    }
+    const visivel = mostrar && hora < HORA_A_FOME;
+    if (visivel !== this.horaTexto!.visible) this.horaTexto!.setVisible(visivel);
   }
 
   /**
