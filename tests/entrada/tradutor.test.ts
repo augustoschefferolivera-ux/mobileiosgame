@@ -5,7 +5,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CAPACIDADE_DA_FILA, FilaDeToques, TIPO_DE_TOQUE as T } from '../../src/entrada/filaDeToques';
 import { ID_DO_MOUSE, MAX_DEDOS, TradutorDeGestos } from '../../src/entrada/tradutorDeGestos';
-import { criarComandos } from '../../src/logica/nucleo/comandos';
+import combate from '../../src/dados/combate.json';
+import { ACAO, criarComandos } from '../../src/logica/nucleo/comandos';
 import { insetsZerados } from '../../src/plataforma/safeArea';
 
 let fila: FilaDeToques;
@@ -32,6 +33,8 @@ beforeEach(() => {
   trad.reiniciar();
   trad.definirArea(insetsZerados());
   naTela = [];
+  cmd.acoes[0] = 0;
+  cmd.mira[0] = cmd.mira[1] = 0;
 });
 
 describe('joystick flutuante', () => {
@@ -187,7 +190,7 @@ describe('capacidade, reconciliação e soltar todos', () => {
   it('o retrato ajustado pelo injetar faz o papel de e.touches', () => {
     fila.empurrar(T.inicio, 4, 100, 600, 0);
     fila.ajustarRetrato(T.inicio, 4);
-    fila.empurrar(T.move, 4, 160, 600, 16);
+    fila.empurrar(T.move, 4, 160, 600, 200);
     expect(frame()).toEqual([1, 0]);
     expect(frame()).toEqual([1, 0]);
     fila.ajustarRetrato(T.fim, 4);
@@ -338,5 +341,279 @@ describe('pausa: botão, gesto e modo da tela de pausa (design/decisoes-F-004.md
     em(1700, T.inicio, 7, 100, 600);
     quadro(1700);
     expect(trad.joystick.ativo).toBe(true);
+  });
+});
+
+/** Evento com timeStamp (ms inteiros) e o retrato de e.touches. */
+function em(t: number, tipo: (typeof T)[keyof typeof T], id: number, x: number, y: number): void {
+  if (tipo === T.inicio) naTela.push(id);
+  else if (tipo !== T.move) naTela = naTela.filter((i) => i !== id);
+  fila.empurrar(tipo, id, x, y, t);
+  fila.gravarRetrato(naTela.map((identifier) => ({ identifier })));
+}
+const acoes = (): number => cmd.acoes[0]!;
+/** Consome a borda como a fonte ao vivo faz. */
+const consumir = (): void => {
+  cmd.acoes[0] = 0;
+  cmd.mira[0] = cmd.mira[1] = 0;
+};
+
+describe('swipe do dedo do joystick (GE1; F-006.5, parte do tradutor)', () => {
+  it('os números vêm do combate.json', () => {
+    expect(combate.gestos.swipe).toEqual({ velocidade_min_pt_s: 400, janela_ms: 100, dt_min_ms: 16, distancia_min_pt: 24, amostras: 16 });
+  });
+
+  const swipe = (dx: number, dy: number, dt: number): boolean => {
+    em(1000, T.inicio, 1, 100, 600);
+    em(1000 + dt, T.move, 1, 100 + dx, 600 + dy);
+    frame();
+    return acoes() === ACAO.esquiva;
+  };
+
+  it('50 pt em 80 ms (625 pt/s) disparam, com a mira normalizada; o joystick não muda', () => {
+    expect(swipe(50, 0, 80)).toBe(true);
+    expect([cmd.mira[0], cmd.mira[1]]).toEqual([1, 0]);
+    expect(trad.joystick).toMatchObject({ ativo: true, origemX: 100, origemY: 600 });
+  });
+
+  it('a mira tem módulo 1 ± 1e-7 em qualquer direção', () => {
+    expect(swipe(30, 40, 80)).toBe(true);
+    expect(Math.abs(Math.hypot(cmd.mira[0]!, cmd.mira[1]!) - 1)).toBeLessThan(1e-7);
+    expect(cmd.mira[0]).toBeCloseTo(0.6, 6);
+    expect(cmd.mira[1]).toBeCloseTo(0.8, 6);
+  });
+
+  it('50 pt em 125 ms (400 pt/s) não disparam: a velocidade é estritamente maior', () => {
+    expect(swipe(50, 0, 125)).toBe(false);
+  });
+
+  it('50 pt em 130 ms (385 pt/s) não disparam; 50 pt em 100 ms (a borda da janela, 500 pt/s) disparam', () => {
+    expect(swipe(50, 0, 130)).toBe(false);
+    trad.reiniciar();
+    fila.reiniciar();
+    naTela = [];
+    expect(swipe(50, 0, 100)).toBe(true);
+  });
+
+  it('23 pt em 40 ms não disparam (distância); 24 pt em 40 ms disparam', () => {
+    expect(swipe(23, 0, 40)).toBe(false);
+    trad.reiniciar();
+    fila.reiniciar();
+    naTela = [];
+    expect(swipe(24, 0, 40)).toBe(true);
+  });
+
+  it('70 pt no mesmo timeStamp e 60 pt em 15 ms não disparam (Δt mínimo); 60 pt em 16 ms disparam', () => {
+    expect(swipe(70, 0, 0)).toBe(false);
+    trad.reiniciar();
+    fila.reiniciar();
+    naTela = [];
+    expect(swipe(60, 0, 15)).toBe(false);
+    trad.reiniciar();
+    fila.reiniciar();
+    naTela = [];
+    expect(swipe(60, 0, 16)).toBe(true);
+  });
+
+  it('só o dono do joystick: um 2º dedo rápido não dispara', () => {
+    em(1000, T.inicio, 1, 100, 600);
+    em(1000, T.inicio, 2, 100, 650);
+    em(1080, T.move, 2, 160, 650);
+    frame();
+    expect(acoes()).toBe(0);
+  });
+
+  it('na pausa e no modal não dispara', () => {
+    for (const modo of ['pausa', 'modal'] as const) {
+      trad.mudarModo(modo);
+      em(1000, T.inicio, 1, 100, 600);
+      em(1080, T.move, 1, 160, 600);
+      frame();
+      expect(acoes(), modo).toBe(0);
+      trad.mudarModo('vigilia');
+      fila.reiniciar();
+      naTela = [];
+    }
+  });
+
+  it('um 2º swipe no mesmo gesto, sem a velocidade cair, não dispara; depois de uma pausa lenta, rearma', () => {
+    em(1000, T.inicio, 1, 100, 600);
+    em(1080, T.move, 1, 150, 600);
+    frame();
+    expect(acoes()).toBe(ACAO.esquiva);
+    consumir();
+    em(1100, T.move, 1, 200, 600);
+    em(1120, T.move, 1, 250, 600);
+    frame();
+    expect(acoes()).toBe(0);
+    // Lento: a velocidade cai a ≤ 400 pt/s e rearma; o novo arranque dispara de novo.
+    em(1400, T.move, 1, 255, 600);
+    em(1500, T.move, 1, 305, 600);
+    frame();
+    expect(acoes()).toBe(ACAO.esquiva);
+  });
+
+  it('um arrasto lento de 70 pt em 400 ms não gera ações', () => {
+    em(1000, T.inicio, 1, 100, 600);
+    for (let k = 1; k <= 4; k++) em(1000 + k * 100, T.move, 1, 100 + k * 17.5, 600);
+    frame();
+    expect(acoes()).toBe(0);
+    expect(trad.joystick.vx).toBe(1);
+  });
+
+  it('as ações não se apagam sozinhas: o tradutor só liga o bit', () => {
+    expect(swipe(50, 0, 80)).toBe(true);
+    em(1200, T.move, 1, 150, 600);
+    frame();
+    expect(acoes()).toBe(ACAO.esquiva);
+  });
+
+  it('mudarModo zera a esquiva pendente', () => {
+    expect(swipe(50, 0, 80)).toBe(true);
+    trad.mudarModo('pausa');
+    expect(acoes()).toBe(0);
+    expect([cmd.mira[0], cmd.mira[1]]).toEqual([0, 0]);
+  });
+});
+
+describe('toque duplo (GE2; F-006.5, parte do tradutor)', () => {
+  const toqueDe = (t0: number, x: number, y: number, duracao = 100): void => {
+    em(t0, T.inicio, 1, x, y);
+    frame();
+    em(t0 + duracao, T.fim, 1, x, y);
+    frame();
+  };
+
+  it('os números vêm do combate.json', () => {
+    expect(combate.gestos.toque_duplo).toEqual({ intervalo_max_ms: 250, duracao_max_ms: 200, distancia_entre_toques_max_pt: 40, deslocamento_max_pt: 10 });
+  });
+
+  it('2 toques de 100 ms com 249 ms e 39 pt disparam no touchstart do 2º, com mira (0, 0); o 2º dedo vira dono', () => {
+    toqueDe(1000, 100, 600);
+    expect(acoes()).toBe(0);
+    em(1100 + 249, T.inicio, 2, 139, 600);
+    frame();
+    expect(acoes()).toBe(ACAO.esquiva);
+    expect([cmd.mira[0], cmd.mira[1]]).toEqual([0, 0]);
+    expect(trad.joystick).toMatchObject({ ativo: true, origemX: 139, origemY: 600 });
+  });
+
+  it('250 ms e 40 pt disparam; 251 ms ou 41 pt não', () => {
+    const par = (intervalo: number, dist: number): boolean => {
+      trad.reiniciar();
+      fila.reiniciar();
+      naTela = [];
+      consumir();
+      toqueDe(1000, 100, 600);
+      em(1100 + intervalo, T.inicio, 2, 100 + dist, 600);
+      frame();
+      return acoes() === ACAO.esquiva;
+    };
+    expect(par(250, 40)).toBe(true);
+    expect(par(251, 40)).toBe(false);
+    expect(par(250, 41)).toBe(false);
+  });
+
+  it('um toque de 201 ms ou que se mexeu 10,1 pt não conta; 200 ms e 10 pt contam', () => {
+    const par = (duracao: number, deslocamento: number): boolean => {
+      trad.reiniciar();
+      fila.reiniciar();
+      naTela = [];
+      consumir();
+      em(1000, T.inicio, 1, 100, 600);
+      frame();
+      if (deslocamento > 0) {
+        em(1050, T.move, 1, 100 + deslocamento, 600);
+        frame();
+      }
+      em(1000 + duracao, T.fim, 1, 100 + deslocamento, 600);
+      frame();
+      em(1000 + duracao + 100, T.inicio, 2, 100, 600);
+      frame();
+      return acoes() === ACAO.esquiva;
+    };
+    expect(par(200, 0)).toBe(true);
+    expect(par(201, 0)).toBe(false);
+    expect(par(100, 10)).toBe(true);
+    expect(par(100, 10.1)).toBe(false);
+  });
+
+  it('fora da área e no modo pausa não conta', () => {
+    toqueDe(1000, 100, 100);
+    em(1200, T.inicio, 2, 100, 100);
+    frame();
+    expect(acoes()).toBe(0);
+    trad.reiniciar();
+    fila.reiniciar();
+    naTela = [];
+    trad.mudarModo('pausa');
+    toqueDe(2000, 100, 600);
+    em(2200, T.inicio, 2, 100, 600);
+    frame();
+    expect(acoes()).toBe(0);
+  });
+
+  it('com o dono do joystick ocupado, o 2º dedo é "outro" e não conta', () => {
+    em(1000, T.inicio, 1, 100, 600);
+    frame();
+    toqueDe(1050, 100, 640, 50);
+    em(1250, T.inicio, 3, 100, 640);
+    frame();
+    expect(acoes()).toBe(0);
+  });
+
+  it('o par é consumido: um 3º toque não encadeia com o 2º', () => {
+    toqueDe(1000, 100, 600);
+    em(1300, T.inicio, 2, 100, 600);
+    frame();
+    expect(acoes()).toBe(ACAO.esquiva);
+    consumir();
+    em(1400, T.fim, 2, 100, 600);
+    frame();
+    em(1500, T.inicio, 3, 100, 600);
+    frame();
+    expect(acoes()).toBe(0);
+  });
+
+  it('1º toque, mudarModo(pausa), mudarModo(vigilia) e 2º toque a 100 ms e 20 pt: nada', () => {
+    toqueDe(1000, 100, 600);
+    trad.mudarModo('pausa');
+    trad.mudarModo('vigilia');
+    em(1200, T.inicio, 2, 120, 600);
+    frame();
+    expect(acoes()).toBe(0);
+  });
+
+  it('o toque duplo não atrapalha o movimento do 2º dedo', () => {
+    toqueDe(1000, 100, 600);
+    em(1300, T.inicio, 2, 100, 600);
+    em(1400, T.move, 2, 160, 600);
+    expect(frame()).toEqual([1, 0]);
+  });
+});
+
+describe('Espaço do teclado de debug (GE3)', () => {
+  it('pede esquiva na direção do teclado, ou na última (mira nula)', () => {
+    trad.teclado.x = -1;
+    trad.pedirEsquivaDoTeclado();
+    frame();
+    expect(acoes()).toBe(ACAO.esquiva);
+    expect([cmd.mira[0], cmd.mira[1]]).toEqual([-1, 0]);
+    consumir();
+    trad.teclado.x = 0;
+    trad.pedirEsquivaDoTeclado();
+    frame();
+    expect(acoes()).toBe(ACAO.esquiva);
+    expect([cmd.mira[0], cmd.mira[1]]).toEqual([0, 0]);
+    consumir();
+    frame();
+    expect(acoes()).toBe(0);
+  });
+
+  it('não vale na pausa nem se pedido antes de mudar de modo', () => {
+    trad.pedirEsquivaDoTeclado();
+    trad.mudarModo('pausa');
+    frame();
+    expect(acoes()).toBe(0);
   });
 });

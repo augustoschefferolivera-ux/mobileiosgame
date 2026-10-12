@@ -129,7 +129,7 @@ export function iniciarJogo(): Phaser.Game | null {
         // O FIT muda o estilo do canvas no refresh do ScaleManager, que emite RESIZE.
         game.scale.on(Phaser.Scale.Events.RESIZE, camada.invalidarCaixa);
         ctx.camada = camada;
-        if (ehBuildDeDebug) ligarTecladoDeDebug(window, ctx.entrada.tradutor.teclado);
+        if (ehBuildDeDebug) ligarTecladoDeDebug(window, ctx.entrada.tradutor.teclado, () => ctx.entrada.tradutor.pedirEsquivaDoTeclado());
       },
     },
     scene: [new Boot(ctx), new Acender(ctx), new Vigilia(ctx), new Hud(ctx), new Modal(ctx), new Pausa(ctx)],

@@ -5,7 +5,7 @@
 import { expect, test, type CDPSession, type Page } from '@playwright/test';
 import { insetsZerados } from '../src/plataforma/safeArea';
 import { ALTURA_DO_MAPA as H, LARGURA_DO_MAPA as W, deltaNoToro } from '../src/logica/mundo/toro';
-import { SEED, SEM_HORDA, abrir, paraPagina, proximoFrame, tocarAcender, textoDe } from './apoio';
+import { SEED, SEM_HORDA, abrir, arrastarDevagar, paraPagina, proximoFrame, tocarAcender, textoDe } from './apoio';
 
 const PROMPT = 'A2.TUTORIAL.01';
 
@@ -18,10 +18,19 @@ async function dedo(page: Page): Promise<{
 }> {
   const cdp = await page.context().newCDPSession(page);
   const ponto = async (x: number, y: number) => [await paraPagina(page, x, y)];
+  const enviar = async (x: number, y: number) => void (await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: await ponto(x, y) }));
+  let atual = { x: 0, y: 0 };
   return {
     cdp,
-    comecar: async (x, y) => void (await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: await ponto(x, y) })),
-    mover: async (x, y) => void (await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: await ponto(x, y) })),
+    comecar: async (x, y) => {
+      atual = { x, y };
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: await ponto(x, y) });
+    },
+    // O arrasto vai a ≤ 150 pt/s: um salto rápido do joystick contaria como swipe (decisoes-F-006 GE1, VT5).
+    mover: async (x, y) => {
+      await arrastarDevagar(page, atual, { x, y }, enviar);
+      atual = { x, y };
+    },
     soltar: async () => void (await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })),
   };
 }

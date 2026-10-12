@@ -26,8 +26,11 @@ const TECLAS: Record<string, 'cima' | 'baixo' | 'esquerda' | 'direita'> = {
   ArrowRight: 'direita',
 };
 
-/** Acompanha as teclas de movimento na janela e escreve o vetor em `out`. */
-export function ligarTecladoDeDebug(janela: Window, out: Vetor): void {
+/** Teclas de esquiva do build de debug (Espaço). */
+const ESQUIVA: Record<string, boolean> = { Space: true };
+
+/** Acompanha as teclas de movimento na janela e escreve o vetor em `out`; Espaço chama `aoEsquivar`. */
+export function ligarTecladoDeDebug(janela: Window, out: Vetor, aoEsquivar?: () => void): void {
   const apertadas = { cima: false, baixo: false, esquerda: false, direita: false };
   const atualizar = (): void => {
     vetorDoTeclado(apertadas.cima, apertadas.baixo, apertadas.esquerda, apertadas.direita, out);
@@ -38,7 +41,16 @@ export function ligarTecladoDeDebug(janela: Window, out: Vetor): void {
     apertadas[tecla] = valor;
     atualizar();
   };
-  janela.addEventListener('keydown', mudar(true));
+  const descer = mudar(true);
+  janela.addEventListener('keydown', (e) => {
+    // Espaço = esquiva, na direção do teclado ou na última (decisoes-F-006 GE3).
+    if (ESQUIVA[e.code]) {
+      if (!e.repeat) aoEsquivar?.();
+      e.preventDefault();
+      return;
+    }
+    descer(e);
+  });
   janela.addEventListener('keyup', mudar(false));
   janela.addEventListener('blur', () => {
     apertadas.cima = apertadas.baixo = apertadas.esquerda = apertadas.direita = false;

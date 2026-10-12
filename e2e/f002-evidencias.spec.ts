@@ -7,7 +7,7 @@ import { expect, test, type CDPSession, type Page } from '@playwright/test';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { ALTURA_DA_TELA, ALTURA_DO_MAPA as H, LARGURA_DA_TELA, LARGURA_DO_MAPA as W } from '../src/logica/mundo/toro';
-import { EVIDENCIAS, RAIZ, SEED, SEM_HORDA, abrir, paraPagina, proximoFrame, tocarAcender } from './apoio';
+import { EVIDENCIAS, RAIZ, SEED, SEM_HORDA, abrir, arrastarDevagar, paraPagina, proximoFrame, tocarAcender } from './apoio';
 
 const DIR = join(RAIZ, 'production', 'evidencias', 'F-002');
 // Lido do disco: o ESM do Node exige atributo de importação para JSON.
@@ -60,7 +60,7 @@ test('evidência: vídeo de 390 × 844 e 3 screenshots sequenciais (roteiro do �
 
   // 2. Tocar e arrastar para a direita: o joystick aparece, o prompt some e a câmera segue pelo corredor.
   await tocar(page, cdp, 'touchStart', 100, 650);
-  await tocar(page, cdp, 'touchMove', 170, 650);
+  await arrastarDevagar(page, { x: 100, y: 650 }, { x: 170, y: 650 }, (x, y) => tocar(page, cdp, 'touchMove', x, y));
   await page.waitForFunction(() => !window.__GAME_DEBUG__.textoAtivo.includes('A2.TUTORIAL.01'));
   await page.waitForTimeout(1500);
   await foto(2);

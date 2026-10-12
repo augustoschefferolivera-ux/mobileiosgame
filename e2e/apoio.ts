@@ -113,3 +113,22 @@ export async function esperarIguais(page: Page, a: Buffer, b: Buffer, rotulo: st
   expect(d.maior, resumo).toBeLessThanOrEqual(1);
   expect(d.diferentes / d.total, resumo).toBeLessThanOrEqual(translucidos ? 0.01 : 0.001);
 }
+
+/**
+ * Arrasto de um dedo a no máximo 150 pt/s (passos de 6 pt a cada 40 ms), para o joystick nunca contar como
+ * swipe (400 pt/s; decisoes-F-006 GE1, VT5). `mover` envia cada ponto intermediário.
+ */
+export async function arrastarDevagar(
+  page: Page,
+  de: { x: number; y: number },
+  para: { x: number; y: number },
+  mover: (x: number, y: number) => Promise<void>,
+): Promise<void> {
+  const dx = para.x - de.x;
+  const dy = para.y - de.y;
+  const passos = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 6));
+  for (let k = 1; k <= passos; k++) {
+    await mover(de.x + (dx * k) / passos, de.y + (dy * k) / passos);
+    await page.waitForTimeout(40);
+  }
+}

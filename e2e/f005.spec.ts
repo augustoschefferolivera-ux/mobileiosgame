@@ -9,7 +9,7 @@ import { alvoDaPausa, alvosDasCartas, alvosDoBau, type Alvo } from '../src/entra
 import type { Roteiro } from '../src/logica/nucleo/comandos';
 import { COR } from '../src/cenas/paleta';
 import { insetsZerados } from '../src/plataforma/safeArea';
-import { EVIDENCIAS, RAIZ, SEED, abrir, paraPagina, proximoFrame, tocarAcender } from './apoio';
+import { EVIDENCIAS, RAIZ, SEED, abrir, arrastarDevagar, paraPagina, proximoFrame, tocarAcender } from './apoio';
 
 const INSETS = insetsZerados();
 const CARTAS = alvosDasCartas(INSETS, []);
@@ -164,9 +164,12 @@ test('F-005.4: no nivel_tres, nível 3 com 2 ofertas no passo 1; modal parado; c
   // 6. Fila fechada e a simulação andando: o tradutor voltou à Vigília, e um toque novo arrastando na área do joystick o cria e move o jogador.
   const antes = await page.evaluate(() => ({ criados: window.__GAME_DEBUG__.entrada.joystick.criados, x: window.__GAME_DEBUG__.jogador!.x }));
   expect(antes.criados).toBe(0);
-  const [de, ate] = [await paraPagina(page, 100, 650), await paraPagina(page, 170, 650)];
+  const de = await paraPagina(page, 100, 650);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: de.x, y: de.y, id: 7 }] });
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: ate.x, y: ate.y, id: 7 }] });
+  await arrastarDevagar(page, { x: 100, y: 650 }, { x: 170, y: 650 }, async (x, y) => {
+    const p = await paraPagina(page, x, y);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: p.x, y: p.y, id: 7 }] });
+  });
   await page.waitForFunction((x0) => window.__GAME_DEBUG__.entrada.joystick.criados > 0 && window.__GAME_DEBUG__.jogador!.x > x0 + 10, antes.x, { timeout: 30_000 });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 });
