@@ -68,11 +68,11 @@ describe('barra de HP (HB1)', () => {
     }
   });
 
-  it('o número fica sob a barra e acima da linha de vagas (topo + 80), 12 pt de corpo', () => {
+  it('o número fica sob a barra e acima da linha de vagas (topo + 80), 12 pt de corpo, colado na barra (a 2 pt a base encostava na linha das vagas)', () => {
     for (const ins of [insetsZerados(), IPHONE, LATERAIS]) {
       const hp = caixa(caixaDaBarraDeHp, ins);
       const y = yDoNumeroDeHp(hp);
-      expect(y).toBe(hp.y + 10 + 2);
+      expect(y).toBe(hp.y + 10 + BARRA_DE_HP.numeroAbaixo);
       expect(y + BARRA_DE_HP.corpoDoNumero).toBeLessThanOrEqual(ins.topo + VAGAS_DO_HUD.abaixoDoTopo);
     }
     expect(ALTURA_LOGICA).toBe(844);
