@@ -25,6 +25,7 @@ export function cameraLogica(cena: Phaser.Scene): void {
 /**
  * Texto da tela a partir de um id de pt-BR.json, com resolução 2 para a
  * câmera em zoom 2. O id fica no objeto para __GAME_DEBUG__.textoAtivo.
+ * Com `larguraMax` (pt), o texto quebra linha nessa largura (prompts, TU11).
  */
 export function texto(
   cena: Phaser.Scene,
@@ -34,6 +35,7 @@ export function texto(
   tamanho: number,
   cor: number,
   params?: Parametros,
+  larguraMax?: number,
 ): Phaser.GameObjects.Text {
   const obj = cena.add.text(x, y, t(id, params), {
     fontFamily: FONTE,
@@ -41,6 +43,7 @@ export function texto(
     color: css(cor),
     align: 'center',
     resolution: 2,
+    ...(larguraMax === undefined ? {} : { wordWrap: { width: larguraMax } }),
   });
   obj.setData('idTexto', id);
   return obj;

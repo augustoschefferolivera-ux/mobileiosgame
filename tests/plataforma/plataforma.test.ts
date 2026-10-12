@@ -195,6 +195,8 @@ describe('parâmetros de URL (ADR-0002 §14)', () => {
       debug: false,
       sonda: true,
       flashSegurar: false,
+      inicio: null,
+      vistos: null,
     });
   });
 
@@ -203,6 +205,32 @@ describe('parâmetros de URL (ADR-0002 §14)', () => {
     expect(lerParametros('?flash=1', true).flashSegurar).toBe(false);
     expect(lerParametros('', true).flashSegurar).toBe(false);
     expect(lerParametros('?flash=segurar', false).flashSegurar).toBe(false);
+  });
+
+  it('?visto marca só os bits listados; ?xyz dá 0; sem o parâmetro e na produção, null (TU6)', () => {
+    expect(lerParametros('?visto=mover,esquiva', true).vistos).toBe(3);
+    expect(lerParametros('?visto=aparo', true).vistos).toBe(4);
+    expect(lerParametros('?visto=xyz', true).vistos).toBe(0);
+    expect(lerParametros('?visto=mover,toString', true).vistos).toBe(1);
+    expect(lerParametros('', true).vistos).toBeNull();
+    expect(lerParametros('?visto=mover,esquiva', false).vistos).toBeNull();
+    // ?tutorial=0 vence ?visto: os dois ficam lidos, e a Vigília aplica a precedência.
+    expect(lerParametros('?tutorial=0&visto=mover', true)).toMatchObject({ pularTutoriais: true, vistos: 1 });
+  });
+
+  it.each([
+    ['?inicio=01:00', 3600],
+    ['?inicio=03:00', 10800],
+    ['?inicio=00:00', 0],
+    ['?inicio=22:59', (22 * 60 + 59) * 60],
+    ['?inicio=23:00', null],
+    ['?inicio=01:60', null],
+    ['?inicio=1:00', null],
+    ['?inicio=abc', null],
+    ['', null],
+  ])('?inicio: %s → %s (TU7)', (busca, passos) => {
+    expect(lerParametros(busca, true).inicio).toBe(passos);
+    expect(lerParametros(busca, false).inicio).toBeNull();
   });
 
   it('build de debug: ?sonda=0 desliga a sonda do TETO; qualquer outro valor a deixa ligada (decisoes-F-004 §5)', () => {

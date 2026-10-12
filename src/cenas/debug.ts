@@ -10,10 +10,11 @@ import type Phaser from 'phaser';
 import { fonteConstante, fonteDoRoteiro, validarAcoes, validarRoteiro, type AcaoDeRoteiro, type Roteiro } from '../logica/nucleo/comandos';
 import {
   BAU, BYTES_ESTADO, CAB, CAPACIDADE_DE_EFEITOS, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CAPACIDADE_DE_PROJETEIS, CARTAS, CATEGORIA_DE_ITEM, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR3_U8, JOGADOR_U8,
-  MUNDO, MUNDO2, PROGRESSAO, TIPO_DE_CARTA, TIPO_DE_PICKUP, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, hashEstado, hashPorSecao, type Estado,
+  MUNDO, MUNDO2, PROGRESSAO, JOGADOR3_U16, TIPO_DE_CARTA, TIPO_DE_PROJETIL, TIPO_DE_PICKUP, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, hashEstado, hashPorSecao, type Estado,
 } from '../logica/nucleo/estado';
 import { BYTES_DO_ANEL, EV, FLAG, eventosEscritos, inicioDoEvento } from '../logica/nucleo/eventos';
 import { quantosAtivos } from '../logica/nucleo/pool';
+import { escalaDeTempo } from '../logica/nucleo/cameraLenta';
 import { ATRIBUTOS, IDS_DE_ARMA } from '../logica/armas/tabela';
 import { IDS_DE_PASSIVA } from '../logica/progressao/tabela';
 import { armadura, poderPct } from '../logica/progressao/dano';
@@ -130,6 +131,14 @@ function lerEventos(e: Estado): EventoDebug[] {
     });
   }
   return lista;
+}
+
+/** O inimigo aparado ainda vivo (slot e geração conferem com o pool), ou null (0xffff = nenhum; o estado inicial grava 0). */
+function alvoAparadoDe(e: Estado): { slot: number; geracao: number } | null {
+  const slot = e.jogador3U16[JOGADOR3_U16.alvoAparadoSlot]!;
+  const geracao = e.jogador3U16[JOGADOR3_U16.alvoAparadoGeracao]!;
+  if (slot >= CAPACIDADE_DE_INIMIGOS || e.pool.posicao[slot]! < 0 || e.pool.geracao[slot] !== geracao) return null;
+  return { slot, geracao };
 }
 
 function buildDe(e: Estado | undefined): { armas: { id: string; nivel: number; recarga: number }[]; passivas: { id: string; nivel: number }[] } {
@@ -333,6 +342,8 @@ export interface GameDebug {
   readonly opcoes: { numerosDeDano: boolean; som: boolean; flashes: boolean };
   /** Quadros de render que faltam do flash branco (decisoes-F-006 RE3); só leitura. */
   readonly flash: number;
+  /** Fator da câmera lenta leve do tutorial da esquiva (0,5 durante 500 ms de tempo real, senão 1; FB5); só leitura. */
+  readonly escalaDeTempo: number;
   readonly memoriaEstimadaMB: number;
   readonly seed: number;
   /** Insets da safe-area em pt lógicos, como a cena ativa os mediu. */
@@ -352,6 +363,20 @@ export interface GameDebug {
     atributos: Record<string, number>; poderPct: number; armadura: number; hpMax: number; almas: number;
     /** Stamina e esquiva (F-006; decisoes-F-006 ES8). */
     stamina: number; esperaRegen: number; esquivaPasso: number; poderPassos: number; congelamento: number; facaExtra: number;
+    /** Capacidade da stamina (100). */
+    staminaMax: number;
+    /** Esquiva em curso: passo (0 = fora), se está nos i-frames (passos 2 a 13) e se já deu a perfeita. */
+    esquiva: { passo: number; invulneravel: boolean; perfeitaDada: boolean };
+    /** Aparo: passos restantes da janela (12 ou 18 no passo do comando) e do aparo falho (24). */
+    aparo: { janela: number; falho: number };
+    /** Sal no jogador: lentidão em % e passos restantes. */
+    sal: { pct: number; passos: number };
+    /** Ataques aparáveis a caminho no passo anterior (decide o aparo falho). */
+    ameacasAparaveis: number;
+    /** O último inimigo aparado (alvo do Contra-ataque), ou null. */
+    alvoAparado: { slot: number; geracao: number } | null;
+    /** Estado dos prompts de tutorial (0 aguardando, 1 visível, 2 cumprido) e as falhas de aparo. */
+    prompts: { esquiva: number; aparo: number; falhas: number };
   } | null;
   /** O modal de level up (F-005): aberto, níveis pendentes, as 3 cartas e a carta selecionada na tela. */
   readonly levelUp: ReturnType<typeof levelUpDe> | null;
@@ -377,9 +402,10 @@ export interface GameDebug {
   /** Os últimos 2.048 quadros (F-003.4). Só no build de debug. */
   quadros?: () => Quadro[];
   /** Cópia dos inimigos vivos. Só no build de debug. */
-  inimigos?: () => { slot: number; tipo: string; x: number; y: number; convertido: boolean; hp: number; salPct: number; salPassos: number; kbPassos: number }[];
+  inimigos?: () => { slot: number; tipo: string; x: number; y: number; convertido: boolean; hp: number; salPct: number; salPassos: number; kbPassos: number; ataqueFase: number; ataqueTimer: number; quebradaPassos: number }[];
   /** Cópia dos projéteis vivos. Só no build de debug. */
-  projeteis?: () => { slot: number; arma: string; x: number; y: number; vx: number; vy: number; dano: number; vida: number; perfuracoes: number }[];
+  /** `tipo`: faca ou sal; `dono`: o atirador do projétil de Sal (null nas facas). */
+  projeteis?: () => { slot: number; arma: string; x: number; y: number; vx: number; vy: number; dano: number; vida: number; perfuracoes: number; tipo: string; dono: { slot: number; geracao: number } | null }[];
   /** Hash de cada seção do estado, em hexadecimal. Só no build de debug. */
   hashPorSecao?: () => Record<string, string> | null;
   /** Remove um inimigo vivo pelo caminho comum (o teste do slot morto, decisoes-F-003 §8). Só no build de debug. */
@@ -496,6 +522,9 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     get flash() {
       return ctx.feedback.flash.quadros;
     },
+    get escalaDeTempo() {
+      return ctx.simulacao ? escalaDeTempo(ctx.simulacao.cameraLenta) : 1;
+    },
     get memoriaEstimadaMB() {
       bytesBackbuffer ??= bytesDoCanvas(jogo);
       return (BYTES_ESTADO + BYTES_DO_ANEL + bytesBackbuffer + BYTES_DO_ATLAS + BYTES_DAS_CAMADAS) / (1024 * 1024);
@@ -545,6 +574,19 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
         poderPassos: e.jogador3U8[JOGADOR3_U8.poderPassos]!,
         congelamento: e.jogador3U8[JOGADOR3_U8.congelamento]!,
         facaExtra: e.jogador3U8[JOGADOR3_U8.facaExtra]!,
+        staminaMax: ctx.simulacao!.dados.combate.staminaMax,
+        esquiva: {
+          passo: e.jogador3U8[JOGADOR3_U8.esquivaPasso]!,
+          invulneravel:
+            e.jogador3U8[JOGADOR3_U8.esquivaPasso]! >= ctx.simulacao!.dados.combate.esquivaIframesDe &&
+            e.jogador3U8[JOGADOR3_U8.esquivaPasso]! <= ctx.simulacao!.dados.combate.esquivaIframesAte,
+          perfeitaDada: e.jogador3U8[JOGADOR3_U8.esquivaPerfeitaDada] === 1,
+        },
+        aparo: { janela: e.jogador3U8[JOGADOR3_U8.aparoJanela]!, falho: e.jogador3U8[JOGADOR3_U8.aparoFalho]! },
+        sal: { pct: e.jogador3U8[JOGADOR3_U8.salPct]!, passos: e.jogador3U8[JOGADOR3_U8.salPassos]! },
+        ameacasAparaveis: e.jogador3U16[JOGADOR3_U16.ameacasAparaveis]!,
+        alvoAparado: alvoAparadoDe(e),
+        prompts: { esquiva: e.jogador3U8[JOGADOR3_U8.promptEsquiva]!, aparo: e.jogador3U8[JOGADOR3_U8.promptAparo]!, falhas: e.jogador3U8[JOGADOR3_U8.falhasDeAparo]! },
       };
     },
     get levelUp() {
@@ -635,7 +677,7 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     debug.inimigos = () => {
       const e = ctx.simulacao?.estado;
       if (!e) return [];
-      const lista: { slot: number; tipo: string; x: number; y: number; convertido: boolean; hp: number; salPct: number; salPassos: number; kbPassos: number }[] = [];
+      const lista: { slot: number; tipo: string; x: number; y: number; convertido: boolean; hp: number; salPct: number; salPassos: number; kbPassos: number; ataqueFase: number; ataqueTimer: number; quebradaPassos: number }[] = [];
       for (let s = 0; s < CAPACIDADE_DE_INIMIGOS; s++) {
         if (e.pool.posicao[s]! < 0) continue;
         const ini = e.inimigos;
@@ -649,6 +691,9 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
           salPct: ini.salPct[s]!,
           salPassos: ini.salPassos[s]!,
           kbPassos: ini.kbPassos[s]!,
+          ataqueFase: ini.ataqueFase[s]!,
+          ataqueTimer: ini.ataqueTimer[s]!,
+          quebradaPassos: ini.quebradaPassos[s]!,
         });
       }
       return lista;
@@ -657,10 +702,12 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
       const e = ctx.simulacao?.estado;
       if (!e) return [];
       const p = e.projeteis;
-      const lista: { slot: number; arma: string; x: number; y: number; vx: number; vy: number; dano: number; vida: number; perfuracoes: number }[] = [];
+      const lista: { slot: number; arma: string; x: number; y: number; vx: number; vy: number; dano: number; vida: number; perfuracoes: number; tipo: string; dono: { slot: number; geracao: number } | null }[] = [];
       for (let s = 0; s < CAPACIDADE_DE_PROJETEIS; s++) {
         if (e.poolDeProjeteis.posicao[s]! < 0) continue;
-        lista.push({ slot: s, arma: IDS_DE_ARMA[p.arma[s]!]!, x: p.x[s]!, y: p.y[s]!, vx: p.vx[s]!, vy: p.vy[s]!, dano: p.dano[s]!, vida: p.vida[s]!, perfuracoes: p.perfuracoes[s]! });
+        lista.push({ slot: s, arma: IDS_DE_ARMA[p.arma[s]!]!, x: p.x[s]!, y: p.y[s]!, vx: p.vx[s]!, vy: p.vy[s]!, dano: p.dano[s]!, vida: p.vida[s]!, perfuracoes: p.perfuracoes[s]!,
+          tipo: p.tipo[s] === TIPO_DE_PROJETIL.sal ? 'sal' : 'faca',
+          dono: p.tipo[s] === TIPO_DE_PROJETIL.sal ? { slot: p.donoSlot[s]!, geracao: p.donoGeracao[s]! } : null });
       }
       return lista;
     };
@@ -708,5 +755,7 @@ export function instantaneoDoDebug(d: GameDebug): Record<string, string | number
     pendentes: d.jogador?.niveisPendentes ?? 0,
     cinzas: v.pickups,
     webgl: d.webgl.renderer.slice(0, 40),
+    // Linha de 12 pt da F-006 (VT3): stamina, esquiva, aparo e congelamento.
+    stamina_esq_apa_cong: d.jogador ? [Math.round(d.jogador.stamina), d.jogador.esquiva.passo, d.jogador.aparo.janela, d.jogador.congelamento].join(',') : null,
   };
 }

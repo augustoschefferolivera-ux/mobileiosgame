@@ -47,13 +47,13 @@
     {
       "id": "A2.TUTORIAL.02",
       "texto": "Deslize rápido para esquivar",
-      "contexto": "Prompt aos 1:00, com o Oco Grande telegrafando (doc 11 §4)",
+      "contexto": "No 1º telegrafo de um Oco Grande (a partir das 1:00) (doc 11 §4)",
       "limite_palavras": 12
     },
     {
       "id": "A2.TUTORIAL.03",
       "texto": "Toque em ⟲ no momento do brilho para aparar",
-      "contexto": "Prompt aos 3:00, com a Noviça de Sal (doc 11 §4)",
+      "contexto": "No 1º telegrafo de uma Noviça (a partir das 3:00) (doc 11 §4)",
       "limite_palavras": 12
     },
     {

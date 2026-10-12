@@ -1,6 +1,7 @@
 // Serviços compartilhados pelas cenas, criados uma vez no boot e passados
 // pelo construtor de cada cena (nada de estado global além de __GAME_DEBUG__).
 import type { Acumulador } from '../logica/nucleo/acumulador';
+import type { CameraLenta } from '../logica/nucleo/cameraLenta';
 import type { AcaoDeRoteiro, ComandosDoPasso, FonteDeComandos, Roteiro } from '../logica/nucleo/comandos';
 import type { Estado } from '../logica/nucleo/estado';
 import type { DadosDaVigilia } from '../logica/mundo/dados';
@@ -51,6 +52,8 @@ export interface Simulacao {
    * confirmarModal.
    */
   readonly modal: { selecionada: number | null };
+  /** Câmera lenta leve do tutorial da esquiva (decisoes-F-006 FB5): fora do estado, do hash e do replay. */
+  readonly cameraLenta: CameraLenta;
   /** O escritor da horda desta Vigília, para o debug. */
   horda: EscritorDaHorda | null;
   /** Consumidor do anel de eventos e pools do render (números, mortes, efeitos), para o debug. */
@@ -72,6 +75,10 @@ export interface ContextoDoJogo {
   readonly ehBuildDeDebug: boolean;
   /** ?tutorial=0 (só no build de debug): a Vigília começa com os tutoriais vistos. */
   readonly pularTutoriais: boolean;
+  /** ?visto (só no build de debug): bits de TUTORIAL marcados como vistos; null sem o parâmetro. */
+  readonly vistos: number | null;
+  /** ?inicio=MM:SS (só no build de debug): relógio inicial em passos, com a linha livre; null sem o parâmetro. */
+  readonly inicio: number | null;
   readonly telemetria: RegistroDeTelemetria;
   readonly sonda: HTMLElement;
   readonly container: HTMLElement;

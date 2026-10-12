@@ -20,6 +20,7 @@ import {
   JOGADOR3_U16,
   JOGADOR3_U8,
   MUNDO,
+  PROMPT,
   TIPO_DE_PROJETIL,
   type Estado,
 } from '../nucleo/estado';
@@ -259,6 +260,9 @@ export function rodarAtaques(e: Estado, dados: DadosDaVigilia): void {
           FLOATS_DO_EVENTO[1] = y;
           FLOATS_DO_EVENTO[2] = timer;
           FLOATS_DO_EVENTO[3] = raioDoArco > 0 ? raioDoArco : c.alcanceDeTiro[tipo]!;
+          // Gatilho dos prompts (TU1, TU2): o 1º telegrafo de Oco Grande ou de Noviça com o bit não visto.
+          const promptDoTipo = tipo === TIPO.oco_grande ? JOGADOR3_U8.promptEsquiva : tipo === TIPO.novica_de_sal ? JOGADOR3_U8.promptAparo : -1;
+          if (promptDoTipo >= 0 && e.jogador3U8[promptDoTipo] === PROMPT.aguardando) e.jogador3U8[promptDoTipo] = PROMPT.visivel;
           gravarEvento(e.eventos, passoAtual, EVENTO.telegrafo, 0, raioDoArco > 0 ? FORMA.arcoInimigo : FORMA.projetilSal, s, geracaoDoInimigo[s]!, tipo, 0, 0);
         }
       }

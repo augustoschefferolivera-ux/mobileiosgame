@@ -10,9 +10,10 @@
 // confirmação entra na simulação, por confirmarModal.
 import Phaser from 'phaser';
 import { alfa, criarAcumulador } from '../logica/nucleo/acumulador';
+import { criarCameraLenta, dispararCameraLenta, escalarDelta } from '../logica/nucleo/cameraLenta';
 import { criarComandos, fonteConstante, fonteDoRoteiro } from '../logica/nucleo/comandos';
 import { rodarFrameComPausas } from '../logica/nucleo/driver';
-import { CAB, CENARIO, JOGADOR3_U8, TIPO_DE_CARTA, TODOS_OS_TUTORIAIS, criarEstado, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
+import { CAB, CENARIO, JOGADOR3_U8, PROMPT, TIPO_DE_CARTA, TODOS_OS_TUTORIAIS, criarEstado, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
 import { EVENTO, EV, eventosEscritos, inicioDoEvento } from '../logica/nucleo/eventos';
 import { IDS_DE_ARMA } from '../logica/armas/tabela';
 import { modalAberto } from '../logica/progressao/modal';
@@ -24,6 +25,7 @@ import inimigos from '../dados/inimigos.json';
 import vigilantes from '../dados/vigilantes.json';
 import charneca from '../dados/regioes/charneca_das_lanternas.json';
 import type { ContextoDoJogo, Simulacao } from './contexto';
+import { TelemetriaDeCombate } from './telemetriaDeCombate';
 import type { Modal } from './Modal';
 import type { Pausa } from './Pausa';
 import { abrirModal, tratarToquesDoModal } from './escolhaDoModal';
@@ -39,6 +41,7 @@ export class Vigilia extends Phaser.Scene {
   /** Eventos do anel já lidos pela telemetria da União. */
   private eventosLidos = 0;
   private render: RenderDaVigilia | null = null;
+  private telemetriaDeCombate = new TelemetriaDeCombate();
 
   constructor(private readonly ctx: ContextoDoJogo) {
     super({ key: 'Vigilia' });
@@ -54,7 +57,9 @@ export class Vigilia extends Phaser.Scene {
       // Sem ?cenario, a Vigília de produção, com os ataques dos inimigos (VT1); com ele, quem decide é a receita.
       ...(this.ctx.cenario ? this.ctx.cenario.parametros : { cenario: CENARIO.ataques }),
       teto: this.ctx.teto.valor,
-      ...(this.ctx.pularTutoriais ? { tutoriaisVistos: TODOS_OS_TUTORIAIS } : {}),
+      // ?tutorial=0 vence ?visto (TU6); ?inicio põe o relógio com a linha livre (TU7).
+      ...(this.ctx.pularTutoriais ? { tutoriaisVistos: TODOS_OS_TUTORIAIS } : this.ctx.vistos !== null ? { tutoriaisVistos: this.ctx.vistos } : {}),
+      ...(this.ctx.inicio !== null ? { relogioInicial: this.ctx.inicio, inicioLivre: true } : {}),
     };
     const { modo, bufferDinamico } = this.ctx.render;
     this.render = new RenderDaVigilia(
@@ -77,12 +82,14 @@ export class Vigilia extends Phaser.Scene {
       pausada: false,
       pausa: { ativa: false, origem: null, alfa: 0 },
       modal: { selecionada: null },
+      cameraLenta: criarCameraLenta(),
       horda: this.render.horda,
       efeitos: this.render.efeitos,
     };
     this.ctx.simulacao = this.sim;
     this.ctx.tela = 'VIGILIA';
     this.eventosLidos = 0;
+    this.telemetriaDeCombate = new TelemetriaDeCombate();
     // Toques de antes da Vigília (o de Acender) ficam de fora: só um toque novo cria o joystick.
     const { fila, tradutor } = this.ctx.entrada;
     fila.reiniciar();
@@ -135,11 +142,18 @@ export class Vigilia extends Phaser.Scene {
     else if (sim.pausa.ativa && trad.toqueNaPausa === 'flashes') this.ctx.opcoes.flashes = !this.ctx.opcoes.flashes;
     else if (trad.modo === 'modal') this.tratarToquesDoModal();
     const t0 = performance.now();
-    const n = rodarFrameComPausas(sim.estado, sim.dados, sim.acumulador, this.game.loop.rawDelta, sim.fonte, sim.pausa.ativa, sim.pausada);
+    // Câmera lenta (FB5): o fator vale sobre o delta, só com a simulação rodando (pausa e modal não gastam os 500 ms).
+    const rodando = !sim.pausa.ativa && !sim.pausada && !modalAberto(sim.estado);
+    const delta = rodando ? escalarDelta(sim.cameraLenta, this.game.loop.rawDelta) : this.game.loop.rawDelta;
+    const promptAntes = sim.estado.jogador3U8[JOGADOR3_U8.promptEsquiva];
+    const n = rodarFrameComPausas(sim.estado, sim.dados, sim.acumulador, delta, sim.fonte, sim.pausa.ativa, sim.pausada);
+    // Dispara uma vez, no quadro em que o prompt de esquiva fica visível; ?tutorial=0 e o bit pré-visto nunca o acendem (TU8).
+    if (promptAntes === PROMPT.aguardando && sim.estado.jogador3U8[JOGADOR3_U8.promptEsquiva] === PROMPT.visivel) dispararCameraLenta(sim.cameraLenta);
     this.ctx.medidor.simulou(performance.now() - t0, n);
     // O modal abre no passo que cruza o nível ou encosta no baú (M1); a pausa aberta tem a vez (M5).
     if (!sim.pausa.ativa && modalAberto(sim.estado) && trad.modo !== 'modal') this.abrirModal();
     this.registrarUnioes();
+    this.telemetriaDeCombate.ler(sim.estado, this.ctx.telemetria);
     // Fora do tempo medido como simulação (o F-003.4 roda com ?debug=1).
     if (this.ctx.debug && n > 0) verificarNaN(sim.estado, n);
   }

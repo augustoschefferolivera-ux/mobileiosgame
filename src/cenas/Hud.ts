@@ -8,10 +8,11 @@
 import Phaser from 'phaser';
 import { alvoDaPausa, alvoDoAparo, areaDoJoystick, type Alvo } from '../entrada/alvos';
 import { RAIO_DO_JOYSTICK_PT, RAIO_DO_PINO_PT } from '../entrada/joystick';
-import { JOGADOR3, JOGADOR3_U8, JOGADOR_U8, PROGRESSAO, PROMPT, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, type Estado } from '../logica/nucleo/estado';
+import { JOGADOR3, JOGADOR3_U8, PROGRESSAO, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, type Estado } from '../logica/nucleo/estado';
 import { ALTURA_LOGICA, LARGURA_LOGICA, medirSafeArea, type Insets } from '../plataforma/safeArea';
 import type { ContextoDoJogo } from './contexto';
 import { COR, cameraLogica, texto } from './estilo';
+import { IDS_DOS_PROMPTS, promptEmTela } from './prompts';
 import {
   BARRA_DE_STAMINA,
   BARRA_DE_XP,
@@ -43,6 +44,8 @@ const BORDA_PT = 2;
 /** Transições ≤ 200 ms (doc 11 §1). */
 const FADE_MS = 200;
 const FOLGA_DO_PAINEL = { x: 16, y: 10 };
+/** Largura de quebra antes da primeira medição (a área de 234 pt menos a folga); o diagramar refaz. */
+const LARGURA_DE_QUEBRA_INICIAL = 202;
 /** Ícone de pausa (P1): disco de 44 pt a 35% e duas barras de 8 × 24 pt, 6 pt entre elas, em osso a 60%. */
 const ICONE_DA_PAUSA = { disco: 44, barraLargura: 8, barraAltura: 24, entre: 6 } as const;
 /** Trilho da barra de XP: #0b0e14 a 35% (R4). */
@@ -57,7 +60,10 @@ export class Hud extends Phaser.Scene {
   private anel: Phaser.GameObjects.Image | null = null;
   private pino: Phaser.GameObjects.Image | null = null;
   private painel: Phaser.GameObjects.Graphics | null = null;
-  private prompt: Phaser.GameObjects.Text | null = null;
+  /** Um Text por prompt (mover, esquiva, aparo; TU11) e um painel só. */
+  private readonly prompts: Phaser.GameObjects.Text[] = [];
+  private promptCentro = { x: 0, y: 0 };
+  private larguraDoPrompt = 0;
   private iconeDaPausa: Phaser.GameObjects.Graphics | null = null;
   private readonly botaoDaPausa: Alvo = { id: 'pausa', x: 0, y: 0, largura: 0, altura: 0 };
   private trilho: Phaser.GameObjects.Image | null = null;
@@ -86,7 +92,8 @@ export class Hud extends Phaser.Scene {
   private nivelDesenhado = -1;
   private xpDesenhado = -1;
   private assinaturaDasVagas = -1;
-  private promptMostrado = false;
+  /** Índice do prompt mostrado (-1 = nenhum). */
+  private promptMostrado = -1;
   private readonly area: Alvo = { id: 'joystick', x: 0, y: 0, largura: 0, altura: 0 };
 
   constructor(private readonly ctx: ContextoDoJogo) {
@@ -121,8 +128,10 @@ export class Hud extends Phaser.Scene {
     this.xpDesenhado = -1;
     this.assinaturaDasVagas = -1;
     this.painel = this.add.graphics().setAlpha(0).setVisible(false);
-    this.prompt = texto(this, 0, 0, 'A2.TUTORIAL.01', 18, COR.osso).setOrigin(0.5).setAlpha(0).setVisible(false);
-    this.promptMostrado = false;
+    this.prompts.length = 0;
+    // A largura de quebra vem do diagramar (a área do joystick menos a folga do painel).
+    for (const id of IDS_DOS_PROMPTS) this.prompts.push(texto(this, 0, 0, id, 18, COR.osso, undefined, LARGURA_DE_QUEBRA_INICIAL).setOrigin(0.5).setAlpha(0).setVisible(false));
+    this.promptMostrado = -1;
     // O flash por último: acima do mundo e de tudo o que o Hud desenha (FB2, RE3). Branco cheio; o alfa muda por quadro.
     this.flashGrafico = this.add.graphics().setVisible(false).setAlpha(0);
     this.flashGrafico.fillStyle(COR.branco, 1).fillRect(0, 0, LARGURA_LOGICA, ALTURA_LOGICA);
@@ -153,8 +162,16 @@ export class Hud extends Phaser.Scene {
     this.diagramarProgresso(ins);
     const cx = a.x + a.largura / 2;
     const cy = a.y + a.altura / 2;
-    const p = this.prompt!;
-    p.setPosition(cx, cy);
+    this.promptCentro = { x: cx, y: cy };
+    this.larguraDoPrompt = Math.max(0, a.largura - 2 * FOLGA_DO_PAINEL.x);
+    for (const p of this.prompts) p.setWordWrapWidth(this.larguraDoPrompt).setPosition(cx, cy);
+    if (this.promptMostrado >= 0) this.refazerPainel(this.promptMostrado);
+  }
+
+  /** Painel do prompt `i`: do tamanho do texto (já quebrado em linhas) mais a folga. */
+  private refazerPainel(i: number): void {
+    const p = this.prompts[i]!;
+    const { x: cx, y: cy } = this.promptCentro;
     const w = p.width + 2 * FOLGA_DO_PAINEL.x;
     const h = p.height + 2 * FOLGA_DO_PAINEL.y;
     this.painel!.clear()
@@ -338,8 +355,8 @@ export class Hud extends Phaser.Scene {
       this.pino!.setPosition(j.origemX + j.pinoX, j.origemY + j.pinoY);
     }
     const sim = this.ctx.simulacao;
-    const mostrar = sim !== null && sim.estado.jogadorU8[JOGADOR_U8.promptMover] === PROMPT.visivel;
-    if (mostrar !== this.promptMostrado) this.fadeDoPrompt(mostrar);
+    const mostrar = sim === null ? -1 : promptEmTela(sim.estado);
+    if (mostrar !== this.promptMostrado) this.trocarPrompt(mostrar);
     if (sim !== null) {
       this.atualizarProgresso(sim);
       this.atualizarStamina(sim);
@@ -348,17 +365,29 @@ export class Hud extends Phaser.Scene {
     }
   }
 
-  private fadeDoPrompt(mostrar: boolean): void {
-    this.promptMostrado = mostrar;
-    const alvos = [this.painel!, this.prompt!];
-    this.tweens.killTweensOf(alvos);
-    if (mostrar) for (const a of alvos) a.setVisible(true);
+  /**
+   * Troca o prompt mostrado (TU4, TU11). De nenhum para um, fade de entrada; de um para nenhum, de saída;
+   * de um para outro (o maior cumpriu ou chegou o seguinte), troca o texto e refaz o painel sem fade.
+   */
+  private trocarPrompt(novo: number): void {
+    const anterior = this.promptMostrado;
+    this.promptMostrado = novo;
+    const todos = [this.painel!, ...this.prompts];
+    this.tweens.killTweensOf(todos);
+    if (novo >= 0) {
+      this.refazerPainel(novo);
+      this.prompts.forEach((p, i) => p.setVisible(i === novo).setAlpha(i === novo ? (anterior >= 0 ? 1 : 0) : 0));
+      this.painel!.setVisible(true).setAlpha(anterior >= 0 ? 1 : 0);
+      if (anterior < 0) this.tweens.add({ targets: [this.painel!, this.prompts[novo]!], alpha: 1, duration: FADE_MS });
+      return;
+    }
+    const alvos = [this.painel!, this.prompts[anterior]!];
     this.tweens.add({
       targets: alvos,
-      alpha: mostrar ? 1 : 0,
+      alpha: 0,
       duration: FADE_MS,
       onComplete: () => {
-        if (!mostrar) for (const a of alvos) a.setVisible(false);
+        for (const a of todos) a.setVisible(false);
       },
     });
   }

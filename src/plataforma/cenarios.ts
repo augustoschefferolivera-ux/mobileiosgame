@@ -55,7 +55,7 @@ export const RECEITAS: readonly ReceitaDeCenario[] = [
 ];
 
 /** Parâmetros da Vigília de um cenário (sem o TETO, que vem de ?teto ou da detecção). */
-export type ParametrosDoCenario = Omit<ParametrosDaVigilia, 'teto' | 'inimigos' | 'staminaInicial'> &
+export type ParametrosDoCenario = Omit<ParametrosDaVigilia, 'teto' | 'inimigos' | 'staminaInicial' | 'inicioLivre'> &
   Partial<Pick<ParametrosDaVigilia, 'inimigos' | 'staminaInicial'>>;
 
 export function parametrosDoCenario(id: string): ParametrosDoCenario {

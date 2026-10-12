@@ -130,6 +130,8 @@ function rodarTimersEComandos(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoP
       FLOATS_DO_EVENTO[1] = j[JOGADOR.y]!;
       FLOATS_DO_EVENTO[2] = j3[JOGADOR3.esquivaDirX]!;
       FLOATS_DO_EVENTO[3] = j3[JOGADOR3.esquivaDirY]!;
+      // A esquiva aceita cumpre o prompt (TU1); a negada por stamina não passa por aqui.
+      if (u8[JOGADOR3_U8.promptEsquiva] === PROMPT.visivel) u8[JOGADOR3_U8.promptEsquiva] = PROMPT.cumprido;
       gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.esquiva, 0, 0, -1, 0, 0, 0, 0);
     }
   }

@@ -75,6 +75,8 @@ export function iniciarJogo(): Phaser.Game | null {
     seed: params.seed ?? sortearSeed(),
     ehBuildDeDebug,
     pularTutoriais: params.pularTutoriais,
+    vistos: params.vistos,
+    inicio: params.inicio,
     telemetria: new RegistroDeTelemetria(),
     sonda: elemento('sonda-safe-area'),
     container: elemento('jogo'),

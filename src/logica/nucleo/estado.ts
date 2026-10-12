@@ -53,6 +53,15 @@ export const TUTORIAL = { mover: 1, esquiva: 2, aparo: 4 } as const;
 /** Todos os bits de TUTORIAL (?tutorial=0). */
 export const TODOS_OS_TUTORIAIS = TUTORIAL.mover | TUTORIAL.esquiva | TUTORIAL.aparo;
 
+/** Bits de TUTORIAL dos prompts cumpridos, para a F-007/F-010 gravarem no meta (decisoes-F-006 TU5). */
+export function tutoriaisCumpridos(e: Estado): number {
+  return (
+    (e.jogadorU8[JOGADOR_U8.promptMover] === PROMPT.cumprido ? TUTORIAL.mover : 0) |
+    (e.jogador3U8[JOGADOR3_U8.promptEsquiva] === PROMPT.cumprido ? TUTORIAL.esquiva : 0) |
+    (e.jogador3U8[JOGADOR3_U8.promptAparo] === PROMPT.cumprido ? TUTORIAL.aparo : 0)
+  );
+}
+
 /** Bits de `CAB.cenario` (design/decisoes-F-003.md §5). */
 export const CENARIO = {
   jogadorInvulneravel: 1,
@@ -243,6 +252,8 @@ export interface ParametrosDaVigilia {
   readonly inimigos: readonly InimigoInicial[];
   /** Stamina no início; null = a capacidade do Vigilante (decisoes-F-006 ST1). */
   readonly staminaInicial: number | null;
+  /** Só o ?inicio do build de debug liga: dispensa a linha fixa do relógio inicial > 0 (decisoes-F-006 TU7). */
+  readonly inicioLivre: boolean;
 }
 export const PARAMETROS_PADRAO: ParametrosDaVigilia = {
   tutoriaisVistos: 0,
@@ -257,6 +268,7 @@ export const PARAMETROS_PADRAO: ParametrosDaVigilia = {
   relogioInicial: 0,
   inimigos: [],
   staminaInicial: null,
+  inicioLivre: false,
 };
 
 /** Bloco da progressão, Uint32 (design/decisoes-F-005.md §5). */
@@ -678,7 +690,7 @@ export function reiniciarEstado(e: Estado, seed: number, dados: DadosDaVigilia, 
   }
   if (!Number.isInteger(p.xpInicial) || p.xpInicial < 0) throw new Error(`XP inicial inválida: ${p.xpInicial}`);
   if (!Number.isInteger(p.relogioInicial) || p.relogioInicial < 0) throw new Error(`relógio inicial inválido: ${p.relogioInicial}`);
-  if (p.relogioInicial > 0 && p.linhaFixa === LINHA_LIVRE) throw new Error('relógio inicial > 0 exige linha fixa (decisoes-F-005 §7)');
+  if (p.relogioInicial > 0 && p.linhaFixa === LINHA_LIVRE && !p.inicioLivre) throw new Error('relógio inicial > 0 exige linha fixa (decisoes-F-005 §7)');
   if (dados.progressao.poolDePickups !== CAPACIDADE_DE_PICKUPS) throw new Error('progressao.json: pool_pickups difere do layout');
   if (p.baus.length > CAPACIDADE_DE_PICKUPS) throw new Error('baús demais no início');
   const staminaMax = dados.combate.staminaMax;
