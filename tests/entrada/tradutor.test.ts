@@ -329,6 +329,20 @@ describe('pausa: botão, gesto e modo da tela de pausa (design/decisoes-F-004.md
     em(450, T.fim, 4, 195, 660);
     quadro(450);
     expect(trad.toqueNaPausa).toBe('numeros');
+    // Som e Flashes (FB3, RE11): lado a lado acima de "números", y 546 a 618 com estes insets.
+    em(460, T.inicio, 7, 119, 582);
+    em(470, T.fim, 7, 119, 582);
+    quadro(470);
+    expect(trad.toqueNaPausa).toBe('som');
+    em(480, T.inicio, 8, 271, 582);
+    em(490, T.fim, 8, 271, 582);
+    quadro(490);
+    expect(trad.toqueNaPausa).toBe('flashes');
+    // O vão de 16 pt entre os dois não é alvo.
+    em(495, T.inicio, 9, 195, 582);
+    em(498, T.fim, 9, 195, 582);
+    quadro(498);
+    expect(trad.toqueNaPausa).toBeNull();
     // Nada move na pausa, nem com dois dedos parados.
     em(500, T.inicio, 5, 150, 200);
     em(500, T.inicio, 6, 250, 220);
@@ -628,6 +642,22 @@ describe('botão Aparo (AP1; F-006.2, parte do tradutor)', () => {
     expect(trad.joystick.ativo).toBe(false);
     expect(trad.joystickCriados).toBe(0);
     expect(trad.pedidoDePausa).toBeNull();
+  });
+
+  it('cada toque que começa no botão conta um aperto (o Hud o lê para o preenchimento de 4 quadros); a pausa e o joystick não contam', () => {
+    expect(trad.aparoApertos).toBe(0);
+    toque(T.inicio, 4, ...NO_BOTAO);
+    frame();
+    toque(T.move, 4, ...NO_BOTAO);
+    toque(T.fim, 4, ...NO_BOTAO);
+    frame();
+    expect(trad.aparoApertos).toBe(1);
+    toque(T.inicio, 5, ...NO_BOTAO);
+    frame();
+    expect(trad.aparoApertos).toBe(2);
+    toque(T.inicio, 6, 100, 600);
+    frame();
+    expect(trad.aparoApertos).toBe(2);
   });
 
   it('segurar não repete e soltar não dispara; cada toque novo é um comando', () => {

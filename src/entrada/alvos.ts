@@ -117,9 +117,12 @@ export const BOTAO_DA_PAUSA = { largura: 288, altura: ALVO_MINIMO_PT } as const;
 const MARGEM_DO_CONTINUAR = 24;
 const ENTRE_BOTOES = 16;
 
+/** Som e Flashes (FB3): lado a lado numa só linha, 136 × 72 pt, 16 pt entre eles e 8 pt acima de "números". */
+export const OPCAO_DUPLA = { largura: 136, entre: 16, acimaDeNumeros: 8, margem: 12 } as const;
+
 /**
- * Tela de pausa (P5, P6, P9): a opção de números (a linha inteira é o alvo) e o
- * Continuar, na zona de controles, centrados na área segura.
+ * Tela de pausa (P5, P6, P9, FB3): a opção de números (a linha inteira é o alvo), o Continuar e, depois dele (o
+ * baú usa o índice 1), Som e Flashes lado a lado acima de "números", na zona de controles, centrados na área segura.
  */
 export function alvosDaTelaDePausa(insets: Insets, out: Alvo[]): Alvo[] {
   const larguraUtil = LARGURA_LOGICA - insets.esquerda - insets.direita;
@@ -129,6 +132,13 @@ export function alvosDaTelaDePausa(insets: Insets, out: Alvo[]): Alvo[] {
   out.length = 0;
   out.push({ id: 'numeros', x, y: yContinuar - ENTRE_BOTOES - BOTAO_DA_PAUSA.altura, largura, altura: BOTAO_DA_PAUSA.altura });
   out.push({ id: 'continuar', x, y: yContinuar, largura, altura: BOTAO_DA_PAUSA.altura });
+  const d = OPCAO_DUPLA;
+  // Em área segura estreita a dupla encolhe (a opção "números" também encolhe).
+  const larguraDaOpcao = Math.max(ALVO_MINIMO_PT, Math.min(d.largura, (larguraUtil - d.entre) / 2));
+  const yDupla = yContinuar - ENTRE_BOTOES - BOTAO_DA_PAUSA.altura - d.acimaDeNumeros - BOTAO_DA_PAUSA.altura;
+  const xDupla = insets.esquerda + (larguraUtil - 2 * larguraDaOpcao - d.entre) / 2;
+  out.push({ id: 'som', x: xDupla, y: yDupla, largura: larguraDaOpcao, altura: BOTAO_DA_PAUSA.altura });
+  out.push({ id: 'flashes', x: xDupla + larguraDaOpcao + d.entre, y: yDupla, largura: larguraDaOpcao, altura: BOTAO_DA_PAUSA.altura });
   return out;
 }
 
@@ -136,9 +146,9 @@ export function alvosDaTelaDePausa(insets: Insets, out: Alvo[]): Alvo[] {
 export const CAIXA_DA_OPCAO = { lado: 28, borda: 2, margem: 20 } as const;
 
 /** Canto superior esquerdo da caixa da opção, em pt, dentro do alvo `numeros` da tela de pausa. */
-export function caixaDaOpcao(opcao: Alvo): { x: number; y: number } {
+export function caixaDaOpcao(opcao: Alvo, margem: number = CAIXA_DA_OPCAO.margem): { x: number; y: number } {
   return {
-    x: opcao.x + opcao.largura - CAIXA_DA_OPCAO.margem - CAIXA_DA_OPCAO.lado,
+    x: opcao.x + opcao.largura - margem - CAIXA_DA_OPCAO.lado,
     y: opcao.y + (opcao.altura - CAIXA_DA_OPCAO.lado) / 2,
   };
 }

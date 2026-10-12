@@ -12,6 +12,8 @@ import {
   alvosDaTelaDePausa,
   alvosDaVigilia,
   alvosDoAcender,
+  alvosDoBau,
+  caixaDaOpcao,
   areaDoJoystick,
   type Alvo,
 } from '../../src/entrada/alvos';
@@ -69,9 +71,12 @@ describe('pausa (design/decisoes-F-004.md P1, P6)', () => {
 
   it('com inset de 34 pt embaixo: Continuar em y 714 e a opção em y 626, os dois com 288 × 72 pt, centrados', () => {
     const ins: Insets = { topo: 59, direita: 0, baixo: 34, esquerda: 0 };
+    // Som e Flashes (FB3) vêm depois do Continuar: o baú usa o índice 1.
     expect(alvosDaTelaDePausa(ins, [])).toEqual([
       { id: 'numeros', x: 51, y: 626, largura: 288, altura: 72 },
       { id: 'continuar', x: 51, y: 714, largura: 288, altura: 72 },
+      { id: 'som', x: 51, y: 546, largura: 136, altura: 72 },
+      { id: 'flashes', x: 203, y: 546, largura: 136, altura: 72 },
     ]);
   });
 
@@ -80,6 +85,51 @@ describe('pausa (design/decisoes-F-004.md P1, P6)', () => {
     const util = 844 - insets.topo - insets.baixo;
     expect(numeros!.y - insets.topo).toBeGreaterThanOrEqual(0.65 * util);
     expect(numeros!.y + numeros!.altura).toBeLessThanOrEqual(continuar!.y);
+  });
+});
+
+describe('Som e Flashes na pausa (design/decisoes-F-006.md FB3 e RE11)', () => {
+  const FB3: [string, Insets][] = [
+    ['sem insets', insetsZerados()],
+    ['iPhone 47/34', { topo: 47, direita: 0, baixo: 34, esquerda: 0 }],
+    ['topo 20, baixo 0', { topo: 20, direita: 0, baixo: 0, esquerda: 0 }],
+    ['do baú: 47/34 com laterais de 10', { topo: 47, direita: 10, baixo: 34, esquerda: 10 }],
+  ];
+  const cruza = (a: Alvo, b: Alvo): boolean => a.x < b.x + b.largura && b.x < a.x + a.largura && a.y < b.y + b.altura && b.y < a.y + a.altura;
+
+  it.each(FB3)('%s: dois alvos de 136 × 72 pt lado a lado (16 pt entre eles, 8 pt acima de "números"), sem sobreposição, y ≥ corte de 65% da altura útil', (_nome, ins) => {
+    const [numeros, continuar, som, flashes] = alvosDaTelaDePausa(ins, []);
+    expect([som!.id, flashes!.id]).toEqual(['som', 'flashes']);
+    for (const a of [som!, flashes!]) {
+      expect([a.largura, a.altura]).toEqual([136, 72]);
+      expect(alvoInvadeInsets(a, ins)).toBe(false);
+      expect(a.y - ins.topo).toBeGreaterThanOrEqual(0.65 * (844 - ins.topo - ins.baixo) - 1e-9);
+      for (const outro of [numeros!, continuar!]) expect(cruza(a, outro), `${a.id} × ${outro.id}`).toBe(false);
+    }
+    expect(cruza(som!, flashes!)).toBe(false);
+    expect(flashes!.x - (som!.x + som!.largura)).toBe(16);
+    expect(numeros!.y - (som!.y + som!.altura)).toBe(8);
+    // Centrados na área segura.
+    expect(som!.x - ins.esquerda).toBeCloseTo(390 - ins.direita - (flashes!.x + flashes!.largura), 9);
+  });
+
+  it('a lista põe o Continuar no índice 1 e o do baú também (alvosDoBau)', () => {
+    for (const [, ins] of FB3) {
+      expect(alvosDaTelaDePausa(ins, [])[1]!.id).toBe('continuar');
+      expect(alvosDoBau(ins, [])[0]!.id).toBe('continuar');
+    }
+  });
+
+  it('a caixa de cada opção da dupla fica a 12 pt da direita do alvo, centrada na altura', () => {
+    const [, , som] = alvosDaTelaDePausa(insetsZerados(), []);
+    expect(caixaDaOpcao(som!, 12)).toEqual({ x: som!.x + 136 - 12 - 28, y: som!.y + 22 });
+  });
+
+  it('com a área segura estreita a dupla encolhe sem invadir os insets', () => {
+    const ins: Insets = { topo: 0, direita: 59, baixo: 21, esquerda: 59 };
+    const [, , som, flashes] = alvosDaTelaDePausa(ins, []);
+    expect(som!.largura).toBe(128);
+    expect(alvoInvadeInsets(som!, ins) || alvoInvadeInsets(flashes!, ins)).toBe(false);
   });
 });
 

@@ -206,8 +206,9 @@ test.describe('F-004.6: botão, gesto e tela de pausa', () => {
     expect(await ler()).toEqual(antes);
     expect(antes.estado).toBe('VIGILIA');
     const textos = await page.evaluate(() => window.__GAME_DEBUG__.textoAtivo);
-    for (const id of ['A6.PAUSA.TITULO', 'A6.PAUSA.NUMEROS', 'A6.PAUSA.CONTINUAR', 'F1.ESPADA_LONGA_DO_JURAMENTO.NOME', 'A6.PAUSA.NIVEL']) expect(textos).toContain(id);
-    for (const id of ['A6.PAUSA.ABANDONAR', 'A6.PAUSA.SOM', 'A6.PAUSA.FLASHES']) expect(textos).not.toContain(id);
+    for (const id of ['A6.PAUSA.TITULO', 'A6.PAUSA.NUMEROS', 'A6.PAUSA.SOM', 'A6.PAUSA.FLASHES', 'A6.PAUSA.CONTINUAR', 'F1.ESPADA_LONGA_DO_JURAMENTO.NOME', 'A6.PAUSA.NIVEL']) expect(textos).toContain(id);
+    // Som e Flashes entram na F-006 (decisoes-F-006 FB3); Abandonar é da F-007.
+    expect(textos).not.toContain('A6.PAUSA.ABANDONAR');
   });
 
   test('(b) gesto: dois dedos parados na metade de cima por 1 s pausam; 300 ms, movidos 20 pt ou um deles no joystick, não', async ({ page }) => {
