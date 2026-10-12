@@ -124,10 +124,9 @@ export function hashDosBytes(bytes: Uint8Array): string {
   return hex8(fnv1aBytes(FNV_BASE, bytes));
 }
 
-/** Hora do save: a da Fogueira em que o jogador está ou esteve (1 a 3), ou 0 antes da primeira (passo 0). */
+/** Hora do save: a da última Fogueira acesa (1 a 3), ou 0 antes da primeira (o save do passo 0, SV5). Os saves só saem em momentos de Fogueira ou no passo 0. */
 function horaDoSave(e: Estado): number {
-  const u8 = e.fogueiraU8;
-  return u8[FOGUEIRA_U8.etapa] === ETAPA.fogueira || u8[FOGUEIRA_U8.fogueiraAcesa] === 1 ? u8[FOGUEIRA_U8.fogueiraHora]! : 0;
+  return e.fogueiraU8[FOGUEIRA_U8.fogueiraHora]!;
 }
 
 /**

@@ -199,3 +199,11 @@ export function aplicarFimDeVigilia(m: Meta, r: ResultadoDaVigilia): Meta {
     vigiliasConcluidas: Math.min(LIMITE_DE_ALMAS - 1, m.vigiliasConcluidas + 1),
   });
 }
+
+/**
+ * Reserva o `idVigilia` da Vigília que vai começar (SV4): é o `proximaIdVigilia` de agora, e o meta novo já traz o
+ * seguinte. Quem chama grava o meta antes do `vigilia` do passo 0.
+ */
+export function reservarIdDaVigilia(m: Meta): { readonly meta: Meta; readonly id: number } {
+  return { meta: proximo(m, { proximaIdVigilia: Math.min(LIMITE_DE_ALMAS - 1, m.proximaIdVigilia + 1) }), id: m.proximaIdVigilia };
+}
