@@ -13,6 +13,8 @@ import { ALTURA_LOGICA, LARGURA_LOGICA, medirSafeArea } from '../plataforma/safe
 import type { ContextoDoJogo } from './contexto';
 import { COR, cameraLogica, texto } from './estilo';
 import { criarLayerDaHorda, liberarLayer } from './render/escritores';
+import { CHAVE_DO_ATLAS } from './render/atlas';
+import { ESCALA_DA_GRADE } from '../arte/catalogo';
 
 interface NavegadorComSessao {
   audioSession?: { type: string };
@@ -25,6 +27,9 @@ export class Acender extends Phaser.Scene {
   private rotulo: Phaser.GameObjects.Text | null = null;
   private frase: Phaser.GameObjects.Text | null = null;
   private aviso: Phaser.GameObjects.Text | null = null;
+  /** O Aldric e a luz da brasa no lugar do logotipo (F-011). */
+  private aldric: Phaser.GameObjects.Image | null = null;
+  private brilho: Phaser.GameObjects.Image | null = null;
   private aquecimento: Phaser.GameObjects.SpriteGPULayer | null = null;
 
   constructor(private readonly ctx: ContextoDoJogo) {
@@ -40,6 +45,18 @@ export class Acender extends Phaser.Scene {
     this.frase = texto(this, 0, 0, 'A1.ACENDER.FRASE', 16, COR.sal).setOrigin(0.5);
     this.aviso = texto(this, 0, 0, 'A1.ACENDER.AVISO_AUDIO', 13, COR.sal).setOrigin(0.5).setAlpha(0.7);
     this.aviso.setWordWrapWidth(300);
+    // F-011: a luz da brasa (aditiva) e o Aldric a 4 pt por px (96 pt), respirando a 2 quadros por segundo.
+    this.brilho = this.add.image(0, 0, CHAVE_DO_ATLAS, 'brilho').setScale(ESCALA_DA_GRADE.arte).setBlendMode(Phaser.BlendModes.ADD);
+    this.aldric = this.add.image(0, 0, CHAVE_DO_ATLAS, 'aldric_parado').setScale(2 * ESCALA_DA_GRADE.arte);
+    let quadro = 0;
+    this.time.addEvent({
+      delay: 500,
+      loop: true,
+      callback: () => {
+        quadro ^= 1;
+        this.aldric?.setFrame(quadro === 0 ? 'aldric_parado' : 'aldric_parado_2');
+      },
+    });
     this.diagramar();
     this.scale.on(Phaser.Scale.Events.RESIZE, this.diagramar, this);
     const camada = this.ctx.camada;
@@ -89,8 +106,9 @@ export class Acender extends Phaser.Scene {
     const g = this.desenho!;
     g.clear();
     g.fillStyle(COR.fundo).fillRect(0, 0, LARGURA_LOGICA, ALTURA_LOGICA);
-    // Chama provisória no lugar do logotipo (formas geométricas até a arte).
-    g.fillStyle(COR.brasa).fillTriangle(cx, b.y - 156, cx - 24, b.y - 84, cx + 24, b.y - 84);
+    // O Aldric no lugar do logotipo (F-011), no mesmo vão da chama provisória (de b.y − 168 a b.y − 72).
+    this.aldric!.setPosition(Math.round(cx), Math.round(b.y - 120));
+    this.brilho!.setPosition(Math.round(cx), Math.round(b.y - 112));
     g.fillStyle(COR.cinzaFrio).fillRect(b.x, b.y, b.largura, b.altura);
     g.lineStyle(2, COR.laranjaQueimado).strokeRect(b.x, b.y, b.largura, b.altura);
     this.rotulo!.setPosition(cx, b.y + b.altura / 2);

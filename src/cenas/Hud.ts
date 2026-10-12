@@ -47,6 +47,8 @@ import {
 } from './layoutDoHud';
 import { CHAVE_DO_ATLAS, escalaPara } from './render/atlas';
 import { desenharIcone, iconeDaArma, iconeDaPassiva } from './render/icones';
+import { circuloDePixels, desenharIconeDePixels } from './pixel';
+import { ESCALA_DA_GRADE } from '../arte/catalogo';
 import { t } from './textos';
 
 /** Estilo "pedra e osso" (doc 13 §1.7): fundo a 35% na base do joystick e a 60% no painel. */
@@ -63,6 +65,8 @@ const LARGURA_DE_QUEBRA_INICIAL = 202;
 const ICONE_DA_PAUSA = { disco: 44, barraLargura: 8, barraAltura: 24, entre: 6 } as const;
 /** Trilho da barra de XP: #0b0e14 a 35% (R4). */
 const ALFA_DO_TRILHO = 0.35;
+/** Traço dos anéis dos botões na grade de 2 pt (F-011): os 3 pt do AP1 arredondados para 2 células. */
+const TRACO_DO_ANEL_PT = 4;
 /** Botão Aparo (AP1, RE2): anel osso de 3 pt (diâmetro de 64 pt) com o glifo ⟲ em arco, sem texto. */
 const BOTAO_DO_APARO_DESENHO = { raioDoAnel: 32, traco: 3, raioDoGlifo: 14, tracoDoGlifo: 3, alfaPressionado: 0.35, alfaIndisponivel: 0.35, arco: [4.2, -0.6] as const } as const;
 /** Vaga vazia: contorno de 1 pt em osso a 30% (R5). */
@@ -143,11 +147,12 @@ export class Hud extends Phaser.Scene {
 
   create(): void {
     cameraLogica(this);
-    const imagem = (moldura: 'disco' | 'anel', cor: number, alfa: number, diametro: number): Phaser.GameObjects.Image =>
-      this.add.image(0, 0, CHAVE_DO_ATLAS, moldura).setTint(cor).setAlpha(alfa).setScale(escalaPara(moldura, diametro)).setVisible(false);
-    this.base = imagem('disco', COR.pedra, ALFA_DA_BASE, 2 * RAIO_DO_JOYSTICK_PT);
-    this.anel = imagem('anel', COR.osso, ALFA_DO_OSSO, 2 * RAIO_DO_JOYSTICK_PT);
-    this.pino = imagem('disco', COR.osso, ALFA_DO_OSSO, 2 * RAIO_DO_PINO_PT);
+    // Joystick (F-011): as máscaras de pixel do atlas (base e anel de 120 pt, pino de 48 pt) a 2 pt por px, tingidas.
+    const imagem = (moldura: string, cor: number, alfa: number): Phaser.GameObjects.Image =>
+      this.add.image(0, 0, CHAVE_DO_ATLAS, moldura).setTint(cor).setAlpha(alfa).setScale(ESCALA_DA_GRADE.arte).setVisible(false);
+    this.base = imagem(`ui_disco_${RAIO_DO_JOYSTICK_PT / 2}`, COR.pedra, ALFA_DA_BASE);
+    this.anel = imagem(`ui_anel_${RAIO_DO_JOYSTICK_PT / 2}`, COR.osso, ALFA_DO_OSSO);
+    this.pino = imagem(`ui_disco_${RAIO_DO_PINO_PT / 2}`, COR.osso, ALFA_DO_OSSO);
     this.iconeDaPausa = this.add.graphics();
     const barra = (cor: number, alfa: number): Phaser.GameObjects.Image =>
       this.add.image(0, 0, CHAVE_DO_ATLAS, 'quadrado').setOrigin(0, 0.5).setTint(cor).setAlpha(alfa).setScale(0, escalaPara('quadrado', BARRA_DE_XP.altura));
@@ -211,9 +216,9 @@ export class Hud extends Phaser.Scene {
     const bx = b.x + b.largura / 2;
     const by = b.y + b.altura / 2;
     const i = ICONE_DA_PAUSA;
-    this.iconeDaPausa!.clear()
-      .fillStyle(COR.pedra, ALFA_DA_BASE)
-      .fillCircle(bx, by, i.disco / 2)
+    this.iconeDaPausa!.clear();
+    circuloDePixels(this.iconeDaPausa!, bx, by, i.disco / 2, 0, COR.pedra, ALFA_DA_BASE);
+    this.iconeDaPausa!
       .fillStyle(COR.osso, ALFA_DO_OSSO)
       .fillRect(bx - i.entre / 2 - i.barraLargura, by - i.barraAltura / 2, i.barraLargura, i.barraAltura)
       .fillRect(bx + i.entre / 2, by - i.barraAltura / 2, i.barraLargura, i.barraAltura);
@@ -421,15 +426,20 @@ export class Hud extends Phaser.Scene {
     const g = this.botaoDoFrascoGrafico!;
     g.clear().setAlpha(alfa);
     this.rotuloDoFrasco!.setAlpha(alfa);
-    g.fillStyle(COR.pedra, ALFA_DA_BASE).fillCircle(bx, by, d.raioDoAnel);
-    if (estado === ESTADO_DO_FRASCO.pressionado) g.fillStyle(COR.osso, BOTAO_DO_APARO_DESENHO.alfaPressionado).fillCircle(bx, by, d.raioDoAnel);
-    if (estado === ESTADO_DO_FRASCO.curando) g.fillStyle(COR.brasaClara, BOTAO_DO_APARO_DESENHO.alfaPressionado).fillCircle(bx, by, d.raioDoAnel);
-    g.lineStyle(d.traco, estado === ESTADO_DO_FRASCO.curando ? COR.brasa : COR.osso, 1).strokeCircle(bx, by, d.raioDoAnel);
-    // Uma marca por carga, centradas abaixo do rótulo; carga gasta não desenha (a falta é o contador).
+    // F-011: o disco e o anel em células de 2 pt (o anel com 4 pt, o traço de 3 arredondado à grade).
+    circuloDePixels(g, bx, by, d.raioDoAnel, 0, COR.pedra, ALFA_DA_BASE);
+    if (estado === ESTADO_DO_FRASCO.pressionado) circuloDePixels(g, bx, by, d.raioDoAnel, 0, COR.osso, BOTAO_DO_APARO_DESENHO.alfaPressionado);
+    if (estado === ESTADO_DO_FRASCO.curando) circuloDePixels(g, bx, by, d.raioDoAnel, 0, COR.brasaClara, BOTAO_DO_APARO_DESENHO.alfaPressionado);
+    circuloDePixels(g, bx, by, d.raioDoAnel, TRACO_DO_ANEL_PT, estado === ESTADO_DO_FRASCO.curando ? COR.brasa : COR.osso, 1);
+    // Uma marca por carga, centradas abaixo do rótulo; carga gasta não desenha (a falta é o contador). Cada marca é
+    // uma brasa de pixel: 4 × 4 pt em âmbar com o contorno de 2 pt em pedra.
     const y = by + d.marcasAbaixoDoCentro;
     const x0 = bx - ((cargas - 1) * d.entreMarcas) / 2;
-    g.fillStyle(COR.brasa, 1);
-    for (let k = 0; k < cargas; k++) g.fillCircle(x0 + k * d.entreMarcas, y, d.raioDaMarca);
+    for (let k = 0; k < cargas; k++) {
+      const mx = Math.round(x0 + k * d.entreMarcas);
+      g.fillStyle(COR.pedra, 1).fillRect(mx - 4, y - 4, 8, 8);
+      g.fillStyle(COR.brasa, 1).fillRect(mx - 2, y - 2, 4, 4);
+    }
   }
 
   private desenharAparo(estado: number): void {
@@ -439,19 +449,12 @@ export class Hud extends Phaser.Scene {
     const by = b.y + b.altura / 2;
     const g = this.botaoDoAparoGrafico!;
     g.clear().setAlpha(estado === ESTADO_DO_APARO.indisponivel ? d.alfaIndisponivel : 1);
-    g.fillStyle(COR.pedra, ALFA_DA_BASE).fillCircle(bx, by, d.raioDoAnel);
-    if (estado === ESTADO_DO_APARO.pressionado) g.fillStyle(COR.osso, d.alfaPressionado).fillCircle(bx, by, d.raioDoAnel);
-    g.lineStyle(d.traco, COR.osso, 1).strokeCircle(bx, by, d.raioDoAnel);
-    // Glifo ⟲: arco no sentido anti-horário com a ponta de seta no fim, desenhado (sem texto).
-    const [inicio, fim] = d.arco;
-    g.lineStyle(d.tracoDoGlifo, COR.osso, 1).beginPath().arc(bx, by, d.raioDoGlifo, inicio, fim, true).strokePath();
-    const px = bx + d.raioDoGlifo * Math.cos(fim);
-    const py = by + d.raioDoGlifo * Math.sin(fim);
-    const tx = Math.sin(fim);
-    const ty = -Math.cos(fim);
-    const nx = Math.cos(fim);
-    const ny = Math.sin(fim);
-    g.fillStyle(COR.osso, 1).fillTriangle(px + tx * 8, py + ty * 8, px + nx * 5, py + ny * 5, px - nx * 5, py - ny * 5);
+    // F-011: o disco e o anel em células de 2 pt e o glifo do aparo em pixel art (a espada em guarda sob o arco de
+    // brasa, 14 px a 2 pt = 28 pt, o tamanho do glifo ⟲ antigo), sem texto.
+    circuloDePixels(g, bx, by, d.raioDoAnel, 0, COR.pedra, ALFA_DA_BASE);
+    if (estado === ESTADO_DO_APARO.pressionado) circuloDePixels(g, bx, by, d.raioDoAnel, 0, COR.osso, d.alfaPressionado);
+    circuloDePixels(g, bx, by, d.raioDoAnel, TRACO_DO_ANEL_PT, COR.osso, 1);
+    desenharIconeDePixels(g, 'aparo', bx, by, 2 * d.raioDoGlifo);
   }
 
   /**

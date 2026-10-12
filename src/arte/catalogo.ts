@@ -173,6 +173,12 @@ for (let k = 0; k < 3; k++) {
   });
 }
 
+// Formas da HUD em branco, tingidas pela paleta no render (máscaras, não sprites): a base e o anel do joystick
+// (120 pt, traço de 2 pt) e o pino (48 pt), na grade de arte.
+sprite('ui_disco_30', 'arte', () => disco(30, 'W'));
+sprite('ui_anel_30', 'arte', () => anel(30, 1, 'W'));
+sprite('ui_disco_12', 'arte', () => disco(12, 'W'));
+
 // A luz da brasa (aditiva) e os ícones do HUD.
 sprite('brilho', 'arte', () => brilho(RAIO_DO_BRILHO));
 for (const [nome, g] of Object.entries(MIOLO_DOS_ICONES)) sprite(`icone_${nome}`, 'arte', comContorno(g));

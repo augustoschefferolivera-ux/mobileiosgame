@@ -41,6 +41,7 @@ import { HordaPorGPU, HordaPorImagem } from './render/escritores';
 import { RAIO_DO_ANEL_DA_MANCHA, criarMarcador, marcadorDaMancha } from './render/mancha';
 import { criarTabelaDeDesenho } from './render/horda';
 import { RenderDaVigilia } from './render/mundo';
+import { circuloDePixels, desenharIconeDePixels, trianguloDePixels } from './pixel';
 
 export class Vigilia extends Phaser.Scene {
   private sim: Simulacao | null = null;
@@ -395,13 +396,17 @@ export class Vigilia extends Phaser.Scene {
     const g = (this.manchaGrafico ??= this.add.graphics());
     const m = marcadorDaMancha(e.jogador4[JOGADOR4.manchaX]!, e.jogador4[JOGADOR4.manchaY]!, this.sim!.camera.x, this.sim!.camera.y, this.marcador);
     g.clear().setVisible(true);
+    // F-011: o anel em células de 2 pt (4 pt de traço) e a Alma em pixel no centro; a seta também na grade.
     if (m.dentro) {
       const pulso = RAIO_DO_ANEL_DA_MANCHA + 3 * Math.sin(e.cab[CAB.passo]! / 30);
-      g.lineStyle(3, COR.brasa, 1).strokeCircle(m.x, m.y, pulso).fillStyle(COR.alma, 1).fillCircle(m.x, m.y, 6);
+      const cx = Math.round(m.x);
+      const cy = Math.round(m.y);
+      circuloDePixels(g, cx, cy, pulso, 4, COR.brasa, 1);
+      desenharIconeDePixels(g, 'alma', cx, cy, 14);
       return;
     }
     const c = Math.cos(m.angulo);
     const s = Math.sin(m.angulo);
-    g.fillStyle(COR.alma, 1).fillTriangle(m.setaX + c * 14, m.setaY + s * 14, m.setaX - c * 8 - s * 9, m.setaY - s * 8 + c * 9, m.setaX - c * 8 + s * 9, m.setaY - s * 8 - c * 9);
+    trianguloDePixels(g, m.setaX + c * 14, m.setaY + s * 14, m.setaX - c * 8 - s * 9, m.setaY - s * 8 + c * 9, m.setaX - c * 8 + s * 9, m.setaY - s * 8 - c * 9, COR.alma, 1);
   }
 }

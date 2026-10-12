@@ -17,8 +17,8 @@ const QUENTES_HEX = new Set([...QUENTES].map((ch) => COR_DA_CHAVE[ch]!));
 const IMAGENS = new Map(CATALOGO.map((e) => [e.nome, e.criar()] as const));
 const img = (nome: string): Imagem => IMAGENS.get(nome)!;
 
-/** Corpos com contorno obrigatório: a grade de arte, menos a luz, os quadros da cinza que se desfaz e a silhueta branca do telegrafo (o sinal do ataque não tem contorno, style card §5). */
-const COM_CONTORNO = CATALOGO.filter((e) => e.grade === 'arte' && e.nome !== 'brilho' && !/_cinza_[12]$/.test(e.nome) && !e.nome.endsWith('_branco')).map((e) => e.nome);
+/** Corpos com contorno obrigatório: a grade de arte, menos a luz, os quadros da cinza que se desfaz, a silhueta branca do telegrafo (o sinal do ataque não tem contorno, style card §5) e as máscaras da HUD (`ui_`, tingidas). */
+const COM_CONTORNO = CATALOGO.filter((e) => e.grade === 'arte' && e.nome !== 'brilho' && !/_cinza_[12]$/.test(e.nome) && !e.nome.endsWith('_branco') && !e.nome.startsWith('ui_')).map((e) => e.nome);
 
 function contornoAberto(i: Imagem): string[] {
   const falhas: string[] = [];
