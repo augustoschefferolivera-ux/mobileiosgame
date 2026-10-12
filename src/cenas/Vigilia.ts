@@ -71,7 +71,7 @@ export class Vigilia extends Phaser.Scene {
       dados,
       acumulador: criarAcumulador(),
       comandosAoVivo,
-      fonte: this.ctx.roteiro ? fonteDoRoteiro(this.ctx.roteiro) : fonteConstante(comandosAoVivo),
+      fonte: this.ctx.roteiro ? fonteDoRoteiro(this.ctx.roteiro, undefined, this.ctx.acoesDoRoteiro ?? undefined) : fonteConstante(comandosAoVivo),
       camera: { x: dados.inicioX, y: dados.inicioY },
       pausada: false,
       pausa: { ativa: false, origem: null, alfa: 0 },

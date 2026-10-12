@@ -7,7 +7,7 @@
 // que ainda não existem entram com as suas features (stamina, chefe, save,
 // degradacao, build...).
 import type Phaser from 'phaser';
-import { fonteConstante, fonteDoRoteiro, validarRoteiro, type Roteiro } from '../logica/nucleo/comandos';
+import { fonteConstante, fonteDoRoteiro, validarAcoes, validarRoteiro, type AcaoDeRoteiro, type Roteiro } from '../logica/nucleo/comandos';
 import {
   BAU, BYTES_ESTADO, CAB, CAPACIDADE_DE_EFEITOS, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CAPACIDADE_DE_PROJETEIS, CARTAS, CATEGORIA_DE_ITEM, JOGADOR, JOGADOR2, JOGADOR_U8,
   MUNDO, MUNDO2, PROGRESSAO, TIPO_DE_CARTA, TIPO_DE_PICKUP, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, hashEstado, hashPorSecao, type Estado,
@@ -48,7 +48,30 @@ const BYTES_DO_ATLAS = 512 * 512 * 4;
 export const MEMBROS_DAS_CAMADAS = MEMBROS_DO_MUNDO + CAPACIDADE_DE_INIMIGOS + CAPACIDADE_DE_MORTES + CAPACIDADE_DE_INIMIGOS + MEMBROS_DAS_ARMAS + MEMBROS_DOS_DIGITOS;
 const BYTES_DAS_CAMADAS = 2 * MEMBROS_DAS_CAMADAS * FLOATS_POR_MEMBRO * 4;
 
-const NOMES_DOS_EVENTOS = ['', 'acerto', 'morte', 'golpe', 'pulso', 'nivel', 'carta', 'onda', 'bau', 'item', 'uniao'] as const;
+export const NOMES_DOS_EVENTOS = [
+  '',
+  'acerto',
+  'morte',
+  'golpe',
+  'pulso',
+  'nivel',
+  'carta',
+  'onda',
+  'bau',
+  'item',
+  'uniao',
+  'telegrafo',
+  'golpeInimigo',
+  'esquiva',
+  'esquivaPerfeita',
+  'aparo',
+  'aparoFalho',
+  'posturaQuebrada',
+  'contraAtaque',
+  'acaoNegada',
+  'projetilLancado',
+  'aparoVazio',
+] as const;
 const NOMES_DAS_CARTAS = ['', 'melhoriaDeArma', 'armaNova', 'melhoriaDePassiva', 'passivaNova', 'bolsa'] as const;
 const NOMES_DAS_CATEGORIAS = ['', 'arma', 'passiva', 'bolsa'] as const;
 type NomeDoEvento = (typeof NOMES_DOS_EVENTOS)[number];
@@ -58,6 +81,7 @@ export interface EventoDebug {
   passo: number;
   tipo: NomeDoEvento;
   arma: string | null;
+  /** FORMA; no evento esquivaPerfeita é ORIGEM_DO_DANO e no acaoNegada é ACAO (decisoes-F-006 ET10). */
   forma: number;
   alvo: { slot: number; geracao: number } | null;
   valor: number;
@@ -66,6 +90,8 @@ export interface EventoDebug {
   critico: boolean;
   matou: boolean;
   convertido: boolean;
+  /** FLAG.contra: golpe ou acerto de uma salva extra do Contra-ataque. */
+  contra: boolean;
   causa: number;
 }
 
@@ -93,6 +119,7 @@ function lerEventos(e: Estado): EventoDebug[] {
       critico: (flags & FLAG.critico) !== 0,
       matou: (flags & FLAG.matou) !== 0,
       convertido: (flags & FLAG.convertido) !== 0,
+      contra: (flags & FLAG.contra) !== 0,
       causa: (ifc >>> 16) & 0xff,
     });
   }
@@ -249,9 +276,10 @@ export interface EntradaDebug {
   /**
    * Impõe ComandosDoPasso por passo absoluto (design/decisoes-F-002.md §6 e §8),
    * para o driver e para avancar, desde o passo 0 se chamado antes da Vigília.
-   * `null` volta à entrada ao vivo. Só no build de debug.
+   * `null` volta à entrada ao vivo. A lista paralela `acoes` (esquiva e aparo em
+   * passos exatos; decisoes-F-006 ET5) vale só com o roteiro. Só no build de debug.
    */
-  roteiro?: (lista: Roteiro | null) => void;
+  roteiro?: (lista: Roteiro | null, acoes?: readonly AcaoDeRoteiro[] | null) => void;
 }
 
 export interface GameDebug {
@@ -545,11 +573,13 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
       ctx.entrada.fila.empurrar(codigo, id, x, y, t);
       ctx.entrada.fila.ajustarRetrato(codigo, id);
     };
-    debug.entrada.roteiro = (lista) => {
+    debug.entrada.roteiro = (lista, acoes) => {
       if (lista) validarRoteiro(lista);
+      if (acoes) validarAcoes(acoes);
       ctx.roteiro = lista ? lista.map((t) => ({ ...t })) : null;
+      ctx.acoesDoRoteiro = lista && acoes ? acoes.map((a) => ({ ...a })) : null;
       const sim = ctx.simulacao;
-      if (sim) sim.fonte = ctx.roteiro ? fonteDoRoteiro(ctx.roteiro) : fonteConstante(sim.comandosAoVivo);
+      if (sim) sim.fonte = ctx.roteiro ? fonteDoRoteiro(ctx.roteiro, undefined, ctx.acoesDoRoteiro ?? undefined) : fonteConstante(sim.comandosAoVivo);
     };
     debug.avancar = (n: number) => {
       const sim = ctx.simulacao;
