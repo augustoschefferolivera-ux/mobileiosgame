@@ -846,84 +846,112 @@
           "id": "F-009.1",
           "descricao": "Postura enche com 4 aparos.",
           "verificacao": "vitest",
-          "como": "4 × 25 = 100 → Quebra de 3 s (180 passos).",
+          "como": "vitest. Chefe na fase 1; 4 aparos de Vara (branca): `postura` 25, 50, 75, 100; no 4º, `quebraPassos` = 180, evento 41, o chefe não age por 180 passos e a `postura` fica 100; no passo 181 vale 0. O aparo não atordoa (sem `quebraPassos` antes do 4º). Sem ganho por 60 passos, `postura` 40 → 0 em 120 passos (± 0,01 por passo).",
           "origem": "B §4"
         },
         {
           "id": "F-009.2",
           "descricao": "Dano fora de Quebra reduzido em 40%.",
           "verificacao": "vitest",
-          "como": "Postura Firme: dano × 0,6 fora da Quebra; × 2 dentro dela.",
+          "como": "vitest. Acerto de 100 (rascunho) fora da Quebra tira 60; na Quebra, 200 com `FLAG.critico`; Contra-ataque fora da Quebra tira 120; o nv4 da Espada não muda a Quebra; em transição, 0.",
           "origem": "B §4"
         },
         {
           "id": "F-009.3",
           "descricao": "Fases trocam em 60% e 25%.",
           "verificacao": "vitest",
-          "como": "transição de 90 passos com o relógio parado e o chefe sem dano (ADR-0002 §9).",
+          "como": "vitest. `hpMax` 14.040. Acerto de 7.000 na fase 1: HP exatamente 8.424, `transicaoPassos` 90; por 90 passos o `relogio` não muda, o `passo` anda 90, o HP não muda com acertos e o chefe não ataca; no passo 91 `chefeFase` 2. Acerto de 5.000: HP 3.510 e fase 3. Na fase 3 o acerto letal chega a 0.",
           "origem": "B §4"
         },
         {
           "id": "F-009.4",
           "descricao": "Aos 23:00 com chefe vivo → derrota.",
           "verificacao": "vitest",
-          "como": "A_FOME → FIM(apagar, causa = a_fome), com mancha (brief §5.11).",
+          "como": "vitest. `relogio` 82.799 e chefe vivo: no passo seguinte `etapa` A_FOME, `fase` 3, `faseSemArmas` verdadeiro, armas paradas e facas removidas, `mortes` e Almas inalteradas, inimigos parados. Sem armadura, com Brasa Firme: o 1º tick no passo 10 é `hpMax × 18/1800 × 0,8`; o HP zera no 52º tick (passo 520) e `fase` FIM, `causaDoFim` a_fome, mancha = ⌊(3N + 5)/10⌋, Hora \"A Fome\". Com A = 60 também termina (< 1.500 passos).",
           "origem": "B §4"
         },
         {
           "id": "F-009.5",
           "descricao": "Lutar 60 s com seed fixa e script de inputs e verificar a barra de Postura no debug (Playwright).",
           "verificacao": "playwright",
-          "como": "?cenario=lanterneiro&seed=N; __GAME_DEBUG__.chefe.postura muda durante a luta.",
+          "como": "Playwright 390 × 844 (§5).",
           "origem": "B §4"
         },
         {
           "id": "F-009.6",
           "descricao": "Fúria após 5 min (+5% de dano a cada 10 s), testada isoladamente com A Fome desligada.",
           "verificacao": "vitest",
-          "como": "Q-05.",
+          "como": "vitest com `CENARIO.semFome`. `relogio` 89.999: dano da Vara 55; 90.000: 57,75 (n = 1); 90.599: 57,75; 90.600: 60,5; 91.200: 63,25. Evento 44 em cada mudança. Sem a flag, o relógio com o chefe vivo para em 82.800 (A_FOME).",
           "origem": "B §3.11; Q-05"
         },
         {
           "id": "F-009.7",
           "descricao": "Amanhecer: 10 s de céu clareando, Almas ×1,5 (com as 200 do chefe antes), 1 Brasa.",
           "verificacao": "vitest",
-          "como": "Q-35; brief §5.11.",
+          "como": "vitest. N = 1.000 antes; chefe morre: N = 1.200 (+200 e Alma de 3 no chão: 1.203); em `amanhecerPassos` 600 o FIM, Santuário = 1.805 (⌊3.610/2⌋); N ímpar 1.201 dá 1.802; `brasas` 1 no Resultado e meta 0 → 1; inimigos removidos sem Cinza, Alma ou `mortes`; armas e pickups parados; mancha antiga do meta intacta; relógio parado.",
           "origem": "B §4 (escopo)"
         },
         {
           "id": "F-009.8",
           "descricao": "HP do Lanterneiro por nível.",
           "verificacao": "vitest",
-          "como": "no cenário lanterneiro (nível 29), hpMax = 6.500 × (1 + 0,04 × 29) = 14.040, com o nível do momento em que ele surge (B §3.11; Q-10).",
+          "como": "vitest. Nível 29 → 14.040; nível 1 → 6.760; nível 29 com 1 pendente → 14.300; muda depois do surgimento: não muda o `hpMax`.",
           "origem": "B §3.11 (escopo)"
         },
         {
           "id": "F-009.9",
           "descricao": "Arena do Lanterneiro.",
           "verificacao": "vitest",
-          "como": "ao formar a arena (raio de 224 px), obstáculos dentro dela com ativo = 0, massa dentro morta e diretor sem spawn (B §3.11; Q-09; ADR-0002 §9).",
+          "como": "vitest. No cenário, passo 30: obstáculos com `ativo` = 0 exatamente os de `d ≤ 224 + r_o` (contagem independente), massa e médios a < 224 mortos por `CAUSA.arena` sem `mortes`, `spawns` constante por 600 passos, centro da arena = posição do jogador, chefe a 144,0 ± 0,01 px na direção 0, `chefeSlot` válido, Fogueira apagada.",
           "origem": "B §3.11 (escopo)"
         },
         {
           "id": "F-009.10",
           "descricao": "A névoa prende o jogador.",
           "verificacao": "vitest",
-          "como": "o jogador não sai do círculo de 224 px (ADR-0002 §15 item 14).",
+          "como": "vitest. Jogador empurrando a borda por 120 passos em 8 direções fica a ≤ 208 px do centro; os 4 cantos da caixa ficam a ≤ 224 px com o chefe perseguindo; inimigo a 230 px não entra.",
           "origem": "ADR-0002 §15 item 14"
         },
         {
           "id": "F-009.11",
           "descricao": "Postura por esquiva perfeita só contra o Lanterneiro.",
           "verificacao": "vitest",
-          "como": "esquiva perfeita contra golpe do Lanterneiro soma +10 de Postura; contra Oco convocado, 0 (Q-15).",
+          "como": "vitest. Esquiva perfeita contra a Vara: `postura` + 10; contra o contato ou o golpe de um Oco convocado: + 0; contra o tick da Lanterna: nenhum Poder, nenhuma faca e + 0 (AT4).",
           "origem": "Q-15"
+        },
+        {
+          "id": "F-009.12",
+          "descricao": "Os ataques do Lanterneiro.",
+          "verificacao": "vitest",
+          "como": "vitest, um caso por linha da §3: Vara acerta a 144 px de frente e não a 144,1 nem de costas; Bater a 192 + 16 de comprimento e a ± 40 de largura; Luz Cega a 30° e não a 31°; Lanterna: 12 ticks de 1,0 em 120 passos dentro, 0 fora; Explosão: o anel acerta uma só vez e a esquiva consome; Agarrar: 20% de `hpMax`, `presoPassos` 60 sem mover e sem esquivar, aparado → Quebra; Convocar: 10 Ocos a 112 ± 0,01 px do centro, 5 com 295 vivos (TETO 300).",
+          "origem": "design/decisoes-F-009.md AT1 a AT6, FS3"
+        },
+        {
+          "id": "F-009.13",
+          "descricao": "Ganhos de Postura por arma.",
+          "verificacao": "vitest",
+          "como": "vitest. Por acerto: Espada + 2 (ida, volta e estocada), onda + 2, Faca + 0,5, Círculo + 0 que zera `posturaOciosa`; ciclo de 1.000 passos reproduzível pelo hash.",
+          "origem": "design/decisoes-F-009.md PO1"
+        },
+        {
+          "id": "F-009.14",
+          "descricao": "Regressão do layout v8, alocação e replay do cenário.",
+          "verificacao": "vitest",
+          "como": "regressão v8 (§1); E7 (≤ 16 B por passo) na luta, na transição, no Amanhecer e na fome; replay do cenário reproduz o hash.",
+          "origem": "design/decisoes-F-009.md §1; ADR-0005 §2"
+        },
+        {
+          "id": "F-009.15",
+          "descricao": "Resultado com \"Chefe mais longe\" e \"Brasas\".",
+          "verificacao": "vitest",
+          "como": "vitest e DOM. Resultado com \"Chefe mais longe\" = nome + \"Fase 2\" (morto na fase 2), \"Derrotado\" (Amanhecer) ou \"—\" (Apagar antes de 20:00); \"Brasas\" 0 ou 1; títulos `A4.A_FOME.01` e `A4.AMANHECER.01`; `brasas` do meta sobe uma vez só (`fimCreditado`); meta v1 migra com `brasas` 0.",
+          "origem": "design/decisoes-F-009.md RE1, AN3"
         }
       ],
       "evidencias": [
         {
           "arquivo": "production/evidencias/F-009/luta.webm",
-          "descricao": "Vídeo de 30 s da luta (B)"
+          "descricao": "Vídeo de 30 s da luta (B; design/decisoes-F-009.md §5)"
         },
         {
           "arquivo": "production/evidencias/F-009/amanhecer.png",
@@ -932,28 +960,18 @@
         {
           "arquivo": "production/evidencias/F-009/a-fome.png",
           "descricao": "Screenshot de A Fome (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-009/chefe-390x844.png",
+          "descricao": "`?cenario=lanterneiro`: barras de HP e Postura do chefe (design/decisoes-F-009.md §5)"
+        },
+        {
+          "arquivo": "production/evidencias/F-009/u9.log",
+          "descricao": "Simulação de 20 a 23 minutos com o chefe: tempo até a morte, quebras, Almas por Vigília contra Q-21 e taxa de derrota por fome (medida, sem gate; design/decisoes-F-009.md §6)"
         }
       ],
       "pendencias_antes_de_comecar": [
-        "brief §11.3 F-009 e chefes.json pendencias: danos, alcances, IA, convocação, telegrafos vermelhos, herança de ataques entre fases, Postura das outras armas, tamanho",
-        "brief §11.3 F-009: luz do jogador (5 corpos) e dos Ocos convocados (3 corpos) no MVP; raio de nascimento dos convocados (ADR-0002 §9); o que o HUD mostra entre 20:00 e 23:00 (não há Hora)",
-        "Recomendações da F-002 a fechar (design/decisoes-F-002.md §9): caixa do Lanterneiro; borda da arena contém o chefe; raio do Coroado",
-        "Recomendações da F-003 a fechar (design/decisoes-F-003.md §9): o Lanterneiro no R_MAX ou na lista de corpos grandes, S1 e S4 para a caixa, camada e cor",
-        "Lanterneiro imune ao pulso, e se ele leva Sal; acerto contra a caixa pela distância da forma (setor, retângulo, círculo) à caixa (design/decisoes-F-004.md §9)",
-        "Postura: +2 por golpe da Espada que acerta o chefe, inclusive a estocada; \"atingida\" = qualquer acerto de arma com dano > 0, inclusive o tick; todo dano de arma por um ponto único (design/decisoes-F-004.md §9)",
-        "Ordem de empilhamento da Quebra ×2 e da Postura Firme −40% (exclusivas, B §3.11) com o multStatus da F-006 (DN3; design/decisoes-F-004.md §9)",
-        "Multiplicador por alvo: Quebra e Postura Firme são estados do chefe e entram por acerto, não pela tabela por (arma, nível) (DN1; design/decisoes-F-004.md §9)",
-        "Armas no Amanhecer e na TRANSICAO_FASE, com o chefe sem dano (design/decisoes-F-004.md §9)",
-        "HP do Lanterneiro lê o nível do estado (com os pendentes) no passo em que a arena se forma; a onda da União é acerto de arma (Postura +2) e testa o retângulo contra a caixa; A_FOME e Lanterneiro com código próprio em CAUSA, sem Cinza (design/decisoes-F-005.md §9)",
-        "o +10 de Postura só quando a esquiva perfeita vem de golpe do Lanterneiro (origem 2 no evento; Q-15); a Postura do chefe lê os eventos `aparo`, `esquivaPerfeita` e `posturaQuebrada`; `ameacasAparaveis` passa a contar os ataques brancos do chefe (design/decisoes-F-006.md §10)",
-        "o aparo no chefe soma +25 de Postura; se também atordoa fica a decidir (o valor provisório é `postura_quebrada: false`; para o Coroado, o doc 02 §5.4 (\"no atacante\") sugere `true`; para o Lanterneiro, o brief §11.3 deixa em aberto); o \"Agarrar\" branco aparado causa a Quebra imediata (design/decisoes-F-006.md §10)",
-        "a Quebra ×2 e a Postura Firme −40% são exclusivas e entram por acerto, em produto com a PQ6; os dígitos críticos da Quebra usam a mesma `FLAG.critico` (design/decisoes-F-006.md §10)",
-        "os ataques do Lanterneiro reusam a máquina e a camada de silhuetas, em vermelho `#ff2a2a`; a regra do vermelho (AP10) vale sem mudança; a imunidade ao pulso, ao Sal e à Postura Quebrada é daqui (design/decisoes-F-006.md §10)",
-        "o 3º som (quebra) já é sintetizado no boot e toca na Quebra de Postura (design/decisoes-F-006.md §10)",
-        "o dano de fome passa por `danoAoJogador`; liga as causas a_fome e amanhecer de `encerrarVigilia` (design/decisoes-F-007.md §13)",
-        "A_FOME segue a regra da D4 (nenhuma arma, facas somem, nenhuma morte soma) pela `faseSemArmas` da F-007 (design/decisoes-F-007.md §13)",
-        "Resultado ganha \"Chefe mais longe\" e \"Brasas\"; A Fome na Hora da mancha (design/decisoes-F-007.md §13)",
-        "medir o total de Almas por Vigília contra Q-21 (design/decisoes-F-007.md §13)"
+        "Resolvidas em design/decisoes-F-009.md (aprovadas pelo usuário sem veto, 2026-10-12): brief §11.3 F-009 e as pendências de chefes.json (LN1 a LN5, AT1 a AT6, FS1 a FS4, PO1 a PO7, FU1, AB1 a AB5); recomendações da D2 §9 (LN1, LN3, AB2), da D3 §9 (LN1, LN3), da D4 §9 (LN4, GE, PO1, PO6, FS1, AN4), da D5 §9 (LN2, PO1, LN5), da D6 §10 (PO1 a PO6, AT1, AT4), da D7 §13 (FM2, FM3, AN2, RE1) e da D8 (AB1, AB3, AB4); quatro critérios novos (F-009.12 a F-009.15)"
       ]
     },
     {

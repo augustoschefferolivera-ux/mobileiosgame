@@ -1,6 +1,6 @@
 # Decisões da F-009 "O Lanterneiro, Amanhecer e A Fome"
 
-- Status: proposta, aguarda aprovação do usuário (Etapa 1; nenhum código escrito). Depende da D8 (`design/decisoes-F-008.md`, ainda não aprovada): o layout v9 cresce depois do v8, e eventos e formas novos vêm depois dos da D8.
+- Status: aprovada pelo usuário sem veto em 2026-10-12 ("Aprovo tudo"), inclusive as divergências em negrito e as correções da Revisão. Etapa 2 (implementação) em curso. Depende da D8 (`design/decisoes-F-008.md`, aprovada e implementada): o layout v9 cresce depois do v8, e eventos e formas novos vêm depois dos da D8.
 - Fontes: B §3.11, §4, §5.8, §5.11, §5.13 e §11.3 (F-009); ADR-0002 §3, §9, §14 e §15; D2 a D8 (§9/§10/§13); GDD 02 §3 e §5.4, 06 §1 e §2.2, 10 §2.3 e §6, 11 §3.12; Q-02, Q-05, Q-10, Q-15, Q-21, Q-28, Q-35; `chefes.json`; código lido por `grep` (`vigilia.ts`, `contato.ts`, `aparo.ts`, `acerto.ts`, `passo.ts`, `meta.ts`, `mancha.ts`).
 - Nomes: B = game-brief; D2 a D8 = `design/decisoes-F-002.md` a `-F-008.md`. Cada ID tem o prefixo da área (LN chefe, AB arena, PO Postura, FS fases e IA, AT ataques, FU Fúria, AN Amanhecer, FM fome, HD HUD, RE Resultado, CN cenário, L9 layout).
 
