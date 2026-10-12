@@ -163,7 +163,8 @@ sprite('projetil_disco', 'fina', () => disco(8, 'W'));
 
 // Status no inimigo (RE9, V4) e a mancha das Cinzas Perdidas (MC9): o anel de brasa em 3 raios do pulso.
 sprite('status_atordoado', 'arte', comContorno(MIOLO_DO_ATORDOADO));
-sprite('status_sal', 'arte', comContorno(MIOLO_DO_SAL));
+// O Sal na grade fina (metade do tamanho): na horda atingida pelo Círculo, centenas ao mesmo tempo não cobrem os rostos.
+sprite('status_sal', 'fina', comContorno(MIOLO_DO_SAL));
 for (let k = 0; k < 3; k++) {
   sprite(`mancha_${k}`, 'fina', () => {
     const r = 22 + 2 * k;

@@ -234,7 +234,7 @@ describe('desenho das armas (V1 a V4)', () => {
     return CAPACIDADE_DE_PROJETEIS + 5 + ef.efeitos.ativo.indexOf(1);
   }
 
-  it('anel da aura (V3; F-011 em grãos de sal): só nas vagas de aura, em volta do jogador, na borda do raio R (64 no nv1, 96 no nv8), a 85%', () => {
+  it('anel da aura (V3; F-011 em grãos de sal): só nas vagas de aura, em volta do jogador, na borda do raio R (64 no nv1, 96 no nv8), opacos', () => {
     for (const [nivel, R] of [
       [1, 64],
       [8, 96],
@@ -255,7 +255,7 @@ describe('desenho das armas (V1 a V4)', () => {
         const d = Math.hypot(sal.x[g]! - J.x, sal.y[g]! - J.y);
         expect(d, `nv${nivel} grão ${g}`).toBeGreaterThan(R - 6);
         expect(d).toBeLessThan(R - 3.25);
-        expect([sal.alpha[g], sal.cor[g]]).toEqual([0.85, 0xffffff]);
+        expect([sal.alpha[g], sal.cor[g]]).toEqual([1, 0xffffff]);
         expect([indiceDaMoldura('grao_sal_0'), indiceDaMoldura('grao_sal_1')]).toContain(sal.moldura[g]);
       }
       // Só uma vaga de aura: o 2º anel e os pulsos ficam ocultos.
@@ -313,7 +313,7 @@ describe('desenho das armas (V1 a V4)', () => {
     expect(out.rotacao[k]).toBeCloseTo(Math.PI / 2, 9);
   });
 
-  it('pulso (V3; F-011 em grãos): o anel cresce 96 px em 12 passos (na idade 6, raio R + 48 e alpha 0,85 × 0,5) e some na idade 12', () => {
+  it('pulso (V3; F-011 em grãos): o anel cresce 96 px em 12 passos (na idade 6, raio R + 48 e alpha 0,5) e some na idade 12', () => {
     const e = criarEstado(1, D);
     const ef = new EfeitosDaVigilia(D.tipos);
     const k = efeito(e, ef, 10, EVENTO.pulso, 0, [0, 0, 96, 12]);
@@ -325,7 +325,7 @@ describe('desenho das armas (V1 a V4)', () => {
     expect(sal.visivel[base]).toBe(1);
     expect(Math.hypot(sal.x[base]! - J.x, sal.y[base]! - J.y)).toBeGreaterThan(144 - 6);
     expect(Math.hypot(sal.x[base]! - J.x, sal.y[base]! - J.y)).toBeLessThan(144 - 3.25);
-    expect(sal.alpha[base]).toBeCloseTo(0.425, 9);
+    expect(sal.alpha[base]).toBeCloseTo(0.5, 9);
     consumirEm(ef, e, 22);
     prepararSal(e, D, ef, 1, J.x, J.y, sal);
     expect(sal.visivel.every((v) => v === 0)).toBe(true);
@@ -344,9 +344,9 @@ describe('desenho das armas (V1 a V4)', () => {
     e.inimigos.salPassos[s] = 10;
     prepararStatus(e, horda, out);
     expect([out.visivel[s], out.visivel[outro], out.moldura[s], out.cor[s]]).toEqual([1, 0, indiceDaMoldura('status_sal'), 0xffffff]);
-    // F-011: o cristal de sal em pixel (5 px de arte = 10 pt), 12 pt acima do centro do corpo.
+    // F-011: o cristal de sal em pixel na grade fina (5 px = 5 pt), 12 pt acima do centro do corpo.
     expect([out.x[s], out.y[s]]).toEqual([horda.x[s], horda.y[s]! - 12]);
-    expect(5 * out.escalaX[s]!).toBe(10);
+    expect(5 * out.escalaX[s]!).toBe(5);
     // Slot vazio na horda: não desenha, mesmo com um salPassos que sobrasse no slot.
     removerInimigo(e, s);
     e.inimigos.salPassos[s] = 10;

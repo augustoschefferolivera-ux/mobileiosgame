@@ -157,9 +157,9 @@ describe('render do mundo: obstáculos e jogador (cópia mais próxima da câmer
     const e = criarEstado(1, dados);
     e.jogador[J.x] = e.jogador[J.xAnt] = 1150.2;
     render.sincronizar(e, 0, 1150, 2520);
-    expect(imagens[0]).toMatchObject({ x: 1210, y: 2542 });
-    // Depois dos obstáculos: a luz da brasa, o marcador, os 2 rastros e o corpo do Aldric, no pixel da câmera.
-    expect(imagens[1]).toMatchObject({ x: 1150, y: 2520 });
+    // A luz da brasa nasce antes dos obstáculos (acima do chão); depois deles, o marcador, os 2 rastros e o corpo do Aldric, no pixel da câmera.
+    expect(imagens[0]).toMatchObject({ x: 1150, y: 2520 });
+    expect(imagens[1]).toMatchObject({ x: 1210, y: 2542 });
     expect(imagens[5]).toMatchObject({ x: 1150, y: 2520 });
   });
 });

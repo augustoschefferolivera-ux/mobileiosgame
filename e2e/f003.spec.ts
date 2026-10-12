@@ -96,18 +96,25 @@ const APARO = alvoDoAparo(insetsZerados(), { id: '', x: 0, y: 0, largura: 0, alt
 const longeDoAparo = (a: NaTela): boolean =>
   a.x + MEIO[a.tipo]! + 2 < APARO.x || a.x - MEIO[a.tipo]! - 2 > APARO.x + APARO.largura || a.y + MEIO[a.tipo]! + 2 < APARO.y || a.y - MEIO[a.tipo]! - 2 > APARO.y + APARO.altura;
 
-/** Visíveis, longe das bordas, dos botões de pausa e Aparo e do jogador; `isolado` pede que nenhum outro cubra o centro, `topo` só os de slot maior. */
+/**
+ * Visíveis, longe das bordas, dos botões de pausa e Aparo e do jogador; `isolado` pede que nenhum outro cubra o centro
+ * e que fique fora da luz da brasa (F-011), `topo` só os de slot maior.
+ */
 function escolher(lista: NaTela[], jogador: { x: number; y: number }, n: number, isolado: boolean): NaTela[] {
   return lista
     .filter((a) => a.x > 30 && a.x < 360 && a.y > 60 && a.y < 784)
     .filter(longeDaPausa)
     .filter(longeDoAparo)
-    .filter((a) => Math.hypot(a.x - jogador.x, a.y - jogador.y) > MEIO[a.tipo]! + 24 + 2)
+    .filter((a) => Math.hypot(a.x - jogador.x, a.y - jogador.y) > MEIO[a.tipo]! + (isolado ? RAIO_DA_LUZ : 24 + 2))
     .filter((a) => !lista.some((b) => b.slot !== a.slot && (isolado || b.slot > a.slot || (medio(b) && !medio(a))) && cobre(b, a)))
     .slice(0, n);
 }
 
 const rgb = (cor: number): number[] => [(cor >> 16) & 255, (cor >> 8) & 255, cor & 255];
+/** O chão da F-011: o fundo com pedriscos (D) e tufos (e) do ladrilho de pixel art. */
+const CORES_DO_CHAO = [COR.fundo, COR.cinzaFrio, 0x2f3a24];
+/** Raio da luz da brasa da F-011 (5 corpos, aditiva sobre o chão): o slot removido fica fora dela, no chão sem luz. */
+const RAIO_DA_LUZ = 160;
 const perto = (a: number[], b: number[]): boolean => a.every((v, i) => Math.abs(v - b[i]!) <= 2);
 
 test('F-003.10: sem ?teto, numa tela fora da classe antiga (DPR 3, 390 × 844), o TETO é 300 com origem fallback', async ({ page }) => {
@@ -223,7 +230,7 @@ test('a horda desenhada corresponde à simulação nos dois modos, e o slot que 
     await proximoFrame(page);
     const depois = await pixelsDoCanvas(page);
     const fundo = await cores(page, depois, removidos);
-    removidos.forEach((a, i) => expect(perto(fundo[i]!, rgb(COR.fundo)), `${modo}: slot ${a.slot} removido = ${fundo[i]}`).toBe(true));
+    removidos.forEach((a, i) => expect(CORES_DO_CHAO.some((c) => perto(fundo[i]!, rgb(c))), `${modo}: slot ${a.slot} removido = ${fundo[i]}`).toBe(true));
     imagens[modo] = [antes, depois];
   }
   // Desde a F-005, os obstáculos vão pela camada "mundo" (SpriteGPULayer × Image): a borda suavizada da textura é

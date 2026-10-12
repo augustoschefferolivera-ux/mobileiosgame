@@ -119,7 +119,10 @@ export class RenderDaVigilia implements RenderDoMundo {
   ) {
     // Chão (F-011): o ladrilho de 64 × 64 px repetido, a 2 pt por px, que acompanha a câmera.
     this.chao = cena.add.tileSprite(dados.inicioX, dados.inicioY, 2 * MEIA_LARGURA_DO_CHAO, 2 * MEIA_ALTURA_DO_CHAO, CHAVE_DO_CHAO).setScale(ESCALA);
-    cena.add.layer([this.chao]);
+    // A luz da brasa (aditiva) logo acima do chão: esquenta o chão em volta do Aldric e deixa as rochas, os pickups e
+    // os corpos nas cores da paleta (a cor de identidade dos inimigos não muda perto dele).
+    this.brilho = cena.add.image(dados.inicioX, dados.inicioY, CHAVE_DO_ATLAS, 'brilho').setScale(ESCALA).setBlendMode(ADITIVO);
+    cena.add.layer([this.chao, this.brilho]);
     const camada = (capacidade: number): Camada => ({ escritor: armas!.criar(cena, capacidade), saida: criarSaidaDeSprites(capacidade) });
     const o = dados.obstaculos;
     if (armas) {
@@ -145,15 +148,13 @@ export class RenderDaVigilia implements RenderDoMundo {
       this.armasCamada = camada(MEMBROS_DAS_ARMAS);
       this.projeteisInimigos = camada(MEMBROS_DOS_PROJETEIS_INIMIGOS);
     }
-    // O Aldric (F-011): a luz da brasa por baixo (aditiva, acima da horda: aquece quem chega perto), o marcador
-    // de direção, os rastros da esquiva e o corpo.
+    // O Aldric (F-011): o marcador de direção, os rastros da esquiva e o corpo.
     const x0 = dados.inicioX;
     const y0 = dados.inicioY;
-    this.brilho = cena.add.image(x0, y0, CHAVE_DO_ATLAS, 'brilho').setScale(ESCALA).setBlendMode(ADITIVO);
     this.marcador = cena.add.image(x0, y0, CHAVE_DO_ATLAS, 'marcador_0').setAlpha(0.8);
     this.rastros = RASTROS.map((r) => cena.add.image(x0, y0, CHAVE_DO_ATLAS, 'aldric_rolando').setAlpha(r.alfa).setVisible(false));
     this.jogador = cena.add.image(x0, y0, CHAVE_DO_ATLAS, 'aldric_parado').setScale(ESCALA);
-    cena.add.layer([this.brilho, this.marcador, ...this.rastros, this.jogador]);
+    cena.add.layer([this.marcador, ...this.rastros, this.jogador]);
     if (armas) this.particulas = camada(MEMBROS_DAS_PARTICULAS);
     if (armas) this.digitos = camada(MEMBROS_DOS_DIGITOS);
   }

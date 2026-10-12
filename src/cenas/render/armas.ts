@@ -20,10 +20,10 @@ import type { DesenhoDoTipo, SaidaDaHorda } from './horda';
 
 /** Cores dos efeitos (V1 a V4, N3). */
 export const COR_DO_CRITICO = COR.amarelo;
-/** Os grãos do Círculo de Sal (F-011): até 64 por anel, um a cada ≈ 10 pt da circunferência, girando 0,24 rad por segundo; a 2 pt por px de arte (6 pt). */
+/** Os grãos do Círculo de Sal (F-011): até 64 por anel, um a cada ≈ 10 pt da circunferência, girando 0,24 rad por segundo, a 2 pt por px de arte. */
 const GRAOS_POR_ANEL = 64;
 const PT_POR_GRAO = 10;
-const ALFA_DO_GRAO = 0.85;
+const ALFA_DO_GRAO = 1;
 const GIRO_POR_PASSO = 0.004;
 /** Pulsos desenhados ao mesmo tempo na camada do sal (o resto do pool fica de fora, só render). */
 const PULSOS_DO_SAL = 4;
@@ -118,7 +118,8 @@ export function prepararMortes(
 /**
  * Marcador de status no inimigo, um membro por slot, 12 pt acima do centro do corpo que a horda desenha (F-011): a
  * estrela do atordoado em amarelo (RE9, com prioridade sobre o Sal: o cristal fica oculto enquanto dura a Postura
- * Quebrada), ou o cristal de sal (V4). Os dois em pixel art com contorno, a 2 pt por px.
+ * Quebrada), ou o cristal de sal (V4). Os dois em pixel art com contorno: a estrela a 2 pt por px, o sal na grade
+ * fina (1 pt), para a horda salgada não sumir sob os marcadores.
  */
 export function prepararStatus(e: Estado, horda: SaidaDaHorda, out: SaidaDeSprites): void {
   const sal = e.inimigos.salPassos;
@@ -133,7 +134,7 @@ export function prepararStatus(e: Estado, horda: SaidaDaHorda, out: SaidaDeSprit
     out.x[s] = horda.x[s]!;
     out.y[s] = horda.y[s]! - ACIMA_DO_CENTRO_PT;
     out.rotacao[s] = 0;
-    out.escalaX[s] = out.escalaY[s] = ARTE;
+    out.escalaX[s] = out.escalaY[s] = atordoado ? ARTE : 1;
     out.alpha[s] = 1;
     out.origemX[s] = out.origemY[s] = 0.5;
     out.moldura[s] = atordoado ? M_STATUS_ATORDOADO : M_STATUS_SAL;
@@ -280,7 +281,7 @@ export function prepararArmas(
 /**
  * A camada do sal (F-011): o anel do Círculo de Sal de cada vaga de aura, com a borda externa no raio de acerto
  * (V3), e os pulsos (o anel cresce 96 px em 12 passos, V3), feitos de grãos de sal na grade fina, um a cada ≈ 9 pt
- * da circunferência (até 64), girando devagar, a 0,85 de alfa (× (1 − u) no pulso).
+ * da circunferência (até 64), girando devagar, opacos (o pulso some com 1 − u).
  */
 export function prepararSal(e: Estado, dados: DadosDaVigilia, ef: EfeitosDaVigilia, alfa: number, jx: number, jy: number, out: SaidaDeSprites): void {
   const b = e.build;
