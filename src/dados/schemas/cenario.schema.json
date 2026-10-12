@@ -191,6 +191,29 @@
       "type": "number",
       "minimum": 0,
       "maximum": 100
+    },
+    "inicio_livre_passos": {
+      "description": "Relógio inicial em passos com a linha do diretor livre (como o ?inicio): o relógio corre e os marcos de 5:00, 10:00 e 15:00 começam sozinhos (design/decisoes-F-008.md CE1). Não usa relogio_inicial_s, que exige linha_fixa.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "almas_iniciais": {
+      "description": "Almas no início da Vigília, fora do meta (como o ?almas).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "fogueira": {
+      "description": "Fogueira acesa no início, dentro do raio (design/decisoes-F-008.md CE1): a hora (1 a 3), o deslocamento horizontal em relação ao jogador, o HP em % do máximo e as cargas do Frasco.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hora", "dx", "hp_pct", "frascos"],
+      "properties": {
+        "hora": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "dx": { "type": "number", "minimum": -64, "maximum": 64 },
+        "hp_pct": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "frascos": { "type": "integer", "minimum": 0, "maximum": 3 }
+      }
     }
   }
 }

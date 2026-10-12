@@ -26,6 +26,7 @@ import { comOpcoes, comTutoriais, reservarIdDaVigilia } from '../logica/save/met
 import { GravadorDaVigilia, creditarFim } from '../plataforma/vigiliaGuardada';
 import { sortearSeed } from '../plataforma/parametros';
 import { criarDadosDaCharneca } from '../plataforma/dadosDaVigilia';
+import { prepararFogueiraDoCenario } from '../plataforma/cenarios';
 import inimigos from '../dados/inimigos.json';
 import vigilantes from '../dados/vigilantes.json';
 import charneca from '../dados/regioes/charneca_das_lanternas.json';
@@ -89,8 +90,10 @@ export class Vigilia extends Phaser.Scene {
       // As camadas das armas trocam de modo junto com a horda (decisoes-F-004 §6).
       { criar: (cena, capacidade) => criarCamada(cena, modo, capacidade, bufferDinamico), opcoes: this.ctx.opcoes },
     );
+    const estado = criarEstado(this.ctx.seed, dados, params);
+    if (this.ctx.cenario) prepararFogueiraDoCenario(estado, this.ctx.cenario.id);
     this.sim = {
-      estado: criarEstado(this.ctx.seed, dados, params),
+      estado,
       dados,
       acumulador: criarAcumulador(),
       comandosAoVivo,

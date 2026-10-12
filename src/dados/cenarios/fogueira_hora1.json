@@ -1,0 +1,19 @@
+{
+  "id": "fogueira_hora1",
+  "versao": 1,
+  "linha_fixa": null,
+  "jogador": { "invulneravel": false },
+  "diretor_desligado": true,
+  "tutoriais_vistos": true,
+  "rotacao": 0,
+  "armas": [{ "arma": "espada_longa_do_juramento", "nivel": 8 }],
+  "cinzas": false,
+  "passivas": [{ "passiva": "elmo_sem_rosto", "nivel": 1 }],
+  "baus": [],
+  "xp_inicial": 0,
+  "relogio_inicial_s": 0,
+  "ataques_inimigos": true,
+  "inicio_livre_passos": 18000,
+  "almas_iniciais": 400,
+  "fogueira": { "hora": 1, "dx": 30, "hp_pct": 50, "frascos": 1 }
+}

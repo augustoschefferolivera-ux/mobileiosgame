@@ -33,6 +33,12 @@
       "limite_palavras": null
     },
     {
+      "id": "A1.ACENDER.RESUMO",
+      "texto": "Nível {nivel} · {almas} Almas · {frascos} Frascos",
+      "contexto": "Tela de Acender: resumo do save a retomar, sob a oferta (design/decisoes-F-008.md SV5); {almas} com ponto de milhar",
+      "limite_palavras": null
+    },
+    {
       "id": "A1.ACENDER.RECUSAR",
       "texto": "Abandonar Vigília",
       "contexto": "Tela de Acender: recusar a retomada = Abandonar (Q-03)",
@@ -96,6 +102,12 @@
       "id": "A5.HUD.HORA",
       "texto": "Hora {hora}",
       "contexto": "HUD: Hora atual, de 0:00 a 20:00; {hora} em algarismo romano (doc 11 §3.6). De 20:00 a 23:00 não há Hora (brief §5.4; doc 02 §3): o que o HUD mostra nesse trecho fica pendente para a F-009",
+      "limite_palavras": null
+    },
+    {
+      "id": "A5.HUD.RELOGIO",
+      "texto": "{min}:{seg}",
+      "contexto": "HUD: relógio da Vigília em m:ss, reescrito uma vez por segundo de relógio (design/decisoes-F-008.md HU1); {seg} com dois algarismos",
       "limite_palavras": null
     },
     {
@@ -960,6 +972,24 @@
       "id": "I1.FOGUEIRA.PARTIR_EFEITO",
       "texto": "…",
       "contexto": "Fogueira: consequência em 1 linha (doc 17 I1); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "I1.FOGUEIRA.USADA",
+      "texto": "Já feito nesta Fogueira",
+      "contexto": "Fogueira: efeito de Descansar ou Forjar já usado, no lugar da consequência (design/decisoes-F-008.md FG8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "I1.FOGUEIRA.SEM_ALMAS",
+      "texto": "Faltam Almas",
+      "contexto": "Fogueira: Forjar União sem Almas para o custo (design/decisoes-F-008.md FG8)",
+      "limite_palavras": null
+    },
+    {
+      "id": "I1.FOGUEIRA.SEM_UNIAO",
+      "texto": "Nenhuma União possível",
+      "contexto": "Fogueira: Forjar União sem arma e passiva que formem uma União (design/decisoes-F-008.md FG8)",
       "limite_palavras": null
     },
     {
