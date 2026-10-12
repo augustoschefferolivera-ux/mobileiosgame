@@ -1,6 +1,6 @@
 # F-004 — tabela de dano gerada pelo teste (Vitest, tests/logica/armas/f004-1.test.ts)
 
-Gerada em 2026-10-11T23:52:20.212Z com Node v22.22.0.
+Gerada em 2026-10-12T07:23:31.428Z com Node v22.22.0.
 
 - Vigilante: Aldric, FOR 6 / DES 3 / FÉ 3 (B §3.3), Poder 0.
 - Fórmula: Dano = Base(nível) × (1 + Poder) × Escala (B §3.8), com Base(nível) = Base₁ × (1 + Σ bônus de dano do nível), os +20% somados (design/decisoes-F-004.md D2).
