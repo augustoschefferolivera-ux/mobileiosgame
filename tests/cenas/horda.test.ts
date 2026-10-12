@@ -8,6 +8,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import Phaser from 'phaser';
 import inimigos from '../../src/dados/inimigos.json';
 import { COR, COR_DO_INIMIGO } from '../../src/cenas/estilo';
+import { COR_DOS_ELITES } from '../../src/cenas/paleta';
 import { arredondarParaOPixel } from '../../src/cenas/render/camera';
 import { FLOATS_POR_MEMBRO, HordaPorGPU, OFFSET, tintOpaco } from '../../src/cenas/render/escritores';
 import { criarSaidaDaHorda, criarTabelaDeDesenho, prepararHorda, prepararQuadrosDaHorda } from '../../src/cenas/render/horda';
@@ -84,7 +85,16 @@ describe('tabela de desenho', () => {
       branco: i('oco_grande_telegrafo_branco'),
     });
     expect(tabela[TIPO.novica_de_sal]).toMatchObject({ medio: true, cor: COR_DO_INIMIGO['novica_de_sal'] });
-    expect([tabela[TIPO.vazio], tabela[TIPO.oco_grande_coroado], tabela[TIPO.o_lanterneiro]]).toEqual([null, null, null]);
+    // O Coroado (F-008) ainda não tem arte (F-011): provisório, as molduras do Oco Grande na escala de 64 ÷ 48 e a cor dos elites.
+    expect(tabela[TIPO.oco_grande_coroado]).toMatchObject({
+      medio: true,
+      escala: (2 * 64) / 48,
+      cor: COR_DOS_ELITES['oco_grande_coroado'],
+      tint: tintOpaco(COR_DOS_ELITES['oco_grande_coroado']!),
+      andar: [i('oco_grande'), i('oco_grande_2')],
+      telegrafo: i('oco_grande_telegrafo'),
+    });
+    expect([tabela[TIPO.vazio], tabela[TIPO.o_lanterneiro]]).toEqual([null, null]);
   });
 
   it('quadros (F-011): andar de 2 quadros pelo passo (defasado pelo slot), acerto nos 3 passos depois do golpe, espelho para o lado do jogador', () => {
@@ -117,8 +127,8 @@ describe('tabela de desenho', () => {
 
   it('um tipo que nasce sem tamanho ou sem cor é erro na montagem', () => {
     const existe = Uint8Array.from(D.tipos.existe);
-    existe[TIPO.oco_grande_coroado] = 1;
-    expect(() => criarTabelaDeDesenho(inimigos.inimigos, existe)).toThrow(/oco_grande_coroado/);
+    existe[TIPO.o_lanterneiro] = 1;
+    expect(() => criarTabelaDeDesenho(inimigos.inimigos, existe)).toThrow(/o_lanterneiro/);
   });
 });
 
