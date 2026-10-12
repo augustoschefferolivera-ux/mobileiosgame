@@ -4,6 +4,7 @@
 // (ou quando os testes e as folhas pedem). O empacotamento é determinístico.
 import { ANGULOS_DESENHADOS, arco, estocada, onda, setorGirado, girado, type ImagemComOrigem } from './efeitos';
 import { compor, novaImagem, rasterizar, type Grade, type Imagem } from './imagem';
+import { COR_DA_CHAVE } from './paleta';
 import { anel, brilho, chao, clarear, contornar, cristal, disco, faca, rocha, silhueta, virarCinza } from './procedural';
 import * as aldric from './sprites/aldric';
 import { ALMA, BAU_COMUM, BAU_DOURADO, MIOLO_DO_ATORDOADO, MIOLO_DO_SAL, MIOLO_DOS_ICONES } from './sprites/itens';
@@ -40,7 +41,18 @@ export const TIPOS_DE_INIMIGO = {
   oco_das_lanternas: { andar: [ocos.OCO_DAS_LANTERNAS, ocos.OCO_DAS_LANTERNAS_2], telegrafo: null, ataque: null },
   oco_grande: { andar: [ocos.OCO_GRANDE, ocos.OCO_GRANDE_2], telegrafo: ocos.OCO_GRANDE_TELEGRAFO, ataque: ocos.OCO_GRANDE_ATAQUE },
   novica_de_sal: { andar: [sep.NOVICA_DE_SAL, sep.NOVICA_DE_SAL_2], telegrafo: sep.NOVICA_DE_SAL_TELEGRAFO, ataque: sep.NOVICA_DE_SAL_ATAQUE },
+  oco_grande_coroado: {
+    andar: [ocos.OCO_GRANDE_COROADO, ocos.OCO_GRANDE_COROADO_2],
+    telegrafo: ocos.OCO_GRANDE_COROADO_TELEGRAFO,
+    ataque: ocos.OCO_GRANDE_COROADO_ATAQUE,
+  },
 } as const;
+
+/** Cor do bloco 2 × 2 do centro do 1º quadro de andar: a cor de identidade de um tipo sem cor própria em COR_DO_INIMIGO. */
+export function corDoCentro(id: keyof typeof TIPOS_DE_INIMIGO): number {
+  const g = TIPOS_DE_INIMIGO[id].andar[0];
+  return COR_DA_CHAVE[g[g.length / 2]![g[0]!.length / 2]!]!;
+}
 
 export const nomeDoArco = (forte: boolean, volta: boolean, angulo: number, quadro: number): string =>
   `arco_${forte ? 'forte' : 'espada'}_${volta ? 'volta' : 'ida'}_${angulo}_${quadro}`;

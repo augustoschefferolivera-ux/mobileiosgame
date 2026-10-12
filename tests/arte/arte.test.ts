@@ -3,7 +3,7 @@
 // de cada inimigo e o empacotamento no atlas. Roda sobre o catálogo inteiro, o
 // mesmo que o Boot desenha no atlas.
 import { describe, expect, it } from 'vitest';
-import { CATALOGO, LADO_DO_ATLAS, NOMES_DA_ARTE, REGIOES_DA_ARTE, TIPOS_DE_INIMIGO, empacotar } from '../../src/arte/catalogo';
+import { CATALOGO, LADO_DO_ATLAS, NOMES_DA_ARTE, REGIOES_DA_ARTE, TIPOS_DE_INIMIGO, corDoCentro, empacotar } from '../../src/arte/catalogo';
 import { lerPixel, rasterizar, type Imagem } from '../../src/arte/imagem';
 import { COR_DA_CHAVE, PALETA, QUENTES, RESERVADAS } from '../../src/arte/paleta';
 import { faca } from '../../src/arte/procedural';
@@ -86,7 +86,8 @@ describe('arte: catálogo', () => {
   it('tamanhos da escala (style card §4)', () => {
     for (const nome of NOMES_DA_ARTE) {
       const i = img(nome);
-      if (nome.startsWith('aldric_') || /^(oco_grande|novica_de_sal)/.test(nome)) expect([nome, i.largura, i.altura]).toEqual([nome, 24, 24]);
+      if (nome.startsWith('oco_grande_coroado')) expect([nome, i.largura, i.altura]).toEqual([nome, 32, 32]);
+      else if (nome.startsWith('aldric_') || /^(oco_grande|novica_de_sal)/.test(nome)) expect([nome, i.largura, i.altura]).toEqual([nome, 24, 24]);
       if (nome.startsWith('oco_das_lanternas')) expect([nome, i.largura, i.altura]).toEqual([nome, 16, 16]);
       if (nome.startsWith('icone_')) expect([nome, i.largura, i.altura]).toEqual([nome, 14, 14]);
     }
@@ -105,12 +106,13 @@ describe('arte: catálogo', () => {
     for (const nome of NOMES_DA_ARTE.filter((n) => /^(oco|novica)/.test(n) && !n.endsWith('_branco'))) expect(contar(img(nome), QUENTES_HEX), nome).toBeLessThanOrEqual(1);
   });
 
-  it('inimigos: o bloco 2 × 2 do centro dos quadros de andar é a cor de identidade (COR_DO_INIMIGO)', () => {
+  it('inimigos: o bloco 2 × 2 do centro dos quadros de andar é a cor de identidade (COR_DO_INIMIGO, ou a do centro num tipo novo)', () => {
     for (const [id, t] of Object.entries(TIPOS_DE_INIMIGO)) {
+      const identidade = COR_DO_INIMIGO[id] ?? corDoCentro(id as keyof typeof TIPOS_DE_INIMIGO);
       for (const g of t.andar) {
         const i = rasterizar(g);
         const m = i.largura / 2;
-        for (const [x, y] of [[m - 1, m - 1], [m, m - 1], [m - 1, m], [m, m]] as const) expect(lerPixel(i, x, y).cor, `${id} (${x}, ${y})`).toBe(COR_DO_INIMIGO[id]);
+        for (const [x, y] of [[m - 1, m - 1], [m, m - 1], [m - 1, m], [m, m]] as const) expect(lerPixel(i, x, y).cor, `${id} (${x}, ${y})`).toBe(identidade);
       }
     }
   });

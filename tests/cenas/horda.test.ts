@@ -85,14 +85,15 @@ describe('tabela de desenho', () => {
       branco: i('oco_grande_telegrafo_branco'),
     });
     expect(tabela[TIPO.novica_de_sal]).toMatchObject({ medio: true, cor: COR_DO_INIMIGO['novica_de_sal'] });
-    // O Coroado (F-008) ainda não tem arte (F-011): provisório, as molduras do Oco Grande na escala de 64 ÷ 48 e a cor dos elites.
+    // O Coroado (F-008) com a arte da F-011: elite de 32 px de arte a 2 pt (64 pt), as molduras dele, sem tint (o
+    // molde provisório do Oco Grande só vale para elite sem arte), e a cor dos elites da F-008 como identidade.
     expect(tabela[TIPO.oco_grande_coroado]).toMatchObject({
       medio: true,
-      escala: (2 * 64) / 48,
+      escala: 2,
       cor: COR_DOS_ELITES['oco_grande_coroado'],
-      tint: tintOpaco(COR_DOS_ELITES['oco_grande_coroado']!),
-      andar: [i('oco_grande'), i('oco_grande_2')],
-      telegrafo: i('oco_grande_telegrafo'),
+      tint: tintOpaco(0xffffff),
+      andar: [i('oco_grande_coroado'), i('oco_grande_coroado_2')],
+      telegrafo: i('oco_grande_coroado_telegrafo'),
     });
     expect([tabela[TIPO.vazio], tabela[TIPO.o_lanterneiro]]).toEqual([null, null]);
   });
