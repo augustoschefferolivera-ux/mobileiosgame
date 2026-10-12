@@ -429,6 +429,59 @@ describe('swipe do dedo do joystick (GE1; F-006.5, parte do tradutor)', () => {
     expect(swipe(60, 0, 16)).toBe(true);
   });
 
+  it('o limite é estrito com ms inteiros: 32 pt em 80 ms, 30 pt em 75 ms e 40 pt em 100 ms (400 pt/s exatos) não disparam; 33 em 80 e 41 em 100 disparam', () => {
+    const novo = (): void => {
+      trad.reiniciar();
+      fila.reiniciar();
+      naTela = [];
+      consumir();
+    };
+    expect(swipe(32, 0, 80)).toBe(false);
+    novo();
+    expect(swipe(30, 0, 75)).toBe(false);
+    novo();
+    expect(swipe(40, 0, 100)).toBe(false);
+    novo();
+    expect(swipe(33, 0, 80)).toBe(true);
+    novo();
+    expect(swipe(41, 0, 100)).toBe(true);
+  });
+
+  it('a janela de 100 ms: a amostra a 99 e a 100 ms entram; a 101 ms já saiu e 50 pt (495 pt/s) não disparam', () => {
+    const novo = (): void => {
+      trad.reiniciar();
+      fila.reiniciar();
+      naTela = [];
+      consumir();
+    };
+    expect(swipe(50, 0, 99)).toBe(true);
+    novo();
+    expect(swipe(50, 0, 100)).toBe(true);
+    novo();
+    expect(swipe(50, 0, 101)).toBe(false);
+  });
+
+  it('rearma quando a velocidade cai a 400 pt/s ou menos, com amostras ainda na janela: o arranque seguinte dispara', () => {
+    for (const lento of [20, 32]) {
+      trad.reiniciar();
+      fila.reiniciar();
+      naTela = [];
+      consumir();
+      em(1000, T.inicio, 1, 100, 600);
+      em(1080, T.move, 1, 150, 600);
+      frame();
+      expect(acoes()).toBe(ACAO.esquiva);
+      consumir();
+      // 20 pt (250 pt/s) ou 32 pt (400 pt/s exatos) em 80 ms: o dedo segue lento, a amostra de 1080 ainda na janela.
+      em(1160, T.move, 1, 150 + lento, 600);
+      frame();
+      expect(acoes(), `lento ${lento}`).toBe(0);
+      em(1200, T.move, 1, 150 + lento + 60, 600);
+      frame();
+      expect(acoes(), `lento ${lento}`).toBe(ACAO.esquiva);
+    }
+  });
+
   it('só o dono do joystick: um 2º dedo rápido não dispara', () => {
     em(1000, T.inicio, 1, 100, 600);
     em(1000, T.inicio, 2, 100, 650);
@@ -447,6 +500,23 @@ describe('swipe do dedo do joystick (GE1; F-006.5, parte do tradutor)', () => {
       trad.mudarModo('vigilia');
       fila.reiniciar();
       naTela = [];
+    }
+  });
+
+  it('o dono que já existe quando o modo muda (sem passar por mudarModo) não gera esquiva na pausa nem no modal', () => {
+    for (const modo of ['pausa', 'modal'] as const) {
+      trad.reiniciar();
+      fila.reiniciar();
+      naTela = [];
+      consumir();
+      em(1000, T.inicio, 1, 100, 600);
+      frame();
+      expect(trad.joystick.ativo).toBe(true);
+      trad.modo = modo;
+      em(1080, T.move, 1, 160, 600);
+      frame();
+      expect(acoes(), modo).toBe(0);
+      expect([cmd.mira[0], cmd.mira[1]], modo).toEqual([0, 0]);
     }
   });
 
