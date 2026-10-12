@@ -6,9 +6,11 @@
 // `node scripts/arte/rodar.mjs amostras [pasta]` (padrão: design/arte).
 import { compor, novaImagem, pintar, rasterizar, type Imagem } from '../../src/arte/imagem';
 import { COR_DA_CHAVE, PALETA } from '../../src/arte/paleta';
-import { anel, arcoDoGolpe, brilho, chao, clarear, cristal, disco, faca, rocha, setor, virarCinza } from '../../src/arte/procedural';
+import { anel, arcoDoGolpe, brilho, chao, clarear, contornar, cristal, disco, faca, rocha, setor, virarCinza } from '../../src/arte/procedural';
+
+const ICONE_ESPADA = MIOLO_DOS_ICONES.espada;
 import { ALDRIC_PARADO } from '../../src/arte/sprites/aldric';
-import { ALMA, BAU_COMUM, BAU_DOURADO, ICONE_ESPADA } from '../../src/arte/sprites/itens';
+import { ALMA, BAU_COMUM, BAU_DOURADO, MIOLO_DOS_ICONES } from '../../src/arte/sprites/itens';
 import { OCO_DAS_LANTERNAS, OCO_GRANDE } from '../../src/arte/sprites/ocos';
 import { NOVICA_DE_SAL } from '../../src/arte/sprites/sepultadoras';
 import { FONTE_DOS_DIGITOS } from '../../src/cenas/render/atlas';
@@ -114,7 +116,7 @@ function amostraDois(): Imagem {
     { img: rasterizar(ALMA) },
     { img: rasterizar(BAU_COMUM) },
     { img: rasterizar(BAU_DOURADO) },
-    { img: rasterizar(ICONE_ESPADA) },
+    { img: contornar(rasterizar(ICONE_ESPADA)) },
   ]);
   const ladrilhos = novaImagem(32, 32);
   for (let k = 0; k < 4; k++) compor(ladrilhos, chao(k), (k % 2) * 16, Math.floor(k / 2) * 16);
@@ -187,7 +189,7 @@ function amostraTres(): Imagem {
   barra(16, 92, 110, 6, 'S', 0.55);
   retangulo(img, 330 * 2 - 4, 76 * 2 - 4, 28 * 2 + 8, 28 * 2 + 8, 'O');
   retangulo(img, 330 * 2, 76 * 2, 28 * 2, 28 * 2, 'K');
-  compor(img, rasterizar(ICONE_ESPADA), 330 * 2, 76 * 2, 4);
+  compor(img, contornar(rasterizar(ICONE_ESPADA)), 330 * 2, 76 * 2, 4);
   return img;
 }
 
