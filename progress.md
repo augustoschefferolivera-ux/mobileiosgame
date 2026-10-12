@@ -1,5 +1,12 @@
 # progress.md
 
+## Backlog do usuário (teste no iPhone, 2026-10-12)
+
+- "Tá muito bom o resultado até agora."
+- **Bug de movimento no joystick:** andando reto, uma virada pequena do dedo vira o personagem bruscamente. Investigar o vetor do joystick (zona morta radial 0,15, curva linear, sem suavização; D2 §4) e a mira das armas pela última direção.
+- **Passar por cima dos mobs:** em aberto. Hoje o jogador é bloqueado pelos inimigos (D3 S4) e só os atravessa nos i-frames da esquiva (D6 ES7). O usuário ainda vai decidir.
+- **Gráficos:** refinar muito depois (arte final).
+
 ## Sessão 6 — F-006 "Stamina, esquiva e aparo"
 
 ### Estado: F-006 pronta (aguarda a revisão do usuário); F-007 não começada
