@@ -12,6 +12,7 @@ import {
   CENARIO,
   ETAPA,
   FASE,
+  FOGUEIRA_F32,
   FOGUEIRA_U32,
   FOGUEIRA_U8,
   JOGADOR,
@@ -24,7 +25,10 @@ import {
   hashEstado,
   type Estado,
 } from '../../../src/logica/nucleo/estado';
+import { eventosEscritos } from '../../../src/logica/nucleo/eventos';
 import { avancar } from '../../../src/logica/nucleo/passo';
+import { sombraDaFogueira } from '../../../src/logica/mundo/fogueira';
+import { recalcularDano } from '../../../src/logica/progressao/dano';
 import { modalAberto } from '../../../src/logica/progressao/modal';
 import { metaPadrao, somaDoTexto } from '../../../src/logica/save/meta';
 import {
@@ -130,6 +134,20 @@ describe('salvar e restaurar (F-008.1)', () => {
     expect(hashDosBytes(n.bytes)).toBe(hashDosBytes(e.bytes));
   });
 
+  it('com atributos gastos: restaurar refaz as quatro tabelas de dano vivo (derivados fora do buffer)', () => {
+    const e = ate500();
+    const padrao = criarEstado(777, D, {});
+    for (let k = 0; k < e.atributos.length; k++) e.atributos[k] = e.atributos[k]! + 3 + k;
+    recalcularDano(e, D);
+    expect([...e.derivados.danoVivo]).not.toEqual([...padrao.derivados.danoVivo]);
+    const n = recarregar(e);
+    expect([...n.atributos]).toEqual([...e.atributos]);
+    expect([...n.derivados.danoVivo]).toEqual([...e.derivados.danoVivo]);
+    expect([...n.derivados.danoVivoPoder]).toEqual([...e.derivados.danoVivoPoder]);
+    expect([...n.derivados.danoOnda]).toEqual([...e.derivados.danoOnda]);
+    expect([...n.derivados.danoOndaPoder]).toEqual([...e.derivados.danoOndaPoder]);
+  });
+
   it('com o modal aberto: continua aberto e avancar devolve 0', () => {
     const e = hordaComTresArmas();
     avancar(e, D, PARADO, 20);
@@ -175,6 +193,38 @@ describe('salvar no meio não muda o caminho (F-008.6)', () => {
   });
 });
 
+describe('restaurar: anel de eventos e sombra da Fogueira', () => {
+  it('o anel de eventos do estado que recebe o save é esvaziado na carga (nenhum evento velho é reemitido)', () => {
+    const e = ate500();
+    const lido = lerVigilia(serializarVigilia(e, 1));
+    if (!lido.ok) throw new Error(lido.motivo);
+    const alvo = hordaComTresArmas(9);
+    avancar(alvo, D, FONTE(), 300);
+    expect(eventosEscritos(alvo.eventos)).toBeGreaterThan(0);
+    expect(restaurar(alvo, D, lido.envelope)).toBe('ok');
+    expect(eventosEscritos(alvo.eventos)).toBe(0);
+  });
+
+  it('um save com a etapa FOGUEIRA restaurado já tem a sombra (o hash do próprio save), para Partir no 1º passo', () => {
+    const e = criarEstado(1, D, { cenario: CENARIO.diretorDesligado | CENARIO.jogadorInvulneravel, relogioInicial: 18000, inicioLivre: true });
+    e.fogueiraU8[FOGUEIRA_U8.fogueiraAcesa] = 1;
+    e.fogueiraU8[FOGUEIRA_U8.fogueiraHora] = 1;
+    e.fogueiraF32[FOGUEIRA_F32.fogueiraX] = e.jogador[JOGADOR.x]! + 20;
+    e.fogueiraF32[FOGUEIRA_F32.fogueiraY] = e.jogador[JOGADOR.y]!;
+    avancar(e, D, PARADO, 3);
+    expect(e.fogueiraU8[FOGUEIRA_U8.etapa]).toBe(ETAPA.fogueira);
+    const n = recarregar(e);
+    expect(n.fogueiraU8[FOGUEIRA_U8.etapa]).toBe(ETAPA.fogueira);
+    const s = sombraDaFogueira(n);
+    expect(s).toBeDefined();
+    expect(hashDosBytes(s!)).toBe(hashDosBytes(e.bytes));
+  });
+
+  it('com a etapa HORA a carga não inventa sombra', () => {
+    expect(sombraDaFogueira(recarregar(ate500()))).toBeUndefined();
+  });
+});
+
 describe('leitura que nunca lança (SV6, SV7)', () => {
   const e = ate500();
   const bom = serializarVigilia(e, 2);
@@ -207,6 +257,10 @@ describe('leitura que nunca lança (SV6, SV7)', () => {
     expect(restaurar(alvo(), D, ler({ ...o, layout: 7 }))).toBe('layout');
     expect(restaurar(alvo(), D, ler({ ...o, bytes: o.bytes.slice(0, -8) }))).toBe('tamanho');
     expect(restaurar(alvo(), D, ler({ ...o, bytes: '!' + o.bytes.slice(1) }))).toBe('base64');
+    // Buffer maior que o do build também é recusado (sem RangeError em `bytes.set`).
+    const maior = new Uint8Array(base64ParaBytes(o.bytes)!.length + 8);
+    maior.set(base64ParaBytes(o.bytes)!);
+    expect(restaurar(alvo(), D, ler({ ...o, bytes: bytesParaBase64(maior) }))).toBe('tamanho');
   });
 
   it('NaN no buffer: recusa (SV6)', () => {
@@ -227,6 +281,16 @@ describe('leitura que nunca lança (SV6, SV7)', () => {
     const meta = { ...metaPadrao(), almas: 10, proximaIdVigilia: 4 };
     const depois = recusarSemEstado(meta, 3, 101, null);
     expect([depois.almas, depois.ultimaEncerrada, depois.vigiliasConcluidas, depois.mancha]).toEqual([10 + 50, 3, 1, null]);
+  });
+});
+
+describe('Recusar sem estado: o maior entre o envelope e o andamento do mesmo id (SV5)', () => {
+  it('andamento maior vale; menor ou de outro id não', () => {
+    const meta = { ...metaPadrao(), almas: 10, proximaIdVigilia: 4 };
+    const and = (idVigilia: number, almas: number) => ({ idVigilia, seqDoVigilia: 1, hora: 0, almas, x: 1, y: 1, relogio: 9, passo: 9 });
+    expect(recusarSemEstado(meta, 3, 101, and(3, 400)).almas).toBe(10 + 200);
+    expect(recusarSemEstado(meta, 3, 101, and(3, 60)).almas).toBe(10 + 50);
+    expect(recusarSemEstado(meta, 3, 101, and(2, 900)).almas).toBe(10 + 50);
   });
 });
 
@@ -289,6 +353,13 @@ describe('andamento (SV3)', () => {
     const a = lerAndamento(t)!;
     expect(a).toMatchObject({ idVigilia: 7, seqDoVigilia: 3, hora: 0, almas: e.progresso[PROGRESSAO.almas], relogio: 500, passo: 500 });
     expect([a.x, a.y]).toEqual([e.jogador[JOGADOR.x], e.jogador[JOGADOR.y]]);
+    // A hora do save é a da última Fogueira acesa, não a quantidade de marcos já iniciados.
+    e.fogueiraU8[FOGUEIRA_U8.fogueiraHora] = 1;
+    e.fogueiraU8[FOGUEIRA_U8.marcosIniciados] = 2;
+    expect(lerAndamento(serializarAndamento(e, 3))!.hora).toBe(1);
+    const lidoV = lerVigilia(serializarVigilia(e, 3));
+    if (!lidoV.ok) throw new Error(lidoV.motivo);
+    expect(lidoV.envelope.hora).toBe(1);
     expect(lerAndamento(t.replace('"relogio":500', '"relogio":501'))).toBeNull();
     expect(lerAndamento(null)).toBeNull();
     expect(lerAndamento('{}')).toBeNull();

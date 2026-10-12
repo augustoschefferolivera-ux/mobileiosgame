@@ -9,12 +9,16 @@ import {
   FOGUEIRA_U8,
   JOGADOR,
   JOGADOR2,
+  JOGADOR4,
+  JOGADOR4_U32,
   JOGADOR4_U8,
   MUNDO,
   PROGRESSAO,
   hashEstado,
   type Estado,
 } from '../../../src/logica/nucleo/estado';
+import { alocar, quantosAtivos } from '../../../src/logica/nucleo/pool';
+import { TIPO_DE_PROJETIL } from '../../../src/logica/nucleo/estado';
 import { EVENTO } from '../../../src/logica/nucleo/eventos';
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { FNV_BASE, fnv1aBytes } from '../../../src/logica/nucleo/hash';
@@ -88,6 +92,43 @@ describe('entrar no raio e o tempo parado (FG2, FG3; F-008.4e)', () => {
     e.inimigos.ataqueTimer[slot] = 20;
     avancar(e, D, PARADO, 1);
     expect([e.inimigos.ataqueFase[slot], e.inimigos.ataqueTimer[slot]]).toEqual([0, 0]);
+  });
+
+  it('ao abrir, todo Sal inimigo é liberado (perto e longe); a faca do jogador fica (FG3)', () => {
+    const e = comFogueira(30);
+    const pôr = (dx: number, tipo: number): number => {
+      const p = alocar(e.poolDeProjeteis);
+      e.projeteis.x[p] = e.projeteis.xAnt[p] = J.x + dx;
+      e.projeteis.y[p] = e.projeteis.yAnt[p] = J.y + 150;
+      e.projeteis.vida[p] = 100;
+      e.projeteis.tipo[p] = tipo;
+      return p;
+    };
+    const salPerto = pôr(20, TIPO_DE_PROJETIL.sal);
+    const salLonge = pôr(300, TIPO_DE_PROJETIL.sal);
+    const faca = pôr(60, TIPO_DE_PROJETIL.faca);
+    avancar(e, D, PARADO, 1);
+    expect(u(e, 'etapa')).toBe(ETAPA.fogueira);
+    expect(e.poolDeProjeteis.posicao[salPerto]!).toBeLessThan(0);
+    expect(e.poolDeProjeteis.posicao[salLonge]!).toBeLessThan(0);
+    expect(e.poolDeProjeteis.posicao[faca]!).toBeGreaterThanOrEqual(0);
+    expect(quantosAtivos(e.poolDeProjeteis)).toBe(1);
+  });
+
+  it('a mancha segue valendo na Fogueira: encostar nela devolve as Almas (D8: a mancha roda em FOGUEIRA)', () => {
+    const e = comFogueira(30);
+    avancar(e, D, PARADO, 1);
+    expect(u(e, 'etapa')).toBe(ETAPA.fogueira);
+    e.jogador4U8[JOGADOR4_U8.manchaAtiva] = 1;
+    e.jogador4[JOGADOR4.manchaX] = e.jogador[JOGADOR.x]! + 20;
+    e.jogador4[JOGADOR4.manchaY] = e.jogador[JOGADOR.y]!;
+    e.jogador4U32[JOGADOR4_U32.manchaAlmas] = 84;
+    const almas = e.progresso[PROGRESSAO.almas]!;
+    avancar(e, D, PARADO, 1);
+    expect(e.jogador4U8[JOGADOR4_U8.manchaAtiva]).toBe(0);
+    expect(e.progresso[PROGRESSAO.almas]).toBe(almas + 84);
+    expect(eventosDe(e, EVENTO.manchaRecuperada)).toHaveLength(1);
+    expect(u(e, 'etapa')).toBe(ETAPA.fogueira);
   });
 
   it('esquiva e aparo são ignorados sem custo; o jogador anda', () => {
@@ -201,6 +242,30 @@ describe('Partir, sair do raio e a Fogueira ignorada (FG6, FG9; F-008.4f)', () =
     const s = sombraDaFogueira(e)!;
     expect(s.length).toBe(e.bytes.length);
     expect(fnv1aBytes(FNV_BASE, s)).toBe(hashAntes);
+  });
+
+  it('Descansar e Forjar no mesmo passo do Partir entram na sombra (divergência 15)', () => {
+    const e = comFogueira(30);
+    avancar(e, D, PARADO, 3);
+    e.jogador[JOGADOR.hp] = 10;
+    e.jogador4U8[JOGADOR4_U8.frascoCargas] = 0;
+    avancar(e, D, acoesEm([{ passo: e.cab[CAB.passo]!, acoes: ACAO.descansar | ACAO.forjar | ACAO.partir }]), 1);
+    expect(u(e, 'etapa')).toBe(ETAPA.hora);
+    const s = sombraDaFogueira(e)!;
+    const lido = estadoDe([[ESPADA, 8]], [[ELMO, 1]], { relogioInicial: HORA[0], inicioLivre: true });
+    lido.bytes.set(s);
+    expect(lido.jogador[JOGADOR.hp]).toBe(lido.jogador2[JOGADOR2.hpMax]);
+    expect(lido.jogador4U8[JOGADOR4_U8.frascoCargas]).toBe(D.combate.frascoCargas);
+    expect(lido.mundo[MUNDO.intensidade10]).toBe(11);
+    expect(lido.build.codigo[0]).not.toBe(ESPADA);
+    expect(lido.progresso[PROGRESSAO.almas]).toBe(400 - 150);
+    expect(lido.fogueiraU8[FOGUEIRA_U8.fogueiraAcoes]).toBe(3);
+    expect(lido.fogueiraU8[FOGUEIRA_U8.etapa]).toBe(ETAPA.fogueira);
+    // Telemetria: o evento 36 leva a Fogueira, a hora (1) e os bits das ações usadas (Descansar 1 + Forjar 2); o 34, o HP máximo e a hora.
+    const partiu = eventosDe(e, EVENTO.fogueiraPartiu)[0]!;
+    expect([partiu.x, partiu.y, partiu.a, partiu.b, partiu.forma]).toEqual([J.x + 30, J.y, 1, 3, 1]);
+    const desc = eventosDe(e, EVENTO.descansou)[0]!;
+    expect([desc.a, desc.b]).toEqual([lido.jogador2[JOGADOR2.hpMax], 1]);
   });
 
   it('sair a 65 px é Partir (forma 2); a sombra tem o hash do estado de antes do passo', () => {
