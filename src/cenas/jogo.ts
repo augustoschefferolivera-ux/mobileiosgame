@@ -25,6 +25,7 @@ import { Boot } from './Boot';
 import { Resultado } from './Resultado';
 import { Hud } from './Hud';
 import { Pausa } from './Pausa';
+import { Fogueira } from './Fogueira';
 import type { ContextoDoJogo } from './contexto';
 import { instalarDebug, instantaneoDoDebug } from './debug';
 import { MedidorDeQuadros } from './medidas';
@@ -147,7 +148,7 @@ export function iniciarJogo(): Phaser.Game | null {
         if (ehBuildDeDebug) ligarTecladoDeDebug(window, ctx.entrada.tradutor.teclado, () => ctx.entrada.tradutor.pedirEsquivaDoTeclado());
       },
     },
-    scene: [new Boot(ctx), new Acender(ctx), new Vigilia(ctx), new Hud(ctx), new Modal(ctx), new Pausa(ctx), new Resultado(ctx)],
+    scene: [new Boot(ctx), new Acender(ctx), new Vigilia(ctx), new Hud(ctx), new Fogueira(ctx), new Modal(ctx), new Pausa(ctx), new Resultado(ctx)],
   });
   const debug = instalarDebug(jogo, ctx);
   if (ctx.debug) instalarPainelDeDebug(document, () => instantaneoDoDebug(debug));

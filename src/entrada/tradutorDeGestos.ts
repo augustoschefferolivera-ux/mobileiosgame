@@ -14,7 +14,7 @@
 // e nunca os desliga (a fonte ao vivo consome a borda). Não aloca.
 import combate from '../dados/combate.json';
 import { ACAO, type ComandosDoPasso } from '../logica/nucleo/comandos';
-import { alvoDaPausa, alvoDoAparo, alvoDoFrasco, alvosDaTelaDePausa, alvosDasCartas, alvosDoBau, alvosDoResultado, areaDoJoystick, contem, type Alvo } from './alvos';
+import { alvoDaPausa, alvoDoAparo, alvoDoFrasco, alvosDaFogueira, alvosDaTelaDePausa, alvosDasCartas, alvosDoBau, alvosDoResultado, areaDoJoystick, contem, type Alvo } from './alvos';
 import { CAMPOS_POR_EVENTO, TIPO_DE_TOQUE, type FilaDeToques } from './filaDeToques';
 import { GIRO_MAX_GRAUS_S, pinoDoJoystick, REVERSAO_IMEDIATA_GRAUS, vetorDoJoystick, type Vetor } from './joystick';
 import type { Insets } from '../plataforma/safeArea';
@@ -27,7 +27,9 @@ export const ID_DO_MOUSE = -1;
 /** Papel do dedo, pelo lugar onde começou: um botão (pausa, Aparo) não cria joystick nem conta para o gesto (P1, P3, AP1). */
 const PAPEL = { livre: 0, joystick: 1, outro: 2, botao: 3 } as const;
 /** Qual botão da Vigília o dedo de papel `botao` tocou. */
-const BOTAO = { pausa: 0, aparo: 1, frasco: 2 } as const;
+const BOTAO = { pausa: 0, aparo: 1, frasco: 2, fogueira: 3 } as const;
+/** Os bits dos três botões do menu da Fogueira, na ordem de `alvosDaFogueira` (F-008 FG8). */
+const ACAO_DA_FOGUEIRA = [ACAO.descansar, ACAO.forjar, ACAO.partir] as const;
 
 /** Gesto de pausa (P3): "parado" = até 10 pt do ponto do touchstart, por pelo menos 500 ms (o UILongPressGestureRecognizer). */
 export const GESTO_DE_PAUSA = { movimentoMaximoPt: 10, duracaoMs: 500, dedos: 2 } as const;
@@ -84,6 +86,8 @@ export class TradutorDeGestos {
   aparoApertos = 0;
   /** Toques que acionaram o botão do Frasco desde a criação; o Hud o lê para o preenchimento de 4 quadros. */
   frascoApertos = 0;
+  /** O menu da Fogueira está aberto (a cena escreve antes de traduzir): seus botões entram no lugar do joystick (F-008 FG8). */
+  fogueiraAberta = false;
   /** A cura do Frasco corre agora (a cena escreve antes de traduzir): decide entre iniciar (bit 4) e cancelar (bit 8, FR6). */
   frascoEmCura = false;
   /** No modo pausa: o alvo da tela de pausa acionado neste frame (começou e soltou dentro). */
@@ -114,6 +118,7 @@ export class TradutorDeGestos {
   private readonly iniciouCura = new Uint8Array(MAX_DEDOS);
   private readonly cancelouCura = new Uint8Array(MAX_DEDOS);
   private readonly alvosDoResultado: Alvo[] = [];
+  private readonly alvosDaFogueira: Alvo[] = [];
   private readonly qualBotao = new Uint8Array(MAX_DEDOS);
   private readonly alvosDaPausa: Alvo[] = [];
   private readonly alvosDasCartas: Alvo[] = [];
@@ -168,6 +173,7 @@ export class TradutorDeGestos {
     this.toqueNaPausa = null;
     this.toqueNoResultado = null;
     this.frascoEmCura = false;
+    this.fogueiraAberta = false;
     this.nToquesNoModal = 0;
     this.gestoTravado = false;
   }
@@ -179,6 +185,7 @@ export class TradutorDeGestos {
     alvoDoAparo(insets, this.botaoDoAparo);
     alvoDoFrasco(insets, this.botaoDoFrasco);
     alvosDoResultado(insets, this.alvosDoResultado);
+    alvosDaFogueira(insets, this.alvosDaFogueira);
     alvosDaTelaDePausa(insets, this.alvosDaPausa);
     alvosDasCartas(insets, this.alvosDasCartas);
     alvosDoBau(insets, this.alvosDoBau);
@@ -386,6 +393,11 @@ export class TradutorDeGestos {
       this.cancelouCura[s] = 0;
       this.iniciouCura[s] = this.frascoEmCura ? 0 : 1;
       if (!this.frascoEmCura && this.saida) this.saida.acoes[0] = this.saida.acoes[0]! | ACAO.frasco;
+    } else if (this.fogueiraAberta && this.botaoDaFogueiraEm(x, y) >= 0) {
+      // Menu da Fogueira (FG8): dispara no touchstart, uma vez por toque; a simulação nega o que já foi usado.
+      this.papel[s] = PAPEL.botao;
+      this.qualBotao[s] = BOTAO.fogueira;
+      if (this.saida) this.saida.acoes[0] = this.saida.acoes[0]! | ACAO_DA_FOGUEIRA[this.botaoDaFogueiraEm(x, y)]!;
     } else if (this.dono < 0 && contem(this.area, x, y)) {
       // Toque duplo (GE2): dispara no touchstart do 2º toque, que segue como dono do joystick.
       if (this.temToque && this.saida) {
@@ -414,6 +426,12 @@ export class TradutorDeGestos {
     } else {
       this.papel[s] = PAPEL.outro;
     }
+  }
+
+  /** O índice do botão do menu da Fogueira no ponto, ou -1. Não aloca. */
+  private botaoDaFogueiraEm(x: number, y: number): number {
+    for (let k = 0; k < this.alvosDaFogueira.length; k++) if (contem(this.alvosDaFogueira[k]!, x, y)) return k;
+    return -1;
   }
 
   /**

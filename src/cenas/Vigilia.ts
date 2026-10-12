@@ -13,7 +13,7 @@ import { alfa, criarAcumulador } from '../logica/nucleo/acumulador';
 import { criarCameraLenta, dispararCameraLenta, escalarDelta, escalarDeltaDoApagar } from '../logica/nucleo/cameraLenta';
 import { ACAO, criarComandos, fonteConstante, fonteDoRoteiro } from '../logica/nucleo/comandos';
 import { rodarFrameComPausas } from '../logica/nucleo/driver';
-import { CAB, CAUSA_DO_FIM, CENARIO, FASE, FOGUEIRA_U32, JOGADOR, JOGADOR3_U8, JOGADOR4, JOGADOR4_U8, PROMPT, TIPO_DE_CARTA, TODOS_OS_TUTORIAIS, criarEstado, tutoriaisCumpridos, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
+import { CAB, CAUSA_DO_FIM, CENARIO, ETAPA, FASE, FOGUEIRA_U32, FOGUEIRA_U8, JOGADOR, JOGADOR3_U8, JOGADOR4, JOGADOR4_U8, PROMPT, TIPO_DE_CARTA, TODOS_OS_TUTORIAIS, criarEstado, tutoriaisCumpridos, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
 import { EVENTO, EV, eventosEscritos, inicioDoEvento } from '../logica/nucleo/eventos';
 import { IDS_DE_ARMA } from '../logica/armas/tabela';
 import { modalAberto } from '../logica/progressao/modal';
@@ -121,6 +121,7 @@ export class Vigilia extends Phaser.Scene {
     fila.reiniciar();
     tradutor.reiniciar();
     this.scene.launch('Hud');
+    this.scene.launch('Fogueira');
     this.scene.launch('Modal');
     this.scene.launch('Pausa');
     this.scene.launch('Resultado');
@@ -146,6 +147,7 @@ export class Vigilia extends Phaser.Scene {
       this.render?.liberar();
       fila.ativa = false;
       this.scene.stop('Hud');
+      this.scene.stop('Fogueira');
       this.scene.stop('Modal');
       this.scene.stop('Pausa');
       this.scene.stop('Resultado');
@@ -174,6 +176,8 @@ export class Vigilia extends Phaser.Scene {
     const fase = sim.estado.jogador4U8[JOGADOR4_U8.fase]!;
     // A cura do Frasco corre? Decide entre iniciar (bit 4) e cancelar ao segurar (bit 8; FR6).
     trad.frascoEmCura = sim.estado.jogador4U8[JOGADOR4_U8.frascoPasso]! > 0;
+    // O menu da Fogueira vale com a simulação rodando na etapa FOGUEIRA, sem pausa nem modal (F-008 FG8).
+    trad.fogueiraAberta = sim.estado.fogueiraU8[FOGUEIRA_U8.etapa] === ETAPA.fogueira && fase === FASE.viva && !sim.pausa.ativa && !modalAberto(sim.estado);
     trad.traduzir(this.ctx.entrada.fila, sim.comandosAoVivo, performance.now());
     // Outro botão da pausa desarma o Abandonar (PE4); o próprio Abandonar arma no 1º toque e confirma no 2º.
     this.desarmarAbandonar(trad.toqueNaPausa);

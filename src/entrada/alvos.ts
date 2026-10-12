@@ -233,6 +233,26 @@ export function alvosDoBau(insets: Insets, out: Alvo[]): Alvo[] {
   return out;
 }
 
+/**
+ * Menu da Fogueira (design/decisoes-F-008.md FG8): Descansar, Forjar União e Partir, empilhados à esquerda, com 72 pt de altura
+ * e 252 de largura (terminam antes da coluna do Aparo e do Frasco, que seguem vivos), o último a 24 pt do inset de baixo e
+ * 16 pt entre eles. Valem na Vigília, com a simulação rodando; o joystick segue vivo ao redor.
+ */
+export const MENU_DA_FOGUEIRA = { largura: 252, altura: ALVO_MINIMO_PT, entre: 16, margem: 24 } as const;
+
+export function alvosDaFogueira(insets: Insets, out: Alvo[]): Alvo[] {
+  const m = MENU_DA_FOGUEIRA;
+  const larguraUtil = LARGURA_LOGICA - insets.esquerda - insets.direita;
+  const largura = Math.max(ALVO_MINIMO_PT, Math.min(m.largura, larguraUtil - 2 * m.margem));
+  const x = insets.esquerda + m.margem;
+  const yPartir = ALTURA_LOGICA - insets.baixo - m.margem - m.altura;
+  out.length = 0;
+  out.push({ id: 'descansar', x, y: yPartir - 2 * (m.entre + m.altura), largura, altura: m.altura });
+  out.push({ id: 'forjar', x, y: yPartir - (m.entre + m.altura), largura, altura: m.altura });
+  out.push({ id: 'partir', x, y: yPartir, largura, altura: m.altura });
+  return out;
+}
+
 /** Todas as telas com alvos; o teste de safe-area (F-001.13 e F-002.7) percorre esta tabela. */
 export const ALVOS_POR_TELA: Record<string, (insets: Insets, out: Alvo[]) => Alvo[]> = {
   acender: alvosDoAcender,
@@ -241,4 +261,5 @@ export const ALVOS_POR_TELA: Record<string, (insets: Insets, out: Alvo[]) => Alv
   resultado: alvosDoResultado,
   cartas: alvosDasCartas,
   bau: alvosDoBau,
+  fogueira: alvosDaFogueira,
 };
