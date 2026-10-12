@@ -41,7 +41,7 @@ import { COR, cameraLogica } from './estilo';
 import { centroDaCamera } from './render/camera';
 import { criarCamada } from './render/camadas';
 import { HordaPorGPU, HordaPorImagem } from './render/escritores';
-import { RAIO_DO_ANEL_DA_MANCHA, criarMarcador, marcadorDaMancha } from './render/mancha';
+import { RAIO_DO_ANEL_DA_MANCHA, criarMarcador, criarSetasDeTelegrafo, marcadorDaMancha, setasDosTelegrafos } from './render/mancha';
 import { criarTabelaDeDesenho } from './render/horda';
 import { RenderDaVigilia } from './render/mundo';
 import { circuloDePixels, desenharIconeDePixels, trianguloDePixels } from './pixel';
@@ -55,6 +55,10 @@ export class Vigilia extends Phaser.Scene {
   /** Anel e seta da mancha (MC9): criado no 1º quadro com a mancha ativa; o marcador é reaproveitado. */
   private manchaGrafico: Phaser.GameObjects.Graphics | null = null;
   private readonly marcador = criarMarcador();
+  /** As setas na borda para os atacantes com telegrafo fora da vista (F-008 CR11): o Graphics nasce na 1ª seta. */
+  private setasGrafico: Phaser.GameObjects.Graphics | null = null;
+  private readonly setas = criarSetasDeTelegrafo();
+  private setasDesenhadas = 0;
   /** A tela de Resultado já foi aberta (em APAGANDO ou no Abandonar); o FIM só completa o que ela mostra. */
   private resultadoIniciado = false;
   /** A retomada abriu a pausa no estado antes de as cenas Pausa e Hud existirem; o 1º update as mostra. */
@@ -459,7 +463,26 @@ export class Vigilia extends Phaser.Scene {
     centroDaCamera(sim.estado, a, sim.camera);
     this.render.sincronizar(sim.estado, a, sim.camera.x, sim.camera.y);
     this.desenharMancha(sim.estado);
+    this.desenharSetasDeTelegrafo(sim.estado);
     this.cameras.main.centerOn(sim.camera.x, sim.camera.y);
+  }
+
+  /**
+   * A seta na borda da tela para cada atacante com telegrafo ativo fora da vista (CR11): branca para os aparáveis, vermelha
+   * para o Grito. Só redesenha quando há seta ou quando a última some.
+   */
+  private desenharSetasDeTelegrafo(e: Estado): void {
+    const n = setasDosTelegrafos(e, this.sim!.camera.x, this.sim!.camera.y, this.setas);
+    if (n === 0 && this.setasDesenhadas === 0) return;
+    const g = (this.setasGrafico ??= this.add.graphics());
+    g.clear();
+    this.setasDesenhadas = n;
+    for (let k = 0; k < n; k++) {
+      const s = this.setas[k]!;
+      const c = Math.cos(s.angulo);
+      const sn = Math.sin(s.angulo);
+      trianguloDePixels(g, s.x + c * 14, s.y + sn * 14, s.x - c * 8 - sn * 9, s.y - sn * 8 + c * 9, s.x - c * 8 + sn * 9, s.y - sn * 8 - c * 9, s.vermelha ? COR.cinzaVermelha : COR.branco, 1);
+    }
   }
 
   /**

@@ -39,6 +39,10 @@ const INDICIO_ESTENDIDO = 17;
 const FALHAS_DA_JANELA_ESTENDIDA = 2;
 
 const M_QUADRADO = indiceDaMoldura('quadrado');
+const M_DISCO = indiceDaMoldura('disco');
+const M_ANEL = indiceDaMoldura('anel');
+/** O disco e o anel do atlas têm o mesmo diâmetro: 120 pt em 240 px; o círculo do Grito (F-008) escala a partir deles. */
+const LARGURA_DO_DISCO_PX = MOLDURA.disco.largura;
 const LARGURA_DO_QUADRADO_PX = MOLDURA.quadrado.largura;
 /** F-011: o setor do telegrafo em pixel nos 4 ângulos desenhados (o raio-base 64 pt é o do braço) e o projétil em pixel. */
 const M_SETOR = [0, 1, 2, 3].map((k) => indiceDaMoldura(`setor_${k}`));
@@ -65,7 +69,8 @@ export function prepararMedios(e: Estado, horda: SaidaDaHorda, tabela: readonly 
     const fase = ini.ataqueFase[s]!;
     let blend = 1;
     if (fase === FASE_DO_ATAQUE.telegrafo) {
-      const tel = c.telegrafoPassos[tipo]!;
+      // O Grito do Coroado (ataqueId 1) telegrafa por mais passos que a Patada (F-008 CR3).
+      const tel = ini.ataqueId[s] === 1 ? c.gritoTelegrafoPassos[tipo]! : c.telegrafoPassos[tipo]!;
       // Passos desde T no instante desenhado (T = 0, o último passo do telegrafo = tel − 1).
       let passos = tel - ini.ataqueTimer[s]! - 1 + alfa;
       if (passos < 0) passos = 0;
@@ -128,17 +133,36 @@ export function prepararTelegrafos(e: Estado, dados: DadosDaVigilia, horda: Said
   for (let s = 0; s < CAPACIDADE_DE_INIMIGOS; s++) {
     if (ini.ataqueFase[s] !== FASE_DO_ATAQUE.telegrafo || horda.tipo[s] === 0) continue;
     const tipo = horda.tipo[s]!;
-    // Só o telegrafo branco (aparável); o vermelho é da F-008.
-    if (c.ataqueAparavel[tipo] !== 1) continue;
-    if (k >= out.capacidade) {
+    const grito = ini.ataqueId[s] === 1 && c.gritoRaio[tipo]! > 0;
+    // Só o telegrafo branco (aparável) e o círculo vermelho do Grito (F-008 CR3, CR11).
+    if (c.ataqueAparavel[tipo] !== 1 && !grito) continue;
+    if (k + (grito ? 1 : 0) >= out.capacidade) {
       excedentes++;
       continue;
     }
-    const tel = c.telegrafoPassos[tipo]!;
+    const tel = grito ? c.gritoTelegrafoPassos[tipo]! : c.telegrafoPassos[tipo]!;
     const timer = ini.ataqueTimer[s]!;
     let passos = tel - timer - 1 + alfa;
     if (passos < 0) passos = 0;
     if (passos > tel - 1) passos = tel - 1;
+    if (grito) {
+      // O círculo vermelho em volta do centro: o disco que enche (0,10 a 0,40) e o anel do raio do Grito por cima.
+      const escala = (2 * c.gritoRaio[tipo]!) / LARGURA_DO_DISCO_PX;
+      const a = ALFA_DO_TELEGRAFO.inicial + ((ALFA_DO_TELEGRAFO.final - ALFA_DO_TELEGRAFO.inicial) * passos) / (tel - 1);
+      for (let m = 0; m < 2; m++) {
+        out.visivel[k + m] = 1;
+        out.x[k + m] = horda.x[s]!;
+        out.y[k + m] = horda.y[s]!;
+        out.rotacao[k + m] = 0;
+        out.origemX[k + m] = out.origemY[k + m] = 0.5;
+        out.escalaX[k + m] = out.escalaY[k + m] = escala;
+        out.cor[k + m] = COR.cinzaVermelha;
+        out.moldura[k + m] = m === 0 ? M_DISCO : M_ANEL;
+        out.alpha[k + m] = m === 0 ? a : a + 0.4;
+      }
+      k += 2;
+      continue;
+    }
     const mx = ini.miraX[s]!;
     const my = ini.miraY[s]!;
     out.visivel[k] = 1;

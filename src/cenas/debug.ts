@@ -10,7 +10,7 @@ import type Phaser from 'phaser';
 import { fonteConstante, fonteDoRoteiro, validarAcoes, validarRoteiro, type AcaoDeRoteiro, type Roteiro } from '../logica/nucleo/comandos';
 import {
   BAU, BYTES_ESTADO, CAB, CAPACIDADE_DE_EFEITOS, FASE, JOGADOR4, JOGADOR4_U32, JOGADOR4_U8, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CAPACIDADE_DE_PROJETEIS, CARTAS, CATEGORIA_DE_ITEM, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR3_U8, JOGADOR_U8,
-  MUNDO, MUNDO2, PROGRESSAO, JOGADOR3_U16, TIPO_DE_CARTA, TIPO_DE_PROJETIL, TIPO_DE_PICKUP, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, hashEstado, hashPorSecao, type Estado,
+  FOGUEIRA_U8, MUNDO, MUNDO2, PROGRESSAO, JOGADOR3_U16, TIPO_DE_CARTA, TIPO_DE_PROJETIL, TIPO_DE_PICKUP, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, hashEstado, hashPorSecao, type Estado,
 } from '../logica/nucleo/estado';
 import { BYTES_DO_ANEL, EV, FLAG, eventosEscritos, inicioDoEvento } from '../logica/nucleo/eventos';
 import { quantosAtivos } from '../logica/nucleo/pool';
@@ -339,6 +339,8 @@ export interface GameDebug {
     danoRecebido: number;
     aparos: number;
     esquivasPerfeitas: number;
+    /** As etapas da Vigília (F-008 AR1): HORA 0, MARCO 1, FOGUEIRA 2, CHEFE 3, A_FOME 4, a arena, os Coroados vivos e a Fogueira. */
+    etapas: { etapa: number; marcosIniciados: number; arenaAtiva: boolean; coroadosVivos: number; fogueiraAcesa: boolean; fogueiraHora: number; fogueiraAcoes: number };
     resultado: { segundos: number; nivel: number; mortes: number; danoRecebido: number; almas: number; almasAoSantuario: number; mancha: { x: number; y: number; hora: number; almas: number } | null } | null;
   } | null;
   /** O meta lido do armazenamento (cópia): Almas do Santuário, mancha, tutoriais e opções. */
@@ -444,7 +446,7 @@ export interface GameDebug {
   /** Os últimos 2.048 quadros (F-003.4). Só no build de debug. */
   quadros?: () => Quadro[];
   /** Cópia dos inimigos vivos. Só no build de debug. */
-  inimigos?: () => { slot: number; tipo: string; x: number; y: number; convertido: boolean; hp: number; salPct: number; salPassos: number; kbPassos: number; ataqueFase: number; ataqueTimer: number; quebradaPassos: number }[];
+  inimigos?: () => { slot: number; tipo: string; x: number; y: number; convertido: boolean; hp: number; salPct: number; salPassos: number; kbPassos: number; ataqueFase: number; ataqueTimer: number; ataqueId: number; quebradaPassos: number }[];
   /** Cópia dos projéteis vivos. Só no build de debug. */
   /** `tipo`: faca ou sal; `dono`: o atirador do projétil de Sal (null nas facas). */
   projeteis?: () => { slot: number; arma: string; x: number; y: number; vx: number; vy: number; dano: number; vida: number; perfuracoes: number; tipo: string; dono: { slot: number; geracao: number } | null }[];
@@ -528,6 +530,15 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
         danoRecebido: e.jogador4[JOGADOR4.danoRecebido]!,
         aparos: e.jogador4U32[JOGADOR4_U32.aparos]!,
         esquivasPerfeitas: e.jogador4U32[JOGADOR4_U32.esquivasPerfeitas]!,
+        etapas: {
+          etapa: e.fogueiraU8[FOGUEIRA_U8.etapa]!,
+          marcosIniciados: e.fogueiraU8[FOGUEIRA_U8.marcosIniciados]!,
+          arenaAtiva: e.fogueiraU8[FOGUEIRA_U8.arenaAtiva] === 1,
+          coroadosVivos: e.fogueiraU8[FOGUEIRA_U8.coroadosVivos]!,
+          fogueiraAcesa: e.fogueiraU8[FOGUEIRA_U8.fogueiraAcesa] === 1,
+          fogueiraHora: e.fogueiraU8[FOGUEIRA_U8.fogueiraHora]!,
+          fogueiraAcoes: e.fogueiraU8[FOGUEIRA_U8.fogueiraAcoes]!,
+        },
         resultado: sim.resultado
           ? {
               segundos: sim.resultado.segundos,
@@ -790,7 +801,7 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     debug.inimigos = () => {
       const e = ctx.simulacao?.estado;
       if (!e) return [];
-      const lista: { slot: number; tipo: string; x: number; y: number; convertido: boolean; hp: number; salPct: number; salPassos: number; kbPassos: number; ataqueFase: number; ataqueTimer: number; quebradaPassos: number }[] = [];
+      const lista: { slot: number; tipo: string; x: number; y: number; convertido: boolean; hp: number; salPct: number; salPassos: number; kbPassos: number; ataqueFase: number; ataqueTimer: number; ataqueId: number; quebradaPassos: number }[] = [];
       for (let s = 0; s < CAPACIDADE_DE_INIMIGOS; s++) {
         if (e.pool.posicao[s]! < 0) continue;
         const ini = e.inimigos;
@@ -806,6 +817,7 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
           kbPassos: ini.kbPassos[s]!,
           ataqueFase: ini.ataqueFase[s]!,
           ataqueTimer: ini.ataqueTimer[s]!,
+          ataqueId: ini.ataqueId[s]!,
           quebradaPassos: ini.quebradaPassos[s]!,
         });
       }
