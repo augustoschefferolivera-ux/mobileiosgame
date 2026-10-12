@@ -139,6 +139,7 @@ test('pausa: estatísticas e Abandonar em duas etapas (evidência: pausa-390x844
   const ativo = await page.evaluate(() => window.__GAME_DEBUG__.textoAtivo);
   expect(ativo).toEqual(expect.arrayContaining(['A6.PAUSA.ABANDONAR', 'A6.PAUSA.MORTES', 'A6.PAUSA.DANO', 'A6.PAUSA.APAROS']));
   expect(ativo, 'as Almas não aparecem na pausa (AM5)').not.toContain('A5.HUD.ALMAS');
+  expect(ativo.filter((id) => id.startsWith('A5.HUD.')), 'a Hud some na pausa: a build não cai sobre o HP e os slots').toEqual([]);
   expect(ativo, 'o aviso só aparece armado').not.toContain('A6.PAUSA.ABANDONAR_AVISO');
   await tocar(page, abandonar);
   await quadrosDeEspera(page, 8);

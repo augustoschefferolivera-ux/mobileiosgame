@@ -184,7 +184,7 @@
     },
     {
       "id": "A6.PAUSA.MORTES",
-      "texto": "Mortes",
+      "texto": "Mortes causadas",
       "contexto": "Tela de pausa: estatística, mortes causadas (doc 11 §3.9; design/decisoes-F-007.md PE1); placeholder até o roteiro (doc 17)",
       "limite_palavras": null
     },
@@ -208,8 +208,8 @@
     },
     {
       "id": "A6.PAUSA.ESTATISTICAS_LINHA",
-      "texto": "{mortes} · {dano} · {aparos}",
-      "contexto": "Tela de pausa: as três estatísticas numa linha só, quando a altura não deixa três (design/decisoes-F-007.md PE3); só algarismos",
+      "texto": "{mortes} mortes · {dano} dano · {aparos} aparos",
+      "contexto": "Tela de pausa: as três estatísticas numa linha só, rotuladas, quando a altura não deixa três (design/decisoes-F-007.md PE3)",
       "limite_palavras": null
     },
     {

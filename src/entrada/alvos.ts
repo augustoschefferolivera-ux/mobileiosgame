@@ -160,7 +160,7 @@ export function alvosDaTelaDePausa(insets: Insets, out: Alvo[]): Alvo[] {
 }
 
 /** Estatísticas e aviso do Abandonar na pausa (PE3): linhas de 18 pt, o aviso em 2 linhas a 18 pt do botão. */
-export const BLOCO_DO_ABANDONAR = { linha: 18, linhasDoAviso: 2, folgaDoAviso: 18, folgaDasEstatisticas: 28 } as const;
+export const BLOCO_DO_ABANDONAR = { linha: 18, linhasDoAviso: 2, folgaDoAviso: 18, folgaDasEstatisticas: 28, respiroDoPainel: 8 } as const;
 
 export interface BlocoDaPausa {
   /** Topo do aviso (2 linhas) e das estatísticas, e quantas linhas as estatísticas ocupam (3, ou 1 sem espaço: "12 · 340 · 3"). */
@@ -177,7 +177,8 @@ export function blocoDaPausa(abandonar: Alvo, topoLivre: number): BlocoDaPausa {
   const b = BLOCO_DO_ABANDONAR;
   const yDoAviso = abandonar.y - b.folgaDoAviso - b.linhasDoAviso * b.linha;
   const fundo = yDoAviso - b.folgaDasEstatisticas;
-  const tres = fundo - 3 * b.linha >= topoLivre;
+  // O painel opaco das estatísticas tem um respiro acima e abaixo do texto, e também não encosta na build.
+  const tres = fundo - 3 * b.linha - b.respiroDoPainel >= topoLivre;
   return { yDoAviso, yDasEstatisticas: tres ? fundo - 3 * b.linha : fundo - b.linha, linhasDasEstatisticas: tres ? 3 : 1 };
 }
 

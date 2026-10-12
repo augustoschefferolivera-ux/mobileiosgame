@@ -25,6 +25,8 @@ interface Interno {
   persistirTutoriais(): void;
   tratarToqueDoResultado(b: string): void;
   fecharPausa(): void;
+  abrirPausa(origem: 'botao' | 'gesto'): void;
+  desarmarAbandonar(toque: string | null): void;
   scene: unknown;
   game: unknown;
 }
@@ -63,7 +65,9 @@ function montar(almas = 100, ctxExtra: Partial<ContextoDoJogo> = {}) {
   };
   ctx.simulacao = sim;
   const resultado = { mostrarApagando: vi.fn(), mostrarResultado: vi.fn(), esconder: vi.fn() };
-  const cena = { start: vi.fn(), restart: vi.fn(), get: () => resultado };
+  const pausaCena = { mostrar: vi.fn(), esconder: vi.fn() };
+  const hud = { sys: { setVisible: vi.fn() } };
+  const cena = { start: vi.fn(), restart: vi.fn(), hud, get: (k: string) => (k === 'Pausa' ? pausaCena : k === 'Hud' ? hud : resultado) };
   const v = new Vigilia(ctx) as unknown as Interno;
   v.sim = sim;
   v.scene = cena;
@@ -90,6 +94,47 @@ describe('Abandonar (PE4, PE5)', () => {
     v.tocarAbandonar();
     v.tocarAbandonar();
     expect([sim.pausa.ativa, ctx.entrada.tradutor.modo, ctx.tela]).toEqual([false, 'resultado', 'RESULTADO']);
+  });
+});
+
+describe('Abandonar armado é desarmado por outro toque (PE4; críticos M72 e M73)', () => {
+  it('Continuar, Som, Flashes e Números desarmam; o próprio Abandonar e nenhum toque mantêm; fora da pausa nada muda', () => {
+    const { v, sim } = montar();
+    for (const [pausa, toque, esperado] of [
+      [true, 'continuar', false],
+      [true, 'som', false],
+      [true, 'flashes', false],
+      [true, 'numeros', false],
+      [true, 'abandonar', true],
+      [true, null, true],
+      [false, 'som', true],
+    ] as const) {
+      sim.pausa.ativa = pausa;
+      sim.pausa.abandonarArmado = true;
+      v.desarmarAbandonar(toque);
+      expect(sim.pausa.abandonarArmado, `${pausa} ${toque}`).toBe(esperado);
+    }
+  });
+
+  it('um 2º toque no Abandonar depois de Som não abandona: arma de novo e a Vigília segue VIVA', () => {
+    const { v, sim, estado } = montar();
+    sim.pausa.ativa = true;
+    v.tocarAbandonar();
+    v.desarmarAbandonar('som');
+    v.tocarAbandonar();
+    expect([sim.pausa.abandonarArmado, estado.jogador4U8[JOGADOR4_U8.fase]]).toEqual([true, FASE.viva]);
+  });
+
+  it('abrir a pausa e Continuar desarmam (o toque do jogador reabre desarmado) e a Hud some e volta', () => {
+    const { v, sim, cena } = montar();
+    sim.pausa.abandonarArmado = true;
+    v.abrirPausa('botao');
+    expect([sim.pausa.ativa, sim.pausa.abandonarArmado]).toEqual([true, false]);
+    expect(cena.hud.sys.setVisible).toHaveBeenLastCalledWith(false);
+    sim.pausa.abandonarArmado = true;
+    v.fecharPausa();
+    expect([sim.pausa.ativa, sim.pausa.abandonarArmado]).toEqual([false, false]);
+    expect(cena.hud.sys.setVisible).toHaveBeenLastCalledWith(true);
   });
 });
 

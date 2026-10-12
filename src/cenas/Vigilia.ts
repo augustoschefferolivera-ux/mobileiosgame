@@ -159,7 +159,7 @@ export class Vigilia extends Phaser.Scene {
     trad.frascoEmCura = sim.estado.jogador4U8[JOGADOR4_U8.frascoPasso]! > 0;
     trad.traduzir(this.ctx.entrada.fila, sim.comandosAoVivo, performance.now());
     // Outro botão da pausa desarma o Abandonar (PE4); o próprio Abandonar arma no 1º toque e confirma no 2º.
-    if (sim.pausa.ativa && trad.toqueNaPausa !== null && trad.toqueNaPausa !== 'abandonar') sim.pausa.abandonarArmado = false;
+    this.desarmarAbandonar(trad.toqueNaPausa);
     // A pausa é inerte em APAGANDO e em FIM (AG3): sem pedido de pausa, e o Resultado cuida dos toques.
     if (trad.pedidoDePausa !== null && !sim.pausa.ativa && fase === FASE.viva) this.abrirPausa(trad.pedidoDePausa);
     else if (sim.pausa.ativa && trad.toqueNaPausa === 'continuar') this.fecharPausa();
@@ -207,6 +207,12 @@ export class Vigilia extends Phaser.Scene {
     if (novos === c.meta.atual) return;
     c.meta.atual = novos;
     c.meta.armazenamento.gravar(novos);
+  }
+
+  /** Outro botão da pausa desarma o Abandonar (PE4): só o próprio Abandonar mantém o armado. */
+  private desarmarAbandonar(toque: string | null): void {
+    const sim = this.sim!;
+    if (sim.pausa.ativa && toque !== null && toque !== 'abandonar') sim.pausa.abandonarArmado = false;
   }
 
   /** O botão Abandonar (PE4): o 1º toque arma (borda de brasa e aviso), o 2º confirma e roda o passo com o bit 16 (PE5). */
@@ -282,6 +288,8 @@ export class Vigilia extends Phaser.Scene {
     this.ctx.entrada.tradutor.mudarModo('pausa');
     // A pausa cala tudo (FB4, RE11): os SFX são AudioBufferSourceNode que o `pauseAll` não toca, mas o `setMute` sim.
     this.game.sound.setMute(true);
+    // A Hud some enquanto a pausa está aberta: a build e as estatísticas caíam sobre a barra de HP e os slots.
+    this.scene.get('Hud').sys.setVisible(false);
     (this.scene.get('Pausa') as Pausa).mostrar();
   }
 
@@ -348,6 +356,7 @@ export class Vigilia extends Phaser.Scene {
     this.ctx.entrada.tradutor.mudarModo('vigilia');
     // Som desligado na pausa continua mudo depois do Continuar.
     this.game.sound.setMute(!this.ctx.opcoes.som);
+    this.scene.get('Hud').sys.setVisible(true);
     (this.scene.get('Pausa') as Pausa).esconder();
   }
 

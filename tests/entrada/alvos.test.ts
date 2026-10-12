@@ -16,11 +16,13 @@ import {
   alvosDoResultado,
   blocoDaPausa,
   caixaDaOpcao,
+  BLOCO_DO_ABANDONAR,
   areaDoJoystick,
   type Alvo,
 } from '../../src/entrada/alvos';
 import { clienteParaPontos } from '../../src/entrada/camadaDeToque';
-import { insetsZerados, type Insets } from '../../src/plataforma/safeArea';
+import { RAIO_DO_JOGADOR } from '../../src/logica/mundo/jogador';
+import { ALTURA_LOGICA, insetsZerados, type Insets } from '../../src/plataforma/safeArea';
 
 const CASOS: [string, Insets][] = [
   ['sem insets', insetsZerados()],
@@ -249,6 +251,19 @@ describe('Abandonar e o bloco acima dele (design/decisoes-F-007.md PE3)', () => 
     const abandonar = alvosDaTelaDePausa({ topo: 47, direita: 0, baixo: 34, esquerda: 0 }, []).find((a) => a.id === 'abandonar')!;
     expect(blocoDaPausa(abandonar, 300)).toEqual({ yDoAviso: 404, yDasEstatisticas: 322, linhasDasEstatisticas: 3 });
     expect(blocoDaPausa(abandonar, 340)).toEqual({ yDoAviso: 404, yDasEstatisticas: 358, linhasDasEstatisticas: 1 });
+  });
+
+  it('o painel das estatísticas (com o respiro de 8 pt) não encosta na build e, em 844, fica acima do jogador (A1 do crítico)', () => {
+    const ins: Insets = { topo: 47, direita: 0, baixo: 34, esquerda: 0 };
+    const fimDaBuild = ins.topo + 56 + 11 * 18;
+    const abandonar = alvosDaTelaDePausa(ins, []).find((a) => a.id === 'abandonar')!;
+    const bloco = blocoDaPausa(abandonar, fimDaBuild);
+    const topo = bloco.yDasEstatisticas - BLOCO_DO_ABANDONAR.respiroDoPainel;
+    const base = bloco.yDasEstatisticas + bloco.linhasDasEstatisticas * 18 + BLOCO_DO_ABANDONAR.respiroDoPainel;
+    expect(topo).toBeGreaterThanOrEqual(fimDaBuild);
+    // O jogador fica no centro da tela (ALTURA/2) e o triângulo sobe ~2 raios (16 pt) dele.
+    expect(base).toBeLessThanOrEqual(ALTURA_LOGICA / 2 - 2 * RAIO_DO_JOGADOR);
+    expect(base).toBeLessThanOrEqual(bloco.yDoAviso);
   });
 
   it('o Resultado tem Voltar e Repetir de 288 × 72 pt dentro da área segura, sem se tocar', () => {

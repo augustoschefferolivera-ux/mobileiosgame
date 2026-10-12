@@ -1,5 +1,5 @@
 // Tela de pausa mínima (Q-25; ADR-0002 §11.1, a cena Modal; design/decisoes-F-004.md
-// P5, P6 e P9; decisoes-F-005 §6): véu sobre a Vigília e a Hud, título, a build
+// P5, P6 e P9; decisoes-F-005 §6): véu sobre a Vigília (a Hud some enquanto a pausa está aberta), título, a build
 // (nome e nível de cada arma e de cada passiva, dois Text por linha, a União sem
 // o nível), a opção de números de dano e Continuar. Os
 // Text são criados uma vez, na raiz da cena (o __GAME_DEBUG__.textoAtivo os
@@ -33,6 +33,8 @@ const IDS_DAS_ESTATISTICAS = ['A6.PAUSA.MORTES', 'A6.PAUSA.DANO', 'A6.PAUSA.APAR
 /** Largura de quebra do aviso do Abandonar: duas linhas (PE3). */
 const LARGURA_DO_AVISO = 280;
 const ENTRE_ROTULO_E_VALOR = 8;
+/** Largura do painel opaco das estatísticas: o texto nunca cai sobre o mundo (A1 do crítico). */
+const LARGURA_DO_PAINEL = 260;
 
 export class Pausa extends Phaser.Scene {
   private veu: Phaser.GameObjects.Graphics | null = null;
@@ -50,6 +52,8 @@ export class Pausa extends Phaser.Scene {
   private readonly valoresDasEstatisticas: Phaser.GameObjects.Text[] = [];
   private estatisticasEmUmaLinha: Phaser.GameObjects.Text | null = null;
   private readonly alvos: Alvo[] = [];
+  /** O painel das estatísticas (x, y, largura, altura), desenhado junto dos botões. */
+  private readonly painel = { x: 0, y: 0, largura: LARGURA_DO_PAINEL, altura: 0 };
   private readonly linhas: LinhaDaPausa[] = [];
   private aberta = false;
   /** As opções e o Abandonar armado como foram desenhados (números, som, flashes, armado), para redesenhar só quando mudam. */
@@ -194,6 +198,10 @@ export class Pausa extends Phaser.Scene {
     // Estatísticas e aviso acima do Abandonar (PE3): o fim da build desenhada decide entre três linhas e uma.
     const bloco = blocoDaPausa(abandonar!, y);
     const linha = BLOCO_DO_ABANDONAR.linha;
+    const respiro = BLOCO_DO_ABANDONAR.respiroDoPainel;
+    this.painel.x = cx - LARGURA_DO_PAINEL / 2;
+    this.painel.y = bloco.yDasEstatisticas - respiro;
+    this.painel.altura = bloco.linhasDasEstatisticas * linha + 2 * respiro;
     this.avisoDoAbandonar!.setPosition(cx, bloco.yDoAviso);
     this.estatisticasEmUmaLinha!.setPosition(cx, bloco.yDasEstatisticas).setVisible(bloco.linhasDasEstatisticas === 1);
     for (let k = 0; k < 3; k++) {
@@ -219,6 +227,8 @@ export class Pausa extends Phaser.Scene {
     const o = this.ctx.opcoes;
     this.desenhadas = this.assinaturaDasOpcoes();
     const g = this.botoes!.clear();
+    const p = this.painel;
+    g.fillStyle(COR.cinzaFrio).fillRect(p.x, p.y, p.largura, p.altura);
     const armado = this.ctx.simulacao?.pausa.abandonarArmado === true;
     this.avisoDoAbandonar!.setVisible(armado);
     for (const a of this.alvos) {
