@@ -661,3 +661,208 @@ Os textos já existem em `src/dados/textos/pt-BR.json`: A2.TUTORIAL.02 "Deslize 
 - **Contexto dos textos (TU10). [documento, mudança só de dado]**
   - O campo `contexto` (não o `texto`) de A2.TUTORIAL.02 e .03 em `pt-BR.json` diz hoje "Prompt aos 1:00, com o Oco Grande telegrafando" e "Prompt aos 3:00, com a Noviça de Sal". Passa a dizer "No 1º telegrafo de um Oco Grande (a partir das 1:00)" e "No 1º telegrafo de uma Noviça (a partir das 3:00)", sem mudar o texto visível.
   - Teste: o teste de textos continua verde (IDs, limite de 12 palavras); o `contexto` novo não aparece em tela.
+
+## 7. Estado v6, ordem do passo, comandos e determinismo
+
+Convenções desta seção (ES1, ST2, FB1): o passo que lê o comando é o passo 1 da ação; `c` é o passo do comando de aparo e `G` o passo do gasto de stamina; `P0 = c+12` é o passo em que a janela termina. As regras de design (esquiva, aparo, congelamento) estão nas seções 2 a 4. Aqui fica onde cada coisa mora no estado, no passo e nos dados.
+
+- **Layout v6 e lista canônica de campos (ET1). (técnica)**
+  - `VERSAO_LAYOUT` = 6. Tudo o que é novo vai depois dos 67.488 B do v5 (constante nova `BYTES_DO_LAYOUT_5`), em seções de tamanho múltiplo de 4, nesta ordem. Nada vai nos 2 bytes reservados de `JOGADOR_U8` nem nas palavras 10 a 15 do cabeçalho: mudariam bytes do v5 e obrigariam a regressão a mascarar mais. Não há `mundo3`.
+  - `jogador3`, Float32 (12 B): `stamina`, `esquivaDirX`, `esquivaDirY`.
+  - `jogador3`, Uint8 (13 campos, 16 B com 3 de folga em zero): `esperaRegen`, `esquivaPasso`, `esquivaPerfeitaDada`, `poderPassos`, `aparoJanela`, `aparoFalho`, `congelamento`, `facaExtra`, `promptEsquiva`, `promptAparo`, `falhasDeAparo`, `salPct`, `salPassos`.
+  - `jogador3`, Uint16 (8 B com 2 de folga): `alvoAparadoSlot`, `alvoAparadoGeracao`, `ameacasAparaveis`. O contador é recalculado a cada passo, mas lido no passo seguinte (decide o falho em `c+12`); por isso mora no estado.
+  - Por vaga (5), Uint8 (12 B com 2 de folga): `caSeq`, `caEspera`. A máscara de vagas de uma das áreas não guardava o progresso das sequências da Espada e da Lâmina (4 golpes, 12 passos entre eles).
+  - Por inimigo (500): Uint8 `quebradaPassos`, `ataqueFase`, `ataqueTimer` (1.500 B) e Float32 `miraX`, `miraY` (4.000 B). Os maiores valores (120 e 180) cabem em Uint8.
+  - Por projétil (400), Uint16: `donoSlot`, `donoGeracao` (1.600 B). `TIPO_DE_PROJETIL.sal` = 2, no mesmo pool, dentro do limite 200/400.
+  - O que as áreas chamaram de outro modo: `regenEspera` e `bloqueioRegen` são `esperaRegen` e `aparoFalho` (dois contadores, porque a trava de ações de 24 passos e o atraso da regeneração, que é um `max`, são coisas diferentes e o Frasco da F-007 usa só o segundo); `poderTempPassos` é `poderPassos`; `facasExtra` é `facaExtra`; `perfeitaNestaEsquiva` é `esquivaPerfeitaDada`. `contraPassos`, `contraArmas` e `contraAlvo*` (uma área) não existem: o Contra-ataque usa `caSeq`/`caEspera` por vaga e `alvoAparado*`.
+  - O `dono` do projétil fica, embora o centro da Postura Quebrada seja o jogador: o atacante sempre recebe a Postura, o `alvoAparado` e o Contra-ataque contra projétil. Isso custa 1.600 B.
+  - Tamanho: 36 B de `jogador3` (12 + 16 + 8), 12 B de vagas, 5.500 B de inimigos e 1.600 B de projéteis somam 7.148 B, isto é, ≈ **74.636 B** (a conta de uma área dava 74.652 com `mundo3`). O número final sai da implementação e fica travado em `estado.test.ts`.
+  - Slot reaproveitado: o spawn zera `quebradaPassos`, `ataqueFase`, `ataqueTimer`, `miraX` e `miraY`; `liberarProjetil` zera `donoSlot`/`donoGeracao`; a morte do inimigo zera a fase pelo mesmo caminho do spawn, senão um slot que o diretor reocupa no mesmo passo herda o telegrafo.
+  - `reiniciarEstado`: `stamina` = `vigilantes.json` (`stamina`, 100) ou `staminaInicial` do cenário; cada prompt nasce `cumprido` se o bit está em `tutoriaisVistos`. `hashPorSecao` ganha a chave `combate` (as seções novas); as faixas antigas não mudam. `verificarNaN` (hoje só os 7 Float32 do jogador) passa a cobrir `stamina`, `esquivaDirX/Y` e `miraX/Y` dos inimigos vivos.
+  - **Diverge:** ADR-0002 §4 só nos nomes: `estado`/`timerEstado` viram `ataqueFase`/`ataqueTimer`, `alvoAtaque` não é usado (o alvo é sempre o jogador; guarda-se a mira) e o "registro fixo do jogador" fica em duas partes (como o `JOGADOR2` da F-005). `dono` e `quebradaPassos` seguem o ADR.
+  - Teste: `estado.test.ts` trava a versão, `BYTES_ESTADO`, cada deslocamento e o alinhamento (Uint16 em offset par, Float32 em múltiplo de 4), `BYTES_DO_LAYOUT_5` = 67.488 e a lista de nomes; a regressão v5 (ET3) prova que nenhum dos 67.488 B antigos mudou de lugar. Reprova: campo nos bytes reservados, `mundo3` de volta, deslocamento de qualquer seção antiga.
+
+- **Constantes e bits novos (ET2). (técnica)**
+  - `TUTORIAL` = { mover 1, esquiva 2, aparo 4 } e `TODOS_OS_TUTORIAIS` = 7. A palavra 4 do cabeçalho passa de 1 para 7 em toda Vigília com `?tutorial=0` ou receita com `tutoriais_vistos: true`. `PROMPT` = { aguardando, visivel, cumprido }.
+  - `CENARIO.semAtaques` = 8 (a regra e as receitas estão em VT1). `ACAO` = { esquiva 1, aparo 2, frasco 4 } (ET5). `FLAG.contra` = 8 e os códigos de evento estão em ET10.
+  - `TODOS_OS_TUTORIAIS` é usado por `tests/logica/armas/apoio.ts`, `tests/logica/progressao/apoio.ts`, `sonda.ts`, `scripts/sim20.ts`, `cenarios.ts` e `Vigilia.ts` (`?tutorial=0`); com 7 os prompts nascem `cumprido` e nada quebra. `determinismo.test.ts:171-174` usa `TUTORIAL.mover` direto e segue verde.
+  - Teste: tabela literal dos bits; prompt `cumprido` ao nascer quando o bit está em `tutoriaisVistos`; `?tutorial=0` marca os três.
+
+- **Referências de hash e regressão v5 (ET3). (técnica)**
+  - Todas as referências mudam, porque a palavra 0 (versão) e a stamina inicial 100 entram no hash. Com `semAtaques` nas receitas antigas (VT1), elas mudam **só pelo layout**:
+    - literais no código: `tests/logica/determinismo.test.ts:94-95` (seeds 1 e 424242, passo 1.000; hoje `f39dd6b4` e `7c1b6c0c`) e `tests/logica/progressao/referencias.test.ts:117` e `:124` (`nivel_tres`; hoje `2aa5a85f` e `e776db53`);
+    - geradas por Vitest com `VDC_EVIDENCIAS=1` e lidas pela Playwright, sem edição manual: `.verify/referencia-f001.json`, `-horda.json`, `-f004.json` (1ª morte, passo 433), `-tres-armas.json` (passo 601), `-f005.json` e `-uniao.json` (passos 28 e 285);
+    - nova: `.verify/referencia-f006.json` (VT7);
+    - documentação: `progress.md` (a linha das referências e a Retomada) e o ADR-0008, com os valores antigos e novos.
+  - Regressão v5: `tests/logica/combate/regressao-v5.test.ts` compara os bytes 4 a 67.488 com valores gravados **com o código de `bc999b3`** (uma árvore extraída à parte, antes de qualquer edição). Casos: os da v4 (Vigília normal no roteiro de referência a 1.000 passos e parada a 433; `horda` 1.800; `horda_rotativa` 3.600; `tres_armas` 1.200; seeds 1 e 424242) mais os da F-005 (`nivel_tres` no passo 1 e depois das duas escolhas; `bau_uniao` até o passo 285).
+  - Máscaras: a palavra 0 fica de fora (a comparação começa no byte 4); a palavra 4 entra com `& 1` (7 contra 1 com `?tutorial=0`); a palavra 7 sai sem o bit 8 (`semAtaques`); o bit 4 (`semCinzas`) é do v5 e vale como está. Sem as máscaras a regressão reprovaria código certo.
+  - Um caso com ataques **ligados** compara os campos v5 até o passo anterior ao 1º evento `telegrafo`, achado na própria execução (não um "120" fixo: o gatilho a 80 px, §5, começa antes do que a medida de 49 px sugeria).
+  - O commit do layout vem primeiro e sozinho, com `estado.test.ts`, a regressão v5 e as referências novas, antes de qualquer comportamento.
+  - Teste: as regressões v3, v4 e v5 passam; o determinismo v6 (mesma seed, 1.000 passos; 1 passo por quadro contra 5) com ataques ligados. Reprova: ligar `semAtaques` sem efeito (as três regressões reprovam na `horda`); a palavra 4 sem máscara.
+
+- **Ordem do passo v6 (ET4). [delegada]**
+  - Nenhum documento fixa a ordem; ela estende a v5 do ADR-0007 §1. As áreas propuseram os ataques dos inimigos **antes** das armas (a Postura Quebrada marcada no aparo valeria para as armas do mesmo passo) e **depois** das armas (o inimigo morto no passo não golpeia, D4 §9). Fica depois, porque a morte antes do golpe é documento e, com o congelamento de `passo` parado (FB1), o Contra-ataque já sai no 1º passo vivo depois do aparo; a Postura marcada em `h` vale para os acertos de `h+1` em diante, que é o que ele precisa.
+  - **0.** Congelamento: se `congelamento > 0`, decrementa e **encerra o passo** (`CAB.passo` e `CAB.relogio` não andam; `xAnt`/`yAnt` não são reescritos).
+  - **1.** `CAB.passo` e `CAB.relogio` andam.
+  - **2.** Jogador, nesta ordem:
+    - (a) timers: `aparoJanela` decrementa; `aparoFalho` decrementa; `esquivaPasso` sobe (1 no passo do comando, 2 a 13 são os i-frames, volta a 0 em T+21); `salPassos` decrementa. Se `aparoJanela` chegou a 0 neste passo sem sucesso (`c+12`), decide-se o desfecho pelo `ameacasAparaveis` do **passo anterior**: > 0 é aparo falho (`aparoFalho` = 24, `esperaRegen = max(esperaRegen, 24)`, evento 16), senão aparo vazio (evento 21);
+    - (b) comandos: aparo antes de esquiva (ES6); travas (fora da esquiva de 21 passos, da janela de 11 e do falho de 24); gasto de 25 ou 15 com `esperaRegen = max(esperaRegen, 30)`; ação com stamina < custo é negada (evento 19);
+    - (c) regeneração: `if (esperaRegen > 0) esperaRegen--; else stamina = min(100, stamina + 0,5)`, **só se neste passo não houve gasto nem decisão de falho**;
+    - (d) deslocamento: esquiva (80/21 px por passo, direção fixa, colisão da caminhada, inimigos não bloqueiam nos i-frames) ou caminhada (Sal só nela);
+    - (e) prompt de mover. Os de esquiva e aparo mudam de estado na fase 6, onde o evento `telegrafo` é gravado, e na resolução (§5 e §6).
+  - **3.** Horda: `quebradaPassos` decrementa; atordoado não persegue nem recua; os médios em ataque ficam enraizados (Oco Grande de T a T+125, Noviça de T a T+29). A separação, o bloqueio e o pulso continuam valendo.
+  - **4.** Armas, com as salvas do Contra-ataque (a partir de `caSeq`/`caEspera`); **logo depois delas**, o decremento de `poderPassos`. Depois do contato o Poder valeria 119 fases de armas (medido).
+  - **5.** Pickups.
+  - **6.** Ataques dos inimigos e projéteis tipo 2, com a resolução única do acerto no jogador (aparo > i-frames > dano). Dentro da fase: `ameacasAparaveis` zerado; os projéteis em voo primeiro (movem, testam o impacto, contam); depois os inimigos em slot crescente (relógios, início do telegrafo com gatilho, mira e evento, golpe ou lançamento). Gatilho, mira e evento só aqui, com a posição final; o inimigo morto no passo não golpeia. O projétil lançado nasce com `xAnt = x` e só anda no passo seguinte; ele é contado no mesmo passo em que nasce, pelo mesmo teste de distância, para o contador não ter buraco quando o telegrafo da Noviça (contado até T+29) acaba e o projétil nasce em T+30.
+  - **7.** Contato, pela mesma resolução do acerto.
+  - **8.** Rotação do cenário. **9.** Diretor.
+  - **A regeneração e o passo que grava `esperaRegen`.** Os dois passos que gravam `esperaRegen` (o do gasto e o da decisão do falho) não regeneram **nem decrementam**; é o que dá "1ª regeneração em G+31" e "constante de P0 a P0+24, regeneração em P0+25 = G+37". A resolução do coordenador diz isso só para o gasto; o falho precisa da mesma regra, senão a regeneração volta em P0+24.
+  - **Diverge:** D4 §4, ADR-0006 §1 e ADR-0007 §1 (a ordem do passo): fase 0 de congelamento, fase 6 de ataques dos inimigos entre os pickups e o contato, e o decremento do Poder depois das armas. Registrar no ADR-0008.
+  - Medida: o protótipo do Poder mostrou 120 fases de armas só com o decremento depois das armas; o jogador já roda antes da horda e do contato no código atual (`passo.ts`).
+  - Teste: por fase. Acerto injetado em cada passo 1 a 15 da esquiva (F-006.1); passos 10, 11 e 12 do aparo (F-006.2); stamina passo a passo contra G e P0 (F-006.3 e F-006.9). Reprova: ataques antes do jogador, Poder decrementado depois do contato (119 fases), regeneração antes do gasto (−24,5 em vez de −25), `esperaRegen = 24` sem `max`, `esperaRegen += 24`.
+
+- **`ComandosDoPasso` e roteiro (ET5). (técnica)**
+  - A interface, depois da F-006:
+    - `movimento: Float32Array(2)` (como hoje);
+    - `acoes: Uint8Array(1)`, bits `ACAO.esquiva` = 1, `ACAO.aparo` = 2, `ACAO.frasco` = 4 (reservado à F-007; a validação o recusa até lá);
+    - `mira: Float32Array(2)`: a direção da esquiva do passo, módulo ≤ 1; (0,0) é "a última direção não nula do jogador" (toque duplo).
+  - `criarComandos` e `copiarComandos` copiam os três campos. As 33 ocorrências de `.movimento` em 11 arquivos não mudam.
+  - Roteiro: `TrechoDeRoteiro` não muda (a intenção vale "do passo em diante"). Uma **lista paralela** `AcaoDeRoteiro` = { passo, acoes, mira? } com passo exato, inteiro, estritamente crescente a partir de 0; a ação vale só no passo exato. `fonteDoRoteiro(roteiro, escolhas?, acoes?)` e `__GAME_DEBUG__.entrada.roteiro` aceitam as duas listas; fora de uma ação a fonte entrega `acoes` = 0 e `mira` = (0,0). `validarAcoes` confere passos, bits permitidos (1 e 2), `mira` finita e `|mira| ≤ 1 + 1e-6` (a mesma folga do movimento).
+  - Por que a lista paralela: se `acoes` seguisse a regra dos trechos ("do passo em diante"), a esquiva seria pedida em todos os passos do trecho e repetiria em T+21. E um (0,0) de `esquiva` como "nenhuma esquiva" (desenho de uma área) não consegue dizer "esquiva sem direção" do toque duplo; por isso bits mais `mira`.
+  - Teste: ação em passo exato; passos repetidos ou fora de ordem, bit 4, `|mira|` > 1 e NaN recusados; `copiarComandos` copia os novos campos; um trecho até 400 com `acoes` em 100 produz exatamente 1 esquiva, e trecho único e trechos repetidos dão o mesmo hash. Reprova: ação persistente no trecho.
+
+- **Consumo da borda ao vivo (ET6). (técnica)**
+  - O tradutor liga o bit (`acoes |= bit`) e nunca o desliga ao traduzir. A fonte ao vivo (`fonteConstante`) copia a borda para `out` e a **zera na origem** no 1º passo vivo que a lê. Assim a ação entra uma vez só (D2 §9: "o aparo vai só no 1º passo do quadro"), um quadro de 0 passos (ProMotion, 120 Hz: quadros alternados) não a perde, e o congelamento não a consome (`avancar` não consulta a fonte em passo congelado, ET7). Pausa e modal descartam a pendente: `mudarModo` zera (D5 §9). `entrada.injetar` não muda de assinatura.
+  - Teste (Vitest do driver): o mesmo toque entregue por três caminhos (quadro de 0 passos seguido de 1; quadro de 5 passos; dois quadros de 0 passos) dá o hash do roteiro com a ação no passo da leitura; `aparo` nunca aparece em dois passos do mesmo quadro; borda travada antes de um modal não entra depois dele. O mutante "repetir `aparo` em todos os passos do quadro" é **equivalente** no jogo (a trava da janela ignora o repetido, sem custo); quem o mata é o caso em que o 1º passo do quadro recusa (stamina 14,5) e o 2º aceitaria (15,5). Reprova: `fonteConstante` sem zerar a borda.
+
+- **Congelamento no passo e em `avancar` (ET7). [documento, com a mecânica (técnica)]**
+  - A regra (5 passos, gravado, `passo` e `relogio` parados) é a FB1; aqui só onde ela mora. `passo()` abre com `if (congelamento > 0) { congelamento--; return; }`, antes de `CAB.passo++`. `avancar` confere o modal primeiro (D5 §9), depois `congelamento > 0`: roda o passo sem consultar a fonte e conta 1 dos `n` pedidos. Posição, RNG, timers, Poder e Sal não andam.
+  - O driver e o acumulador não mudam: o passo congelado é um passo comum de 16,67 ms (5 passos = 83,3 ms; a 30 fps são 3 quadros, no contêiner de ≈ 8 fps, 1 quadro); `passosPerdidos` não é afetado. O render usa `alfa` = 1 enquanto `congelamento > 0` e não reescreve `xAnt`/`yAnt`.
+  - Consequência para os testes: nenhum espera `inicio + n`; todos comparam `CAB.passo` e `CAB.relogio`. O mesmo vale para os specs que usam `avancar(n)` até o golpe (F-006.6).
+  - Teste: depois do gatilho, `avancar(5)` devolve 5 e `passo`, `relogio` e o hash (salvo o byte do contador) não mudam; o 6º passo anda; replay do mesmo roteiro com 1 e com 5 passos por quadro dá o mesmo hash. Reprova: `passo` andando, `+= 5`, comando consumido em passo congelado.
+
+- **RNG: nenhum fluxo novo (ET8). (técnica)**
+  - A F-006 não sorteia nada: os tempos são fixos (3 s, 0,6 s, 0,5 s), a mira é determinada e o diretor já usa o seu fluxo. O fluxo `ia` (ADR-0002 §5) já existe em `FLUXOS`, semeado e sem consumidor, e continua assim. Um fluxo novo ocuparia bytes do início do buffer e deslocaria tudo.
+  - Se uma feature seguinte precisar de jitter, usa `ia`.
+  - Teste: depois de 3.000 passos de combate, o hash da seção `rng` é o do início, sem consumo de `ia`; `armas` consome só o que já consumia.
+
+- **Dados: `combate.json` e o que já está nos JSON (ET9). (técnica)**
+  - `src/dados/combate.json` e `combate.schema.json` guardam **só o que nenhum JSON tem**: custos 25 e 15; duração 21, i-frames de 2 a 13, recuperação 3; distância 80 px; regeneração 0,5 por passo e espera 30; devolução do aparo 30; janela 11 (+6 no tutorial) e falho 24; congelamento 5; Poder 15% e 120 passos; Postura Quebrada 120 passos e raio 64 px; Contra-ataque 90 passos; swipe (400 pt/s, janela 100 ms, Δt 16 ms, distância 24 pt, 16 amostras) e toque duplo (250 ms, 200 ms, 40 pt, 10 pt).
+  - O resto continua onde está: a capacidade de stamina e `frascos.sem_regen_stamina_s` em `vigilantes.json`; a faca extra em `armas.json` (`projeteis_extra_esquiva_perfeita` = 1) e o marco `dano_pct_vs_postura_quebrada`, que vira a coluna `pqFator` da tabela por (arma, nível); telegrafos, recuperação, intervalo, dano e `aparavel` em `inimigos.json`, que ganha `alcance_corpos` = 2, `raio_corpos` = 0,25, `vida_s` = 2,5 e o campo `postura_quebrada` por tipo, e perde `pendentes`/`pendencias`.
+  - `criarTabelaDeCombate` compila tudo em `DadosDaVigilia` (arrays `Int32Array`/`Float64Array`, como `criarTabelaDeProgressao`); o passo lê o inteiro de passos. Conversões por `segundosEmPassos` só onde B não dá passos, cada uma num teste. Os dados não entram no hash.
+  - Constantes de render (alfa do flash, tamanhos, cores) ficam no código de render, não em `combate.json`.
+  - Teste: `tests/dados.test.ts` registra o arquivo e o schema (a lista da linha 51); um teste de integridade cruza cada número com B §3.4 (21, 12, 3, 11, 24, 30, 0,5 por passo, 120, 90, 5); os testes leem o JSON, nunca números soltos. Reprova: número repetido no código; ângulo do arco diferente de 120° (só há cosseno literal para ele).
+
+- **Eventos e formas (ET10). (técnica)**
+  - Os códigos só crescem no fim. O anel (1.024 entradas, fora do hash e do save) só é escrito pela simulação. `NOMES_DOS_EVENTOS` de `debug.ts` e `EventoDebug` ganham os nomes nas posições 11 a 21.
+
+| Código | Evento | Alvo | Floats (x, y, …) | Forma |
+|---|---|---|---|---|
+| 11 | `telegrafo` | handle do atacante | x, y do atacante, duração (passos), alcance (px) | 7 (Oco Grande) ou 8 (Noviça) |
+| 12 | `golpeInimigo` | handle do atacante | x, y, dano aplicado (0 se evitado), desfecho: 1 acertou, 2 esquivado, 3 aparado, 4 errou | 7 ou 8 |
+| 13 | `esquiva` | sem alvo | x, y, dirX, dirY | 0 |
+| 14 | `esquivaPerfeita` | handle do atacante | x, y, 0, 0 | origem: 1 contato, 2 golpe, 3 projétil |
+| 15 | `aparo` | handle do atacante | x, y do atacante, stamina depois, 0 | 0 |
+| 16 | `aparoFalho` | sem alvo | x, y do jogador, 0, 0 | 0 |
+| 17 | `posturaQuebrada` | handle do inimigo | x, y, passos (120), 0 | 0 |
+| 18 | `contraAtaque` | handle do aparado | x, y, slot do alvo, vagas disparadas | 0 |
+| 19 | `acaoNegada` | sem alvo | x, y, stamina, custo | 1 esquiva, 2 aparo |
+| 20 | `projetilLancado` | handle da Noviça | x, y, dirX, dirY (mira fixada) | 8 |
+| 21 | `aparoVazio` | sem alvo | x, y do jogador, stamina depois, 0 | 0 |
+
+  - FORMA: 7 `arcoInimigo`, 8 `projetilSal`. FLAG: `contra` = 8, ligada nos eventos `golpe` e `acerto` da salva extra. O tipo do atacante vai em `inimigoFlagsCausa`.
+  - **O que foi resolvido entre áreas:** as quatro áreas numeravam diferente (a esquiva em 11, o aparo em 11, o telegrafo em 11...). Fica a tabela da área de estado estendida no fim: o evento do golpe leva o desfecho no payload (não em quatro códigos), `acaoNegada` usa a forma para dizer qual ação, e o lançamento (20) e o aparo vazio (21) entram por último. A esquiva perfeita leva a origem na forma e o atacante no alvo; a F-009 usa a origem para o +10 de Postura (Q-15).
+  - Os payloads do `telegrafo` e do `projetilLancado` são [delegados] e podem mudar sem mexer nos códigos.
+  - Um evento por golpe e por lançamento, gravado em linha. O volume medido na horda com ≈ 300 médios é de ≈ 0,8 por passo (0,35 telegrafo, 0,13 golpe, 0,3 lançamento), ou ≈ 47 por segundo. Ao vivo o anel é lido a cada quadro (no máximo 5 passos) e não transborda. Com `avancar(n)` acima de ≈ 1.300 passos num cenário com médios, o anel é sobrescrito: os specs e testes que procuram `aparo` ou `telegrafo` leem em passos curtos, e **nenhum teste deduz contagem de eventos de uma janela longa**. Registrar no ADR-0008.
+  - Teste: tabela literal de EVENTO 1 a 21, FORMA 7 e 8 e `FLAG.contra` = 8; cada evento sai uma só vez no passo certo (aparo: 1; golpe: 1 por golpe; congelamento: nenhum evento).
+
+- **Regra do laço quente nas funções novas (ET11). (técnica)**
+  - Regra permanente (ADR-0005 §2, ADR-0006 §2, ADR-0007 §8): nenhum double nem u32 ≥ 2³⁰ atravessa uma chamada fora de linha; vale também para funções frias; alocação ≤ 16 B por passo no E4 e no E6, sem lista branca.
+  - Como cada função nova a cumpre: delta toroidal, distância, `(64 + r)²`, a mira do Contra-ataque, a contagem de ameaças e o teste de impacto do projétil ficam **em linha**; dano, posições e mira passam por rascunhos `Float64Array` de módulo (`ACERTO`, `MIRA`, `CONSULTA`, `FLOATS_DO_EVENTO`), e o atacante por slot inteiro; o handle ≥ 2³⁰ é montado só dentro de `gravarEvento`. `resolverAcertoNoJogador` recebe o dano bruto por rascunho, e `danoAoJogador` o lê de lá nas três chamadas (golpe, projétil e contato; hoje `aplicarContato` passa `maiorDano * FATOR` por argumento, e o contato roda quase todo passo na horda). `rodarAtaques` é uma função só, com o telegrafo, o golpe e o lançamento como ramos, e lê cada Float32 uma vez. O falho e o vazio usam só o contador inteiro.
+  - O Poder temporário não chama `recalcularDano` por esquiva perfeita (duas tabelas, EP3).
+  - Medidas (protótipos fora do repositório, `HeapProfiler` a 64 B):
+    - `recalcularDano` frio: 3.830 B por chamada na primeira centena, 1.103, 405, 202 e 0 depois de ≈ 400 chamadas (interpretador do VT8);
+    - varredura da Postura Quebrada, 500 slots, horda de 300 vivos: 24.800 B na 1ª rodada, 20 B na 2ª, 2 B depois de 200 chamadas; pela grade seria 4.000 a 7.000 B por chamada, sempre;
+    - o E6 das 3 armas já mede 14,4 B por passo (folga de 1,6 B); o das armas simples, 10,7 a 11,5;
+    - um protótipo de ataque mediu de 10,7 a 30 B por passo, por ruído do VT8; passar o dano por chamada com double custa +5 B (3 armas) a +11 B (horda).
+  - Plano B decidido já (VT6): se o E7b passar de 16 B porque a esquiva move o jogador (o ADR-0007 §8 mediu 150 a 2.000 B por passo andando), descobre-se a função com `HeapProfiler` e traz-se o ramo para dentro de linha. Nunca lista branca, nunca gate novo.
+  - Não se cria gate de tempo. O gate existente (p95 < 10 ms de CPU no E1, F-003.4) tem de continuar verde com os ataques ligados: a fase 6 percorre até ≈ 200 médios por passo e a 2ª camada de médios é um 2º escritor por quadro (RE8). O custo da fase é registrado no ADR-0008 (E1 e E2 com ataques ligados).
+  - Teste: E7a e E7b (VT6) e a mutação permanente de VT6.
+
+## 8. Render, HUD, pausa, áudio e textos
+
+Aqui entra só o que cada peça de render é e onde mora. As decisões de design de cada uma estão nas seções 2 a 4 e 6 (flash FB2, pausa FB3, som FB4, indício AP12, cores e geometria dos ataques); onde elas aparecem, é por referência.
+
+- **Barra de stamina (RE1). [delegada]**
+  - Na banda de 72 pt do botão de pausa (D5 R5 reservou HP e stamina para as F-006 e F-007), abaixo da barra de XP, na **metade direita** da linha; a esquerda fica para o HP da F-007. Com a faixa útil da barra de XP de 246 pt (80 a 326) e vão de 8 pt: `x = esquerda + 207`, `y = topo + 56`, largura **119 pt**, altura **10 pt** (termina em topo + 66, dentro dos 72 pt; as vagas começam em topo + 80). `caixaDaBarraDeStamina(insets, out)` em `layoutDoHud.ts`, sem Phaser, como a de XP.
+  - Escala de 1,19 pt por ponto: uma esquiva (25) = 29,75 pt. Três marcas de 1 pt em `pedra` a 25, 50 e 75 (os "4 esquivas" do doc 02 §5.2) em 29,75, 59,5 e 89,25 pt.
+  - Cor: trilho `pedra` a 35% (como o XP); preenchimento em **osso** `#e8dcc4`; com `stamina < 25` (não dá para esquivar) passa a `laranjaQueimado` `#e2652b`. Nunca o vermelho `#ff2a2a` nem o branco, reservados (D3 §7 e D4 V6).
+  - Ação negada (evento `acaoNegada`): o preenchimento cai a alfa 0,3 por 12 quadros de render (≈ 0,2 s, abaixo de 3 Hz) e volta; contador da interface, fora do estado; sem som e sem flash.
+  - Sem rótulo e sem texto novo. O preenchimento só é reescrito quando a stamina muda; nada aloca por quadro. **Sem a linha de Poder temporário** no HUD: o efeito só aparece pelo dano.
+  - Teste: posições literais com insets zero e com os do iPhone (topo 47, lados 0); largura do preenchimento para stamina 0, 24,5, 25 e 100; as três marcas; o pulso de 12 quadros; teste de cores com os pares osso e laranja contra o fundo e entre si; pixel do preenchimento na captura (osso, laranja abaixo de 25). Reprova: barra fora da banda, laranja em 25, vermelho.
+
+- **Botão Aparo: desenho e redesenho (RE2). (técnica)**
+  - A caixa, o disparo no `touchstart`, o papel do dedo e os três estados são da seção 4 (AP1). Aqui só a implementação: um `Graphics` (anel osso de 3 pt e o glifo ⟲ em arco com ponta de seta, **sem texto**) redesenhado apenas quando o estado muda, e o estado lido da simulação (`aparoJanela`, `aparoFalho`, `esquivaPasso`, `stamina` < 15 dão "indisponível"). "Pressionado" preenche por 4 quadros de render (contador da interface).
+  - Teste: pixel do botão nos três estados na captura do Playwright; nenhum redesenho em quadros sem mudança de estado; nenhuma string no `Graphics` (o texto visível só sai de `t(id)`).
+
+- **Flash: mecânica no render (RE3). (técnica)**
+  - A regra (alfa 0,35, 2 quadros, no máximo 3 por segundo, opção "Flashes") é a FB2. Um retângulo branco de tela inteira num `Graphics` da cena Hud, acima do mundo e do HUD. O consumidor do anel dispara ao ler `aparo` ou `esquivaPerfeita`; o contador de 2 quadros e o limite de 3 por segundo (as marcas dos últimos 3 disparos, no tempo de render) moram na interface, fora do estado, do hash e do replay. `__GAME_DEBUG__.flash` expõe os quadros restantes, para a captura.
+  - Teste: função pura (alfa por quadro 0,35, 0,35, 0; opção desligada dá 0; 4 pedidos em 1 s dão 3 flashes); o contador não entra no hash. Reprova: contagem em passos; limite ausente; flash que leva o congelamento junto ao ser desligado.
+
+- **Telegrafo no corpo do inimigo por `tintBlend` (RE4). [delegada, com a técnica de D3 §9]**
+  - Brilho crescente sem mexer em `tintMode` (continua 0, multiplicativo). Como a moldura do atlas é branca e o shader faz `mix(branco, cor, tintBlend)`, `tintBlend` vai de **1 para 0** ao longo do telegrafo: 1 em T e 0 em T+35 no Oco Grande (36 passos), 1 em T e 0 em T+29 na Noviça (30), linear, interpolado pelo `alfa` do render. O corpo termina em **#ffffff**. Os offsets são os de D3 §9 (28 `tintBlend`, 38 `tintMode`, já cobertos pelo F-003.11).
+  - `?render=image`: o mesmo, com `setTint` na cor interpolada, em inteiros. `tintMode`/`tintBlend` são atributos por membro e não uma variante de programa: o aquecimento da Tela de Acender continua compilando um programa só.
+  - **Sem flash de acerto no inimigo**: B só pede o flash de tela do aparo e da esquiva perfeita; o `tintMode` = 1 fica sem uso. Recomendação para o iPhone, se o acerto parecer "mole".
+  - Medida: leitura dos shaders do Phaser 4.2.1 (`SpriteGPULayer-vert.js:553`, `ApplyTint-glsl.js`); ΔE do Oco Grande contra branco = 23,1.
+  - Teste: com o `SpriteGPULayer` real e o `gl` falso, o offset 28 recebe 1 em T e 0 no fim do telegrafo, e o 38 nunca muda; Playwright, pixel do centro do corpo em #ffffff no último passo do telegrafo. Reprova: `tintMode` alterado; blend que não chega a 0.
+
+- **Cunha e faixa no chão (RE5). [delegada; veto]**
+  - Oco Grande: a moldura `cunha` (setor de 120°) escalada para 64 px de raio (64/46), vértice no centro do Oco, girada para a mira fixada (`miraX`/`miraY`). Noviça: faixa preenchida (moldura `quadrado` esticada) de **16 pt** de largura (o diâmetro do projétil) e **240 px** de comprimento (a vida do projétil), do centro dela na mira. As duas são brancas **#ffffff, preenchidas, nunca só um anel de traço** (D4 V6), com alfa **0,10 + 0,30·k/35** (cunha) e **0,10 + 0,30·k/29** (faixa), isto é, 0,10 em T e **0,40** no último passo. Leem a posição **interpolada** do Oco, e por isso acompanham o corpo empurrado.
+  - O alfa final fica em 0,40 e não mais alto: compõe `#767980` sobre o fundo, com contraste 3,78:1 e ΔE 30,9 contra o fundo, 21,3 contra o anel da aura, 27,0 contra a massa sob a cunha e 16,7 contra o corpo do Oco Grande, todos acima de 3:1 e de 14. Com 0,30 o contraste cai a 2,70 (< 3); com 0,60 o ΔE contra a aura cai a 10,8 e contra o corpo a 7,9 (< 14).
+  - **Diverge:** doc 13 §1.3 ("ataques brancos são brancos puros") lido como cor: a cunha chega a #767980 composta, não a branco puro. O corpo (#ffffff) e o projétil (branco puro) cobrem o "branco puro" do telegrafo. **Veto, alternativa:** alfa final ≥ 0,6, mais próximo do branco, ao custo dos ΔE acima (10,8 e 7,9, abaixo de 14).
+  - Camada própria de telegrafos (e projéteis inimigos), com **64 membros** de telegrafo e **128** de projétil; excedentes não são desenhados (só render) e são contados no debug. O protótipo mediu até 12 Grandes e 19 Noviças ao mesmo tempo (31 silhuetas), então 64 dá folga de 2 vezes. Ordem de desenho: mundo < mortes < horda < médios < status < telegrafos e projéteis < armas < jogador < dígitos < Hud. Duas exigências de legibilidade disputam essa ordem, porque as facas e o anel da aura estão hoje na mesma camada de armas: o projétil legível sobre a faca, e o anel da aura legível sobre a cunha. A implementação escolhe entre mover os 5 anéis para a camada nova (escritos depois das cunhas) e deixar a camada de telegrafos abaixo da de armas; o teste de pixel decide, e se só uma couber vale a do projétil.
+  - Cunha branca contra a cunha de brasa do golpe da Espada (mesma forma, raio de 64 e 76,8 px): ΔE 23,5 em alfa 0,40, sem exceção a registrar; o par entra no teste de cores.
+  - Teste: a saída da camada tem alfa 0,10 em T e 0,40 no último passo, nunca um anel; teste de cores com os pares acima; a silhueta de um Oco empurrado em T+10 tem o vértice na posição nova; Playwright, pixel no ponto vértice + 40 px da mira com o alfa composto esperado.
+
+- **Projétil da Noviça e faca (RE6). [delegada]**
+  - O projétil é um **disco branco puro #ffffff de 16 pt** (a moldura `massa` desenhada a 32 pt no tamanho normal, então escala 0,5 em relação a esse tamanho) com um **anel branco de 24 pt a alfa 0,5** que pulsa com o passo. A faca é o losango de 4 × 16 pt em sal, 6,4 px por passo, girado para onde voa. A cor não os separa (ΔE sal × branco = 6,5, par aceito abaixo de 14 pela V6 da D4): separam a **forma, o tamanho, a velocidade e o anel**. O branco do projétil é o do telegrafo, para o jogador aprender "branco = apare".
+  - Pares aceitos a registrar no teste de cores, com o motivo "forma e tamanho distintos": sal × branco (6,5) e branco × osso (12,5, entre cores reservadas, não de inimigo).
+  - Teste: a moldura do projétil é `massa` e a da faca é `faca`; captura com faca e projétil no mesmo quadro (`telegrafos-390x844.png`).
+
+- **Indício da janela de aparo no render (RE7). [delegada; veto em AP12]**
+  - A decisão (e as alternativas de veto) é a AP12. Mecânica: só render, sem número novo na simulação. Para cada projétil tipo 2 em voo, o render compara o quadrado da distância ao jogador com `(11 × 1,6 + 8 + 16)² = 41,6²` (raio do projétil 8, hitbox do jogador 16, velocidade 1,6 px por passo); dentro disso o anel vira branco **sólido** (alfa 1). Com o prompt de aparo visível e `falhasDeAparo ≥ 2` (janela estendida), o limiar passa a 17 passos: `(17 × 1,6 + 24)² = 51,2²`. Para a cunha do Oco Grande: sólida quando `ataqueTimer` indica ≤ 11 (ou 17) passos para o golpe. Em linha, sem alocar, para até 128 projéteis.
+  - Teste: o anel muda para sólido exatamente quando o impacto previsto cruza 11 passos (17 com a janela estendida); o spec do F-006.8 toca o botão com o projétil dentro da janela. Reprova: limiar de 10 ou de 12.
+
+- **2ª camada de médios acima da massa (RE8). (técnica)**
+  - D3 §9 pediu os médios desenhados acima da massa (um médio nunca fica sob os círculos). Fica uma **2ª camada GPU "medios"** de 500 membros, escrita só para os tipos de camada `medio` (e `elite`, F-008); a camada da horda passa a desenhar só a massa (os médios ficam invisíveis ali, com escala 0, como um slot vazio). Escrita **compacta**: a lista dos médios vivos é montada no render (sem mudar estado, hash nem save) e a cauda usada no quadro anterior é zerada. O custo real de um 2º escritor de 500 membros por quadro não foi medido; ele entra no gate F-003.4 (p95 < 10 ms), que tem de continuar verde.
+  - Orçamento: +1 camada (um draw call a mais, longe do teto de 150) e +84 KB de buffer. Os 2.735 membros do ADR-0007 §8 passam a ≈ 3.427 (+500 de médios, +64 de telegrafos, +128 de projéteis); `memoriaEstimadaMB` do debug soma os novos.
+  - Teste: um Oco Grande e um Oco no mesmo ponto: o pixel é o do Oco Grande (0x9fa39a), em `gpu` e em `?render=image`; o escritor não aloca (E4 e E6). Os pixels das capturas antigas (F-003 a F-005) mudam e são regenerados e olhados (VT9).
+
+- **Marcador do atordoado (RE9). [delegada]**
+  - Uma **estrela de 4 pontas** de 12 pt, amarela `#ffd166`, no centro do corpo do inimigo com `quebradaPassos > 0`, na camada "status", no mesmo lugar do losango do Sal (um membro por slot). Moldura nova `estrela` em área livre do atlas. **Prioridade sobre o Sal:** o atordoado não anda durante os 120 passos, então a lentidão do Sal não importa; o Sal, sem o marcador, volta quando a Postura acaba.
+  - Por quê: a Q-27 já pinta de amarelo o número crítico da Postura Quebrada; o marcador usa a mesma cor. É sem branco e sem `#ff2a2a` (V6 da D4) e distinto do losango do Sal pela forma e pela cor. ΔE2000 de `#ffd166`: 27,5 contra o Oco Grande, 31,0 contra o Oco, 44,1 contra a Noviça, 22,0 contra o ouro do baú, 26,6 contra o branco, 28,0 contra o sal; **9,8 contra a brasa** (o jogador), o mesmo par que a D5 R3 já aceitou para o número crítico, aqui num objeto de 12 pt sobre o inimigo, nunca do tamanho do jogador.
+  - Teste: o marcador aparece com `quebradaPassos` > 0 e some em 0; com Sal e Postura juntos só a estrela; teste de cores com os pares acima; captura do aparo com Postura em área.
+
+- **Números críticos amarelos (RE10). (técnica)**
+  - O render já os desenha: `FLAG.critico` no evento `acerto` dá `#ffd166` e escala ×1,5 (`efeitos.ts:198`, `armas.ts:315`, D4 N3). A F-006 só liga a flag quando o fator de Postura foi aplicado (PQ8) e o Contra-ataque sozinho não a liga. O pior caso de dígitos (Lâmina, FOR 20, Poder 55%: 434,5 em ×6) cabe em 4 casas.
+  - Teste: um acerto em alvo com `quebradaPassos` > 0 gera dígitos amarelos em escala 1,5; sem Postura, osso em escala 1; o Contra-ataque contra um alvo normal não é crítico.
+
+- **Pausa com Som e Flashes (RE11). (técnica; o layout é a FB3)**
+  - `ctx.opcoes` ganha `som` e `flashes` (padrão `true`; em memória, fora do estado, do hash e do replay, como `numerosDeDano`; o meta da F-007/F-010 as grava). `alvosDaTelaDePausa` ganha os ids `som` e `flashes` na linha única acima de "números" (dois alvos de 136 × 72 pt, vão de 16 pt, vão vertical de 8 pt); os dois entram **depois do Continuar** na lista, porque `alvosDoBau` usa o índice 1 como Continuar. `Vigilia.ts` trata os dois ids onde já trata `continuar` e `numeros`.
+  - Medida (insets 47/34): Continuar em 714, números em 626, a linha nova em 546 (≥ 543, o corte da zona de controles, doc 11 §1); sem insets 748, 660 e 580 (≥ 548,6). A lista da build, com os 11 pares de armas e passivas da D5, termina em ≈ topo + 56 + 11 × 18 = 313 com topo 59: sobram mais de 230 pt.
+  - Som: abrir a pausa faz `sound.setMute(true)`; o Continuar restaura `setMute(!opcoes.som)`; `som = false` mantém o mudo. `pauseAll` não faz nada pelos SFX (são `AudioBufferSourceNode` próprios, de até 0,25 s). Flashes desliga só o overlay (FB2). Nunca `ctx.suspend()`, que o Phaser desfaz a cada quadro (ADR-0002 §12).
+  - Teste: `alvos.test.ts` (4 casos de insets: 0/0, 47/34, 20/0 e o do baú) sem sobreposição, cada alvo ≥ 72 pt, y ≥ corte, e `alvosDoBau(...)[0].id === 'continuar'`; toque nos novos alvos no tradutor; `tests/cenas` da Pausa com rótulos por `t(id)`; Playwright: alternar Som liga e desliga `jogo.sound.mute`; o spec do F-004 revisto. Reprova: alvo novo antes do Continuar; y abaixo do corte.
+
+- **Áudio: 3 buffers sintetizados no boot (RE12). [documento nos 3 e na síntese; frequências e durações delegadas]**
+  - B §2: "1 som placeholder por evento crítico (aparo, esquiva perfeita, quebra)"; ADR-0002 §12: 3 `AudioBuffer` sintetizados no boot por funções TS puras, testáveis por hash, com limite de vozes e intervalo mínimo. **B prevalece sobre o doc 02 §5.4** (que pede o "inspirar" do telegrafo; o doc 13 §2 e o doc 11 §1 confirmam que ele é do jogo completo): sem som no telegrafo.
+  - Em `src/plataforma/sfx.ts`, `sintetizarAparo`, `sintetizarEsquivaPerfeita` e `sintetizarQuebra` recebem a taxa e devolvem `Float32Array`; o `AudioBuffer` só embrulha, no boot, na taxa do contexto. Placeholders: aparo ≈ 0,15 s, dois senos (≈ 1,8 e ≈ 2,65 kHz) com decaimento exponencial; esquiva perfeita ≈ 0,08 s, um seno agudo (≈ 3,2 kHz) de decaimento rápido, distinto do aparo; quebra ≈ 0,25 s, seno grave com ruído curto. A síntese de uma das áreas para a esquiva perfeita (ruído filtrado com tilintar) é o "sopro" do doc 13 e fica para o áudio final.
+  - **Tocam 2 na F-006** (aparo e esquiva perfeita); o 3º é sintetizado e só a F-009 o dispara (Quebra de Postura do chefe). A Postura Quebrada em área acompanha o som do aparo.
+  - Limite de 2 vozes e intervalo mínimo de 80 ms **por SFX**: um aparo e uma esquiva perfeita no mesmo passo tocam os dois. Um consumidor do anel, fora da simulação, dispara ao ler `aparo` e `esquivaPerfeita`, respeitando `ctx.opcoes.som`. O desbloqueio da F-001 não muda; o `setMute` cala os SFX porque `sound.destination` é o `masterMuteNode` (`WebAudioSoundManager.js:87` e `:530`).
+  - Teste: cada síntese tem a duração esperada, valores em [−1, 1], sem NaN e um hash Float32 literal (a síntese usa `Math.sin`, fora da simulação, no VT8 do Node e do Chromium); o consumidor dispara 1 som por evento e respeita o intervalo; Playwright: `audio()` continua `running`. Reprova: som no telegrafo; disparo pela simulação; 3º buffer tocando.
+
+- **Camadas, programas e textos (RE13). (técnica)**
+  - O programa do `SpriteGPULayer` continua um só (o aquecimento da Tela de Acender não muda); as camadas novas (médios, telegrafos e projéteis) usam a configuração da horda. Draw calls estimados: 11 com a pausa na F-005, +2 aqui, longe de 150 (sem gate novo).
+  - **Textos: nenhum novo.** O botão Aparo e a barra de stamina não têm texto; `A2.TUTORIAL.02` e `A2.TUTORIAL.03` e `A6.PAUSA.SOM` e `A6.PAUSA.FLASHES` já existem em `pt-BR.json`. Só o campo `contexto` dos dois primeiros muda (VT2). O glifo ⟲ (U+27F2) de `A2.TUTORIAL.03` fica num `Text` do Phaser: conferido na captura `tutorial-aparo-390x844.png`, olhada, não só por pixel; se faltar na fonte do iOS, o glifo vai para o conjunto desenhado do projeto ou o texto troca o símbolo (decisão do usuário, doc 17).
+  - Glossário (Q-31): os nomes novos (`esperaRegen`, `ameacasAparaveis`, `caSeq`, `semAtaques`, `postura_quebrada`, `telegrafo`, `estrela`) não contêm palavra proibida; "melhoria" e "junção" seguem como na D5. O teste do glossário (`tests/glossario-codigo.test.ts`) só lê `index.html` e `scripts/*.sh`; o `workflow` de VT10 fica fora dele.
+  - Teste: `tests/lint.test.ts` e `tests/dados.test.ts` verdes; nenhum id novo em `pt-BR.json`.
+
