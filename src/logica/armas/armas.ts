@@ -290,8 +290,6 @@ function rodarAura(e: Estado, dados: DadosDaVigilia, v: number): void {
       const d2 = dx * dx + dy * dy;
       const lim = R + raio[ini.tipo[s]!]!;
       if (d2 > lim * lim) continue;
-      // O Coroado é imune ao pulso, como à Postura Quebrada (CR8): o mesmo `postura_quebrada: false`.
-      if (dados.combate.posturaQuebrada[ini.tipo[s]!] === 0) continue;
       // Até a borda: mín(12, ⌈(R + r − d)/8⌉) passos de 8 px; um pulso novo substitui o resto do anterior.
       const kb = Math.ceil((lim - Math.sqrt(d2)) / passo);
       ini.kbPassos[s] = kb < maximo ? kb : maximo;

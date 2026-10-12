@@ -117,9 +117,10 @@ export function colidirComObstaculos(
   movY: number,
   desempate: boolean,
   out: Ponto,
+  ativo: Uint8Array | null = null,
 ): number {
   escreverEntrada(x, y, raio, movX, movY);
-  const n = colidirComTodos(o, desempate);
+  const n = colidirComTodos(o, desempate, ativo);
   out.x = COLISAO[ES.x]!;
   out.y = COLISAO[ES.y]!;
   return n;
@@ -200,9 +201,10 @@ export function colidirComObstaculosDaCelula(
   movY: number,
   desempate: boolean,
   out: Ponto,
+  ativo: Uint8Array | null = null,
 ): number {
   escreverEntrada(x, y, raio, movX, movY);
-  const n = colidirNaCelula(o, porCelula, desempate);
+  const n = colidirNaCelula(o, porCelula, desempate, ativo);
   out.x = COLISAO[ES.x]!;
   out.y = COLISAO[ES.y]!;
   return n;

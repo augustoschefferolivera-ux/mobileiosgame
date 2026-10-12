@@ -9,7 +9,8 @@ import { grade, listarVivos, montarGradeDaMassa, separarHorda, vivos } from '../
 import { nascerInimigo } from '../../../src/logica/mundo/inimigos';
 import { CAPACIDADE_DE_INIMIGOS, CENARIO, FOGUEIRA_U8, JOGADOR, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
 import { EVENTO } from '../../../src/logica/nucleo/eventos';
-import { DADOS_SEM_OBSTACULOS as VAZIO, SEM_HORDA } from '../apoio';
+import { avancar } from '../../../src/logica/nucleo/passo';
+import { DADOS_SEM_OBSTACULOS as VAZIO, PARADO, SEM_HORDA } from '../apoio';
 import { TIPO, eventosDe, posJogador } from '../combate/apoio';
 
 const COROADO = TIPO.oco_grande_coroado;
@@ -168,7 +169,8 @@ describe('armas contra o corpo grande (CR10, CR8)', () => {
     const g = nascerInimigo(e, VAZIO, TIPO.oco_grande, jx - R - 20, jy, false);
     e.inimigos.hp[c] = 100_000;
     e.inimigos.hp[g] = 100_000;
-    rodarArmas(e, VAZIO);
+    // Um passo inteiro: a aura grava o afastamento nos dois e `rodarEtapa` desfaz o do Coroado antes de a horda andar.
+    avancar(e, VAZIO, PARADO, 1);
     expect(e.inimigos.hp[c]).toBeLessThan(100_000);
     expect(e.inimigos.kbPassos[c]).toBe(0);
     expect(e.inimigos.kbPassos[g]).toBeGreaterThan(0);

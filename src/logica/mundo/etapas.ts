@@ -24,6 +24,7 @@ import { quantosAtivos } from '../nucleo/pool';
 import { desfazerArena, formarArena } from './arena';
 import type { DadosDaVigilia } from './dados';
 import { DIRECAO_X, DIRECAO_Y } from './direcoes';
+import { GRANDES, MAX_GRANDES } from './grade';
 import { NASCIMENTO, matarInimigo, nascerInimigoDoRascunho } from './inimigos';
 import { TIPO } from './tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from './toro';
@@ -57,6 +58,9 @@ function levarAoToro(): void {
  * fixa de cenário a máquina fica presa em HORA. A Fogueira (etapa FOGUEIRA) é da parte 2b.
  */
 export function rodarEtapa(e: Estado, dados: DadosDaVigilia): void {
+  // Imunidade ao pulso do Círculo (CR8): o afastamento que a aura gravou neste passo nos corpos grandes imunes é desfeito
+  // antes de a horda andar. Fora de rodarAura, que precisa caber inlinada em rodarArmas (ADR-0008).
+  if (GRANDES[MAX_GRANDES]! > 0) zerarEmpurraoDosImunes(e, dados);
   if (e.cab[CAB.linhaFixa] !== LINHA_LIVRE || e.jogador4U8[JOGADOR4_U8.fase] !== FASE.viva) return;
   const u8 = e.fogueiraU8;
   const etapa = u8[FOGUEIRA_U8.etapa]!;
@@ -95,6 +99,15 @@ export function rodarEtapa(e: Estado, dados: DadosDaVigilia): void {
       iniciarMarco(e, dados);
     }
   } else if (devido) iniciarMarco(e, dados);
+}
+
+function zerarEmpurraoDosImunes(e: Estado, dados: DadosDaVigilia): void {
+  const n = GRANDES[MAX_GRANDES]!;
+  const ini = e.inimigos;
+  for (let k = 0; k < n; k++) {
+    const s = GRANDES[k]!;
+    if (dados.combate.posturaQuebrada[ini.tipo[s]!] === 0) ini.kbPassos[s] = 0;
+  }
 }
 
 /** Os Coroados vivos viram cinza (`CAUSA.cinza`, sem baú, Cinza, Alma nem `mortes`); devolve quantos. */
@@ -327,7 +340,9 @@ function convocar(e: Estado, dados: DadosDaVigilia, s: number, tipo: number): vo
     x = PONTO[0]!;
     y = PONTO[1]!;
     let livre = true;
-    for (let q = 0; q < o.n && livre; q++) {
+    // Dentro da arena nenhum obstáculo ativo chega perto: os ativos ficam a mais de 224 + r do centro (AR3) e o ponto a ≤ 207,5,
+    // com o corpo de 16, deixa 0,5 px de folga. A conta só vale fora dela (um Coroado posto à mão, nos testes).
+    for (let q = 0; q < o.n && livre && !arena; q++) {
       if (e.obstaculoAtivo[q] === 0) continue;
       let ox = x - o.x[q]!;
       if (ox > MEIA_LARGURA_DO_MAPA) ox -= LARGURA_DO_MAPA;
