@@ -1086,7 +1086,7 @@
     {
       "id": "F-011",
       "nome": "Arte do jogo (até a F-007)",
-      "status": "em andamento",
+      "status": "pronta",
       "escopo_b": "Não está no B §4: vem do plano de arte (design/arte/plano-de-arte.md) e pedido do usuário de 2026-10-12. Arte 100% por código: pixel art escrita como grade de índices da paleta de 32 cores do doc 13 e efeitos procedurais (sem artista, sem gerador de imagem). Personagem em 24 × 24 px de arte; o resto do menor tamanho que funcione. Produção de tudo que existe até a F-007 (Aldric, inimigos, armas, projéteis, pickups, efeitos, HUD), em etapas com aprovação: style card, produção, revisão de consistência independente e teste em jogo. Só apresentação: a simulação, o layout do estado e os hashes não mudam.",
       "criterio_b": "Checagem automática da arte (paleta, contorno, tamanhos, quadros alinhados) verde; F-001 a F-007 verdes sem regerar hash de referência; revisão de consistência independente com as divergências corrigidas; capturas 390 × 844 de cada cena conferidas.",
       "evidencia_b": "Capturas 390 × 844 de cada cena; folhas de sprites em escala real; relatório da revisão de consistência.",
@@ -1109,7 +1109,7 @@
           "id": "F-011.3",
           "descricao": "Escala única: 1 px de arte = 2 pt (efeitos na grade fina de 1 pt), com os tamanhos do style card.",
           "verificacao": "vitest",
-          "como": "tests/arte: Aldric 24 × 24, massa 16 × 16, médios 24 × 24, ícones 14 × 14 e os demais da tabela do design/arte/style-card.md §4; teste do render: a escala de cada sprite no jogo é inteira (2 pt por px de arte, 1 pt na grade fina).",
+          "como": "tests/arte: Aldric 24 × 24, massa 16 × 16, médios 24 × 24, ícones 14 × 14 e os demais da tabela do design/arte/style-card.md §4; teste do render: a escala de cada sprite no jogo é inteira (2 pt por px de arte, 1 pt na grade fina), menos o golpe e a estocada, em escala livre pelo alcance (design/arte/style-card.md §11).",
           "origem": "plano de arte (design/arte/plano-de-arte.md) e pedido do usuário de 2026-10-12"
         },
         {
@@ -1144,7 +1144,7 @@
           "id": "F-011.8",
           "descricao": "Capturas 390 × 844 de cada cena, abertas e conferidas (legibilidade e escala) antes do Pronto.",
           "verificacao": "playwright",
-          "como": "e2e da F-011 grava Acender, Vigília com horda, Vigília com médios e telegrafos, Modal, Pausa e Resultado em 390 × 844; cada uma é aberta e conferida, com o resultado no ADR da F-011.",
+          "como": "e2e da F-011 grava Acender, Vigília com horda, Vigília com médios e telegrafos, Modal, Pausa e Resultado em 390 × 844; cada uma é aberta e conferida, com o resultado em design/arte/revisao-F-011.md (conferência das capturas).",
           "origem": "plano de arte (design/arte/plano-de-arte.md) e pedido do usuário de 2026-10-12"
         },
         {
@@ -1200,8 +1200,7 @@
         }
       ],
       "pendencias_antes_de_comecar": [
-        "Aprovação do style card (design/arte/style-card.md, etapa 1) pelo usuário",
-        "Aprovação da produção (etapa 2) pelo usuário, antes da revisão independente"
+        "Resolvidas: style card aprovado pelo usuário (2026-10-12, \"Aprovo o style card, pode seguir para a etapa 2\"); produção aprovada pelo usuário ao pedir as etapas 3 e 4 (2026-10-12, \"Faça a etapa 3 e 4 por favor\")"
       ]
     }
   ]

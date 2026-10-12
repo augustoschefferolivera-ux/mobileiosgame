@@ -631,20 +631,26 @@ describe('feature_list.json', () => {
   const lista_ = JSON.parse(readFileSync(join(RAIZ, '..', '..', 'feature_list.json'), 'utf-8')) as Objeto;
   const briefing = readFileSync(join(RAIZ, '..', '..', 'design', 'gdd', '18-briefing-tecnico.md'), 'utf-8');
   const features = lista(lista_, 'features');
+  // F-001 a F-010 são a tabela de B §4; as seguintes (F-011, a arte) vêm de pedidos do usuário fora do B e dizem a origem no escopo e em cada critério.
+  const doB = features.slice(0, 10);
+  const foraDoB = features.slice(10);
 
-  it('tem exatamente F-001 a F-010, em ordem', () => {
-    expect(features.map((f) => f['id'])).toEqual(Array.from({ length: 10 }, (_, i) => `F-${String(i + 1).padStart(3, '0')}`));
+  it('tem F-001 a F-010 (B §4) e depois as de fora do B, em ordem', () => {
+    expect(features.map((f) => f['id'])).toEqual(Array.from({ length: features.length }, (_, i) => `F-${String(i + 1).padStart(3, '0')}`));
+    expect(doB).toHaveLength(10);
+    for (const f of foraDoB) expect(String(f['escopo_b']).startsWith('Não está no B §4'), String(f['id'])).toBe(true);
   });
 
   it('nome, escopo, critério e evidência são cópia literal da tabela de B §4', () => {
-    for (const f of features) {
+    for (const f of doB) {
       const linha = `| **${String(f['id'])}** | **${String(f['nome'])}** — ${String(f['escopo_b'])} | ${String(f['criterio_b'])} | ${String(f['evidencia_b'])} |`;
       expect(briefing.includes(linha), String(f['id'])).toBe(true);
     }
   });
 
   it('cada critério tem verificação de um tipo conhecido e cada feature tem evidência em production/evidencias/F-xxx/', () => {
-    const tipos = new Set(['vitest', 'playwright', '__GAME_DEBUG__', 'lint', 'iphone_real']);
+    // `revisao` (revisor independente com relatório) e `verify` (o scripts/verify.sh inteiro) entraram com a F-011.
+    const tipos = new Set(['vitest', 'playwright', '__GAME_DEBUG__', 'lint', 'iphone_real', 'revisao', 'verify']);
     for (const f of features) {
       for (const c of lista(f, 'criterios')) expect(tipos.has(String(c['verificacao'])), String(c['id'])).toBe(true);
       const evid = lista(f, 'evidencias');
@@ -653,12 +659,13 @@ describe('feature_list.json', () => {
     }
   });
 
-  it('cada feature tem critérios completos (ao menos um de B §4) e uma evidência por item de evidencia_b', () => {
+  it('cada feature tem critérios completos (ao menos um de B §4, ou a origem fora do B em cada um) e uma evidência por item de evidencia_b', () => {
     for (const f of features) {
       const id = String(f['id']);
       const criterios = lista(f, 'criterios');
       expect(criterios.length, id).toBeGreaterThan(0);
-      expect(criterios.some((c) => String(c['origem']).startsWith('B §4')), `${id} sem critério de B §4`).toBe(true);
+      if (doB.includes(f)) expect(criterios.some((c) => String(c['origem']).startsWith('B §4')), `${id} sem critério de B §4`).toBe(true);
+      else for (const c of criterios) expect(String(c['origem'] ?? '').trim() !== '' && !String(c['origem']).startsWith('B §4'), `${String(c['id'])}.origem`).toBe(true);
       const ids = criterios.map((c) => String(c['id']));
       expect(ids.filter((x) => !x.startsWith(`${id}.`)), id).toEqual([]);
       expect(new Set(ids).size, id).toBe(ids.length);
