@@ -16,6 +16,7 @@ import { decidirTeto, type EntradasDoTeto } from '../plataforma/teto';
 import { montarEstadoDaSonda } from '../logica/nucleo/sonda';
 import { criarDadosDaCharneca } from '../plataforma/dadosDaVigilia';
 import { ArmazenamentoDoMeta } from '../plataforma/armazenamento';
+import { ArmazenamentoDaVigilia } from '../plataforma/vigiliaGuardada';
 import { RegistroDeTelemetria } from '../plataforma/telemetria';
 import { suportaWebGL } from '../plataforma/webgl';
 import { Acender } from './Acender';
@@ -84,6 +85,7 @@ export function iniciarJogo(): Phaser.Game | null {
     inicio: params.inicio,
     almasIniciais: params.almas,
     meta: { armazenamento: armazenamentoDoMeta, atual: meta },
+    vigiliaGuardada: new ArmazenamentoDaVigilia(),
     telemetria: new RegistroDeTelemetria(),
     sonda: elemento('sonda-safe-area'),
     container: elemento('jogo'),

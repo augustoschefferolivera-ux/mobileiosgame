@@ -13,7 +13,7 @@ import { alfa, criarAcumulador } from '../logica/nucleo/acumulador';
 import { criarCameraLenta, dispararCameraLenta, escalarDelta, escalarDeltaDoApagar } from '../logica/nucleo/cameraLenta';
 import { ACAO, criarComandos, fonteConstante, fonteDoRoteiro } from '../logica/nucleo/comandos';
 import { rodarFrameComPausas } from '../logica/nucleo/driver';
-import { CAB, CAUSA_DO_FIM, CENARIO, FASE, JOGADOR, JOGADOR3_U8, JOGADOR4, JOGADOR4_U8, PROMPT, TIPO_DE_CARTA, TODOS_OS_TUTORIAIS, criarEstado, tutoriaisCumpridos, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
+import { CAB, CAUSA_DO_FIM, CENARIO, FASE, FOGUEIRA_U32, JOGADOR, JOGADOR3_U8, JOGADOR4, JOGADOR4_U8, PROMPT, TIPO_DE_CARTA, TODOS_OS_TUTORIAIS, criarEstado, tutoriaisCumpridos, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
 import { EVENTO, EV, eventosEscritos, inicioDoEvento } from '../logica/nucleo/eventos';
 import { IDS_DE_ARMA } from '../logica/armas/tabela';
 import { modalAberto } from '../logica/progressao/modal';
@@ -22,7 +22,8 @@ import { IDS_DE_PASSIVA } from '../logica/progressao/tabela';
 import { verificarNaN } from '../logica/nucleo/nan';
 import { passo } from '../logica/nucleo/passo';
 import { resultadoDaVigilia } from '../logica/mundo/vigilia';
-import { aplicarFimDeVigilia, comOpcoes, comTutoriais } from '../logica/save/meta';
+import { comOpcoes, comTutoriais, reservarIdDaVigilia } from '../logica/save/meta';
+import { GravadorDaVigilia, creditarFim } from '../plataforma/vigiliaGuardada';
 import { sortearSeed } from '../plataforma/parametros';
 import { criarDadosDaCharneca } from '../plataforma/dadosDaVigilia';
 import inimigos from '../dados/inimigos.json';
@@ -101,10 +102,13 @@ export class Vigilia extends Phaser.Scene {
       cameraLenta: criarCameraLenta(),
       fimCreditado: false,
       resultado: null,
+      gravador: null,
+      idVigilia: 0,
       horda: this.render.horda,
       efeitos: this.render.efeitos,
     };
     this.ctx.simulacao = this.sim;
+    this.iniciarSave();
     this.ctx.tela = 'VIGILIA';
     this.eventosLidos = 0;
     this.resultadoIniciado = false;
@@ -122,7 +126,16 @@ export class Vigilia extends Phaser.Scene {
     eventos.on(Phaser.Core.Events.STEP, this.aoStep, this);
     eventos.on(Phaser.Core.Events.PRE_RENDER, this.aoPreRender, this);
     eventos.on(Phaser.Core.Events.POST_RENDER, this.aoPostRender, this);
+    // O `andamento` também sai quando a aba some (SV3).
+    const aoSumir = (): void => this.sim?.gravador?.salvarAndamento(this.sim.estado);
+    const aoMudarVisibilidade = (): void => {
+      if (document.visibilityState === 'hidden') aoSumir();
+    };
+    document.addEventListener('visibilitychange', aoMudarVisibilidade);
+    window.addEventListener('pagehide', aoSumir);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      document.removeEventListener('visibilitychange', aoMudarVisibilidade);
+      window.removeEventListener('pagehide', aoSumir);
       eventos.off(Phaser.Core.Events.PRE_STEP, this.aoPreStep, this);
       eventos.off(Phaser.Core.Events.STEP, this.aoStep, this);
       eventos.off(Phaser.Core.Events.PRE_RENDER, this.aoPreRender, this);
@@ -183,6 +196,7 @@ export class Vigilia extends Phaser.Scene {
     if (promptAntes === PROMPT.aguardando && sim.estado.jogador3U8[JOGADOR3_U8.promptEsquiva] === PROMPT.visivel) dispararCameraLenta(sim.cameraLenta);
     this.ctx.medidor.simulou(performance.now() - t0, n);
     this.persistirTutoriais();
+    sim.gravador?.depoisDoFrame(sim.estado);
     this.verificarFase();
     // O modal abre no passo que cruza o nível ou encosta no baú (M1); a pausa aberta tem a vez (M5).
     if (!sim.pausa.ativa && modalAberto(sim.estado) && trad.modo !== 'modal') this.abrirModal();
@@ -190,6 +204,23 @@ export class Vigilia extends Phaser.Scene {
     this.telemetriaDeCombate.ler(sim.estado, this.ctx.telemetria);
     // Fora do tempo medido como simulação (o F-003.4 roda com ?debug=1).
     if (this.ctx.debug && n > 0) verificarNaN(sim.estado, n);
+  }
+
+  /**
+   * Save da Vigília (F-008 SV3, SV4): na produção (e no cenário fogueira_hora1) reserva o `idVigilia` no meta, grava o meta e
+   * só então o `vigilia` do passo 0. Os outros cenários não gravam.
+   */
+  private iniciarSave(): void {
+    const c = this.ctx;
+    const sim = this.sim!;
+    if (c.cenario !== null && c.cenario.id !== 'fogueira_hora1') return;
+    const { meta, id } = reservarIdDaVigilia(c.meta.atual);
+    c.meta.atual = meta;
+    c.meta.armazenamento.gravar(meta);
+    sim.idVigilia = id;
+    sim.estado.fogueiraU32[FOGUEIRA_U32.idVigilia] = id;
+    sim.gravador = new GravadorDaVigilia(c.vigiliaGuardada, sim.estado, sim.dados.combate.autosavePassos);
+    sim.gravador.gravarInicio(sim.estado);
   }
 
   /** Alterna uma opção da pausa e grava no meta na hora do toque (SV4, SV6). */
@@ -250,8 +281,8 @@ export class Vigilia extends Phaser.Scene {
     sim.fimCreditado = true;
     const r = resultadoDaVigilia(sim.estado, sim.dados);
     sim.resultado = r;
-    this.ctx.meta.atual = aplicarFimDeVigilia(this.ctx.meta.atual, r);
-    this.ctx.meta.armazenamento.gravar(this.ctx.meta.atual);
+    // FIM atômico (SV4): o meta com o crédito e `ultimaEncerrada` primeiro; só então saem o `vigilia` e o `andamento`.
+    this.ctx.meta.atual = creditarFim(this.ctx.meta.armazenamento, this.ctx.vigiliaGuardada, this.ctx.meta.atual, r, sim.idVigilia);
     const e = sim.estado;
     this.ctx.telemetria.registrar('apagar', e.cab[CAB.passo]!, {
       minuto: Math.floor(e.cab[CAB.relogio]! / 3600),

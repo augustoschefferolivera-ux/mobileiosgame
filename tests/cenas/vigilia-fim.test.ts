@@ -59,6 +59,8 @@ function montar(almas = 100, ctxExtra: Partial<ContextoDoJogo> = {}) {
     modal: { selecionada: null },
     cameraLenta: criarCameraLenta(),
     fimCreditado: false,
+    gravador: null,
+    idVigilia: 0,
     resultado: null,
     horda: null,
     efeitos: null,

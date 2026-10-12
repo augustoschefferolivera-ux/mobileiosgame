@@ -7,6 +7,7 @@ import type { Estado } from '../logica/nucleo/estado';
 import type { ResultadoDaVigilia } from '../logica/mundo/vigilia';
 import type { Meta } from '../logica/save/meta';
 import type { ArmazenamentoDoMeta } from '../plataforma/armazenamento';
+import type { ArmazenamentoDaVigilia, GravadorDaVigilia } from '../plataforma/vigiliaGuardada';
 import type { DadosDaVigilia } from '../logica/mundo/dados';
 import type { CamadaDeToque } from '../entrada/camadaDeToque';
 import type { FilaDeToques } from '../entrada/filaDeToques';
@@ -63,6 +64,10 @@ export interface Simulacao {
    */
   fimCreditado: boolean;
   resultado: ResultadoDaVigilia | null;
+  /** O gravador do `vigilia` e do `andamento` (F-008 SV3); null nos cenários, que não gravam (salvo fogueira_hora1). */
+  gravador: GravadorDaVigilia | null;
+  /** `idVigilia` desta Vigília (SV4); 0 sem save. */
+  idVigilia: number;
   /** O escritor da horda desta Vigília, para o debug. */
   horda: EscritorDaHorda | null;
   /** Consumidor do anel de eventos e pools do render (números, mortes, efeitos), para o debug. */
@@ -93,6 +98,8 @@ export interface ContextoDoJogo {
   readonly almasIniciais: number | null;
   /** O meta: o armazenamento (localStorage com queda para a memória) e a cópia lida no boot, a que o fim da Vigília atualiza. */
   readonly meta: { readonly armazenamento: ArmazenamentoDoMeta; atual: Meta };
+  /** O `vigilia` e o `andamento` guardados (F-008 SV2): o gravador escreve, o Acender lê. */
+  readonly vigiliaGuardada: ArmazenamentoDaVigilia;
   readonly telemetria: RegistroDeTelemetria;
   readonly sonda: HTMLElement;
   readonly container: HTMLElement;
