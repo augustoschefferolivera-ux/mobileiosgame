@@ -19,7 +19,7 @@ export const FATOR_DO_ACERTO_DE_CONTATO = 0.3;
 export const FOLGA_DO_CONTATO = 1 / 16;
 
 /** Origem do dano ao jogador (código numérico; as features seguintes acrescentam). */
-export const ORIGEM_DO_DANO = { contato: 1 } as const;
+export const ORIGEM_DO_DANO = { contato: 1, golpe: 2, projetil: 3 } as const;
 
 /**
  * Único caminho de dano ao jogador. Na F-003 aplica o valor bruto (antes da

@@ -11,11 +11,36 @@ export const PALAVRAS_POR_EVENTO = 8;
 export const BYTES_DO_ANEL = 4 + CAPACIDADE_DO_ANEL * PALAVRAS_POR_EVENTO * 4;
 
 /** Tipos de evento; os códigos só crescem no fim. */
-export const EVENTO = { acerto: 1, morte: 2, golpe: 3, pulso: 4, nivel: 5, carta: 6, onda: 7, bau: 8, item: 9, uniao: 10 } as const;
+export const EVENTO = {
+  acerto: 1,
+  morte: 2,
+  golpe: 3,
+  pulso: 4,
+  nivel: 5,
+  carta: 6,
+  onda: 7,
+  bau: 8,
+  item: 9,
+  uniao: 10,
+  // F-006 (design/decisoes-F-006.md ET10)
+  telegrafo: 11,
+  golpeInimigo: 12,
+  esquiva: 13,
+  esquivaPerfeita: 14,
+  aparo: 15,
+  aparoFalho: 16,
+  posturaQuebrada: 17,
+  contraAtaque: 18,
+  acaoNegada: 19,
+  projetilLancado: 20,
+  aparoVazio: 21,
+} as const;
 /** Formas de ataque do evento; os códigos só crescem no fim. */
-export const FORMA = { ida: 1, volta: 2, estocada: 3, faca: 4, tick: 5, onda: 6 } as const;
+/** 7 e 8 (F-006): o arco do Oco Grande e o projétil de Sal da Noviça. */
+export const FORMA = { ida: 1, volta: 2, estocada: 3, faca: 4, tick: 5, onda: 6, arcoInimigo: 7, projetilSal: 8 } as const;
 /** Bits de flags. */
-export const FLAG = { critico: 1, matou: 2, convertido: 4 } as const;
+/** `contra` (F-006): evento `golpe` ou `acerto` de uma salva extra do Contra-ataque. */
+export const FLAG = { critico: 1, matou: 2, convertido: 4, contra: 8 } as const;
 /** Causa de morte (as F-008 e F-009 acrescentam as suas). */
 export const CAUSA = { arma: 1 } as const;
 /** Handle de "sem alvo". */
@@ -37,7 +62,14 @@ export const EV = {
    * ofertado, índice da carta (tipo de carta na forma, item na arma); onda: x,
    * y, dirX, dirY (slot da onda no alvo); bau: x, y, índice de queda, itens
    * (tipo do pickup na forma); item: nível resultante (categoria na forma,
-   * código na arma); uniao: código da passiva (o resultado na arma).
+   * código na arma); uniao: código da passiva (o resultado na arma). F-006
+   * (ET10): telegrafo: x, y do atacante, duração, alcance; golpeInimigo: x, y,
+   * dano bruto (0 se evitado), desfecho (1 acertou, 2 esquivado, 3 aparado, 4
+   * errou); esquiva: x, y, dirX, dirY; esquivaPerfeita: x, y (a origem do dano
+   * na forma); aparo: x, y do atacante, stamina depois; aparoFalho: x, y do
+   * jogador; posturaQuebrada: x, y, passos; contraAtaque: x, y, slot do alvo,
+   * vagas armadas; acaoNegada: x, y, stamina, custo (a ação na forma);
+   * projetilLancado: x, y, dirX, dirY; aparoVazio: x, y, stamina depois.
    */
   floats: 4,
 } as const;
