@@ -305,6 +305,19 @@ describe('F-006.3: aparo falho e aparo vazio (AP5, AP7)', () => {
     expect(stamina(e)).toBe(st.get(P0)! - 25);
   });
 
+  it('o aparo em P0 + 10, durante o aparo falho, é ignorado: nem stamina nem janela mudam (AP8)', () => {
+    const P0 = 13;
+    const e = comGrande();
+    const fonte = fonteDeAcoes([aparoEm(0), aparoEm(P0 + 10 - 1)]);
+    const st = rodarAte(e, fonte, P0 + 12);
+    expect(u8(e, 'aparoFalho')).toBeGreaterThan(0);
+    expect(u8(e, 'aparoJanela')).toBe(0);
+    expect(stamina(e)).toBe(st.get(P0));
+    expect(st.get(P0 + 10)).toBe(st.get(P0));
+    expect(eventosDe(e, EVENTO.acaoNegada)).toHaveLength(0);
+    expect(eventosDe(e, EVENTO.aparoFalho)).toHaveLength(1);
+  });
+
   it('aparo em c + 5 (dentro da janela) é ignorado sem custo nem evento', () => {
     const e = criar({ cenario: ATQ, inimigos: [LONGE] });
     const st = rodarAte(e, fonteDeAcoes([aparoEm(0), aparoEm(5)]), 8);

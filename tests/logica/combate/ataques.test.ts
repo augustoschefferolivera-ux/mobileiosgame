@@ -270,6 +270,33 @@ describe('F-006.11: golpe, ordem do passo e dano (OG5, OG6, OG7)', () => {
     expect(eventosDe(e, EVENTO.golpeInimigo)[0]).toMatchObject({ forma: FORMA.arcoInimigo, a: 21, b: 1 });
   });
 
+  it('o golpe e o projétil, com `invulContato` = 0 antes, deixam 0 depois (OG7: só o contato liga o timer)', () => {
+    const { e, s } = comGrande(300, 300, ATQ);
+    prepararGolpe(e, s, 70, 0, [1, 0]);
+    expect(e.jogadorU8[JOGADOR_U8.invulContato]).toBe(0);
+    rodarAtaques(e, D);
+    expect(hp(e)).toBe(D.hpInicial - e.inimigos.dano[s]!);
+    expect(e.jogadorU8[JOGADOR_U8.invulContato]).toBe(0);
+
+    const { e: f, s: n } = comNovica(300, 300, ATQ);
+    const [jx, jy] = posJogador(f);
+    posicionar(f, n, jx, jy - 150);
+    f.inimigos.ataqueFase[n] = FASE_DO_ATAQUE.telegrafo;
+    f.inimigos.ataqueTimer[n] = 1;
+    f.inimigos.miraX[n] = 0;
+    f.inimigos.miraY[n] = 1;
+    rodarAtaques(f, D);
+    const p = projeteisDeSal(f)[0]!;
+    f.projeteis.x[p] = jx;
+    f.projeteis.y[p] = jy - 10;
+    f.projeteis.vx[p] = 0;
+    f.projeteis.vy[p] = 0;
+    expect(f.jogadorU8[JOGADOR_U8.invulContato]).toBe(0);
+    rodarAtaques(f, D);
+    expect(hp(f)).toBeLessThan(D.hpInicial);
+    expect(f.jogadorU8[JOGADOR_U8.invulContato]).toBe(0);
+  });
+
   it('com o jogador invulnerável do cenário o desfecho é 1 e o HP não muda', () => {
     const { e, s } = comGrande(300, 300, INV);
     prepararGolpe(e, s, 70, 0, [1, 0]);
@@ -317,6 +344,30 @@ describe('F-006.11: ameaças aparáveis (OG11, AP5)', () => {
     expect(ameacas(e)).toBe(1);
     rodar(e, 40);
     expect(e.inimigos.ataqueFase[s]).toBe(FASE_DO_ATAQUE.recuperacao);
+    expect(ameacas(e)).toBe(0);
+  });
+
+  it('Oco Grande em telegrafo com o jogador a 60 px atrás do eixo da mira (dentro do alcance, fora do arco) não conta', () => {
+    const { e, s } = comGrande(300, 300, INV);
+    prepararGolpe(e, s, -60, 0, [1, 0]);
+    e.inimigos.ataqueTimer[s] = 5;
+    rodarAtaques(e, D);
+    expect(ameacas(e)).toBe(0);
+    prepararGolpe(e, s, 60, 0, [1, 0]);
+    e.inimigos.ataqueTimer[s] = 5;
+    rodarAtaques(e, D);
+    expect(ameacas(e)).toBe(1);
+  });
+
+  it('Noviça em telegrafo colada no jogador, sem projétil, não conta (só o Oco Grande tem ameaça de telegrafo)', () => {
+    const { e, s } = comNovica(300, 300, INV);
+    junto(e, s, 5, 0);
+    e.inimigos.ataqueFase[s] = FASE_DO_ATAQUE.telegrafo;
+    e.inimigos.ataqueTimer[s] = 20;
+    e.inimigos.miraX[s] = -1;
+    e.inimigos.miraY[s] = 0;
+    rodarAtaques(e, D);
+    expect(projeteisDeSal(e)).toHaveLength(0);
     expect(ameacas(e)).toBe(0);
   });
 
