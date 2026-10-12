@@ -59,18 +59,32 @@ test('F-002.3: o arrasto move o jogador na direção do arrasto, e soltar para',
   expect(j0).toMatchObject({ x: 585, y: 1266, dirX: 0, dirY: -1 });
   // Para a direita, pelo corredor livre: x cresce, y não muda.
   await d.comecar(100, 650);
+  // O arrasto leva tempo real (cada toque do CDP espera o quadro, e no WebGL por software o quadro é lento): o jogador segue
+  // andando durante ele e dá a volta no mapa até um obstáculo. A leitura vale no 1º quadro com x > x0 + 30, tirada na página.
+  await page.evaluate((x0) => {
+    const w = window as unknown as { __j1: unknown };
+    w.__j1 = null;
+    const ler = (): void => {
+      const g = window.__GAME_DEBUG__;
+      if (g.jogador!.x > x0 + 30) w.__j1 = { j: g.jogador };
+      else requestAnimationFrame(ler);
+    };
+    requestAnimationFrame(ler);
+  }, j0.x);
   await d.mover(170, 650);
-  await page.waitForFunction((x0) => window.__GAME_DEBUG__.jogador!.x > x0 + 30, j0.x);
-  const j1 = await jogador(page);
+  await page.waitForFunction(() => (window as unknown as { __j1: unknown }).__j1 !== null);
+  const lido = await page.evaluate(() => (window as unknown as { __j1: { j: Awaited<ReturnType<typeof jogador>> } }).__j1);
+  const j1 = lido.j;
   expect(j1.y).toBe(j0.y);
   expect([j1.dirX, j1.dirY]).toEqual([1, 0]);
   expect(await joystick(page)).toMatchObject({ ativo: true, origemX: 100, origemY: 650, vx: 1, vy: 0 });
-  // Para cima (sem soltar): y diminui.
+  // Para cima (sem soltar): y diminui (a partir de onde o jogador está agora).
+  const antes = await jogador(page);
   await d.mover(100, 580);
   await page.waitForFunction((y1) => {
     const d = window.__GAME_DEBUG__.jogador!.y - y1;
     return (d > 1266 ? d - 2532 : d < -1266 ? d + 2532 : d) < -20;
-  }, j1.y);
+  }, antes.y);
   const j2 = await jogador(page);
   expect(j2.dirY).toBeLessThan(-0.99);
   await d.soltar();

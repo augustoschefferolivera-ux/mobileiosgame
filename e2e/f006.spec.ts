@@ -475,6 +475,8 @@ test('evidência: tutorial-esquiva-390x844.png e tutorial-aparo-390x844.png (o p
   await page.waitForTimeout(400);
   await quadros(page);
   await capturar(page, 'tutorial-esquiva-390x844.png', info);
+  // A Vigília da esquiva deixou o save (F-008 SV3): sem limpar, o Acender da 2ª abertura oferece a retomada, não uma Vigília nova.
+  await page.evaluate(() => localStorage.clear());
   // Aparo: ?inicio=03:00&visto=mover,esquiva, com o glifo ⟲ conferido na imagem.
   await abrir(page, '&inicio=03:00&visto=mover,esquiva&teto=300', false, SEED_DA_F006);
   await tocarAcender(page);
