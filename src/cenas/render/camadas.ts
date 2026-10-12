@@ -5,15 +5,11 @@
 // aquecimento da Tela de Acender compila) e o plano B, um pool de Image numa
 // layer (?render=image e a queda automática). Nada é alocado por frame.
 import Phaser from 'phaser';
-import { CHAVE_DO_ATLAS, MOLDURA, type NomeDaMoldura } from './atlas';
+import { CHAVE_DO_ATLAS, NOMES_DAS_MOLDURAS, indiceDaMoldura, type NomeDaMoldura } from './atlas';
 import { FLOATS_POR_MEMBRO, OFFSET, criarLayerDaHorda, liberarLayer } from './escritores';
 import { tintOpaco } from './horda';
 
-/** Molduras na ordem dos índices de `SaidaDeSprites.moldura`. */
-export const NOMES_DAS_MOLDURAS = Object.keys(MOLDURA) as NomeDaMoldura[];
-export function indiceDaMoldura(nome: NomeDaMoldura): number {
-  return NOMES_DAS_MOLDURAS.indexOf(nome);
-}
+export { NOMES_DAS_MOLDURAS, indiceDaMoldura };
 
 /** Offsets da origem do membro no SpriteGPULayer do Phaser 4.2.1 (getMemberData: 36 originX, 37 originY). */
 export const OFFSET_DA_ORIGEM = { x: 36, y: 37 } as const;

@@ -6,11 +6,19 @@
 // tamanho exato, para a horda não sair serrilhada nem diferir entre os modos de
 // render; a F-004 traz a cunha do golpe, a faca, o losango do Sal e os 10
 // dígitos da fonte pixel dos números de dano (design/decisoes-F-004.md §6);
-// as seguintes entram com as suas features.
+// as seguintes entram com as suas features. A F-011 põe a arte (src/arte/catalogo)
+// nas regiões livres de um atlas de 1024 × 1024, com filtro NEAREST (style card
+// E7): as formas continuam no quadrante de cima à esquerda, e o chão ganha uma
+// textura própria de 64 × 64 para o TileSprite.
 import type Phaser from 'phaser';
+import { CATALOGO, ESCALA_DA_GRADE, LADO_DO_ATLAS, NOMES_DA_ARTE, REGIOES_DA_ARTE, empacotar, ladrilhoDoChao } from '../../arte/catalogo';
+import type { Imagem } from '../../arte/imagem';
 
 export const CHAVE_DO_ATLAS = 'atlas';
-const LADO_DO_ATLAS = 512;
+/** Textura do chão (o ladrilho de 4 × 4 variantes), repetida pelo TileSprite da Vigília. */
+export const CHAVE_DO_CHAO = 'chao';
+/** Phaser.Textures.FilterMode.NEAREST (o módulo importa o Phaser só como tipo). */
+const NEAREST = 1 as Phaser.Textures.FilterMode;
 /** Folga entre molduras, para o filtro linear não misturar vizinhas. */
 const FOLGA = 4;
 
@@ -56,6 +64,15 @@ export const MOLDURA = {
 } as const;
 export type NomeDaMoldura = keyof typeof MOLDURA;
 
+/** Molduras na ordem dos índices de `SaidaDeSprites.moldura`: as formas e depois a arte (F-011). */
+export const NOMES_DAS_MOLDURAS: readonly string[] = [...(Object.keys(MOLDURA) as NomeDaMoldura[]), ...NOMES_DA_ARTE];
+/** Índice de uma moldura; nome desconhecido é erro alto (um erro de digitação não vira a moldura 0). */
+export function indiceDaMoldura(nome: string): number {
+  const i = NOMES_DAS_MOLDURAS.indexOf(nome);
+  if (i < 0) throw new Error(`atlas: moldura ${nome} não existe`);
+  return i;
+}
+
 /** Traço do anel: 2 pt = 4 px. */
 const TRACO_DO_ANEL_PX = 4;
 /** Raio da cunha no atlas: 92 px = 46 pt. */
@@ -86,6 +103,13 @@ const COR_DO_CONTORNO = '#0b0e14';
 
 /** Contorno do baú dourado: 2 pt = 4 px. */
 const CONTORNO_DO_BAU_PX = 4;
+
+/** pt por px de uma moldura da arte (2 na grade de arte, 1 na fina), por nome. */
+export const ESCALA_DA_ARTE: Readonly<Record<string, number>> = Object.fromEntries(CATALOGO.map((e) => [e.nome, ESCALA_DA_GRADE[e.grade]]));
+
+function copiar(c: CanvasRenderingContext2D, img: Imagem, x: number, y: number): void {
+  c.putImageData(new ImageData(new Uint8ClampedArray(img.px), img.largura, img.altura), x, y);
+}
 
 /** Escala de uma moldura para uma largura em pt (a moldura está a 2×). */
 export function escalaPara(moldura: NomeDaMoldura, tamanhoPt: number): number {
@@ -191,5 +215,19 @@ export function gerarAtlas(texturas: Phaser.Textures.TextureManager): void {
     const m = MOLDURA[nome];
     tex.add(nome, 0, m.x, m.y, m.largura, m.altura);
   }
+  // A arte, desenhada pelo catálogo e empacotada nas regiões livres (o mesmo empacotamento que o teste confere).
+  const imagens = new Map(CATALOGO.map((e) => [e.nome, e.criar()] as const));
+  for (const [nome, p] of empacotar(imagens, REGIOES_DA_ARTE)) {
+    copiar(c, imagens.get(nome)!, p.x, p.y);
+    tex.add(nome, 0, p.x, p.y, p.largura, p.altura);
+  }
+  // O refresh reenvia o canvas com o filtro do antialias do jogo (LINEAR, canvasToTexture do Phaser 4.2.1):
+  // o NEAREST vem depois dele.
   tex.refresh();
+  tex.setFilter(NEAREST);
+  const chao = texturas.createCanvas(CHAVE_DO_CHAO, 64, 64);
+  if (!chao) throw new Error('atlas: não foi possível criar a textura do chão');
+  copiar(chao.getContext(), ladrilhoDoChao(), 0, 0);
+  chao.refresh();
+  chao.setFilter(NEAREST);
 }

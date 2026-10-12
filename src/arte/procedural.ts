@@ -292,3 +292,10 @@ export function clarear(img: Imagem): Imagem {
   }
   return saida;
 }
+
+/** Silhueta de uma cor só (o brilho do telegrafo nos médios, RE4: o corpo termina em branco puro). */
+export function silhueta(img: Imagem, chave: string): Imagem {
+  const saida = novaImagem(img.largura, img.altura);
+  for (let y = 0; y < img.altura; y++) for (let x = 0; x < img.largura; x++) if (lerPixel(img, x, y).alfa !== 0) pintar(saida, x, y, cor(chave));
+  return saida;
+}

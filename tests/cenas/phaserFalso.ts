@@ -5,6 +5,7 @@
 // para o teste de limpeza.
 import './ambientePhaser';
 import Phaser from 'phaser';
+import { NOMES_DAS_MOLDURAS } from '../../src/cenas/render/atlas';
 
 type Lista = unknown[];
 export interface RendererFalso {
@@ -59,6 +60,8 @@ export function criarCena(): { cena: Phaser.Scene; renderer: RendererFalso } {
     massa: { name: 'massa', cutX: 296, cutY: 244, cutWidth: 64, cutHeight: 64 },
     quadrado: { name: 'quadrado', cutX: 364, cutY: 244, cutWidth: 96, cutHeight: 96 },
   };
+  // As demais molduras do atlas (as formas e a arte da F-011), com um recorte qualquer: só o índice importa aqui.
+  for (const nome of NOMES_DAS_MOLDURAS) molduras[nome] ??= { name: nome, cutX: 0, cutY: 0, cutWidth: 16, cutHeight: 16 };
   const textura = {
     key: 'atlas',
     frames: molduras,

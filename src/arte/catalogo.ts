@@ -4,7 +4,7 @@
 // (ou quando os testes e as folhas pedem). O empacotamento é determinístico.
 import { ANGULOS_DESENHADOS, arco, estocada, onda, setorGirado, girado, type ImagemComOrigem } from './efeitos';
 import { compor, novaImagem, rasterizar, type Grade, type Imagem } from './imagem';
-import { anel, brilho, chao, clarear, contornar, cristal, disco, faca, rocha, virarCinza } from './procedural';
+import { anel, brilho, chao, clarear, contornar, cristal, disco, faca, rocha, silhueta, virarCinza } from './procedural';
 import * as aldric from './sprites/aldric';
 import { ALMA, BAU_COMUM, BAU_DOURADO, MIOLO_DO_ATORDOADO, MIOLO_DO_SAL, MIOLO_DOS_ICONES } from './sprites/itens';
 import * as ocos from './sprites/ocos';
@@ -93,7 +93,11 @@ for (let q = 0; q < 3; q++) sprite(`aldric_cinza_${q}`, 'arte', () => virarCinza
 for (const [id, t] of Object.entries(TIPOS_DE_INIMIGO)) {
   sprite(id, 'arte', ras(t.andar[0]));
   sprite(`${id}_2`, 'arte', ras(t.andar[1]));
-  if (t.telegrafo) sprite(`${id}_telegrafo`, 'arte', ras(t.telegrafo));
+  if (t.telegrafo) {
+    const tel = t.telegrafo;
+    sprite(`${id}_telegrafo`, 'arte', ras(tel));
+    sprite(`${id}_telegrafo_branco`, 'arte', () => silhueta(rasterizar(tel), 'W'));
+  }
   if (t.ataque) sprite(`${id}_ataque`, 'arte', ras(t.ataque));
   sprite(`${id}_acerto`, 'arte', () => clarear(rasterizar(t.andar[0])));
   for (let q = 0; q < 3; q++) sprite(`${id}_cinza_${q}`, 'arte', () => virarCinza(rasterizar(t.andar[0]), q));

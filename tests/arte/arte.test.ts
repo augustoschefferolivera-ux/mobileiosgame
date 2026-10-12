@@ -17,8 +17,8 @@ const QUENTES_HEX = new Set([...QUENTES].map((ch) => COR_DA_CHAVE[ch]!));
 const IMAGENS = new Map(CATALOGO.map((e) => [e.nome, e.criar()] as const));
 const img = (nome: string): Imagem => IMAGENS.get(nome)!;
 
-/** Corpos com contorno obrigatório: a grade de arte, menos a luz e os quadros da cinza que se desfaz. */
-const COM_CONTORNO = CATALOGO.filter((e) => e.grade === 'arte' && e.nome !== 'brilho' && !/_cinza_[12]$/.test(e.nome)).map((e) => e.nome);
+/** Corpos com contorno obrigatório: a grade de arte, menos a luz, os quadros da cinza que se desfaz e a silhueta branca do telegrafo (o sinal do ataque não tem contorno, style card §5). */
+const COM_CONTORNO = CATALOGO.filter((e) => e.grade === 'arte' && e.nome !== 'brilho' && !/_cinza_[12]$/.test(e.nome) && !e.nome.endsWith('_branco')).map((e) => e.nome);
 
 function contornoAberto(i: Imagem): string[] {
   const falhas: string[] = [];
@@ -102,7 +102,7 @@ describe('arte: catálogo', () => {
   });
 
   it('inimigos: no máximo 1 px quente em cada quadro', () => {
-    for (const nome of NOMES_DA_ARTE.filter((n) => /^(oco|novica)/.test(n))) expect(contar(img(nome), QUENTES_HEX), nome).toBeLessThanOrEqual(1);
+    for (const nome of NOMES_DA_ARTE.filter((n) => /^(oco|novica)/.test(n) && !n.endsWith('_branco'))) expect(contar(img(nome), QUENTES_HEX), nome).toBeLessThanOrEqual(1);
   });
 
   it('inimigos: o bloco 2 × 2 do centro dos quadros de andar é a cor de identidade (COR_DO_INIMIGO)', () => {
