@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "save-vigilia.schema.json",
+  "title": "Save da Vigília em andamento (envelope `vigilia` e `andamento`; F-008 SV1, SV3, SV7)",
+  "$defs": {
+    "soma": {
+      "description": "FNV-1a de 32 bits (em metades de 16 bits) do JSON do corpo sem a soma: 8 dígitos hexadecimais.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}$"
+    },
+    "inteiro30": {
+      "description": "Inteiro de 0 a 2^30 - 1 (o limite das Almas e dos contadores).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1073741823
+    },
+    "envelope": {
+      "description": "O `vigilia`: o buffer inteiro da simulação em base64 e o resumo para a oferta de retomada.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["versao", "layout", "idVigilia", "seq", "hora", "nivel", "almas", "frascos", "bytes", "soma"],
+      "properties": {
+        "versao": { "description": "Versão do envelope (migracoes.ts, MIGRACOES_DO_ENVELOPE).", "type": "integer", "minimum": 1 },
+        "layout": { "description": "VERSAO_LAYOUT do buffer gravado.", "type": "integer", "minimum": 1 },
+        "idVigilia": { "$ref": "#/$defs/inteiro30" },
+        "seq": { "$ref": "#/$defs/inteiro30" },
+        "hora": { "description": "Hora da Fogueira (1 a 3); 0 no save do passo 0.", "type": "integer", "minimum": 0, "maximum": 3 },
+        "nivel": { "type": "integer", "minimum": 1, "maximum": 255 },
+        "almas": { "$ref": "#/$defs/inteiro30" },
+        "frascos": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "bytes": { "description": "O buffer em base64.", "type": "string", "pattern": "^[A-Za-z0-9+/]*={0,2}$" },
+        "soma": { "$ref": "#/$defs/soma" }
+      }
+    },
+    "andamento": {
+      "description": "O `andamento`: o save pequeno de 60 s, sem o buffer.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["idVigilia", "seqDoVigilia", "hora", "almas", "x", "y", "relogio", "passo", "soma"],
+      "properties": {
+        "idVigilia": { "$ref": "#/$defs/inteiro30" },
+        "seqDoVigilia": { "$ref": "#/$defs/inteiro30" },
+        "hora": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "almas": { "$ref": "#/$defs/inteiro30" },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "relogio": { "$ref": "#/$defs/inteiro30" },
+        "passo": { "$ref": "#/$defs/inteiro30" },
+        "soma": { "$ref": "#/$defs/soma" }
+      }
+    }
+  }
+}
