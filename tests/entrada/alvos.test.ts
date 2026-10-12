@@ -233,6 +233,18 @@ describe('Abandonar e o bloco acima dele (design/decisoes-F-007.md PE3)', () => 
     expect(bloco.yDasEstatisticas + bloco.linhasDasEstatisticas * 18).toBeLessThanOrEqual(bloco.yDoAviso - 28 + 1e-9);
   });
 
+  it.each([...alturas, ['59/34 (ilha dinâmica)', { topo: 59, direita: 0, baixo: 34, esquerda: 0 } as Insets]] as [string, Insets][])(
+    '%s com a build cheia (11 linhas): o aviso e as estatísticas não encostam na build nem entre si (risco da D7 PE3)',
+    (_nome, ins) => {
+      const fimDaBuild = ins.topo + 56 + 11 * 18; // Pausa.ts: PRIMEIRA_LINHA_ABAIXO_DO_TOPO 56, ENTRE_LINHAS_DA_BUILD 18
+      const abandonar = alvosDaTelaDePausa(ins, []).find((a) => a.id === 'abandonar')!;
+      const bloco = blocoDaPausa(abandonar, fimDaBuild);
+      expect(bloco.yDasEstatisticas).toBeGreaterThanOrEqual(fimDaBuild);
+      expect(bloco.yDasEstatisticas + bloco.linhasDasEstatisticas * 18).toBeLessThanOrEqual(bloco.yDoAviso);
+      expect(bloco.yDoAviso + 2 * 18).toBeLessThan(abandonar.y);
+    },
+  );
+
   it('com folga as estatísticas ocupam 3 linhas (y 322 a 376 em 844); sem folga, uma linha só', () => {
     const abandonar = alvosDaTelaDePausa({ topo: 47, direita: 0, baixo: 34, esquerda: 0 }, []).find((a) => a.id === 'abandonar')!;
     expect(blocoDaPausa(abandonar, 300)).toEqual({ yDoAviso: 404, yDasEstatisticas: 322, linhasDasEstatisticas: 3 });
