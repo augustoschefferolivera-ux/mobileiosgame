@@ -19,7 +19,7 @@
 // arena, a Fogueira, o empurrão do Grito, os obstáculos ativos e, por inimigo, o ataque e a convocação do Coroado.
 import type { DadosDaVigilia } from '../mundo/dados';
 import { criarAnel, esvaziarAnel, type AnelDeEventos } from './eventos';
-import { fnv1aBytes, FNV_BASE } from './hash';
+import { fnv1aByte, fnv1aBytes, FNV_BASE } from './hash';
 import { alocar, bytesDoPool, esvaziarPool, viewsDoPool, type Pool } from './pool';
 import { FLUXOS, PALAVRAS_POR_FLUXO, indiceDoFluxo, semear, type Fluxo } from './rng';
 import { CODIGOS_DE_ARMA, NUMERO_DE_ATRIBUTOS, POR_NIVEL } from '../armas/tabela';
@@ -1062,9 +1062,17 @@ export function baseDoFluxo(fluxo: Fluxo): number {
   return indiceDoFluxo(fluxo) * PALAVRAS_POR_FLUXO;
 }
 
-/** FNV-1a de 32 bits sobre o buffer inteiro (ADR-0003 §3), com os slots mortos zerados. */
+/**
+ * FNV-1a de 32 bits sobre o buffer inteiro (ADR-0003 §3), com os slots mortos zerados. A palavra `idVigilia` entra como zero
+ * (ADR-0010 §9, divergência da correção Node × Chromium): ela é a identidade do save, reservada no meta da produção, e não
+ * faz parte da simulação; contá-la fazia a Vigília do navegador (id 1) divergir da do Node (id 0) em qualquer seed.
+ */
 export function hashEstado(e: Estado): number {
-  return fnv1aBytes(FNV_BASE, e.bytes);
+  const b = e.bytes;
+  const ini = INICIO_FOGUEIRA_U32 + FOGUEIRA_U32.idVigilia * 4;
+  let h = fnv1aBytes(FNV_BASE, b.subarray(0, ini));
+  for (let k = 0; k < 4; k++) h = fnv1aByte(h, 0);
+  return fnv1aBytes(h, b.subarray(ini + 4));
 }
 
 /**

@@ -17,6 +17,7 @@ import { rodarFrame } from '../../src/logica/nucleo/driver';
 import {
   BYTES_ESTADO,
   CAB,
+  FOGUEIRA_U32,
   JOGADOR,
   JOGADOR_U8,
   MUNDO,
@@ -168,9 +169,12 @@ describe('determinismo (F-001.1)', () => {
     const e = criarEstado(SEED, D);
     expect(e.bytes.length).toBe(BYTES_ESTADO);
     const base = hashEstado(e);
+    // Só a palavra `idVigilia` (identidade do save, não simulação) fica fora do hash (ADR-0010 §9, 34).
+    const idIni = e.fogueiraU32.byteOffset + FOGUEIRA_U32.idVigilia * 4;
     for (let i = 0; i < BYTES_ESTADO; i++) {
       e.bytes[i] = e.bytes[i]! ^ 1;
-      expect(hashEstado(e), `byte ${i}`).not.toBe(base);
+      if (i >= idIni && i < idIni + 4) expect(hashEstado(e), `byte ${i} (idVigilia)`).toBe(base);
+      else expect(hashEstado(e), `byte ${i}`).not.toBe(base);
       e.bytes[i] = e.bytes[i]! ^ 1;
     }
   }, 30_000);

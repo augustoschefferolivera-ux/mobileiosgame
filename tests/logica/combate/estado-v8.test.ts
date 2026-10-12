@@ -155,3 +155,14 @@ describe('o bloco v8 ao nascer (AR1, AR3)', () => {
     expect(marcos(72_000)).toEqual([3, ETAPA.chefe]);
   });
 });
+
+describe('hash e idVigilia (ADR-0010 §9, 34)', () => {
+  it('o id da Vigília não entra no hash, e um byte vizinho entra', () => {
+    const a = criarEstado(1, D);
+    const h0 = hashEstado(a);
+    a.fogueiraU32[FOGUEIRA_U32.idVigilia] = 7;
+    expect(hashEstado(a)).toBe(h0);
+    a.fogueiraU32[FOGUEIRA_U32.convocacoes] = 1;
+    expect(hashEstado(a)).not.toBe(h0);
+  });
+});

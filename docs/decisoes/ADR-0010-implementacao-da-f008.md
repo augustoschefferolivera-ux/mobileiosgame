@@ -133,6 +133,11 @@ Da D8 (já em negrito lá): CR1, CR3, CR4, CR8, AR2, AR4, FG7, SV2, SV3, SV6, SV
 32. **O Coroado não foi refeito em forma simples** (a 2b pedia): a F-011 já entregou a arte dele.
 33. **`__GAME_DEBUG__`** ganhou `vigilia.etapas` e `inimigos()[].ataqueId` (a D8 só previa `save` e `hash()`).
 
+### Correção Node × Chromium (pós-2c)
+
+34. **`hashEstado` conta `idVigilia` como zero** (corrige a divergência 17; o teste do hash por byte em `determinismo.test.ts` deixa só essas 4 posições de fora). O id é a identidade do save, reservado no meta da produção (1 na 1ª Vigília de um perfil novo); contá-lo no hash fazia o navegador divergir do Node (id 0) em qualquer seed (F-001.11, F-004.4 e as marcas da F-006 na Playwright). Os hashes do Node não mudam (id 0 = zero), o layout e o envelope ficam como estão; o id continua no buffer e no `soma` do envelope. Testes: `estado-v8.test.ts` e `determinismo.test.ts`.
+35. **Specs da Playwright sem efeito do save/da lentidão do software** (nenhuma referência afrouxada): `f006` (evidência do tutorial) limpa o `localStorage` entre a Vigília da esquiva e a do aparo, porque o save da 1ª fazia o Acender da 2ª oferecer a retomada; `f002` F-002.3 lê o jogador no 1º quadro com x > x0 + 30, tirado na página, pois o arrasto do CDP leva ~10 s no WebGL por software e o jogador dava a volta no mapa até um obstáculo.
+
 ## 10. Crítico independente
 
 Nota **8,0**, sem achado bloqueante nem alto (a F-007 teve 8,0; a F-005, 7). Foram **107 mutações** no código da Coroado, da arena, da borda, da Fogueira, do passo, do save e do FIM atômico, cada uma aplicada com os testes afetados rodados e desfeita em seguida; a Playwright da F-008 (4/4), `alocacao.test.ts`, `mutacoes.test.ts` e os testes de lint, glossário e disposição passaram à parte. Reprovadas pelos testes que já existiam: **69**. Sobreviventes: **38**, dos quais cerca de 26 equivalentes ou fronteiras de ponto flutuante e 12 lacunas de teste. Nenhum bug de produção com caminho concreto de falha; os achados foram os **médios** M1 a M6 (lacunas de teste) e os **baixos** L1 a L13.
