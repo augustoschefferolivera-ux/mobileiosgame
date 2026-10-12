@@ -510,6 +510,16 @@ describe('AP9: aparo com stamina insuficiente', () => {
     expect(eventosDe(f, EVENTO.acaoNegada)).toHaveLength(0);
   });
 
+  it('os dois bits com stamina 14,5: o aparo negado vence e a esquiva é ignorada (um só evento 19, do aparo)', () => {
+    const e = criar({ cenario: ATQ, inimigos: [LONGE] });
+    setStamina(e, 14.5);
+    avancar(e, D, fonteDeAcoes([{ passo: 0, acoes: ACAO.aparo | ACAO.esquiva, mira: [0, -1] }]), 1);
+    const neg = eventosDe(e, EVENTO.acaoNegada);
+    expect(neg).toHaveLength(1);
+    expect(neg[0]).toMatchObject({ forma: ACAO.aparo });
+    expect([u8(e, 'aparoJanela'), u8(e, 'esquivaPasso')]).toEqual([0, 0]);
+  });
+
   it('o ignorado por trava não gera acaoNegada (só o negado por stamina)', () => {
     const e = criar({ cenario: ATQ, inimigos: [LONGE] });
     avancar(e, D, fonteDeAcoes([aparoEm(0), aparoEm(1)]), 2);
