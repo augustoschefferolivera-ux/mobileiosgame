@@ -13,8 +13,10 @@ import { pathToFileURL } from 'node:url';
 import { criarDadosDaCharneca } from '../src/plataforma/dadosDaVigilia';
 import { PASSIVA } from '../src/logica/progressao/tabela';
 import { ARMA } from '../src/logica/armas/tabela';
-import { criarComandos, type ComandosDoPasso, type FonteDeComandos } from '../src/logica/nucleo/comandos';
-import { CAB, CAPACIDADE_DE_PICKUPS, CATEGORIA_DE_ITEM, CENARIO, FASE, JOGADOR, JOGADOR4_U8, MUNDO2, PROGRESSAO, TIPO_DE_CARTA, TIPO_DE_PICKUP, TODOS_OS_TUTORIAIS, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, criarEstado, type Estado, type ParametrosDaVigilia } from '../src/logica/nucleo/estado';
+import { ACAO, criarComandos, type ComandosDoPasso, type FonteDeComandos } from '../src/logica/nucleo/comandos';
+import type { DadosDaVigilia } from '../src/logica/mundo/dados';
+import { uniaoForjavel } from '../src/logica/progressao/bau';
+import { CAB, CAPACIDADE_DE_PICKUPS, CATEGORIA_DE_ITEM, CENARIO, ETAPA, FASE, FOGUEIRA_U8, JOGADOR, JOGADOR4_U8, MUNDO2, PROGRESSAO, TIPO_DE_CARTA, TIPO_DE_PICKUP, TODOS_OS_TUTORIAIS, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, criarEstado, type Estado, type ParametrosDaVigilia } from '../src/logica/nucleo/estado';
 import { EV, EVENTO, eventosEscritos, inicioDoEvento } from '../src/logica/nucleo/eventos';
 import { avancar } from '../src/logica/nucleo/passo';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, deltaNoToro } from '../src/logica/mundo/toro';
@@ -50,6 +52,15 @@ export interface Resultado {
   readonly bolsas: number;
   /** Minuto (relógio) em que a build tem Espada nv8 + Elmo; null se não chegou. */
   readonly minutoEspada8Elmo: number | null;
+  /** F-008 (U7): o minuto do relógio da 1ª União (baú ou Forja) e a origem dela; null se não houve. */
+  readonly minutoDaPrimeiraUniao: number | null;
+  readonly origemDaPrimeiraUniao: 'forja' | 'bau' | null;
+  /** F-008 (U7): Fogueiras abertas, Descansos e Forjas do bot, marcos concluídos e vencidos pelo relógio. */
+  readonly fogueiras: number;
+  readonly descansos: number;
+  readonly forjas: number;
+  readonly marcosConcluidos: number;
+  readonly marcosVencidos: number;
 }
 
 /** Tempo até a morte do jogador parado (decisoes-F-007 AG8): passo em que a fase deixa de ser VIVA, com e sem Brasa Firme. */
@@ -100,11 +111,26 @@ function mirarNoMaisProximo(e: Estado, out: ComandosDoPasso): void {
   out.movimento[1] = n > 0 ? my / n : 0;
 }
 
+/**
+ * O bot da Fogueira (F-008 §6): na etapa FOGUEIRA descansa, forja quando há União possível e Almas para o custo da hora e
+ * parte; fora dela não pede ação nenhuma. Os bits valem uma vez por Fogueira (a simulação nega a repetição).
+ */
+function acaoDoBotDaFogueira(e: Estado, dados: DadosDaVigilia): number {
+  if (e.fogueiraU8[FOGUEIRA_U8.etapa] !== ETAPA.fogueira) return 0;
+  const usadas = e.fogueiraU8[FOGUEIRA_U8.fogueiraAcoes]!;
+  let bits = 0;
+  if ((usadas & 1) === 0) bits |= ACAO.descansar;
+  const custo = dados.progressao.forjaCusto[e.fogueiraU8[FOGUEIRA_U8.fogueiraHora]!]!;
+  if ((usadas & 2) === 0 && uniaoForjavel(e, dados) >= 0 && e.progresso[PROGRESSAO.almas]! >= custo) bits |= ACAO.forjar;
+  return bits !== 0 ? bits : ACAO.partir;
+}
+
 /** Fonte do comportamento; escolhaDoModal devolve sempre 0 (1ª carta; baú fecha). */
-function criarFonte(comportamento: Comportamento, e: Estado): FonteDeComandos {
+function criarFonte(comportamento: Comportamento, e: Estado, dados: DadosDaVigilia): FonteDeComandos {
   const mira = criarComandos();
   return {
     comandosDoPasso(passo, out) {
+      out.acoes[0] = acaoDoBotDaFogueira(e, dados);
       if (comportamento === 'parado') {
         out.movimento[0] = 0;
         out.movimento[1] = 0;
@@ -123,10 +149,10 @@ function criarFonte(comportamento: Comportamento, e: Estado): FonteDeComandos {
   };
 }
 
-function simularUma(seed: number, comportamento: Comportamento, passos: number): Resultado {
+export function simularUma(seed: number, comportamento: Comportamento, passos: number): Resultado {
   const dados = criarDadosDaCharneca();
   const e = criarEstado(seed, dados, PARAMETROS);
-  const fonte = criarFonte(comportamento, e);
+  const fonte = criarFonte(comportamento, e, dados);
   const minutosCobertos = Math.ceil(passos / PASSOS_POR_MINUTO);
   const danoPorMinuto = new Float64Array(minutosCobertos + 1);
   const marcos: Marco[] = [];
@@ -138,6 +164,15 @@ function simularUma(seed: number, comportamento: Comportamento, passos: number):
   let valorAntes = 0;
   let bolsas = 0;
   let minutoEspada8Elmo: number | null = null;
+  let minutoDaPrimeiraUniao: number | null = null;
+  let origemDaPrimeiraUniao: 'forja' | 'bau' | null = null;
+  let forjouNoPasso = false;
+  let primeiraUniaoNoPasso = false;
+  let fogueiras = 0;
+  let descansos = 0;
+  let forjas = 0;
+  let marcosConcluidos = 0;
+  let marcosVencidos = 0;
   const dpsDaJanela = (minuto: number): number => Math.round(((danoPorMinuto[minuto - 1] ?? 0) / 60) * 10) / 10;
   const nivelAtual = (): number => e.progresso[PROGRESSAO.nivel]!;
 
@@ -154,10 +189,24 @@ function simularUma(seed: number, comportamento: Comportamento, passos: number):
       if (tipo === EVENTO.acerto) {
         const passoDoEvento = e.eventos.u32[i + EV.passo]!;
         danoPorMinuto[Math.min(Math.ceil(passoDoEvento / PASSOS_POR_MINUTO) - 1, minutosCobertos)]! += e.eventos.f32[i + EV.floats + 2]!;
+      } else if (tipo === EVENTO.fogueiraAberta) fogueiras++;
+      else if (tipo === EVENTO.descansou) descansos++;
+      else if (tipo === EVENTO.forjou) {
+        forjas++;
+        forjouNoPasso = true;
+      } else if (tipo === EVENTO.marcoConcluido) marcosConcluidos++;
+      else if (tipo === EVENTO.marcoVencido) marcosVencidos++;
+      else if (tipo === EVENTO.uniao && minutoDaPrimeiraUniao === null) {
+        // A Forja emite `uniao` (aplicarUniao) e depois `forjou`, no mesmo passo: a origem se acerta ao fim do passo.
+        minutoDaPrimeiraUniao = Math.round((e.cab[CAB.relogio]! / PASSOS_POR_MINUTO) * 100) / 100;
+        origemDaPrimeiraUniao = 'bau';
+        primeiraUniaoNoPasso = true;
       } else if (tipo === EVENTO.carta && forma === TIPO_DE_CARTA.bolsa) bolsas++;
       else if (tipo === EVENTO.item && forma === CATEGORIA_DE_ITEM.bolsa) bolsas++;
     }
     lidos = escritos;
+    if (forjouNoPasso && primeiraUniaoNoPasso) origemDaPrimeiraUniao = 'forja';
+    forjouNoPasso = primeiraUniaoNoPasso = false;
 
     // Cinzas vivas (pickups do tipo cinza).
     let cinzas = 0;
@@ -191,6 +240,13 @@ function simularUma(seed: number, comportamento: Comportamento, passos: number):
     creditosDiretosDeAlma: creditosDiretos,
     bolsas,
     minutoEspada8Elmo,
+    minutoDaPrimeiraUniao,
+    origemDaPrimeiraUniao,
+    fogueiras,
+    descansos,
+    forjas,
+    marcosConcluidos,
+    marcosVencidos,
   };
 }
 
@@ -208,7 +264,7 @@ function passosAteAMorte(seed: number, brasaFirme: boolean): number | null {
   const base = criarDadosDaCharneca();
   const dados = brasaFirme ? base : { ...base, combate: { ...base.combate, brasaFirmeFator: 1 } };
   const e = criarEstado(seed, dados, { tutoriaisVistos: TODOS_OS_TUTORIAIS, cenario: CENARIO.ataques, relogioInicial: 19 * PASSOS_POR_MINUTO, inicioLivre: true });
-  const fonte = criarFonte('parado', e);
+  const fonte = criarFonte('parado', e, dados);
   for (let t = 1; t <= LIMITE_DA_MORTE; t++) {
     if (avancar(e, dados, fonte, 1) === 0) return null;
     if (e.jogador4U8[JOGADOR4_U8.fase] !== FASE.viva) return t;

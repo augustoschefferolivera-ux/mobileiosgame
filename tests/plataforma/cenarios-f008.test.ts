@@ -18,16 +18,17 @@ describe('cenários da F-008', () => {
     expect(RECEITAS.map((r) => r.id)).toEqual(expect.arrayContaining(['fogueira_hora1', 'marco_coroado']));
   });
 
-  it('fogueira_hora1: relógio 18.000, Espada nv8 + Elmo, 400 Almas, 1 Frasco, HP 50%; o 1º passo abre a Fogueira da Hora I', () => {
+  it('fogueira_hora1: relógio 18.000, Espada nv8 + Elmo, 400 Almas, 1 Frasco, HP 50%; já na Fogueira da Hora I, com o relógio parado', () => {
     const e = abrir('fogueira_hora1');
     expect(e.cab[CAB.relogio]).toBe(18000);
     expect(e.progresso[PROGRESSAO.almas]).toBe(400);
     expect(e.jogador4U8[JOGADOR4_U8.frascoCargas]).toBe(1);
     expect(e.jogador[JOGADOR.hp]).toBeCloseTo(e.jogador2[JOGADOR2.hpMax]! / 2, 3);
     expect(e.build.nivel[0]).toBe(8);
-    expect(e.fogueiraU8[FOGUEIRA_U8.etapa]).toBe(ETAPA.hora);
-    avancar(e, dados, PARADO, 1);
     expect(e.fogueiraU8[FOGUEIRA_U8.etapa]).toBe(ETAPA.fogueira);
+    avancar(e, dados, PARADO, 60);
+    expect(e.fogueiraU8[FOGUEIRA_U8.etapa]).toBe(ETAPA.fogueira);
+    expect(e.cab[CAB.relogio]).toBe(18000);
     expect(e.fogueiraU8[FOGUEIRA_U8.fogueiraHora]).toBe(1);
     expect(e.fogueiraU8[FOGUEIRA_U8.marcosIniciados]).toBe(1);
   });

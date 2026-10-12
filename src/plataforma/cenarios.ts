@@ -19,7 +19,7 @@ import { codigoDaArma } from '../logica/armas/tabela';
 import { segundosEmPassos } from '../logica/nucleo/passos';
 import { codigoDoTipo } from '../logica/mundo/tipos';
 import { codigoDaPassiva } from '../logica/progressao/tabela';
-import { CENARIO, FOGUEIRA_F32, FOGUEIRA_U8, JOGADOR, JOGADOR2, JOGADOR4_U8, LINHA_LIVRE, TODOS_OS_TUTORIAIS, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
+import { CENARIO, ETAPA, FOGUEIRA_F32, FOGUEIRA_U8, JOGADOR, JOGADOR2, JOGADOR4_U8, LINHA_LIVRE, TODOS_OS_TUTORIAIS, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
 
 /** O que se lê de uma receita (cenario.schema.json). */
 export interface ReceitaDeCenario {
@@ -98,13 +98,14 @@ export function parametrosDoCenario(id: string): ParametrosDoCenario {
 
 /**
  * Acende a Fogueira da receita `fogueira` no estado recém-criado (F-008 CE1): a hora, o ponto a `dx` px do jogador, o HP em %
- * do máximo e as cargas do Frasco. A etapa continua HORA: o 1º passo abre a Fogueira, como no jogo (evento 33, que grava o
- * `vigilia`). Não faz nada se a receita não tem `fogueira`.
+ * do máximo e as cargas do Frasco. A etapa já é FOGUEIRA (o relógio fica em 18.000 desde o passo 0; o `vigilia` do passo 0 já é de
+ * uma Fogueira da Hora `hora`). Não faz nada se a receita não tem `fogueira`.
  */
 export function prepararFogueiraDoCenario(e: Estado, id: string): void {
   const f = RECEITAS.find((x) => x.id === id)?.fogueira;
   if (f === undefined) return;
   e.fogueiraU8[FOGUEIRA_U8.fogueiraAcesa] = 1;
+  e.fogueiraU8[FOGUEIRA_U8.etapa] = ETAPA.fogueira;
   e.fogueiraU8[FOGUEIRA_U8.fogueiraHora] = f.hora;
   e.fogueiraF32[FOGUEIRA_F32.fogueiraX] = e.jogador[JOGADOR.x]! + f.dx;
   e.fogueiraF32[FOGUEIRA_F32.fogueiraY] = e.jogador[JOGADOR.y]!;
