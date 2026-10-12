@@ -291,6 +291,25 @@ describe('F-006.3: aparo falho e aparo vazio (AP5, AP7)', () => {
     expect(u8(e, 'aparoFalho')).toBe(24);
   });
 
+  it('esperaRegen = max: com 100 pendentes, o falho e o gasto do aparo não o rebaixam (D6 ST2)', () => {
+    // Falho: a decisão cai em P0 = 13 (CAB.passo); injeta 100 no passo anterior.
+    const f = comGrande();
+    rodarAte(f, toqueEm(1), 12);
+    expect(u8(f, 'aparoJanela')).toBe(1);
+    f.jogador3U8[JOGADOR3_U8.esperaRegen] = 100;
+    avancar(f, D, toqueEm(1), 1);
+    expect(eventosDe(f, EVENTO.aparoFalho)).toHaveLength(1);
+    expect(u8(f, 'aparoFalho')).toBe(24);
+    expect(u8(f, 'esperaRegen')).toBe(100);
+    // Gasto: o toque com 100 pendentes mantém 100 (e não grava os 30 do gasto).
+    const g = criar({ cenario: ATQ, inimigos: [LONGE] });
+    g.jogador3U8[JOGADOR3_U8.esperaRegen] = 100;
+    avancar(g, D, fonteDeAcoes([aparoEm(0)]), 1);
+    expect(u8(g, 'aparoJanela')).toBe(12);
+    expect(stamina(g)).toBe(85);
+    expect(u8(g, 'esperaRegen')).toBe(100);
+  });
+
   it('o falho trava esquiva e aparo por 24 passos (P0 a P0 + 23) e volta em P0 + 24; a esquiva em P0 + 10 é ignorada sem custo', () => {
     const P0 = 13;
     const e = comGrande();
