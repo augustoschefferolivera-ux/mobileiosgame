@@ -11,12 +11,12 @@ import { ORIGEM_DO_DANO } from '../../../src/logica/mundo/contato';
 import { removerInimigo } from '../../../src/logica/mundo/inimigos';
 import { RAIO_DO_JOGADOR } from '../../../src/logica/mundo/jogador';
 import { LARGURA_DO_MAPA } from '../../../src/logica/mundo/toro';
-import { CAB, CAPACIDADE_DE_PROJETEIS, CENARIO, JOGADOR, JOGADOR3_U16, JOGADOR3_U8, JOGADOR_U8, MUNDO, TIPO_DE_PROJETIL, type Estado } from '../../../src/logica/nucleo/estado';
+import { CAPACIDADE_DE_PROJETEIS, CENARIO, JOGADOR, JOGADOR3_U16, JOGADOR3_U8, JOGADOR_U8, MUNDO, TIPO_DE_PROJETIL, type Estado } from '../../../src/logica/nucleo/estado';
 import { EVENTO, FORMA } from '../../../src/logica/nucleo/eventos';
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { alocar, quantosAtivos } from '../../../src/logica/nucleo/pool';
 import { PARADO } from '../apoio';
-import { D_LIVRE as D, TIPO, criar, esquivaEm, eventosDe, fonteDeAcoes, junto, posicionar, posJogador, slotsVivos } from './apoio';
+import { D_LIVRE as D, TIPO, ateOPasso, criar, esquivaEm, eventosDe, fonteDeAcoes, junto, posicionar, posJogador, slotsVivos } from './apoio';
 
 const ATQ = CENARIO.diretorDesligado | CENARIO.ataques;
 const INV = ATQ | CENARIO.jogadorInvulneravel;
@@ -213,7 +213,7 @@ describe('F-006.11: golpe, ordem do passo e dano (OG5, OG6, OG7)', () => {
   function golpeComEsquivaEm(p: number | null): { e: Estado; b: number } {
     const { e } = comGrande(0, -79, ATQ);
     const fonte = fonteDeAcoes(p === null ? [] : [esquivaEm(p, [0, -1])]);
-    while (e.cab[CAB.passo]! < 37) avancar(e, D, fonte, 1);
+    ateOPasso(e, D, fonte, 37);
     return { e, b: eventosDe(e, EVENTO.golpeInimigo)[0]!.b };
   }
 
@@ -243,7 +243,7 @@ describe('F-006.11: golpe, ordem do passo e dano (OG5, OG6, OG7)', () => {
   it('rolar para longe do Oco deixa o jogador fora do arco: "errou"', () => {
     const { e } = comGrande(0, -79, ATQ);
     const fonte = fonteDeAcoes([esquivaEm(24, [0, 1])]);
-    while (e.cab[CAB.passo]! < 37) avancar(e, D, fonte, 1);
+    ateOPasso(e, D, fonte, 37);
     expect(eventosDe(e, EVENTO.golpeInimigo)[0]!.b).toBe(4);
   });
 

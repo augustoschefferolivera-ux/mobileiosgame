@@ -7,7 +7,7 @@ import { CAB, CENARIO, JOGADOR3, JOGADOR3_U8, JOGADOR_U8, PROMPT, TODOS_OS_TUTOR
 import { EVENTO } from '../../../src/logica/nucleo/eventos';
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { DADOS_DA_CHARNECA, PARADO } from '../apoio';
-import { D_LIVRE as D, TIPO, aparoEm, criar, esquivaEm, eventosDe, fonteDeAcoes, slotsVivos } from './apoio';
+import { D_LIVRE as D, TIPO, aparoEm, criar, esquivaEm, eventosDe, fonteDeAcoes, laco, slotsVivos } from './apoio';
 
 const ATQ = CENARIO.diretorDesligado | CENARIO.ataques;
 const GRANDE = [{ codigo: TIPO.oco_grande, dx: 0, dy: -70 }];
@@ -37,7 +37,11 @@ describe('prompt de esquiva (TU1)', () => {
   it('segue visível depois do golpe e da morte do Oco Grande; a esquiva aceita o cumpre', () => {
     const e = criar({ tutoriaisVistos: 0, cenario: ATQ, inimigos: GRANDE });
     const t = ateOTelegrafo(e);
-    while (passo(e) < t + 40) rodar(e);
+    const g = laco('tutoriais: t + 40');
+    while (passo(e) < t + 40) {
+      g();
+      rodar(e);
+    }
     expect(eventosDe(e, EVENTO.golpeInimigo).length).toBe(1);
     expect(esquiva(e)).toBe(PROMPT.visivel);
     removerInimigo(e, slotsVivos(e)[0]!);

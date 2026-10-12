@@ -41,12 +41,23 @@ export function fonteDeAcoes(acoes: readonly AcaoDeRoteiro[], movimento: { mx: n
 export const esquivaEm = (passo: number, mira?: readonly [number, number]): AcaoDeRoteiro => (mira ? { passo, acoes: ACAO.esquiva, mira } : { passo, acoes: ACAO.esquiva });
 export const aparoEm = (passo: number): AcaoDeRoteiro => ({ passo, acoes: ACAO.aparo });
 
+/**
+ * Teto para laço `while` dos testes: devolve a função a chamar a cada volta; passando de `maximo`, lança.
+ * Um laço que espera o passo andar ou um evento aparecer nunca trava a suíte se a simulação parar (crítico F-006, mutação 33).
+ */
+export function laco(rotulo: string, maximo = 20_000): () => void {
+  let n = 0;
+  return () => {
+    if (++n > maximo) throw new Error(`laço sem fim: ${rotulo}`);
+  };
+}
+
 /** Roda passos até `CAB.passo` valer `alvo` (o passo congelado não o move), de um em um. */
 export function ateOPasso(e: Estado, d: DadosDaVigilia, fonte: FonteDeComandos, alvo: number): void {
-  let guarda = 0;
+  const g = laco('ateOPasso');
   while (e.cab[CAB.passo]! < alvo) {
+    g();
     avancar(e, d, fonte, 1);
-    if (++guarda > 100_000) throw new Error('ateOPasso: o passo não chega');
   }
 }
 

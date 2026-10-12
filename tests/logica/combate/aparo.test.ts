@@ -17,7 +17,7 @@ import { avancar } from '../../../src/logica/nucleo/passo';
 import { removerInimigo } from '../../../src/logica/mundo/inimigos';
 import { hashEstado } from '../../../src/logica/nucleo/estado';
 import { FONTES_DA_PROGRESSAO, PARADO } from '../apoio';
-import { ACAO, D_LIVRE as D, LONGE, TIPO, aparoEm, criar, esquivaEm, eventosDe, fonteDeAcoes, junto, posJogador, posicionar, slotsVivos } from './apoio';
+import { ACAO, D_LIVRE as D, LONGE, TIPO, aparoEm, criar, esquivaEm, eventosDe, fonteDeAcoes, junto, laco, posJogador, posicionar, slotsVivos } from './apoio';
 
 const ATQ = CENARIO.diretorDesligado | CENARIO.ataques;
 const u8 = (e: Estado, campo: keyof typeof JOGADOR3_U8): number => e.jogador3U8[JOGADOR3_U8[campo]]!;
@@ -34,6 +34,15 @@ const GRANDE = [{ codigo: TIPO.oco_grande, dx: 0, dy: -70 }];
 const H = 37;
 
 const NOVICA = [{ codigo: TIPO.novica_de_sal, dx: 0, dy: -190 }];
+
+/** Um passo de cada vez até `CAB.passo` = alvo, com teto. */
+function avancarAte(e: Estado, dv: Parameters<typeof avancar>[1], fonte: Parameters<typeof avancar>[2], alvo: number): void {
+  const g = laco(`aparo: passo ${alvo}`);
+  while (passo(e) < alvo) {
+    g();
+    avancar(e, dv, fonte, 1);
+  }
+}
 
 /** `aparoEm(k)` lê o comando no passo CAB.passo = k + 1: o passo `c` da D6. */
 const toqueEm = (c: number) => fonteDeAcoes([aparoEm(c - 1)]);
@@ -90,7 +99,11 @@ describe('F-006.2: a janela cobre c + 1 a c + 11 (AP3)', () => {
         const e = comGrande();
         const fonte = toqueEm(c);
         let rodados = 0;
-        while (rodados < 100) rodados += avancar(e, D, fonte, Math.min(n, 100 - rodados));
+        const g = laco('aparo: 100 passos');
+        while (rodados < 100) {
+          g();
+          rodados += avancar(e, D, fonte, Math.min(n, 100 - rodados));
+        }
         return hashEstado(e);
       });
       expect(new Set(hashes).size, `c=${c}`).toBe(1);
@@ -101,7 +114,9 @@ describe('F-006.2: a janela cobre c + 1 a c + 11 (AP3)', () => {
     const e = comGrande();
     const fonte = toqueEm(5);
     const v: number[] = [];
+    const g = laco('aparo: passo 20');
     while (passo(e) < 20) {
+      g();
       avancar(e, D, fonte, 1);
       v.push(u8(e, 'aparoJanela'));
     }
@@ -514,12 +529,12 @@ describe('AP10: ataque vermelho (aparavel: false)', () => {
     const dv = dadosComAparavel(false);
     const e = criar({ cenario: ATQ, inimigos: GRANDE }, dv);
     const fonte = toqueEm(30);
-    while (passo(e) < H) avancar(e, dv, fonte, 1);
+    avancarAte(e, dv, fonte, H);
     expect(hp(e)).toBeLessThan(dv.hpInicial);
     expect(eventosDe(e, EVENTO.aparo)).toHaveLength(0);
     expect(eventosDe(e, EVENTO.golpeInimigo)[0]).toMatchObject({ b: 1 });
     expect(u8(e, 'aparoJanela')).toBe(12 - (H - 30));
-    while (passo(e) < 60) avancar(e, dv, fonte, 1);
+    avancarAte(e, dv, fonte, 60);
     expect(eventosDe(e, EVENTO.aparoVazio)).toHaveLength(1);
     expect(u16(e, 'ameacasAparaveis')).toBe(0);
   });
@@ -528,7 +543,7 @@ describe('AP10: ataque vermelho (aparavel: false)', () => {
     const dv = dadosComAparavel(true);
     const e = criar({ cenario: ATQ, inimigos: GRANDE }, dv);
     const fonte = toqueEm(30);
-    while (passo(e) < H) avancar(e, dv, fonte, 1);
+    avancarAte(e, dv, fonte, H);
     expect(eventosDe(e, EVENTO.aparo)).toHaveLength(1);
   });
 });

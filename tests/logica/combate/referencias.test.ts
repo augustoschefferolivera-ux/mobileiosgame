@@ -20,7 +20,7 @@ import { FASE_DO_ATAQUE, TIPO as TIPOS } from '../../../src/logica/mundo/tipos';
 import { parametrosDoCenario } from '../../../src/plataforma/cenarios';
 import { CAPACIDADE_DE_PROJETEIS } from '../../../src/logica/nucleo/estado';
 import { DADOS_DA_CHARNECA } from '../apoio';
-import { ACAO, D_LIVRE as D, LONGE, aparoEm, criar, esquivaEm, eventosDe, fonteDeAcoes, junto, slotsVivos } from './apoio';
+import { ACAO, D_LIVRE as D, LONGE, aparoEm, criar, esquivaEm, eventosDe, fonteDeAcoes, junto, laco, slotsVivos } from './apoio';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const ATQ = CENARIO.diretorDesligado | CENARIO.ataques;
@@ -150,7 +150,11 @@ function linhasDeContraAtaque(): void {
   // Facas: as nf facas no mesmo passo (o 1º passo vivo), todas de uma vez.
   {
     const { e, fonte } = comAparoEm(ARMA.facas_de_sal);
-    while (eventosDe(e, EVENTO.aparo).length === 0) um(e, fonte);
+    const g = laco('referencias: aparo das facas');
+    while (eventosDe(e, EVENTO.aparo).length === 0) {
+      g();
+      um(e, fonte);
+    }
     let facas = 0;
     for (let k = 0; k < 8 && facas === 0; k++) {
       um(e, fonte);
@@ -170,7 +174,11 @@ function linhasDeContraAtaque(): void {
 
 function linhasDeCongelamento(): void {
   const { e, fonte } = comAparoEm(ESPADA);
-  while (eventosDe(e, EVENTO.aparo).length === 0) um(e, fonte);
+  const g = laco('referencias: aparo da espada');
+  while (eventosDe(e, EVENTO.aparo).length === 0) {
+    g();
+    um(e, fonte);
+  }
   const [p0, r0] = [passo(e), e.cab[CAB.relogio]!];
   let parado = true;
   for (let k = 0; k < 5; k++) {
@@ -219,7 +227,11 @@ function acharAcao(seed: number, antes: readonly AcaoDeRoteiro[], de: number, at
   const base = estadoDoVideo(seed);
   const rasc = estadoDoVideo(seed);
   const fonteBase = fonteDoVideo(antes);
-  while (passo(base) < de) avancar(base, DADOS_DA_CHARNECA, fonteBase, 1);
+  const g = laco('referencias: acharAcao');
+  while (passo(base) < de) {
+    g();
+    avancar(base, DADOS_DA_CHARNECA, fonteBase, 1);
+  }
   for (let t = de; t <= ate; t++) {
     const p0 = passo(base);
     const r = rascunho(base, rasc, fonteDoVideo([...antes, { passo: t, acoes: acao }]), janela);
@@ -261,7 +273,9 @@ function referenciaDoVideo(seed: number) {
     }
   }
   // O vídeo termina 60 passos depois do Contra-ataque, sem modal aberto nem morte.
+  const gf = laco('referencias: fim do vídeo');
   while (passo(e) < fim) {
+    gf();
     expect(avancar(e, DADOS_DA_CHARNECA, fonte, 1)).toBe(1);
     expect(modalAberto(e)).toBe(false);
   }

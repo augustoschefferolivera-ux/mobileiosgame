@@ -10,6 +10,7 @@ import { CAB, JOGADOR3_U8, criarEstado, hashEstado, type Estado } from '../../..
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { PASSO_MS } from '../../../src/logica/nucleo/passos';
 import { DADOS_DA_CHARNECA as D, PARADO } from '../apoio';
+import { laco } from './apoio';
 
 /** Fonte que registra (passo, ações) de cada consulta que a simulação faz. */
 function espiada(base: FonteDeComandos): { fonte: FonteDeComandos; lidas: { passo: number; acoes: number }[] } {
@@ -139,7 +140,11 @@ describe('congelamento (ET7)', () => {
       avancar(e, D, PARADO, 10);
       congelar(e, 5);
       let total = 0;
-      while (total < 30) total += avancar(e, D, PARADO, Math.min(porQuadro, 30 - total));
+      const g = laco('congelamento: 30 passos');
+      while (total < 30) {
+        g();
+        total += avancar(e, D, PARADO, Math.min(porQuadro, 30 - total));
+      }
       expect(e.cab[CAB.passo]).toBe(10 + 25);
       return hashEstado(e);
     };
