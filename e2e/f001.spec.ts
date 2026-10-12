@@ -245,8 +245,9 @@ test('__GAME_DEBUG__: fps, vivos por tipo, passos perdidos e memória (B §4 F-0
   // e os buffers de instâncias das 6 camadas, na CPU e na GPU (membros × 168 B × 2; design/decisoes-F-004.md §6 e
   // decisoes-F-005.md R1): mundo (54 obstáculos + 512 pickups), horda e Sal (um membro por slot), mortes, armas
   // (421 + 64 ondas) e dígitos (384), contados em src/cenas/render/pickups.ts e armas.ts; mais, desde a F-006 (RE8), a
-  // 2ª camada de médios (500), os telegrafos (64) e os projéteis inimigos (128).
-  const membros = 54 + 512 + CAPACIDADE_DE_INIMIGOS * 2 + CAPACIDADE_DE_MORTES + 485 + 384 + 500 + 64 + 128;
+  // 2ª camada de médios (1.000 desde a F-011: o corpo e a silhueta do telegrafo de cada slot), os telegrafos (64), os
+  // projéteis inimigos (128) e, desde a F-008, as estruturas (borda da arena e Fogueira: 5).
+  const membros = 54 + 512 + CAPACIDADE_DE_INIMIGOS * 2 + CAPACIDADE_DE_MORTES + 485 + 384 + 1000 + 64 + 128 + 5;
   expect(d.memoria).toBeCloseTo((BYTES_ESTADO + BYTES_DO_ANEL + 780 * 1688 * 4 * 3 + 512 * 512 * 4 + 2 * membros * 168) / (1024 * 1024), 3);
 });
 
