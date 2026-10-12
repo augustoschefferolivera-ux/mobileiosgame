@@ -141,7 +141,7 @@ Do processo:
 
 ## 10. Crítico independente
 
-Nota **8,0**, sem achado bloqueante (na F-005 foi 7, com 3 bloqueantes). Foram 81 mutações no código da simulação e do tradutor, cada uma aplicada, com os testes afetados rodados e desfeita em seguida. Os 3 achados médios e os baixos foram aplicados antes desta rodada.
+Nota **8,0**, sem achado bloqueante (na F-005 foi 7, com 3 bloqueantes). Foram 81 mutações no código da simulação e do tradutor, cada uma aplicada, com os testes afetados rodados e desfeita em seguida. Achados (nenhum bloqueante ou alto), todos aplicados como testes abaixo: três médios — o golpe poderia ligar `invulContato` sem teste que notasse (mutação 74), nenhum teste provava que o aparo é ignorado durante o aparo falho (24) e a ameaça do Oco Grande fora do arco não era testada (29); baixos — o limite exato de 400 pt/s e o rearme do swipe (59, 60), o swipe fora do modo vigília (65), o `max` do atraso no aparo (09, 10) e um laço de teste sem teto (33).
 
 - **Reprovadas pelos testes que já existiam:** a maior parte das 81.
 - **Sobreviventes, todas viradas em teste** (cada teste novo reprova com a mutação aplicada e passa sem ela, conferido aplicando e desfazendo):
