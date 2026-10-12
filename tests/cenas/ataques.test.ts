@@ -15,7 +15,9 @@ import {
   prepararTelegrafos,
 } from '../../src/cenas/render/ataques';
 import { MEMBROS_DAS_ARMAS, prepararArmas, prepararStatus } from '../../src/cenas/render/armas';
-import { MOLDURA, RAIO_DA_CUNHA_PT } from '../../src/cenas/render/atlas';
+import { MOLDURA } from '../../src/cenas/render/atlas';
+import { ORIGEM_X, ORIGEM_Y } from '../../src/cenas/render/arte';
+import { RAIO_DO_SETOR } from '../../src/arte/catalogo';
 import { CamadaPorGPU, CamadaPorImagem, criarSaidaDeSprites, indiceDaMoldura, tintDoBlend } from '../../src/cenas/render/camadas';
 import { EfeitosDaVigilia } from '../../src/cenas/render/efeitos';
 import { OFFSET } from '../../src/cenas/render/escritores';
@@ -177,16 +179,17 @@ describe('cunha e faixa no chão (RE5)', () => {
     return { out, sobra, h };
   };
 
-  it('cunha do Oco Grande: raio de 64 com o vértice no centro do corpo, girada para a mira, branca e preenchida', () => {
+  it('setor do Oco Grande (F-011, em pixel): raio de 64 com o vértice no centro do corpo, girado para a mira em 16 passos, branco', () => {
     const e = estadoCom([]);
     const g = por(e, TIPO.oco_grande, 0, -100);
     telegrafar(e, g, TEL_OCO, 0, 1);
     const { out, h } = telegrafos(e);
-    expect(out.moldura[0]).toBe(indiceDaMoldura('cunha'));
-    expect([out.cor[0], out.origemX[0], out.origemY[0]]).toEqual([0xffffff, 0.5, 1]);
+    const m = indiceDaMoldura('setor_0');
+    expect(out.moldura[0]).toBe(m);
+    expect([out.cor[0], out.origemX[0], out.origemY[0]]).toEqual([0xffffff, ORIGEM_X[m], ORIGEM_Y[m]]);
     expect([out.x[0], out.y[0]]).toEqual([h.x[g], h.y[g]]);
-    expect(2 * RAIO_DA_CUNHA_PT * out.escalaX[0]!).toBeCloseTo(64, 9);
-    // Mira para baixo (0, 1): a ponta da cunha aponta para +y.
+    expect(RAIO_DO_SETOR * out.escalaX[0]!).toBeCloseTo(64, 9);
+    // Mira para baixo (0, 1): o desenho de 0° girado 2 × 90°, a abertura para +y.
     expect(out.rotacao[0]).toBeCloseTo(Math.PI, 12);
     expect(out.visivel[1]).toBe(0);
   });
@@ -297,14 +300,14 @@ describe('projétil de Sal da Noviça (RE6) e o anel sólido (RE7)', () => {
     return out;
   };
 
-  it('um disco branco puro de 16 pt (a moldura massa) com um anel branco de 24 pt por trás; a faca é outra camada', () => {
+  it('um disco branco puro de 16 pt com um anel branco de 24 pt por trás, em pixel na grade fina (F-011); a faca é outra camada', () => {
     const e = estadoCom([]);
     projetil(e, 200);
     const out = desenhar(e);
-    expect([out.moldura[0], out.moldura[1]]).toEqual([indiceDaMoldura('anel_pequeno'), indiceDaMoldura('massa')]);
+    expect([out.moldura[0], out.moldura[1]]).toEqual([indiceDaMoldura('projetil_anel'), indiceDaMoldura('projetil_disco')]);
     expect([out.cor[0], out.cor[1]]).toEqual([0xffffff, 0xffffff]);
-    expect(MOLDURA.massa.largura * out.escalaX[1]!).toBe(16);
-    expect(MOLDURA.anel_pequeno.largura * out.escalaX[0]!).toBe(24);
+    expect(16 * out.escalaX[1]!).toBe(16);
+    expect(24 * out.escalaX[0]!).toBe(24);
     expect([out.x[0], out.y[0]]).toEqual([J.x + 200, J.y]);
     expect(out.visivel[2]).toBe(0);
     // A camada das armas não desenha o tipo 2 como faca.
@@ -396,16 +399,17 @@ describe('estrela do atordoado (RE9)', () => {
     expect(out.visivel[s]).toBe(0);
     e.inimigos.quebradaPassos[s] = 120;
     prepararStatus(e, h, out);
-    expect([out.visivel[s], out.moldura[s], out.cor[s]]).toEqual([1, indiceDaMoldura('estrela'), 0xffd166]);
-    expect(MOLDURA.estrela.largura * out.escalaX[s]!).toBe(12);
-    expect([out.x[s], out.y[s]]).toEqual([h.x[s], h.y[s]]);
+    // F-011: a estrela em pixel (amarelo y com contorno), 7 px de arte = 14 pt, 12 pt acima do centro do corpo.
+    expect([out.visivel[s], out.moldura[s], out.cor[s]]).toEqual([1, indiceDaMoldura('status_atordoado'), 0xffffff]);
+    expect(7 * out.escalaX[s]!).toBe(14);
+    expect([out.x[s], out.y[s]]).toEqual([h.x[s], h.y[s]! - 12]);
     e.inimigos.salPct[s] = 50;
     e.inimigos.salPassos[s] = 30;
     prepararStatus(e, h, out);
-    expect([out.moldura[s], out.cor[s]]).toEqual([indiceDaMoldura('estrela'), COR.amarelo]);
+    expect(out.moldura[s]).toBe(indiceDaMoldura('status_atordoado'));
     e.inimigos.quebradaPassos[s] = 0;
     prepararStatus(e, h, out);
-    expect([out.moldura[s], out.cor[s]]).toEqual([indiceDaMoldura('losango'), COR.sal]);
+    expect(out.moldura[s]).toBe(indiceDaMoldura('status_sal'));
     e.inimigos.salPassos[s] = 0;
     prepararStatus(e, h, out);
     expect(out.visivel[s]).toBe(0);

@@ -5,8 +5,8 @@ import { criarCena } from './phaserFalso';
 import type Phaser from 'phaser';
 import { describe, expect, it } from 'vitest';
 import { MEMBROS_DAS_ARMAS, INICIO_DAS_ONDAS, prepararArmas } from '../../src/cenas/render/armas';
-import { MOLDURA } from '../../src/cenas/render/atlas';
-import { RAIOS_DAS_ROCHAS, SEMENTES_DAS_ROCHAS, nomeDaRocha } from '../../src/arte/catalogo';
+import { MEIA_DA_ONDA, RAIOS_DAS_ROCHAS, SEMENTES_DAS_ROCHAS, nomeDaRocha } from '../../src/arte/catalogo';
+import { ORIGEM_X, ORIGEM_Y } from '../../src/cenas/render/arte';
 import { arredondarParaOPixel } from '../../src/cenas/render/camera';
 import { CamadaPorGPU, NOMES_DAS_MOLDURAS, criarSaidaDeSprites, indiceDaMoldura } from '../../src/cenas/render/camadas';
 import { EfeitosDaVigilia } from '../../src/cenas/render/efeitos';
@@ -216,8 +216,11 @@ describe('ondas da União na camada das armas (U6)', () => {
     prepararArmas(e, D, ef, 0.5, 585, 1266, 585, 1266, saida);
     // 384 × 2,5 / 60 = 16 px.
     expect([saida.x[k], saida.y[k]]).toEqual([585 + 16, 1266]);
-    expect([saida.moldura[k], saida.cor[k], saida.origemX[k], saida.origemY[k]]).toEqual([M_QUADRADO, COR.brasa, 0.5, 0.5]);
-    expect(MOLDURA.quadrado.largura * saida.escalaX[k]!).toBe(32); // pt
+    // F-011: o crescente de brasa em pixel, no ângulo do voo em 16 passos; 32 pt de largura = meia largura 16 a escala 1.
+    const m = saida.moldura[k]!;
+    expect([0, 1, 2, 3].map((a) => indiceDaMoldura(`onda_${a}`))).toContain(m);
+    expect([saida.cor[k], saida.origemX[k], saida.origemY[k]]).toEqual([0xffffff, ORIGEM_X[m], ORIGEM_Y[m]]);
+    expect(2 * MEIA_DA_ONDA * saida.escalaX[k]!).toBe(32); // pt
     expect(saida.escalaY[k]).toBe(saida.escalaX[k]);
   });
 

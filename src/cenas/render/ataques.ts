@@ -10,7 +10,9 @@ import { FASE_DO_ATAQUE, TIPO } from '../../logica/mundo/tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../../logica/mundo/toro';
 import { ESCALA_DO_CANVAS } from '../escala';
 import { COR } from '../paleta';
-import { MOLDURA, RAIO_DA_CUNHA_PT } from './atlas';
+import { RAIO_DO_SETOR } from '../../arte/catalogo';
+import { MOLDURA } from './atlas';
+import { ORIGEM_X, ORIGEM_Y, direcao16 } from './arte';
 import { indiceDaMoldura, type SaidaDeSprites } from './camadas';
 import type { DesenhoDoTipo, SaidaDaHorda } from './horda';
 
@@ -37,11 +39,12 @@ const INDICIO_ESTENDIDO = 17;
 const FALHAS_DA_JANELA_ESTENDIDA = 2;
 
 const M_QUADRADO = indiceDaMoldura('quadrado');
-const M_MASSA = indiceDaMoldura('massa');
-const M_CUNHA = indiceDaMoldura('cunha');
-const M_ANEL_PEQUENO = indiceDaMoldura('anel_pequeno');
 const LARGURA_DO_QUADRADO_PX = MOLDURA.quadrado.largura;
-const ALTURA_DA_CUNHA_PX = RAIO_DA_CUNHA_PT * 2;
+/** F-011: o setor do telegrafo em pixel nos 4 ângulos desenhados (o raio-base 64 pt é o do braço) e o projétil em pixel. */
+const M_SETOR = [0, 1, 2, 3].map((k) => indiceDaMoldura(`setor_${k}`));
+const M_PROJETIL_ANEL = indiceDaMoldura('projetil_anel');
+const M_PROJETIL_DISCO = indiceDaMoldura('projetil_disco');
+const DIRECAO = { base: 0, rotacao: 0 };
 
 /**
  * A 2ª camada de médios (RE8), em pares de membros na ordem dos slots: o corpo (membro 2k) e a silhueta branca do
@@ -147,8 +150,14 @@ export function prepararTelegrafos(e: Estado, dados: DadosDaVigilia, horda: Said
     out.cor[k] = COR.branco;
     const raioDoArco = c.alcanceDoArco[tipo]!;
     if (raioDoArco > 0) {
-      out.moldura[k] = M_CUNHA;
-      out.escalaX[k] = out.escalaY[k] = raioDoArco / ALTURA_DA_CUNHA_PX;
+      // F-011: o setor branco em pixel, na mira em 16 direções, com o vértice no centro do corpo.
+      direcao16(out.rotacao[k]!, DIRECAO);
+      const m = M_SETOR[DIRECAO.base]!;
+      out.rotacao[k] = DIRECAO.rotacao;
+      out.origemX[k] = ORIGEM_X[m]!;
+      out.origemY[k] = ORIGEM_Y[m]!;
+      out.moldura[k] = m;
+      out.escalaX[k] = out.escalaY[k] = raioDoArco / RAIO_DO_SETOR;
       out.alpha[k] = timer <= indicio ? 1 : ALFA_DO_TELEGRAFO.inicial + ((ALFA_DO_TELEGRAFO.final - ALFA_DO_TELEGRAFO.inicial) * passos) / (tel - 1);
     } else {
       out.moldura[k] = M_QUADRADO;
@@ -190,8 +199,9 @@ export function prepararProjeteisInimigos(e: Estado, dados: DadosDaVigilia, alfa
   const jx = j[JOGADOR.x]!;
   const jy = j[JOGADOR.y]!;
   const pulso = ALFA_DO_ANEL_DO_PROJETIL.medio + ALFA_DO_ANEL_DO_PROJETIL.amplitude * Math.cos((2 * Math.PI * (e.cab[CAB.passo]! % ALFA_DO_ANEL_DO_PROJETIL.periodo)) / ALFA_DO_ANEL_DO_PROJETIL.periodo);
-  const escalaDoDisco = DIAMETRO_DO_DISCO_PT / MOLDURA.massa.largura;
-  const escalaDoAnel = DIAMETRO_DO_ANEL_PT / MOLDURA.anel_pequeno.largura;
+  // F-011: o disco e o anel em pixel na grade fina (16 e 24 px = 16 e 24 pt).
+  const escalaDoDisco = DIAMETRO_DO_DISCO_PT / 16;
+  const escalaDoAnel = DIAMETRO_DO_ANEL_PT / 24;
   let n = 0;
   let excedentes = 0;
   for (let s = 0; s < CAPACIDADE_DE_PROJETEIS; s++) {
@@ -237,7 +247,7 @@ export function prepararProjeteisInimigos(e: Estado, dados: DadosDaVigilia, alfa
     out.escalaX[a] = out.escalaY[a] = escalaDoAnel;
     out.alpha[a] = solido ? 1 : pulso;
     out.origemX[a] = out.origemY[a] = 0.5;
-    out.moldura[a] = M_ANEL_PEQUENO;
+    out.moldura[a] = M_PROJETIL_ANEL;
     out.cor[a] = COR.branco;
     const b = a + 1;
     out.visivel[b] = 1;
@@ -247,7 +257,7 @@ export function prepararProjeteisInimigos(e: Estado, dados: DadosDaVigilia, alfa
     out.escalaX[b] = out.escalaY[b] = escalaDoDisco;
     out.alpha[b] = 1;
     out.origemX[b] = out.origemY[b] = 0.5;
-    out.moldura[b] = M_MASSA;
+    out.moldura[b] = M_PROJETIL_DISCO;
     out.cor[b] = COR.branco;
     n++;
   }
