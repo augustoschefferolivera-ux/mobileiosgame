@@ -10,7 +10,7 @@ import { avancar } from '../../../src/logica/nucleo/passo';
 import { nascerInimigo, removerInimigo } from '../../../src/logica/mundo/inimigos';
 import { TIPO } from '../../../src/logica/mundo/tipos';
 import { DADOS_SEM_OBSTACULOS as D, PARADO, dadosDe } from '../apoio';
-import { estadoCom, eventos, por } from './apoio';
+import { ancoraDeMira, estadoCom, eventos, por } from './apoio';
 
 const E = ARMA.espada_longa_do_juramento;
 const HP_OCO = 12;
@@ -69,6 +69,7 @@ describe('setor de 120° até a hitbox (W2, W3)', () => {
     ];
     for (const [tipo, dx, dy, esperado] of casos) {
       const e = estadoCom([[E, 1]]);
+      ancoraDeMira(e, 0, -1); // a mira automática fica em (0, −1) exato
       const s = por(e, tipo, dx, dy);
       expect(golpeDireto(e).includes(s), `${tipo} em (${dx}, ${dy})`).toBe(esperado);
     }
@@ -100,6 +101,11 @@ describe('setor de 120° até a hitbox (W2, W3)', () => {
         const dirY = Math.fround(Math.sin(ang));
         e.jogador[JOGADOR.dirX] = dirX;
         e.jogador[JOGADOR.dirY] = dirY;
+        // Âncora a 1 px na mira (a mira automática segue o inimigo mais próximo); o oráculo usa a mira realizada.
+        const ancora = nascerInimigo(e, dadosR, TIPO.oco_das_lanternas, Math.fround(e.jogador[JOGADOR.x]! + dirX), Math.fround(e.jogador[JOGADOR.y]! + dirY), false);
+        const ax = e.inimigos.x[ancora]! - e.jogador[JOGADOR.x]!;
+        const ay = e.inimigos.y[ancora]! - e.jogador[JOGADOR.y]!;
+        const na = Math.hypot(ax, ay);
         const px = (u() - 0.5) * 200;
         const py = (u() - 0.5) * 200;
         const x = e.jogador[JOGADOR.x]! + px;
@@ -107,13 +113,14 @@ describe('setor de 120° até a hitbox (W2, W3)', () => {
             const s = nascerInimigo(e, dadosR, TIPO.oco_das_lanternas, Math.fround(x), Math.fround(y), false);
         const qx = e.inimigos.x[s]! - e.jogador[JOGADOR.x]!;
         const qy = e.inimigos.y[s]! - e.jogador[JOGADOR.y]!;
-        const dist = distanciaAoSetor(qx, qy, dirX, dirY, 64);
+        const dist = distanciaAoSetor(qx, qy, ax / na, ay / na, 64);
         e.build.recarga[0] = 0;
         const antes = e.inimigos.hp[s]!;
         rodarArmas(e, dadosR);
         const acertou = e.inimigos.hp[s]! < antes;
         if (Math.abs(dist - r) > 1e-6 && acertou !== dist <= r) divergencias++;
         removerInimigo(e, s);
+        removerInimigo(e, ancora);
       }
     }
     expect(divergencias).toBe(0);
@@ -228,11 +235,13 @@ describe('área do nv5 (W7) e estocada (W8)', () => {
     ];
     for (const [dx, dy, esperado] of casos) {
       const e = estadoCom([[E, 7]]);
+      ancoraDeMira(e, 0, -1);
       const s = por(e, TIPO.oco_das_lanternas, dx, dy);
       expect(estocadaDireta(e).includes(s), `(${dx}, ${dy})`).toBe(esperado);
     }
     const e = estadoCom([[E, 7]]);
-    const fila = [20, 45, 70, 95, 120].map((d) => por(e, TIPO.oco_das_lanternas, 0, -d));
+    const ancora = ancoraDeMira(e, 0, -1);
+    const fila = [20, 45, 70, 95, 120].map((d) => por(e, TIPO.oco_das_lanternas, 0, -d)).concat(ancora);
     expect(estocadaDireta(e)).toEqual(fila.sort((a, b) => a - b));
   });
 });

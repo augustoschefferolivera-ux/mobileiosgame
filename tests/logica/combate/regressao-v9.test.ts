@@ -9,7 +9,10 @@ import { BYTES_DO_LAYOUT_9, BYTES_ESTADO, TODOS_OS_TUTORIAIS, criarEstado, type 
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { ROTEIRO_REFERENCIA } from '../../../src/logica/nucleo/referencia';
 import { parametrosDoCenario } from '../../../src/plataforma/cenarios';
-import { DADOS_DA_CHARNECA as D } from '../apoio';
+import { DADOS_DA_CHARNECA, semMiraAutomatica } from '../apoio';
+
+// A mira automática da Espada (ADR-0012 §9) fica desligada: estes valores vêm do código que mirava pela direção do jogador.
+const D = semMiraAutomatica(DADOS_DA_CHARNECA);
 
 /** Os 76.868 bytes do v9 a partir do byte 4 (sem a palavra da versão). */
 function hashDosCamposV9(e: Estado): string {

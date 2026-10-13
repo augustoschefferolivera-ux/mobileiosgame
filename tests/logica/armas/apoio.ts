@@ -6,6 +6,7 @@ import { EV, eventosEscritos, inicioDoEvento } from '../../../src/logica/nucleo/
 import type { DadosDaVigilia } from '../../../src/logica/mundo/dados';
 import { nascerInimigo } from '../../../src/logica/mundo/inimigos';
 import { ALTURA_DO_MAPA as H, LARGURA_DO_MAPA as W, normalizarNoToro } from '../../../src/logica/mundo/toro';
+import { TIPO } from '../../../src/logica/mundo/tipos';
 import { DADOS_SEM_OBSTACULOS } from '../apoio';
 
 /** Posição inicial do jogador na Charneca (e na região sem obstáculos). */
@@ -26,6 +27,15 @@ export function por(e: Estado, tipo: number, dx: number, dy: number, dados: Dado
   const s = nascerInimigo(e, dados, tipo, normalizarNoToro(J.x + dx, W), normalizarNoToro(J.y + dy, H), false);
   if (s < 0) throw new Error('pool cheio');
   return s;
+}
+
+/**
+ * Âncora de mira (Espada com mira automática, ADR-0012 §9): um Oco a 1 px do jogador na direção (ax, ay), sempre o mais
+ * próximo, para os testes de geometria do golpe continuarem com a mira conhecida (com (0, −1) ou (±1, 0), exata).
+ * Devolve o slot (que também leva o golpe).
+ */
+export function ancoraDeMira(e: Estado, ax: number, ay: number, dados: DadosDaVigilia = DADOS_SEM_OBSTACULOS): number {
+  return por(e, TIPO.oco_das_lanternas, ax, ay, dados);
 }
 
 export interface EventoLido {

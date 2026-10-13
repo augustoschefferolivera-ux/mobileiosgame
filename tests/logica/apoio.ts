@@ -35,6 +35,14 @@ export function semAlmas(d: DadosDaVigilia): DadosDaVigilia {
   return { ...d, tipos: { ...d.tipos, almasValor: new Uint16Array(d.tipos.almasValor.length) } };
 }
 
+/**
+ * Dados com a mira automática da Espada desligada (ADR-0012 §9): o golpe volta a mirar pela direção do jogador, como no
+ * código anterior ao pedido do usuário de 2026-10-13. Para as regressões de layout, que comparam bytes gravados antes dele.
+ */
+export function semMiraAutomatica(d: DadosDaVigilia): DadosDaVigilia {
+  return { ...d, armas: { ...d.armas, miraAutomatica: new Uint8Array(d.armas.miraAutomatica.length) } };
+}
+
 export const DADOS_DA_CHARNECA = dadosDe();
 export const DADOS_SEM_OBSTACULOS = dadosDe({ obstaculos: [] });
 export const DADOS_BRUTOS = semBrasaFirme(DADOS_SEM_OBSTACULOS);

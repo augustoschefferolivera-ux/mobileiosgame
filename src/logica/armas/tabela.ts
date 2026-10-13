@@ -92,6 +92,8 @@ export interface TabelaDeArmas {
   readonly escalaMil: Uint32Array;
   /** Passos entre os golpes de uma sequência. */
   readonly intervaloGolpes: Uint8Array;
+  /** 1 se o golpe mira sozinho no inimigo vivo mais próximo (Espada e Lâmina; ADR-0012 §9); 0 usa a direção do jogador (regressões antigas). */
+  readonly miraAutomatica: Uint8Array;
   /** Alcance da busca de alvo, em px (Facas: 192). */
   readonly alcanceBusca: Float64Array;
   /** Raio da hitbox do projétil, em px. */
@@ -171,6 +173,7 @@ export function criarTabelaDeArmas(armas: readonly ArmaDoJson[], atributos: Atri
     denDano: new Uint16Array(CODIGOS),
     escalaMil: new Uint32Array(CODIGOS),
     intervaloGolpes: new Uint8Array(CODIGOS),
+    miraAutomatica: new Uint8Array(CODIGOS),
     alcanceBusca: new Float64Array(CODIGOS),
     raioProjetil: new Float64Array(CODIGOS),
     espacamento: new Float64Array(CODIGOS),
@@ -213,6 +216,7 @@ export function criarTabelaDeArmas(armas: readonly ArmaDoJson[], atributos: Atri
     t.periodo[c] = segundosEmPassos(numero(b, aura ? 'intervalo_tick_s' : 'cooldown_s', a.id));
     t.numDano[c] = aura ? t.periodo[c] : 1;
     t.denDano[c] = aura ? PASSOS_POR_SEGUNDO : 1;
+    if (arquetipo === ARQUETIPO.direcaoMovimento) t.miraAutomatica[c] = 1;
     if (arquetipo === ARQUETIPO.direcaoMovimento) t.intervaloGolpes[c] = segundosEmPassos(numero(b, 'intervalo_golpes_s', a.id));
     if (arquetipo === ARQUETIPO.maisProximo) {
       t.alcanceBusca[c] = CORPO_PX * numero(b, 'alcance_corpos', a.id);
@@ -368,6 +372,7 @@ function compilarUniao(t: TabelaEmMontagem, a: ArmaDoJson, c: number, atributos:
   const io = indiceDoNivel(origem, danoDe.nivel);
   const base = inteiro((t.danoBase[origem]! * (100 + t.somaDanoPct[io]!) * multPct) / 10000, `${a.id} base da União`);
   t.uniao[c] = 1;
+  t.miraAutomatica[c] = 1;
   t.arquetipo[c] = arquetipo;
   t.nivelMax[c] = 1;
   t.danoBase[c] = base;

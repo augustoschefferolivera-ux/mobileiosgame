@@ -101,9 +101,12 @@ describe('determinismo (F-001.1)', () => {
     // os campos antigos não mudaram; `chefeSlot` nasce 0xFFFF): 54256399 e 6d4078d9 viram os de baixo.
     // F-010 (estado v10: +4 B de ranks da Fundação; muda só o layout, pois a Fundação em rank 0 não muda nada e a regressão v9
     // prova que os campos antigos não mudaram): 115fd0ca e 3b1e2566 viram os de baixo.
+    // Mira automática da Espada (pedido do usuário, 2026-10-13; ADR-0012 §9): o golpe aponta para o inimigo vivo mais
+    // próximo, o que muda mortes e spawns (seed 1: 15/15/0/-1 vira 15/16/1/217; seed 424242: 15/19/4/505 vira 15/20/5/361):
+    // 29725375 e 1776801d viram 7c4a2315 e 132c3b0f. As regressões v4 a v9 rodam com a mira desligada e seguem intactas.
     // F-006: c052c6c9 e 6ddd6d39. F-005: f39dd6b4 e 7c1b6c0c; F-004: 901adb6d e 9cdc2c63; F-003: e91ed119 e 6173ca75.
-    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('29725375');
-    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('1776801d');
+    expect(hex8(executar(1, PASSOS_REFERENCIA))).toBe('7c4a2315');
+    expect(hex8(executar(424242, PASSOS_REFERENCIA))).toBe('132c3b0f');
   });
 
   /** Vivos, spawns, mortes, passo da 1ª morte, passo do 1º acerto de contato, HP e o fluxo armas intocado, no passo 1.000. */
@@ -127,8 +130,8 @@ describe('determinismo (F-001.1)', () => {
 
   it('com a horda e a Espada: vivos, spawns, mortes, a 1ª morte, o 1º acerto de contato e o HP ficam travados no passo 1.000', () => {
     const f = fatos(SEED);
-    if (SEED === SEED_PADRAO) expect(f).toEqual([15, 15, 0, -1, 146, 138, true]);
-    expect(fatos(424242)).toEqual([15, 19, 4, 505, 283, 135, true]);
+    if (SEED === SEED_PADRAO) expect(f).toEqual([15, 16, 1, 217, 146, 138, true]);
+    expect(fatos(424242)).toEqual([15, 20, 5, 361, 283, 135, true]);
     log.push(`horda no passo ${PASSOS_REFERENCIA}: vivos=${f[0]} spawns=${f[1]} mortes=${f[2]} 1a_morte=passo ${f[3]} 1o_acerto=passo ${f[4]} hp=${f[5]}`);
   });
 

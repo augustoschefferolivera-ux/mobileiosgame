@@ -22,6 +22,7 @@ import { matarInimigo } from '../mundo/inimigos';
 import { TIPO } from '../mundo/tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../mundo/toro';
 import { ACERTO, ACHADOS, DANO, MIRA, acertar, alvoAparado, calcularDano } from './acerto';
+import { mirarNoMaisProximo } from './mira';
 import { criarOnda, rodarOndas } from './ondas';
 import { moverProjeteis, rodarMaisProximo, salvaDeFacas } from './projeteis';
 import { ARQUETIPO, GOLPES_MAXIMOS, indiceDoNivel } from './tabela';
@@ -134,25 +135,31 @@ function golpear(e: Estado, dados: DadosDaVigilia, v: number, forma: number, con
       }
     }
   }
-  MIRA[0] = ux;
-  MIRA[1] = uy;
   const flagsExtra = contra === 1 ? FLAG.contra : 0;
   const estocada = forma === FORMA.estocada;
   const R = t.alcance[i]!;
   const L = t.estocadaL[i]!;
   const w = t.estocadaW[i]!;
+  // A consulta do golpe vem antes do evento: é também o raio de busca da mira automática (alcance da forma + R_MAX).
+  const rMax = dados.tipos.raioMaximo;
+  CONSULTA[0] = jx;
+  CONSULTA[1] = jy;
+  CONSULTA[2] = (estocada ? Math.sqrt(L * L + w * w) : R) + rMax;
+  const m = consultarGradeComGrandes(grade, e.inimigos.x, e.inimigos.y, ACHADOS);
+  // Mira automática (ADR-0012 §9): fora do Contra-ataque, o golpe aponta para o inimigo vivo mais próximo; sem ele, a do jogador.
+  MIRA[0] = ux;
+  MIRA[1] = uy;
+  if (contra === 0 && t.miraAutomatica[codigo] === 1 && mirarNoMaisProximo(e, m) === 1) {
+    ux = MIRA[0]!;
+    uy = MIRA[1]!;
+  }
   FLOATS_DO_EVENTO[0] = ux;
   FLOATS_DO_EVENTO[1] = uy;
   FLOATS_DO_EVENTO[2] = estocada ? L : R;
   FLOATS_DO_EVENTO[3] = estocada ? w : 0;
   gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.golpe, codigo, forma, -1, 0, 0, flagsExtra, 0);
   // Uma onda por golpe da arma com onda (União, decisoes-F-005 U3), antes dos acertos do golpe.
-  if (t.ondaVida[codigo]! > 0) criarOnda(e, codigo, contra === 1 ? dados.combate.contraFator : 0);
-  const rMax = dados.tipos.raioMaximo;
-  CONSULTA[0] = jx;
-  CONSULTA[1] = jy;
-  CONSULTA[2] = (estocada ? Math.sqrt(L * L + w * w) : R) + rMax;
-  const m = consultarGradeComGrandes(grade, e.inimigos.x, e.inimigos.y, ACHADOS);
+  if (t.ondaVida[codigo]! > 0) criarOnda(e, codigo, contra === 1 ? dados.combate.contraFator : 0, true);
   // As bordas do setor: a mira girada ±60°, uma vez por golpe.
   const pX = ux * COS_60 - uy * SEN_60;
   const pY = ux * SEN_60 + uy * COS_60;

@@ -12,10 +12,11 @@ import { BYTES_DO_LAYOUT_4, CAB, CENARIO, JOGADOR, LAYOUT, PROGRESSAO, criarEsta
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { PASSOS_REFERENCIA, ROTEIRO_REFERENCIA } from '../../../src/logica/nucleo/referencia';
 import { parametrosDoCenario } from '../../../src/plataforma/cenarios';
-import { DADOS_DA_CHARNECA, PARADO, semAlmas } from '../apoio';
+import { DADOS_DA_CHARNECA, PARADO, semAlmas, semMiraAutomatica } from '../apoio';
 
 /** Sem Almas: o código das F-004 e F-005 não as soltava (AM1), e elas movem o fluxo drops e o pool de pickups. */
-const D = semAlmas(DADOS_DA_CHARNECA);
+// A mira automática da Espada (ADR-0012 §9) fica desligada: estes valores vêm do código que mirava pela direção do jogador.
+const D = semMiraAutomatica(semAlmas(DADOS_DA_CHARNECA));
 
 function hashDosCamposV4(e: Estado): string {
   const copia = e.bytes.slice(4, BYTES_DO_LAYOUT_4);

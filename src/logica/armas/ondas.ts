@@ -51,10 +51,10 @@ export function desmarcarInimigo(e: Estado, s: number): void {
 }
 
 /**
- * Cria a onda do golpe da arma `codigo` (U3): na posição do jogador e na mira dele; recusa no limite.
- * No Contra-ataque (`fatorContra` > 0, CA2) a mira é a que `golpear` deixou em MIRA e o dano fixado leva esse fator (×2).
+ * Cria a onda do golpe da arma `codigo` (U3): na posição do jogador e na mira do golpe (a automática da Espada, ADR-0012 §9, ou a do jogador); recusa no limite.
+ * No Contra-ataque (`fatorContra` > 0, CA2) a mira é a que `golpear` deixou em MIRA (`daMira`, também no golpe normal: a automática da Espada) e o dano fixado leva esse fator (×2).
  */
-export function criarOnda(e: Estado, codigo: number, fatorContra = 0): void {
+export function criarOnda(e: Estado, codigo: number, fatorContra = 0, daMira = false): void {
   if (projeteisEEfeitos(e) >= limiteDeProjeteis(e)) {
     e.mundo2[MUNDO2.efeitosRecusados] = e.mundo2[MUNDO2.efeitosRecusados]! + 1;
     return;
@@ -70,8 +70,9 @@ export function criarOnda(e: Estado, codigo: number, fatorContra = 0): void {
   const f = e.efeitos;
   const x = j[JOGADOR.x]!;
   const y = j[JOGADOR.y]!;
-  const dx = fatorContra > 0 ? MIRA[0]! : j[JOGADOR.dirX]!;
-  const dy = fatorContra > 0 ? MIRA[1]! : j[JOGADOR.dirY]!;
+  const usaMira = daMira || fatorContra > 0;
+  const dx = usaMira ? MIRA[0]! : j[JOGADOR.dirX]!;
+  const dy = usaMira ? MIRA[1]! : j[JOGADOR.dirY]!;
   f.x[o] = x;
   f.y[o] = y;
   f.dirX[o] = dx;

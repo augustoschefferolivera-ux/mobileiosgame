@@ -16,10 +16,11 @@ import { PASSOS_REFERENCIA, ROTEIRO_REFERENCIA } from '../../../src/logica/nucle
 import { confirmarModal, modalAberto } from '../../../src/logica/progressao/modal';
 import { parametrosDoCenario } from '../../../src/plataforma/cenarios';
 import { EVENTO } from '../../../src/logica/nucleo/eventos';
-import { DADOS_DA_CHARNECA, PARADO, semAlmas } from '../apoio';
+import { DADOS_DA_CHARNECA, PARADO, semAlmas, semMiraAutomatica } from '../apoio';
 
 /** Sem Almas: o código das F-004 e F-005 não as soltava (AM1), e elas movem o fluxo drops e o pool de pickups. */
-const D = semAlmas(DADOS_DA_CHARNECA);
+// A mira automática da Espada (ADR-0012 §9) fica desligada: estes valores vêm do código que mirava pela direção do jogador.
+const D = semMiraAutomatica(semAlmas(DADOS_DA_CHARNECA));
 import { eventosDe } from './apoio';
 
 /** Os 67.488 bytes do v5 a partir do byte 4, com a palavra 4 mascarada em `& 1`. */

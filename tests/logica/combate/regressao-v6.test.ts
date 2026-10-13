@@ -13,7 +13,10 @@ import { CENARIO, JOGADOR, LAYOUT, MUNDO, TODOS_OS_TUTORIAIS, criarEstado, type 
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { PASSOS_REFERENCIA, ROTEIRO_REFERENCIA } from '../../../src/logica/nucleo/referencia';
 import { parametrosDoCenario } from '../../../src/plataforma/cenarios';
-import { DADOS_DA_CHARNECA as D, PARADO } from '../apoio';
+import { DADOS_DA_CHARNECA, PARADO, semMiraAutomatica } from '../apoio';
+
+// A mira automática da Espada (ADR-0012 §9) fica desligada: estes valores vêm do código que mirava pela direção do jogador.
+const D = semMiraAutomatica(DADOS_DA_CHARNECA);
 
 const BYTES_V6 = 74_636;
 const SEGURO = CENARIO.semCinzas | CENARIO.jogadorInvulneravel;
