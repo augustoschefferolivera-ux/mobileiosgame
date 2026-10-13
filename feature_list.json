@@ -837,7 +837,7 @@
     {
       "id": "F-009",
       "nome": "O Lanterneiro, Amanhecer e A Fome",
-      "status": "pendente",
+      "status": "pronta",
       "escopo_b": "arena com névoa (raio 7), HP por nível, Postura (ganhos da seção 3.11, Quebra 3 s, Postura Firme −40%), 3 fases com transição invulnerável, 7 ataques (brancos e vermelhos), Fúria após 5 min, Amanhecer (10 s de céu clareando, Almas ×1,5, Brasa), A Fome aos 23:00",
       "criterio_b": "Teste: Postura enche com 4 aparos; dano fora de Quebra reduzido em 40%; fases trocam em 60% e 25%; aos 23:00 com chefe vivo → derrota. Playwright com seed fixa e script de inputs: lutar 60 s e verificar barra de Postura no debug",
       "evidencia_b": "Vídeo de 30 s da luta; screenshot do Amanhecer; screenshot de A Fome",

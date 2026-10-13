@@ -2,7 +2,7 @@
 
 ## Sessão 9 — F-008 "Horas, marcos e Fogueira", F-009 "O Lanterneiro, Amanhecer e A Fome" e F-010 "Santuário mínimo e PWA"
 
-### Estado: F-008 pronta (aguarda a revisão do usuário); F-009 e F-010 em andamento
+### Estado: F-008 e F-009 prontas (aguardam a revisão do usuário); F-010 em andamento
 
 Branch `claude/clever-galileo-26bjed`, a partir de `origin/claude/f006-esquiva-weodg1` (fim da F-007, `e2ee1e5`). A sessão da arte (Sessão 8, F-011) trabalhou ao mesmo tempo na mesma branch: cada envio foi feito depois de `git pull --rebase`, sem force-push, e nenhum arquivo da arte foi editado aqui. Pedido do usuário: as três features em ordem, com economia máxima de tokens (subagentes com esforço médio, briefs curtos, um crítico por feature com nota mínima 7, `verify.sh` completo uma vez por feature).
 
@@ -15,7 +15,16 @@ Branch `claude/clever-galileo-26bjed`, a partir de `origin/claude/f006-esquiva-w
 - [x] `scripts/verify.sh --feature F-008 --taps-game --seed 1` verde (typecheck, lint, Vitest 2.068, builds, Playwright 71 e as evidências), já com o código da F-009 na árvore; F-001 a F-007 e F-011 verdes na mesma rodada. Evidências em `production/evidencias/F-008/` (retomada.webm, save.json, acender-retomada, fogueira, coroado-arena, coroado-grito e u7.log), conferidas a olho.
 - Determinismo (layout novo, então hashes novos; ADR-0010 §1): passo 1.000 seed 1 `54256399`, seed 424242 `6d4078d9`; regressão v7 nos bytes do layout anterior.
 
+### F-009 (pronta)
+- [x] **Etapa 2** em três partes: 2a, estado v9 (76.868 B, o v8 intacto nos primeiros 76.788), o Lanterneiro (HP por nível, Postura com Quebra de 3 s e Postura Firme −40%, 3 fases com transição invulnerável em 60% e 25%, os 7 ataques brancos e vermelhos, Fúria aos 5 min, arena com névoa), migração do save 8 → 9; 2b, A Fome (dreno de HP a cada 10 passos a partir das 23:00, fim `a_fome` sem APAGANDO), Amanhecer (600 passos, Almas ×1,5 e 1 Brasa), Resultado com "Chefe mais longe" e "Brasas", meta v2 com migração 1 → 2; 2c, barras de HP e Postura, telegrafos e zonas do chefe, véu de A Fome e céu do Amanhecer em formas simples, cenário `lanterneiro`, `e2e/f009.spec.ts` e as evidências. Decisões técnicas e divergências em `docs/decisoes/ADR-0011-implementacao-da-f009.md`.
+- [x] **Crítico independente:** nota **7,8**, sem bloqueante; 114 mutações, 85 mortas, 29 sobreviventes (10 equivalentes, 19 lacunas; as relevantes viraram 11 testes). `bruto` e `tickNoJogador` sem double por argumento; `Math.floor` da salva de facas trocado por divisão exata (deopt por "lost precision"). ADR-0011 §14.
+- [x] `scripts/verify.sh --feature F-009 --taps-game --seed 1` verde (Vitest 2.228, Playwright 79 e as evidências), com o código da F-010 já na árvore; F-001 a F-008 e F-011 verdes na mesma rodada. Evidências em `production/evidencias/F-009/` conferidas a olho (chefe, A Fome, Amanhecer e os dois Resultados).
+- Determinismo: passo 1.000 seed 1 `115fd0ca`, seed 424242 `3b1e2566`; regressão v8.
+- **Para o usuário decidir:** o Abandonar da pausa também vale em A Fome e no Amanhecer (ADR-0011 §9, item 8); a luta corpo a corpo mata o chefe em 77 s contra o alvo de 120 a 180 s do doc 06 (balanceamento, `u9.log`).
+- **Fica registrado:** a alocação da luta fica em 7,5 B/passo com o aquecimento usual de 150.000 passos, mas sobe com aquecimentos maiores (90 B com 250.000), por desotimizações do V8 em caminhos que só rodam tarde na luta (`salvaDeFacas`, `golpear`, `limitarPelaArena`); medir no aparelho (ADR-0011 §14). Quatro commits da 2a passaram de 300 linhas (549, 653, 508 e 526), já enviados.
+
 ### Pendente de aparelho / para revisar
+- F-009: a luta do chefe e o véu de A Fome no OLED; a alocação da luta em sessões longas no JavaScriptCore.
 - Gravação no Safari real (cota do `localStorage` com o `vigilia` em base64), retomada depois de jetsam de verdade, botões da Fogueira de 72 pt e o véu do escurecimento em OLED.
 
 ## Sessão 8 — F-011 "Arte do jogo (até a F-007)"
