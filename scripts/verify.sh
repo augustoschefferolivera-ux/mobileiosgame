@@ -58,7 +58,7 @@ npx tsc -p tsconfig.logica.json
 
 etapa "lint"
 npx eslint . | tee .verify/lint.txt
-npm run --silent lint:relatorio
+node scripts/lint-relatorio.mjs
 
 etapa "Vitest"
 npx vitest run
