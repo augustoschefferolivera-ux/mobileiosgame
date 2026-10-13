@@ -1,7 +1,8 @@
-// Árvore da Fundação (design/decisoes-F-010.md FD1 a FD10): os 8 nós de `arvore.json`, o custo de cada rank e (nos commits
-// seguintes) as funções puras de compra e reembolso. Módulo puro: nada de I/O, relógio ou RNG. O custo roda fora do laço
+// Árvore da Fundação (design/decisoes-F-010.md FD1 a FD10): os 8 nós de `arvore.json`, o custo de cada rank e as funções puras de compra e reembolso. Módulo puro: nada de I/O, relógio ou RNG. O custo roda fora do laço
 // quente, em Float32 com a potência iterativa (ADR-0002 §5): nunca `Math.pow` nem `**`.
 import arvore from '../../dados/arvore.json';
+import { LIMITE_DE_ALMAS } from '../nucleo/estado';
+import type { Meta } from '../save/meta';
 
 /** Um nó da Fundação, na ordem de `arvore.json` (a ordem do doc 08 §4.1 e a dos 8 ranks do meta). */
 export interface NoDaFundacao {
@@ -53,4 +54,57 @@ export function somaDeRanks(ranks: readonly number[]): number {
   let g = 0;
   for (let i = 0; i < ranks.length; i++) g += ranks[i]!;
   return g;
+}
+
+/** Por que uma compra ou um reembolso não aconteceu (FD2, FD8, FD9). */
+export type Recusa = 'bloqueado' | 'maximo' | 'sem_almas' | 'nada_a_reembolsar';
+export interface Recusado {
+  readonly recusa: Recusa;
+}
+
+/** Uma gravação lógica a mais (o mesmo `seq` do restante do meta). */
+function proximoMeta(m: Meta, mudancas: Partial<Meta>): Meta {
+  return { ...m, ...mudancas, seq: Math.min(LIMITE_DE_ALMAS - 1, m.seq + 1), soma: '' };
+}
+
+/** O custo da próxima compra do nó `idx` (rank atual + 1) com o `G` do meta; `null` se o nó é bloqueado ou já está no máximo. */
+export function custoDaCompra(meta: Meta, idx: number): number | null {
+  const n = NOS_DA_FUNDACAO[idx];
+  if (n === undefined || !n.ativo) return null;
+  const rank = meta.fundacao.ranks[idx]!;
+  return rank >= n.ranks ? null : custoDoRank(n.custoBase, rank + 1, somaDeRanks(meta.fundacao.ranks));
+}
+
+/**
+ * Compra um rank do nó `idx` (FD2, FD3, FD8): devolve o meta novo, ou `{ recusa }` sem débito e sem gravação (a recusa mora
+ * aqui, não só na tela): nó bloqueado, rank máximo ou Almas abaixo do custo. `almas −= custo`, `ranks[idx] += 1`,
+ * `gasto += custo`, `seq += 1`.
+ */
+export function comprar(meta: Meta, idx: number): Meta | Recusado {
+  const n = NOS_DA_FUNDACAO[idx];
+  if (n === undefined || !n.ativo) return { recusa: 'bloqueado' };
+  const custo = custoDaCompra(meta, idx);
+  if (custo === null) return { recusa: 'maximo' };
+  if (meta.almas < custo) return { recusa: 'sem_almas' };
+  const ranks = meta.fundacao.ranks.slice();
+  ranks[idx] = ranks[idx]! + 1;
+  return proximoMeta(meta, { almas: meta.almas - custo, fundacao: { ranks, gasto: meta.fundacao.gasto + custo } });
+}
+
+/**
+ * Reembolsa tudo (FD9): `almas += gasto` (100 %, sem custo), os 8 ranks e o `gasto` vão a 0 (logo `G` = 0). Recusado com
+ * `gasto` 0 (nada a devolver). O teto de Almas é o do meta (2^30 − 1).
+ */
+export function reembolsar(meta: Meta): Meta | Recusado {
+  if (meta.fundacao.gasto === 0) return { recusa: 'nada_a_reembolsar' };
+  const soma = meta.almas + meta.fundacao.gasto;
+  return proximoMeta(meta, {
+    almas: soma < LIMITE_DE_ALMAS ? soma : LIMITE_DE_ALMAS - 1,
+    fundacao: { ranks: new Array<number>(NUMERO_DE_NOS).fill(0), gasto: 0 },
+  });
+}
+
+/** `true` se `r` é uma recusa (e não um meta). */
+export function foiRecusado(r: Meta | Recusado): r is Recusado {
+  return 'recusa' in r;
 }
