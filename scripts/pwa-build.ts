@@ -46,9 +46,10 @@ export function nomeDoCache(build: string): string {
 }
 
 /**
- * O texto do service worker (PW2). Cache primeiro, rede de reserva; a navegação cai no `index.html` ignorando a busca (`?seed=`
- * funciona offline). Sem `skipWaiting` e sem `clients.claim`: a versão nova só assume no próximo boot, nunca no meio de uma
- * Vigília (ADR-0002 §12). O `activate` apaga os caches `vdc-` de outros builds.
+ * O texto do service worker (PW2, revisto a pedido do usuário em 2026-10-13: o deploy novo não aparecia no iPhone). A navegação
+ * vai primeiro à rede e só sem rede cai no `index.html` do cache, ignorando a busca (`?seed=` funciona offline); os outros
+ * arquivos (com hash no nome) vêm do cache e, se faltarem, da rede. `skipWaiting` e `clients.claim`: a versão nova assume já;
+ * a página aberta segue com o JS que carregou (só a próxima navegação muda). O `activate` apaga os caches `vdc-` de outros builds.
  */
 export function montarServiceWorker(build: string, arquivos: readonly string[]): string {
   return `// Gerado no build (scripts/pwa-build.ts; design/decisoes-F-010.md PW2). Não editar.
@@ -57,12 +58,16 @@ const ARQUIVOS = ${JSON.stringify(arquivos)};
 const aqui = (relativo) => new URL(relativo, self.registration.scope).href;
 
 self.addEventListener('install', (evento) => {
+  self.skipWaiting();
   evento.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ARQUIVOS.map(aqui))));
 });
 
 self.addEventListener('activate', (evento) => {
   evento.waitUntil(
-    caches.keys().then((nomes) => Promise.all(nomes.filter((n) => n.startsWith('vdc-') && n !== CACHE).map((n) => caches.delete(n)))),
+    caches
+      .keys()
+      .then((nomes) => Promise.all(nomes.filter((n) => n.startsWith('vdc-') && n !== CACHE).map((n) => caches.delete(n))))
+      .then(() => self.clients.claim()),
   );
 });
 
@@ -70,7 +75,7 @@ self.addEventListener('fetch', (evento) => {
   const pedido = evento.request;
   if (pedido.method !== 'GET' || new URL(pedido.url).origin !== self.location.origin) return;
   if (pedido.mode === 'navigate') {
-    evento.respondWith(caches.match(aqui('index.html'), { ignoreSearch: true }).then((r) => r || fetch(pedido)));
+    evento.respondWith(fetch(pedido).catch(() => caches.match(aqui('index.html'), { ignoreSearch: true })));
     return;
   }
   evento.respondWith(caches.match(pedido).then((r) => r || fetch(pedido)));

@@ -40,7 +40,7 @@ describe('manifest (PW1)', () => {
 });
 
 /** Um service worker avaliado com `self`, `caches` e `fetch` falsos. */
-function carregar(build: string, arquivos: string[], existentes: string[] = []) {
+function carregar(build: string, arquivos: string[], existentes: string[] = [], semRede = false) {
   const ouvintes = new Map<string, (e: unknown) => void>();
   const caches = new Map<string, Map<string, string>>(existentes.map((n) => [n, new Map()]));
   const apagados: string[] = [];
@@ -65,7 +65,7 @@ function carregar(build: string, arquivos: string[], existentes: string[] = []) 
   const sandbox = {
     self: { addEventListener: (t: string, fn: (e: unknown) => void) => ouvintes.set(t, fn), registration: { scope: BASE }, location: new URL(BASE), skipWaiting, clients: { claim } },
     caches: pilha,
-    fetch: (p: { url: string }) => (buscados.push(p.url), Promise.resolve(`rede:${p.url}`)),
+    fetch: (p: { url: string }) => (buscados.push(p.url), semRede ? Promise.reject(new Error('offline')) : Promise.resolve(`rede:${p.url}`)),
     URL,
   };
   // O texto do service worker vira o corpo de uma função cujos parâmetros são os globais do worker.
@@ -83,28 +83,34 @@ function carregar(build: string, arquivos: string[], existentes: string[] = []) 
 describe('service worker (PW2)', () => {
   const ARQUIVOS = ['./', 'index.html', 'assets/a.js', 'manifest.webmanifest'];
 
-  it('instalar guarda os arquivos do build no cache vdc-<build>, com URLs do escopo, sem skipWaiting', async () => {
+  it('instalar guarda os arquivos do build no cache vdc-<build>, com URLs do escopo, e chama skipWaiting', async () => {
     const sw = carregar('1.0+abc', ARQUIVOS);
     await sw.disparar('install');
     expect([...sw.caches.get(nomeDoCache('1.0+abc'))!.keys()]).toEqual([BASE, `${BASE}index.html`, `${BASE}assets/a.js`, `${BASE}manifest.webmanifest`]);
-    expect(sw.skipWaiting).not.toHaveBeenCalled();
+    expect(sw.skipWaiting).toHaveBeenCalledTimes(1);
   });
 
-  it('ativar apaga só os caches vdc- de outros builds, sem clients.claim', async () => {
+  it('ativar apaga só os caches vdc- de outros builds e depois chama clients.claim', async () => {
     const sw = carregar('2.0', ARQUIVOS, ['vdc-1.0', 'vdc-2.0', 'outro-cache']);
     await sw.disparar('activate');
     expect(sw.apagados).toEqual(['vdc-1.0']);
     expect([...sw.caches.keys()].sort()).toEqual(['outro-cache', 'vdc-2.0']);
-    expect(sw.claim).not.toHaveBeenCalled();
+    expect(sw.claim).toHaveBeenCalledTimes(1);
   });
 
-  it('navegação com ?seed= cai no index.html do cache (offline); arquivo em cache vem do cache; o que falta vai à rede', async () => {
+  it('navegação vai à rede primeiro (o deploy novo aparece na primeira abertura); arquivo em cache vem do cache; o que falta vai à rede', async () => {
     const sw = carregar('3.0', ARQUIVOS);
     await sw.disparar('install');
-    expect(await sw.disparar('fetch', { request: { method: 'GET', mode: 'navigate', url: `${BASE}?seed=7&debug=1` } })).toBe(`cache:${BASE}index.html`);
+    expect(await sw.disparar('fetch', { request: { method: 'GET', mode: 'navigate', url: `${BASE}?seed=7&debug=1` } })).toBe(`rede:${BASE}?seed=7&debug=1`);
     expect(await sw.disparar('fetch', { request: { method: 'GET', mode: 'no-cors', url: `${BASE}assets/a.js` } })).toBe(`cache:${BASE}assets/a.js`);
     expect(await sw.disparar('fetch', { request: { method: 'GET', mode: 'no-cors', url: `${BASE}assets/novo.js` } })).toBe(`rede:${BASE}assets/novo.js`);
-    expect(sw.buscados).toEqual([`${BASE}assets/novo.js`]);
+    expect(sw.buscados).toEqual([`${BASE}?seed=7&debug=1`, `${BASE}assets/novo.js`]);
+  });
+
+  it('sem rede, a navegação com ?seed= cai no index.html do cache (offline)', async () => {
+    const sw = carregar('3.1', ARQUIVOS, [], true);
+    await sw.disparar('install');
+    expect(await sw.disparar('fetch', { request: { method: 'GET', mode: 'navigate', url: `${BASE}?seed=7` } })).toBe(`cache:${BASE}index.html`);
   });
 
   it('POST e outra origem passam direto (o service worker não responde)', async () => {
@@ -116,10 +122,10 @@ describe('service worker (PW2)', () => {
     expect(resposta).not.toHaveBeenCalled();
   });
 
-  it('o texto gerado não chama skipWaiting nem clients.claim', () => {
+  it('o texto gerado chama skipWaiting e clients.claim (a versão nova assume sem esperar todas as abas fecharem)', () => {
     const texto = montarServiceWorker('x', ARQUIVOS);
-    expect(texto).not.toMatch(/skipWaiting\s*\(/);
-    expect(texto).not.toMatch(/clients\.claim/);
+    expect(texto).toMatch(/skipWaiting\s*\(/);
+    expect(texto).toMatch(/clients\.claim/);
   });
 });
 
