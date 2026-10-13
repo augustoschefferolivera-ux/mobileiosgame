@@ -21,6 +21,7 @@ import { armadura, poderPct } from '../logica/progressao/dano';
 import { bauNaFrente, modalAberto } from '../logica/progressao/modal';
 import { completaUniao } from '../logica/progressao/oferta';
 import { MEMBROS_DAS_ARMAS, MEMBROS_DOS_DIGITOS } from './render/armas';
+import { MEMBROS_DO_CHEFE } from './render/chefe';
 import { MEMBROS_DOS_MEDIOS, MEMBROS_DOS_PROJETEIS_INIMIGOS, MEMBROS_DOS_TELEGRAFOS } from './render/ataques';
 import { MEMBROS_DO_MUNDO } from './render/pickups';
 import { MEMBROS_DAS_ESTRUTURAS } from './render/estruturas';
@@ -53,7 +54,7 @@ type TipoVivo = (typeof TIPOS_VIVOS)[number];
 const BYTES_DO_ATLAS = 512 * 512 * 4;
 export const MEMBROS_DAS_CAMADAS =
   MEMBROS_DO_MUNDO + CAPACIDADE_DE_INIMIGOS + CAPACIDADE_DE_MORTES + CAPACIDADE_DE_INIMIGOS + MEMBROS_DAS_ARMAS + MEMBROS_DOS_DIGITOS +
-  MEMBROS_DOS_MEDIOS + MEMBROS_DOS_TELEGRAFOS + MEMBROS_DOS_PROJETEIS_INIMIGOS + MEMBROS_DAS_ESTRUTURAS;
+  MEMBROS_DOS_MEDIOS + MEMBROS_DOS_TELEGRAFOS + MEMBROS_DOS_PROJETEIS_INIMIGOS + MEMBROS_DAS_ESTRUTURAS + MEMBROS_DO_CHEFE;
 const BYTES_DAS_CAMADAS = 2 * MEMBROS_DAS_CAMADAS * FLOATS_POR_MEMBRO * 4;
 
 export const NOMES_DOS_EVENTOS = [

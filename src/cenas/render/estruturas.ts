@@ -22,6 +22,8 @@ const CHAMA_PT = 26;
 /** O anel do raio da Fogueira: apagado de leve com a Fogueira só acesa, mais forte com o menu aberto. */
 const ALFA_DO_RAIO = { acesa: 0.22, aberta: 0.5 } as const;
 const ALFA_DA_BORDA_DA_ARENA = 0.85;
+/** A névoa da arena do chefe (F-009 AB2): o mesmo anel da borda, mais fraco e na cor do sal. */
+const ALFA_DA_NEVOA = 0.5;
 
 /** Escurecimento (ES1): de 15:00 a 19:00 sobe 0,10 por minuto; fica em 0,40 de 19:00 em diante. */
 export const ESCURECIMENTO = { inicioEmPassos: 54000, passosPorDegrau: 3600, alfaPorDegrau: 0.1, alfaMaximo: 0.4 } as const;
@@ -51,10 +53,11 @@ export function prepararEstruturas(e: Estado, dados: DadosDaVigilia, camX: numbe
     out.y[0] = camY + my - MEIA_ALTURA_DO_MAPA;
     out.rotacao[0] = 0;
     out.escalaX[0] = out.escalaY[0] = (2 * dados.combate.arenaRaio) / LARGURA_DO_ANEL_PX;
-    out.alpha[0] = ALFA_DA_BORDA_DA_ARENA;
+    const nevoa = u8[FOGUEIRA_U8.etapa]! >= ETAPA.chefe;
+    out.alpha[0] = nevoa ? ALFA_DA_NEVOA : ALFA_DA_BORDA_DA_ARENA;
     out.origemX[0] = out.origemY[0] = 0.5;
     out.moldura[0] = M_ANEL;
-    out.cor[0] = COR.laranjaQueimado;
+    out.cor[0] = nevoa ? COR.sal : COR.laranjaQueimado;
   }
   const acesa = u8[FOGUEIRA_U8.fogueiraAcesa] === 1;
   for (let k = 1; k <= 4; k++) out.visivel[k] = acesa ? 1 : 0;

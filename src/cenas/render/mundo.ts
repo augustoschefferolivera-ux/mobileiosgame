@@ -28,6 +28,7 @@ import { criarSaidaDeSprites, type EscritorDeSprites, type SaidaDeSprites } from
 import { CAPACIDADE_DE_MORTES, EfeitosDaVigilia } from './efeitos';
 import type { EscritorDaHorda } from './escritores';
 import { membrosDoMundo, molduraDaRocha, prepararMundo } from './pickups';
+import { MEMBROS_DO_CHEFE, prepararChefe } from './chefe';
 import { MEMBROS_DAS_ESTRUTURAS, alfaDoEscurecimento, prepararEstruturas } from './estruturas';
 import { criarSaidaDaHorda, prepararHorda, prepararQuadrosDaHorda, type DesenhoDoTipo } from './horda';
 /** Molduras do marcador de direção nos 4 ângulos desenhados. */
@@ -112,6 +113,8 @@ export class RenderDaVigilia implements RenderDoMundo {
   private readonly medios: Camada | null = null;
   private readonly status: Camada | null = null;
   private readonly telegrafos: Camada | null = null;
+  /** Os golpes e as zonas do Lanterneiro (F-009), acima dos telegrafos dos médios. */
+  private readonly golpesDoChefe: Camada | null = null;
   private readonly projeteisInimigos: Camada | null = null;
   private readonly armasCamada: Camada | null = null;
   /** Os grãos do Círculo de Sal e dos pulsos (F-011), abaixo das facas e dos golpes. */
@@ -156,6 +159,7 @@ export class RenderDaVigilia implements RenderDoMundo {
       // O véu: um quadrado preto do tamanho da tela (390 × 844 pt e a folga), que segue a câmera (só render, fora do hash).
       this.veu = cena.add.image(dados.inicioX, dados.inicioY, CHAVE_DO_ATLAS, 'quadrado').setTint(0x000000).setAlpha(0).setVisible(false).setScale(escalaPara('quadrado', LARGURA_DA_TELA + 8), escalaPara('quadrado', ALTURA_DA_TELA + 8));
       this.telegrafos = camada(MEMBROS_DOS_TELEGRAFOS);
+      this.golpesDoChefe = camada(MEMBROS_DO_CHEFE);
       this.sal = camada(MEMBROS_DO_SAL);
       this.armasCamada = camada(MEMBROS_DAS_ARMAS);
       this.projeteisInimigos = camada(MEMBROS_DOS_PROJETEIS_INIMIGOS);
@@ -197,7 +201,7 @@ export class RenderDaVigilia implements RenderDoMundo {
       this.horda.escrever(this.saida, this.tabela);
     }
     const ef = this.efeitos;
-    if (ef && this.mortes && this.medios && this.status && this.telegrafos && this.sal && this.armasCamada && this.projeteisInimigos && this.particulas && this.digitos) {
+    if (ef && this.mortes && this.medios && this.status && this.telegrafos && this.golpesDoChefe && this.sal && this.armasCamada && this.projeteisInimigos && this.particulas && this.digitos) {
       prepararMortes(ef, e, alfa, camX, camY, this.tabela, this.mortes.saida);
       this.mortes.escritor.escrever(this.mortes.saida);
       prepararMedios(e, this.saida, this.tabela, this.dados, alfa, this.medios.saida);
@@ -207,6 +211,8 @@ export class RenderDaVigilia implements RenderDoMundo {
       this.escurecer(e, camX, camY);
       ef.recusados.telegrafos = prepararTelegrafos(e, this.dados, this.saida, alfa, this.telegrafos.saida);
       this.telegrafos.escritor.escrever(this.telegrafos.saida);
+      prepararChefe(e, this.dados, this.saida, alfa, camX, camY, this.golpesDoChefe.saida);
+      this.golpesDoChefe.escritor.escrever(this.golpesDoChefe.saida);
       prepararSal(e, this.dados, ef, alfa, jx, jy, this.sal.saida);
       this.sal.escritor.escrever(this.sal.saida);
       prepararArmas(e, this.dados, ef, alfa, camX, camY, jx, jy, this.armasCamada.saida);
@@ -284,6 +290,7 @@ export class RenderDaVigilia implements RenderDoMundo {
     this.medios?.escritor.liberar();
     this.status?.escritor.liberar();
     this.telegrafos?.escritor.liberar();
+    this.golpesDoChefe?.escritor.liberar();
     this.sal?.escritor.liberar();
     this.particulas?.escritor.liberar();
     this.projeteisInimigos?.escritor.liberar();
