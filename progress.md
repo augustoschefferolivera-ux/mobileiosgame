@@ -1,5 +1,23 @@
 # progress.md
 
+## Sessão 9 — F-008 "Horas, marcos e Fogueira", F-009 "O Lanterneiro, Amanhecer e A Fome" e F-010 "Santuário mínimo e PWA"
+
+### Estado: F-008 pronta (aguarda a revisão do usuário); F-009 e F-010 em andamento
+
+Branch `claude/clever-galileo-26bjed`, a partir de `origin/claude/f006-esquiva-weodg1` (fim da F-007, `e2ee1e5`). A sessão da arte (Sessão 8, F-011) trabalhou ao mesmo tempo na mesma branch: cada envio foi feito depois de `git pull --rebase`, sem force-push, e nenhum arquivo da arte foi editado aqui. Pedido do usuário: as três features em ordem, com economia máxima de tokens (subagentes com esforço médio, briefs curtos, um crítico por feature com nota mínima 7, `verify.sh` completo uma vez por feature).
+
+- [x] **Etapa 1, decisões das três features:** `design/decisoes-F-008.md` (D8, 39 decisões, 7 divergências), `design/decisoes-F-009.md` (D9, 39 decisões, 5 divergências) e `design/decisoes-F-010.md` (D10, 54 decisões, 4 divergências), cada uma escrita por um subagente, com uma revisão curta das três (21 achados, todos aplicados: contas, divergências sem marca, negrito de ênfase, coerência do layout v8 → v9 → v10 e do meta). Aprovadas pelo usuário sem veto em 2026-10-12 ("Aprovo tudo, pode seguir com a F-008").
+
+### F-008 (pronta)
+- [x] **Etapa 2** em três partes: 2a, estado v8 (76.788 B, o v7 intacto nos primeiros 74.680), Coroado (Patada, Grito, ciclo fixo, convocação, HP de marco, baú e Cinza), corpos grandes, arena, marcos e marco vencido pelo relógio; 2b, Fogueira (Descansar, Forjar, Partir, sair do raio, ignorada, Hora III às 20:00, cópia-sombra) e save `vigilia` versionado com migrações, autosave na Fogueira e a cada 60 s e FIM atômico; 2c, menu da Fogueira, retomada no Acender com Recusar em 2 toques, relógio no HUD, cenário `fogueira_hora1`, `e2e/f008.spec.ts` e as evidências. Decisões técnicas e 35 divergências em `docs/decisoes/ADR-0010-implementacao-da-f008.md`.
+- [x] **Crítico independente:** nota **8,0**, sem bloqueante; 107 mutações, 69 mortas, 38 sobreviventes (6 lacunas médias e as baixas viraram teste; correções no save: o `vigilia` só é apagado com o meta gravado de fato, e o resumo do envelope vem do mesmo passo da sombra). ADR-0010 §10.
+- [x] **Correções da verificação:** o hash do estado conta `idVigilia` como zero (o navegador reserva o id no meta e o Node usa 0; os hashes do Node não mudaram; ADR-0010 §9, itens 34 e 35); specs F-002.3 e do tutorial da F-006 sem depender do save nem da lentidão do WebGL por software; o teste de determinismo do `sim20` com prazo explícito de 60 s (não é gate); a conta de memória do F-001 com os membros das estruturas e do chefe; textos do resumo da retomada e do Partir.
+- [x] `scripts/verify.sh --feature F-008 --taps-game --seed 1` verde (typecheck, lint, Vitest 2.068, builds, Playwright 71 e as evidências), já com o código da F-009 na árvore; F-001 a F-007 e F-011 verdes na mesma rodada. Evidências em `production/evidencias/F-008/` (retomada.webm, save.json, acender-retomada, fogueira, coroado-arena, coroado-grito e u7.log), conferidas a olho.
+- Determinismo (layout novo, então hashes novos; ADR-0010 §1): passo 1.000 seed 1 `54256399`, seed 424242 `6d4078d9`; regressão v7 nos bytes do layout anterior.
+
+### Pendente de aparelho / para revisar
+- Gravação no Safari real (cota do `localStorage` com o `vigilia` em base64), retomada depois de jetsam de verdade, botões da Fogueira de 72 pt e o véu do escurecimento em OLED.
+
 ## Sessão 8 — F-011 "Arte do jogo (até a F-007)"
 
 ### Estado: F-011 pronta (aguarda o teste no iPhone, itens A1 a A12 do roteiro); style card aprovado ("Aprovo o style card, pode seguir para a etapa 2") e produção aprovada ao pedir as etapas 3 e 4 ("Faça a etapa 3 e 4 por favor"), 2026-10-12

@@ -696,7 +696,7 @@
     {
       "id": "F-008",
       "nome": "Horas, marcos e Fogueira",
-      "status": "pendente",
+      "status": "pronta",
       "escopo_b": "Oco Grande Coroado (patada branca, grito vermelho, convoca Ocos, baú), marcos 5/10/15, Fogueira (relógio para, inimigos viram cinza, Descansar com `I` = 1,1, Forjar União com custo por Hora, Partir), autosave na Fogueira e a cada 60 s, **retomada após fechar a aba** (\"Continuar da Fogueira da Hora N\")",
       "criterio_b": "Teste: save versionado serializa e restaura build/nível/Almas/Frascos/`I`; migração de versão. Playwright: fechar a página na Hora II e reabrir mostra a oferta de retomada e restaura o estado",
       "evidencia_b": "Vídeo da retomada; JSON do save",
