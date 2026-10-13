@@ -105,7 +105,8 @@ node -e '
   const pendentes = [];
   for (const ev of f.evidencias) {
     // Evidência de iPhone real que só o usuário gera (D10 IP1): a marca `pendente_de_aparelho: true` na entrada a deixa
-    // pendente, sem bloquear, enquanto o arquivo não existe; com o arquivo no lugar ela passa pelas conferências de sempre.
+    // pendente, sem bloquear, enquanto o arquivo não existe. Com o arquivo no lugar ela passa pelas conferências de formato
+    // (tamanho > 0 e o conteúdo), mas não pela de "gerada nesta rodada": o usuário a grava fora do verify.
     if (ev.pendente_de_aparelho === true && !fs.existsSync(ev.arquivo)) {
       console.log(`PEND  ${ev.arquivo} — ${ev.descricao}`);
       pendentes.push(ev.arquivo);
@@ -113,7 +114,7 @@ node -e '
     }
     const existe = fs.existsSync(ev.arquivo);
     const st = existe ? fs.statSync(ev.arquivo) : null;
-    const nova = st !== null && st.size > 0 && st.mtimeMs / 1000 >= inicio - 1;
+    const nova = st !== null && st.size > 0 && (ev.pendente_de_aparelho === true || st.mtimeMs / 1000 >= inicio - 1);
     const erro = nova ? conteudo(ev.arquivo) : "ausente, vazia ou antiga";
     console.log(`${erro ? "FALTA" : "ok  "} ${ev.arquivo} — ${ev.descricao}${erro ? ` (${erro})` : ""}`);
     ok = ok && !erro;
