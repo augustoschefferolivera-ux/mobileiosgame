@@ -16,6 +16,7 @@ import telegrafos from '../dados/cenarios/telegrafos.json';
 import fogueiraHora1 from '../dados/cenarios/fogueira_hora1.json';
 import marcoCoroado from '../dados/cenarios/marco_coroado.json';
 import lanterneiro from '../dados/cenarios/lanterneiro.json';
+import hora4Armas from '../dados/cenarios/hora4_armas.json';
 import type { DadosDaVigilia } from '../logica/mundo/dados';
 import { cruzarNiveis } from '../logica/progressao/atributos';
 import { codigoDaArma } from '../logica/armas/tabela';
@@ -70,6 +71,7 @@ export const RECEITAS: readonly ReceitaDeCenario[] = [
   fogueiraHora1,
   marcoCoroado,
   lanterneiro,
+  hora4Armas,
 ];
 
 /** Parâmetros da Vigília de um cenário (sem o TETO, que vem de ?teto ou da detecção, nem a Fundação, que os cenários ignoram: FD12). */
