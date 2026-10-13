@@ -8,6 +8,7 @@ Este roteiro é da Q-29 do brief ("build de teste em iPhone real logo depois da 
 2. O Pages publica um build de debug (parâmetros de URL e ganchos de escrita) numa URL pública. Despublique depois do teste.
 3. No iPhone: Low Power Mode **desligado**, brilho no máximo, Safari (ou a tela inicial, se instalada), retrato. Para áudio, a chave de silêncio na posição de som, depois com ela em silêncio (item 7).
 4. Todos os endereços abaixo vão depois da URL do Pages. Com `debug=1` o painel mostra fps, `maxToques` e `toquesPerdidos`.
+5. No computador, abra o build de debug numa janela em retrato (mais alta que larga): em janela larga o aviso de girar o aparelho (PS3) cobre o jogo, como deve ser.
 
 ## O que conferir
 

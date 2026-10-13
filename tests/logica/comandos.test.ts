@@ -104,9 +104,11 @@ describe('ações e mira (decisoes-F-006 ET5, ET6)', () => {
     a.acoes[0] = ACAO.aparo;
     a.mira[0] = -0.6;
     a.mira[1] = 0.8;
+    a.degradacao[0] = 3;
     const b = criarComandos();
     copiarComandos(a, b);
-    expect([...b.movimento, ...b.acoes, ...b.mira]).toEqual([...a.movimento, ...a.acoes, ...a.mira]);
+    expect([...b.movimento, ...b.acoes, ...b.mira, ...b.degradacao]).toEqual([...a.movimento, ...a.acoes, ...a.mira, ...a.degradacao]);
+    expect(b.degradacao[0]).toBe(3);
   });
 
   it('a ação vale só no passo exato; fora dele a fonte entrega acoes = 0 e mira = (0, 0)', () => {

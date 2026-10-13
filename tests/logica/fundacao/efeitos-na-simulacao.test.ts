@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { BRUTO, LIQUIDO, ORIGEM_DO_DANO, aplicarContato, danoAoJogador } from '../../../src/logica/mundo/contato';
 import { nascerInimigo } from '../../../src/logica/mundo/inimigos';
 import { TIPO } from '../../../src/logica/mundo/tipos';
-import { CENARIO, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR_U8, PROGRESSAO, TODOS_OS_TUTORIAIS, criarEstado, hashEstado, reiniciarEstado, type Estado, type RanksDaFundacao } from '../../../src/logica/nucleo/estado';
+import { CENARIO, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR_U8, PROGRESSAO, TODOS_OS_TUTORIAIS, criarEstado, hashEstado, hashPorSecao, reiniciarEstado, type Estado, type RanksDaFundacao } from '../../../src/logica/nucleo/estado';
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { cruzarNiveis } from '../../../src/logica/progressao/atributos';
 import { hpMaximo } from '../../../src/logica/progressao/tabela';
@@ -103,8 +103,15 @@ describe('rank 0, validação e reinício', () => {
     expect(hashEstado(c)).not.toBe(hashEstado(criarEstado(3, D, p)));
   });
 
+  it('a seção `fundacao` do hash cobre os 4 bytes (crítico M46)', () => {
+    const base = hashPorSecao(comFundacao(ZERO)).fundacao;
+    for (const campo of ['pele', 'folego', 'casco', 'bigorna'] as const) {
+      expect(hashPorSecao(comFundacao({ ...ZERO, [campo]: 1 })).fundacao).not.toBe(base);
+    }
+  });
+
   it('rank fora da faixa ou não inteiro é erro; reiniciar zera os ranks do estado anterior', () => {
-    for (const f of [{ ...ZERO, pele: 6 }, { ...ZERO, casco: 4 }, { ...ZERO, bigorna: -1 }, { ...ZERO, folego: 1.5 }]) {
+    for (const f of [{ ...ZERO, pele: 6 }, { ...ZERO, casco: 4 }, { ...ZERO, bigorna: -1 }, { ...ZERO, bigorna: 4 }, { ...ZERO, folego: 6 }, { ...ZERO, folego: 1.5 }]) {
       expect(() => criarEstado(1, DB, { fundacao: f })).toThrow(/Fundação/);
     }
     const e = comFundacao(MAXIMOS);

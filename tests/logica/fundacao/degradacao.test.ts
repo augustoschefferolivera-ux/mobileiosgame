@@ -90,3 +90,36 @@ describe('TETO efetivo (DG3)', () => {
     expect(rodarCom(3, 300)).toBe(rodarCom(3, 300));
   }, 60_000);
 });
+
+describe('fronteiras exatas da degradação (crítico da F-010, M66, M67, M71)', () => {
+  it('a média de 16 ms exatos não sobe (só acima), e 10 ms exatos não contam como baixo (só abaixo)', () => {
+    const a = criarDegradacao(0);
+    expect(proximoNivel(a, 16, 2000)).toBe(0);
+    expect(proximoNivel(a, 16.0001, 4000)).toBe(1);
+    const b = criarDegradacao(0);
+    b.nivel = 2;
+    proximoNivel(b, 9.9, 2000);
+    expect(b.baixoDesde).toBe(0);
+    proximoNivel(b, 10, 4000);
+    expect(b.baixoDesde).toBe(-1);
+  });
+
+  it('10.000 ms exatos de sequência abaixo de 10 ms já descem um nível; 9.999 ms não', () => {
+    const a = criarDegradacao(0);
+    a.nivel = 2;
+    a.baixoDesde = 0;
+    expect(proximoNivel(a, 5, 9999)).toBe(2);
+    const b = criarDegradacao(0);
+    b.nivel = 2;
+    b.baixoDesde = 0;
+    expect(proximoNivel(b, 5, 10_000)).toBe(1);
+  });
+
+  it('a janela fecha com 2.000 ms exatos e não com 1.999', () => {
+    const a = criarDegradacao(0);
+    expect(registrarQuadro(a, 20, 1999)).toBe(0);
+    expect(a.quadrosDaJanela).toBe(1);
+    expect(registrarQuadro(a, 20, 2000)).toBe(1);
+    expect(a.quadrosDaJanela).toBe(0);
+  });
+});

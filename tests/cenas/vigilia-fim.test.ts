@@ -31,6 +31,7 @@ interface Interno {
   sairDeCena(): void;
   mudarDegradacao(nivel: number): void;
   aoStep(): void;
+  voltarAFicarVisivel(): void;
   tetoDaProxima: { valor: number } | null;
   render: unknown;
   fecharPausa(): void;
@@ -313,10 +314,21 @@ describe('pausa automática e APAGANDO (F-010 PS1, PS2, PS4)', () => {
   });
 
   it('no FIM não há nada a fazer: sem pausa e sem novo andamento', () => {
-    const { v, sim, estado, cena } = montar();
+    const { v, sim, estado, cena, setMute } = montar();
     estado.jogador4U8[JOGADOR4_U8.fase] = FASE.fim;
     v.sairDeCena();
     expect([sim.pausa.ativa, cena.pausaCena.mostrar.mock.calls.length]).toEqual([false, 0]);
+    expect(setMute).not.toHaveBeenCalled();
+  });
+
+  it('voltar a ficar visível com a pausa automática aberta mantém o mudo; sem pausa devolve o som pela opção (crítico M59)', () => {
+    const { v, sim, setMute } = montar();
+    v.sairDeCena();
+    v.voltarAFicarVisivel();
+    expect(setMute).toHaveBeenLastCalledWith(true);
+    sim.pausa.ativa = false;
+    v.voltarAFicarVisivel();
+    expect(setMute).toHaveBeenLastCalledWith(false);
   });
 });
 
