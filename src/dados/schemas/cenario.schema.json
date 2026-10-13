@@ -148,6 +148,11 @@
       "type": "integer",
       "minimum": 0
     },
+    "nivel_inicial": {
+      "description": "Nível do Aldric no início (XP 0, sem níveis pendentes; F-009 CN1): o cenário lanterneiro entra no nível 29. Ausente = nível 1.",
+      "type": "integer",
+      "minimum": 1
+    },
     "relogio_inicial_s": {
       "description": "Relógio da Vigília no início, em segundos; > 0 exige linha_fixa (a escala por minuto não salta).",
       "type": "integer",

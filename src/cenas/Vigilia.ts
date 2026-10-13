@@ -26,7 +26,7 @@ import { comOpcoes, comTutoriais, reservarIdDaVigilia } from '../logica/save/met
 import { GravadorDaVigilia, creditarFim } from '../plataforma/vigiliaGuardada';
 import { sortearSeed } from '../plataforma/parametros';
 import { criarDadosDaCharneca } from '../plataforma/dadosDaVigilia';
-import { prepararFogueiraDoCenario } from '../plataforma/cenarios';
+import { prepararFogueiraDoCenario, prepararNivelDoCenario } from '../plataforma/cenarios';
 import inimigos from '../dados/inimigos.json';
 import vigilantes from '../dados/vigilantes.json';
 import charneca from '../dados/regioes/charneca_das_lanternas.json';
@@ -101,7 +101,10 @@ export class Vigilia extends Phaser.Scene {
     const retomada = this.ctx.retomada;
     this.ctx.retomada = null;
     const estado = retomada !== null ? retomada.estado : criarEstado(this.ctx.seed, dados, params);
-    if (retomada === null && this.ctx.cenario) prepararFogueiraDoCenario(estado, this.ctx.cenario.id);
+    if (retomada === null && this.ctx.cenario) {
+      prepararFogueiraDoCenario(estado, this.ctx.cenario.id);
+      prepararNivelDoCenario(estado, dados, this.ctx.cenario.id);
+    }
     this.sim = {
       estado,
       dados,

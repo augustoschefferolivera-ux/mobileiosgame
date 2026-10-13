@@ -10,7 +10,7 @@ import type Phaser from 'phaser';
 import { fonteConstante, fonteDoRoteiro, validarAcoes, validarRoteiro, type AcaoDeRoteiro, type Roteiro } from '../logica/nucleo/comandos';
 import {
   BAU, BYTES_ESTADO, CAB, CAPACIDADE_DE_EFEITOS, FASE, JOGADOR4, JOGADOR4_U32, JOGADOR4_U8, CAPACIDADE_DE_INIMIGOS, CAPACIDADE_DE_PICKUPS, CAPACIDADE_DE_PROJETEIS, CARTAS, CATEGORIA_DE_ITEM, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR3_U8, JOGADOR_U8,
-  FOGUEIRA_U8, MUNDO, MUNDO2, PROGRESSAO, JOGADOR3_U16, TIPO_DE_CARTA, TIPO_DE_PROJETIL, TIPO_DE_PICKUP, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, hashEstado, hashPorSecao, type Estado,
+  CHEFE_F32, CHEFE_U16, CHEFE_U8, SEM_CHEFE, FOGUEIRA_U8, MUNDO, MUNDO2, PROGRESSAO, JOGADOR3_U16, TIPO_DE_CARTA, TIPO_DE_PROJETIL, TIPO_DE_PICKUP, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, hashEstado, hashPorSecao, type Estado,
 } from '../logica/nucleo/estado';
 import { BYTES_DO_ANEL, EV, FLAG, eventosEscritos, inicioDoEvento } from '../logica/nucleo/eventos';
 import { quantosAtivos } from '../logica/nucleo/pool';
@@ -353,6 +353,8 @@ export interface GameDebug {
     etapas: { etapa: number; marcosIniciados: number; arenaAtiva: boolean; coroadosVivos: number; fogueiraAcesa: boolean; fogueiraHora: number; fogueiraAcoes: number };
     resultado: { segundos: number; nivel: number; mortes: number; danoRecebido: number; almas: number; almasAoSantuario: number; mancha: { x: number; y: number; hora: number; almas: number } | null } | null;
   } | null;
+  /** O Lanterneiro vivo (F-009 §5): fase, HP, Postura, Quebra e o ataque em curso; null sem chefe vivo. */
+  readonly chefe: { slot: number; fase: number; faseMax: number; hp: number; hpMax: number; postura: number; quebraPassos: number; transicaoPassos: number; ataqueFase: number; ataqueId: number; quebras: number; presoPassos: number; cegoPassos: number } | null;
   /** O meta lido do armazenamento (cópia): Almas do Santuário, mancha, tutoriais e opções. */
   readonly meta: { almas: number; mancha: { x: number; y: number; hora: number; almas: number } | null; tutoriais: number; primeiroApagarFeito: boolean; seq: number };
   readonly vivos: Record<TipoVivo, number>;
@@ -560,6 +562,26 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
               mancha: sim.resultado.mancha ? { x: sim.resultado.mancha.x, y: sim.resultado.mancha.y, hora: sim.resultado.mancha.hora, almas: sim.resultado.mancha.almas } : null,
             }
           : null,
+      };
+    },
+    get chefe() {
+      const e = ctx.simulacao?.estado;
+      if (!e || e.chefeU16[CHEFE_U16.slot] === SEM_CHEFE) return null;
+      const s = e.chefeU16[CHEFE_U16.slot]!;
+      return {
+        slot: s,
+        fase: e.chefeU8[CHEFE_U8.fase]!,
+        faseMax: e.chefeU8[CHEFE_U8.faseMax]!,
+        hp: e.inimigos.hp[s]!,
+        hpMax: e.chefeF32[CHEFE_F32.hpMax]!,
+        postura: e.chefeF32[CHEFE_F32.postura]!,
+        quebraPassos: e.chefeU16[CHEFE_U16.quebraPassos]!,
+        transicaoPassos: e.chefeU16[CHEFE_U16.transicaoPassos]!,
+        ataqueFase: e.inimigos.ataqueFase[s]!,
+        ataqueId: e.inimigos.ataqueId[s]!,
+        quebras: e.chefeU8[CHEFE_U8.quebras]!,
+        presoPassos: e.chefeU8[CHEFE_U8.presoPassos]!,
+        cegoPassos: e.chefeU16[CHEFE_U16.cegoPassos]!,
       };
     },
     get meta() {

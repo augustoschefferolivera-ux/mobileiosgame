@@ -15,11 +15,14 @@ import hordaComAtaques from '../dados/cenarios/horda_com_ataques.json';
 import telegrafos from '../dados/cenarios/telegrafos.json';
 import fogueiraHora1 from '../dados/cenarios/fogueira_hora1.json';
 import marcoCoroado from '../dados/cenarios/marco_coroado.json';
+import lanterneiro from '../dados/cenarios/lanterneiro.json';
+import type { DadosDaVigilia } from '../logica/mundo/dados';
+import { cruzarNiveis } from '../logica/progressao/atributos';
 import { codigoDaArma } from '../logica/armas/tabela';
 import { segundosEmPassos } from '../logica/nucleo/passos';
 import { codigoDoTipo } from '../logica/mundo/tipos';
 import { codigoDaPassiva } from '../logica/progressao/tabela';
-import { CENARIO, ETAPA, FOGUEIRA_F32, FOGUEIRA_U8, JOGADOR, JOGADOR2, JOGADOR4_U8, LINHA_LIVRE, TODOS_OS_TUTORIAIS, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
+import { CENARIO, ETAPA, FOGUEIRA_F32, FOGUEIRA_U8, JOGADOR, JOGADOR2, JOGADOR4_U8, LINHA_LIVRE, PROGRESSAO, TODOS_OS_TUTORIAIS, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
 
 /** O que se lê de uma receita (cenario.schema.json). */
 export interface ReceitaDeCenario {
@@ -36,6 +39,8 @@ export interface ReceitaDeCenario {
   readonly passivas: readonly { readonly passiva: string; readonly nivel: number }[];
   readonly baus: readonly { readonly dx: number; readonly dy: number; readonly dourado: boolean }[];
   readonly xp_inicial: number;
+  /** Nível no início, com XP 0 e sem pendentes (F-009 CN1); ausente = 1. */
+  readonly nivel_inicial?: number;
   readonly relogio_inicial_s: number;
   /** true liga CENARIO.ataques (decisoes-F-006 VT1); ausente = desligado. */
   readonly ataques_inimigos?: boolean;
@@ -64,6 +69,7 @@ export const RECEITAS: readonly ReceitaDeCenario[] = [
   telegrafos,
   fogueiraHora1,
   marcoCoroado,
+  lanterneiro,
 ];
 
 /** Parâmetros da Vigília de um cenário (sem o TETO, que vem de ?teto ou da detecção). */
@@ -111,4 +117,21 @@ export function prepararFogueiraDoCenario(e: Estado, id: string): void {
   e.fogueiraF32[FOGUEIRA_F32.fogueiraY] = e.jogador[JOGADOR.y]!;
   e.jogador[JOGADOR.hp] = (e.jogador2[JOGADOR2.hpMax]! * f.hp_pct) / 100;
   e.jogador4U8[JOGADOR4_U8.frascoCargas] = f.frascos;
+}
+
+/**
+ * Põe o Aldric no nível da receita (F-009 CN1): paga a XP de cada nível pela mesma `cruzarNiveis` do jogo (o ponto de FOR e o HP por
+ * nível), zera a XP e os pendentes e enche o HP. Os eventos `nivel` ficam no anel. Não faz nada sem `nivel_inicial` > 1.
+ */
+export function prepararNivelDoCenario(e: Estado, dados: DadosDaVigilia, id: string): void {
+  const n = RECEITAS.find((x) => x.id === id)?.nivel_inicial ?? 1;
+  if (n <= 1) return;
+  let total = 0;
+  for (let k = 1; k < n; k++) total += dados.progressao.custo[k]!;
+  e.progresso[PROGRESSAO.xp] = total;
+  e.progresso[PROGRESSAO.xpTotal] = total;
+  cruzarNiveis(e, dados);
+  e.progresso[PROGRESSAO.xp] = 0;
+  e.progresso[PROGRESSAO.niveisPendentes] = 0;
+  e.jogador[JOGADOR.hp] = e.jogador2[JOGADOR2.hpMax]!;
 }

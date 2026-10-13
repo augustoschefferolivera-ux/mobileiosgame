@@ -1,0 +1,25 @@
+{
+  "id": "lanterneiro",
+  "versao": 1,
+  "linha_fixa": null,
+  "jogador": { "invulneravel": false },
+  "diretor_desligado": true,
+  "tutoriais_vistos": true,
+  "rotacao": 0,
+  "armas": [
+    { "arma": "espada_longa_do_juramento", "nivel": 8 },
+    { "arma": "facas_de_sal", "nivel": 8 },
+    { "arma": "circulo_de_sal", "nivel": 8 }
+  ],
+  "cinzas": false,
+  "passivas": [
+    { "passiva": "elmo_sem_rosto", "nivel": 5 },
+    { "passiva": "luvas_de_fole", "nivel": 5 }
+  ],
+  "baus": [],
+  "xp_inicial": 0,
+  "nivel_inicial": 29,
+  "relogio_inicial_s": 0,
+  "ataques_inimigos": true,
+  "inicio_livre_passos": 71970
+}
