@@ -52,3 +52,16 @@ describe('Mãos de aprendiz pelos parâmetros (FD7)', () => {
     expect(completaUniao(estadoDe([[ESPADA, 4]], [[ELMO, 1]]), D, TIPO_DE_CARTA.melhoriaDeArma, ESPADA)).toBe(0);
   });
 });
+
+describe('marcos e convite no meta (MT1, PW3)', () => {
+  it('comMarco soma bits sem repetir e só avança o seq quando muda; comConviteRecusado guarda as Vigílias concluídas', async () => {
+    const { MARCO, comConviteRecusado, comMarco } = await import('../../../src/logica/save/meta');
+    const m = metaPadrao();
+    const a = comMarco(m, MARCO.iselda);
+    expect([a.marcos, a.seq]).toEqual([2, 1]);
+    expect(comMarco(a, MARCO.iselda)).toBe(a);
+    expect(comMarco(a, MARCO.balaoCinzas).marcos).toBe(3);
+    const c = comConviteRecusado({ ...a, vigiliasConcluidas: 4 });
+    expect([c.conviteRecusadoEm, c.seq]).toEqual([4, 2]);
+  });
+});

@@ -1,6 +1,6 @@
 # Decisões da F-010 "Santuário mínimo e PWA"
 
-- Status: proposta, aguarda aprovação do usuário (Etapa 1; nenhum código escrito). Depende da D8 (`design/decisoes-F-008.md`, layout v8, `vdc.vigilia`/`vdc.andamento` em `localStorage`) e da D9 (`design/decisoes-F-009.md`, layout v9, meta v2 com `brasas`), ambas ainda não aprovadas: o layout v10 cresce depois do v9 e o meta v3 depois do v2.
+- Status: aprovada pelo usuário sem veto em 2026-10-12 ("Aprovo tudo"), inclusive as divergências em negrito (FD6, ST1, PS4, IP1) e as correções da Revisão. Etapa 2 (implementação) em curso. Depende da D8 (`design/decisoes-F-008.md`, layout v8, `vdc.vigilia`/`vdc.andamento` em `localStorage`) e da D9 (`design/decisoes-F-009.md`, layout v9, meta v2 com `brasas`), ambas ainda não aprovadas: o layout v10 cresce depois do v9 e o meta v3 depois do v2.
 - Fontes: B §3.5, §3.12, §3.14, §4 e §11.3 (F-010); Q-16 a Q-20, Q-29, Q-31, Q-34; ADR-0002 §10 a §14; D2 a D9 (§9/§10/§13); GDD 08 §3 e §4.1, 11 §3.1, §3.13 e §4, 12 §2; `feature_list.json` (F-010); código lido por `grep` (`meta.ts`, `armazenamento.ts`, `arvore.json`, `contato.ts`, `atributos.ts`, `estado.ts`, `Resultado.ts`, `eslint.config.js`, `index.html`, `pages-teste.yml`).
 - Nomes: B = game-brief; D2 a D9 = `design/decisoes-F-002.md` a `-F-009.md`. IDs por área: SN Santuário e fluxo, FD Fundação, GA Almas garantidas e Iselda, MT meta, ST armazenamento, LT lint, PW PWA, PS pausa e paisagem, DG degradação, IP iPhone, LY layout, TX textos, CN cenário.
 

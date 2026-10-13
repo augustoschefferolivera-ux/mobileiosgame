@@ -276,6 +276,17 @@ export function aplicarFimDeVigilia(m: Meta, r: ResultadoDaVigilia): Meta {
   });
 }
 
+/** Marca um marco do Santuário como visto (D10 MT1: balão das Cinzas, apresentação de Iselda); sem bit novo, o meta não muda. */
+export function comMarco(m: Meta, marco: number): Meta {
+  const novos = (m.marcos | marco) & TODOS_OS_MARCOS;
+  return novos === m.marcos ? m : proximo(m, { marcos: novos });
+}
+
+/** "Agora não" no convite da Tela de Início (PW3): guarda as `vigiliasConcluidas` de agora; ele volta 5 Vigílias depois. */
+export function comConviteRecusado(m: Meta): Meta {
+  return proximo(m, { conviteRecusadoEm: m.vigiliasConcluidas });
+}
+
 /**
  * Reserva o `idVigilia` da Vigília que vai começar (SV4): é o `proximaIdVigilia` de agora, e o meta novo já traz o
  * seguinte. Quem chama grava o meta antes do `vigilia` do passo 0.

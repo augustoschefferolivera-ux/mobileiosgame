@@ -994,119 +994,156 @@
           "id": "F-010.1",
           "descricao": "Custo dos nós segue a fórmula.",
           "verificacao": "vitest",
-          "como": "300 × 1,12^(rank−1) × (1 + 0,015 × ranks_globais), inteiro mais próximo (Q-19), com potência por multiplicação iterativa (ADR-0002 §5).",
+          "como": "vitest: os vetores da §3 da D10 (300; 305; 341; 309; 602; 600; 472) em Float32 com potência iterativa; `custoDoRank` nunca usa `Math.pow` nem `**`; rank 1 com `G` = 0 vale 300; um nó de 5 ranks comprado em sequência soma 1.969 (fórmula 300 × 1,12^(rank−1) × (1 + 0,015 × ranks_globais), Q-19; ADR-0002 §5).",
           "origem": "B §4"
         },
         {
           "id": "F-010.2",
           "descricao": "Reembolso zera.",
           "verificacao": "vitest",
-          "como": "ranks da árvore e fator global da árvore voltam a 0; Almas devolvidas.",
+          "como": "vitest: comprar Fôlego ×3 e Casco ×1 com 3.000 Almas; reembolsar: ranks todos 0, `gasto` 0, Almas de volta aos 3.000, `G` 0, `seq` + 1; reembolsar de novo é recusado; o custo da próxima compra volta a 300.",
           "origem": "B §4"
         },
         {
           "id": "F-010.3",
           "descricao": "Lint de strings passa.",
           "verificacao": "lint",
-          "como": "regra t(id) do ADR-0002 §11 em src/cenas, src/entrada e src/plataforma; relatório salvo.",
+          "como": "lint: o script `lint:relatorio` do package.json com 0 erros de `vdc/textos`; teste de `index.html` sem texto nem atributo de texto; `manifest.name` = `t('A8.SISTEMA.TITULO')`; relatório salvo em `production/evidencias/F-010/lint.txt` (regra t(id) do ADR-0002 §11 em src/cenas, src/entrada e src/plataforma).",
           "origem": "B §4"
         },
         {
           "id": "F-010.4",
           "descricao": "Fluxo completo Acender → Vigília → Apagar → Santuário → comprar nó → nova Vigília (Playwright).",
           "verificacao": "playwright",
-          "como": "--taps-game --seed; 300 Almas garantidas depois do 1º Apagar (Q-20).",
+          "como": "playwright: `--taps-game --seed`, URL `?inicio=19:00&santuario=1`, storage limpo: Acender → `cena` 'Santuario' → Vigília → Apagar (`FIM(apagar)`) → Resultado com o balão `A2.TUTORIAL.05` → Voltar → Santuario com Iselda apresentando → `meta.almas` = `max(300, almas líquidas)` (300 com poucas Almas) → 2 toques em *Fôlego de forja* (Almas − 300, rank 1) → Vigília → `jogador.hpMax` = 156 (base 130, Σ% 15 + 5; a D10 dizia 158, ver ADR-0012 §9). Um segundo Apagar não repete a garantia. Capturas 390 × 844.",
           "origem": "B §4"
         },
         {
           "id": "F-010.5",
           "descricao": "iPhone real: Hora IV com ≥ 55 fps médio e sem recarga da aba em 3 Vigílias seguidas.",
           "verificacao": "iphone_real",
-          "como": "iPhone 11 ou 12 e iPhone 14+, Low Power Mode desligado, overlay de fps do build de debug (ADR-0002 §14); feito pelo usuário (Q-29).",
+          "como": "iphone_real, pendente de aparelho (D10 IP1): o roteiro de §5, passos 3 e 4 da D10: Hora IV com fps médio ≥ 55 e `recargas` 0 em 3 Vigílias seguidas, nos dois aparelhos (iPhone 11 ou 12 e 14+, Low Power Mode desligado, overlay de fps do build de debug, ADR-0002 §14); feito pelo usuário (Q-29).",
           "origem": "B §4"
         },
         {
           "id": "F-010.6",
           "descricao": "Manifest + service worker + convite 'Adicionar à Tela de Início', overlay de paisagem e pausa em visibilitychange.",
           "verificacao": "playwright",
-          "como": "manifest válido; SW registrado; convite depois da 1ª Vigília; visibilitychange pausa a simulação (ADR-0002 §12). Em paisagem (viewport com largura > altura), aparece o overlay DOM 'gire o aparelho' e a simulação pausa (ADR-0002 §12).",
+          "como": "playwright: manifest baixado e válido (`display` standalone, ícones 192 e 512 abrem); `navigator.serviceWorker.getRegistration()` ativo depois do 2º `load`; offline a página abre; convite ao chegar ao Santuário depois da 1ª Vigília, `Agora não` grava `conviteRecusadoEm` e ele só volta com `vigiliasConcluidas` + 5; em `display-mode: standalone` não aparece e `persist` é chamado. `visibilitychange` (hidden): `pausa.ativa`, `origem` 'automatica', `passo` e `relogio` parados por 1 s, joystick e slots soltos; um toque retoma e não vira esquiva. Em APAGANDO (passo 10) hidden: `faseDoFim` = FIM no retorno, `apagandoPassos` 30, meta creditado uma vez, `vdc.vigilia` removido, hash igual ao de um Apagar sem interrupção da mesma seed. Viewport 844 × 390: `#gire` visível com `t('A8.SISTEMA.GIRE')`, simulação parada; voltar a 390 × 844 mostra a pausa automática.",
           "origem": "B §4 (escopo)"
         },
         {
           "id": "F-010.7",
           "descricao": "Nós sem efeito ficam bloqueados.",
           "verificacao": "vitest",
-          "como": "O peso do martelo do seu pai, Pés plantados e Ferro frio aparecem bloqueados e a compra é recusada (Q-16; Q-17).",
+          "como": "vitest: os 3 nós `bloqueado` (O peso do martelo do seu pai, Pés plantados, Ferro frio) recusam a compra com Almas de sobra, não somam em `G` e a recusa não grava; `ranks` inválidos nesses nós invalidam o meta (Q-16; Q-17).",
           "origem": "Q-16; Q-17"
         },
         {
           "id": "F-010.8",
           "descricao": "Mãos de aprendiz.",
           "verificacao": "vitest",
-          "como": "com Mãos de aprendiz no rank r, a Espada Longa começa no nível 1 + r (máx. 4); a União não é afetada (Q-18).",
+          "como": "vitest: Mãos de aprendiz r = 0, 1, 2, 3: `armas` null; Espada nv 2, 3, 4; r = 3 não passa de 4; os limiares da União (Espada nv 8 + passiva) iguais aos de r = 0 (Q-18).",
           "origem": "Q-18"
         },
         {
           "id": "F-010.9",
           "descricao": "Save meta versionado.",
           "verificacao": "vitest",
-          "como": "meta com versao, seq e soma; migração com teste por versão (ADR-0002 §10).",
+          "como": "vitest: meta v3 com `versao`, `seq` e `soma`; migrações v1 → v2 → v3 e v2 → v3, cada uma com um meta gravado do código antigo como entrada; `vdc.meta.anterior` guarda o texto antigo; soma errada, NaN, `gasto` incoerente e versão futura caem nos padrões; falha de `setItem` mantém a memória (ADR-0002 §10).",
           "origem": "B §4 (escopo); ADR-0002 §10"
         },
         {
           "id": "F-010.10",
           "descricao": "Lint de palavras proibidas.",
           "verificacao": "lint",
-          "como": "as 11 palavras de B §3.15 bloqueiam em código, dados e textos (palavra inteira, fora de node_modules e design/); as extras da Q-31 viram aviso só em pt-BR.json; relatório junto com o do lint de strings em production/evidencias/F-010/lint.txt.",
+          "como": "lint: as 11 palavras de B §3.15 bloqueiam em um arquivo de teste de cada tipo (`.ts`, `.json`, `.html`, `.webmanifest`) e passam no repositório; as extras da Q-31 avisam só em `pt-BR.json`; `lint.txt` traz a linha de resumo.",
           "origem": "Q-31; ADR-0002 §11"
+        },
+        {
+          "id": "F-010.11",
+          "descricao": "Fundação na simulação.",
+          "verificacao": "vitest",
+          "como": "vitest: com ranks 5, 5, 3, 3, 0 (FD12: Pele, Fôlego, Casco, Bigorna, Mãos): `armadura` = 10; `hpMax` inicial 182 (base 130, Σ% 15 + 25; a D10 dizia 188, ver ADR-0012 §9); `invulContato` 27 no contato; contato bruto 100 sem Brasa Firme dá `100 × 0,6667 × 0,91` = 60,67 e o mesmo golpe como projétil dá 66,67; Bigorna 0 dá exatamente o dano da D7; layout v10 = v9 + 4 B, `fundacao` na seção de hash, regressão v9 com máscara; 3 chamadas de `passo` com e sem Fundação alocam ≤ 16 B.",
+          "origem": "design/decisoes-F-010.md FD4 a FD6, LY1"
+        },
+        {
+          "id": "F-010.12",
+          "descricao": "Degradação graciosa.",
+          "verificacao": "vitest",
+          "como": "vitest: `proximoNivel` com médias injetadas: 16,1 ms por 2 s sobe 1; 15,9 não sobe; um nível por janela; 9,9 ms por 10 s desce 1; nível 1 com pool de mortes 150; nível 3 com TETO 500 e linha 19: TETO efetivo = mínimo da linha sem `I`, `vdc.teto` = 300 depois, e a Vigília de TETO 300 inalterada; replay com `degradacao` 3 no passo 600 reproduz o hash.",
+          "origem": "design/decisoes-F-010.md DG1 a DG4"
+        },
+        {
+          "id": "F-010.13",
+          "descricao": "Dados de stamina e Frasco.",
+          "verificacao": "vitest",
+          "como": "vitest: custos de stamina das passivas múltiplos de 0,5 (Passo Leve −30% = 17,5); Brasa Firme com `staminaMax` 120 lê limiar 60; `cargas` do JSON ≤ 6.",
+          "origem": "design/decisoes-F-010.md pendências 24 e 25"
+        },
+        {
+          "id": "F-010.14",
+          "descricao": "Janela do aparo e relógio do toque.",
+          "verificacao": "vitest",
+          "como": "vitest: a janela do aparo é lida de uma só constante (grep no teste); PS5: com `timeStamp` 90.000 ms à frente de `performance.now()` o tradutor passa a usar `performance.now()` e o swipe de teste continua reconhecido.",
+          "origem": "design/decisoes-F-010.md pendência 16, PS5"
         }
       ],
       "evidencias": [
         {
           "arquivo": "production/evidencias/F-010/iphone-11-ou-12.mp4",
-          "descricao": "Vídeo em iPhone real: iPhone 11 ou 12 (B)"
+          "descricao": "Vídeo em iPhone real: iPhone 11 ou 12 (B) — pendente de aparelho (D10 IP1): o usuário grava no iPhone real",
+          "pendente_de_aparelho": true
         },
         {
           "arquivo": "production/evidencias/F-010/iphone-14.mp4",
-          "descricao": "Vídeo em iPhone real: iPhone 14 ou mais novo (B)"
+          "descricao": "Vídeo em iPhone real: iPhone 14 ou mais novo (B) — pendente de aparelho (D10 IP1): o usuário grava no iPhone real",
+          "pendente_de_aparelho": true
         },
         {
           "arquivo": "production/evidencias/F-010/memoria-safari.png",
-          "descricao": "Captura de memória do Safari Web Inspector (< 150 MB) (B)"
+          "descricao": "Captura de memória do Safari Web Inspector (< 150 MB) (B) — pendente de aparelho (D10 IP1): o usuário grava no iPhone real",
+          "pendente_de_aparelho": true
         },
         {
           "arquivo": "production/evidencias/F-010/lint.txt",
           "descricao": "Relatório do lint (B)"
+        },
+        {
+          "arquivo": "production/evidencias/F-010/santuario.png",
+          "descricao": "Captura 390 × 844 do Santuário (Playwright)"
+        },
+        {
+          "arquivo": "production/evidencias/F-010/arvore.png",
+          "descricao": "Captura 390 × 844 da árvore da Fundação com tooltip (Playwright)"
+        },
+        {
+          "arquivo": "production/evidencias/F-010/iselda-apresenta.png",
+          "descricao": "Captura 390 × 844 de Iselda se apresentando (Playwright)"
+        },
+        {
+          "arquivo": "production/evidencias/F-010/convite.png",
+          "descricao": "Captura 390 × 844 do convite \"Adicionar à Tela de Início\" (Playwright)"
+        },
+        {
+          "arquivo": "production/evidencias/F-010/paisagem-844x390.png",
+          "descricao": "Captura em 844 × 390 do overlay de paisagem (Playwright)"
+        },
+        {
+          "arquivo": "production/evidencias/F-010/pausa-automatica.png",
+          "descricao": "Captura 390 × 844 da pausa automática (Playwright)"
+        },
+        {
+          "arquivo": "production/evidencias/F-010/resultado-balao.png",
+          "descricao": "Captura 390 × 844 do Resultado com o balão A2.TUTORIAL.05 (Playwright)"
+        },
+        {
+          "arquivo": "production/evidencias/F-010/ritmo.txt",
+          "descricao": "Ritmo de Almas por Hora e preço da árvore (FD10)"
         }
       ],
       "pendencias_antes_de_comecar": [
-        "brief §11.3 F-010: Bigorna no peito × armadura",
-        "Hospedagem HTTPS de teste no GitHub Pages (Q-29)",
-        "Calibrar o limiar da sonda do TETO em iPhone 12 e 14 (ADR-0002 §13)",
-        "Recomendação da F-002 a fechar (design/decisoes-F-002.md §9): pausa automática e overlay de paisagem liberam os dedos e escondem o joystick",
-        "Recomendações da F-003 a fechar (design/decisoes-F-003.md §9): Casco e Bigorna no contato; critério da degradação de nível 3; sonda calibrada no iPhone; fps médio por Hora no painel do debug",
-        "\"Mãos de aprendiz\" (Q-18): o nível inicial da Espada pela lista armas dos parâmetros da Vigília, já no hash pela build (design/decisoes-F-004.md §9)",
-        "Rebaixamento do TETO junto com a degradação de nível 3 (E2; design/decisoes-F-004.md §9)",
-        "Pausa automática reusa a tela e o flag da pausa, com o motivo automatica e A6.PAUSA.TOQUE_PARA_CONTINUAR (design/decisoes-F-004.md §9)",
-        "Nível 1 da degradação corta o pool de mortes para 150 (design/decisoes-F-004.md §9)",
-        "Pausa automática com o modal aberto não faz nada e solta os dedos ao voltar; nó de HP no Σ% do hpMax; Mãos de aprendiz pelos parâmetros de progresso inicial; toque único e swipe só com a tela de Opções; som do level up só se B §2 mudar; animação da União e faísca da barra com a arte (design/decisoes-F-005.md §9)",
-        "Balanceamento: Facas e Círculo não escalam com DES e FÉ em 3; níveis-alvo do doc 10 por comportamento (ajustar XP por inimigo ou mínimo na tela, nunca a curva); 1ª União só às 10:00 ou às 15:00 (design/decisoes-F-005.md §9)",
-        "calibrar no aparelho o swipe (100 ms, 16 ms, 24 pt, 400 pt/s), o toque duplo (250, 200, 40 e 10), a janela do aparo, o perfil da esquiva (80/21 contra 80/18), a trava durante o falho (≈ 0,6 s; o alívio é a esquiva cancelar a janela) e o buffer de 3 passos; perguntar pela \"esquiva sem querer\" e pelo toque duplo seguido de arrasto (doc 12 §2.6) (design/decisoes-F-006.md §10)",
-        "conferir o `TouchEvent.timeStamp` do Safari (se a diferença para o `performance.now()` passar de 60.000 ms, swipe e toque duplo não funcionam no aparelho; a saída é o listener gravar `performance.now()`, decisão desta feature), a câmera lenta a 30 fps (Low Power Mode), o brilho por `tintBlend`, a cunha, a 2ª camada de médios, se 64 membros de telegrafo bastam e o indício do anel sólido (183 ms: ajuda a antecipar, não a reagir; AP12) (design/decisoes-F-006.md §10)",
-        "a esquiva com uma mão (joystick e Aparo pedem dois polegares; doc 02 §4 diz \"uma mão\"); o botão dedicado de esquiva e o aparo por segundo dedo dependem da tela de Opções; reavaliar a margem de 24 pt e uma área de toque maior que 80 pt (design/decisoes-F-006.md §10)",
-        "persistir os bits de tutorial e as opções no meta; pausa automática com `setMute`; reaproveitar o workflow do Pages (design/decisoes-F-006.md §10)",
-        "a janela do aparo é uma constante única, para o modo acessível (doc 10) poder alterá-la (design/decisoes-F-006.md §10)",
-        "Arte e áudio finais (depois da F-010): o rastro de brasas e os 4 quadros de contorno da esquiva perfeita (doc 11 §5), o \"sopro\" (doc 13 §2.2), o som real do aparo, o \"inspirar\" do telegrafo (doc 02 §5.4; doc 13 §2), o aperto de câmera de 2% no aparo, o flash de acerto no inimigo (se o acerto parecer \"mole\"), a reflexão do projétil aparado e o 4º estado \"janela ativa\" do botão; mostrar a duração do Poder, se o HUD pedir (design/decisoes-F-006.md §10)",
-        "Balanceamento, depois da F-010: um jogador em movimento quase não é atingido pela Noviça (5 a 14%): se o tutorial do aparo precisar de mais acertos, aumentar a vida ou a velocidade do projétil, ou mirar à frente, sem mudar B (design/decisoes-F-006.md §10)",
-        "Balanceamento, depois da F-010: quem anda em linha pode nunca ser telegrafado por um Oco Grande (na seed 6, nada em 1.500 passos) e ver o prompt de esquiva só muito depois (design/decisoes-F-006.md §10)",
-        "Balanceamento, depois da F-010: reavaliar o dano dos médios (20 a 39) contra o HP de 150 com 100 Grandes e 80 a 125 Noviças vivos na linha 19 (design/decisoes-F-006.md §10)",
-        "Balanceamento, depois da F-010: o aparo falho custa só 3 pontos de stamina (AP7): se a punição não for sentida, somar os 24 passos (design/decisoes-F-006.md §10)",
-        "IndexedDB e `navigator.storage.persist()` com migração de `vdc.meta` (design/decisoes-F-007.md §13)",
-        "as 300 Almas do primeiro Apagar e o balão `A2.TUTORIAL.05` (design/decisoes-F-007.md §13)",
-        "custos de passivas em múltiplo de 0,5 (Passo Leve −30% = 17,5) e \"+stamina máxima\" por Vigor lendo `vigilantes.json`, com o teste de `staminaMax/2` ligado ao dado (design/decisoes-F-007.md §13)",
-        "teto de cargas do Frasco (até 6) (design/decisoes-F-007.md §13)",
-        "calibrar no iPhone o \"segurar\" (18 passos), o swipe e a cor/vinheta do HP (design/decisoes-F-007.md §13)",
-        "`visibilitychange` em APAGANDO; preço da árvore pela medida de Almas (design/decisoes-F-007.md §13)"
+        "Resolvidas em design/decisoes-F-010.md (aprovadas pelo usuário sem veto, 2026-10-12): brief §11.3 F-010 (Bigorna no peito × armadura: FD6); hospedagem HTTPS no GitHub Pages (IP2); sonda do TETO no iPhone 12 e 14 (IP4, pendente de aparelho); recomendações da D2 §9 (pausa automática e paisagem: PS2, PS3), da D3 §9 (Casco e Bigorna FD5 e FD6, critério do nível 3 DG3, fps médio por Hora IP3), da D4 §9 (Mãos de aprendiz FD7, rebaixamento do TETO DG4, pausa automática PS1, pool de mortes DG2), da D5 §9 (pausa com o modal PS2, nó de HP FD4), da D6 §10 (calibração no iPhone IP2, `timeStamp` PS5, janela do aparo F-010.14) e da D7 §13 (IndexedDB e persist ST1, 300 Almas e balão GA1, custos de passivas e cargas do Frasco F-010.13, `visibilitychange` em APAGANDO PS4, preço da árvore FD10); balanceamento fica para a rodada depois da F-010; quatro critérios novos (F-010.11 a F-010.14)"
       ]
     },
     {
