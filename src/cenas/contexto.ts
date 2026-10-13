@@ -15,6 +15,7 @@ import type { FilaDeToques } from '../entrada/filaDeToques';
 import type { OrigemDaPausa, TradutorDeGestos } from '../entrada/tradutorDeGestos';
 import type { ParametrosDoCenario } from '../plataforma/cenarios';
 import type { ModoDeRender } from '../plataforma/parametros';
+import type { ObservadorDeOrientacao } from '../plataforma/orientacao';
 import type { Insets } from '../plataforma/safeArea';
 import type { RegistroDeTelemetria } from '../plataforma/telemetria';
 import type { IdentidadeDoCache, SondaDoTeto } from '../plataforma/sonda';
@@ -106,6 +107,8 @@ export interface ContextoDoJogo {
   santuario: EstadoDoSantuario | null;
   /** Resultado do `navigator.storage.persist()` em standalone (true, false, ou null sem a API ou fora do modo instalado; D10 ST2). */
   persistido: boolean | null;
+  /** O observador da orientação (overlay `#gire`, F-010 PS3): a Vigília pausa quando o aparelho vira para paisagem. */
+  readonly orientacao: ObservadorDeOrientacao;
   /** O meta: o armazenamento (localStorage com queda para a memória) e a cópia lida no boot, a que o fim da Vigília atualiza. */
   readonly meta: { readonly armazenamento: ArmazenamentoDoMeta; atual: Meta };
   /** O `vigilia` e o `andamento` guardados (F-008 SV2): o gravador escreve, o Acender lê. */

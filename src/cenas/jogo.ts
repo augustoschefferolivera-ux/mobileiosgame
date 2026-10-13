@@ -18,6 +18,7 @@ import { criarDadosDaCharneca } from '../plataforma/dadosDaVigilia';
 import { ArmazenamentoDoMeta } from '../plataforma/armazenamento';
 import { ArmazenamentoDaVigilia } from '../plataforma/vigiliaGuardada';
 import { RegistroDeTelemetria } from '../plataforma/telemetria';
+import { instalarOverlayDeGiro } from '../plataforma/orientacao';
 import { pedirPersistencia } from '../plataforma/pwa';
 import { suportaWebGL } from '../plataforma/webgl';
 import { Acender } from './Acender';
@@ -60,6 +61,8 @@ export function iniciarJogo(): Phaser.Game | null {
   const params = lerParametros(location.search, ehBuildDeDebug);
   bloquearGestos(document);
   document.title = t('A8.SISTEMA.TITULO');
+  // PS3: o overlay de paisagem é preenchido pelo código (o HTML não tem texto) e cobre também o aviso sem WebGL.
+  const orientacao = instalarOverlayDeGiro(elemento('gire'), t('A8.SISTEMA.GIRE'), window);
   if (!suportaWebGL(document)) {
     mostrarSemWebGL(elemento('jogo'));
     return null;
@@ -91,6 +94,7 @@ export function iniciarJogo(): Phaser.Game | null {
     fundacaoDeDebug: params.fundacao,
     santuario: null,
     persistido: null,
+    orientacao,
     meta: { armazenamento: armazenamentoDoMeta, atual: meta },
     vigiliaGuardada: new ArmazenamentoDaVigilia(),
     retomada: null,

@@ -52,6 +52,25 @@
         pointer-events: none;
         z-index: 2;
       }
+      /* Overlay de paisagem (F-010 PS3): vazio no HTML, o texto vem do código (t('A8.SISTEMA.GIRE')); opaco e acima de tudo. */
+      #gire {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: #0b0e14;
+        color: #e8dcc4;
+        font: 20px/1.4 system-ui, -apple-system, sans-serif;
+        text-align: center;
+        pointer-events: auto;
+      }
+      @media (orientation: landscape) {
+        #gire {
+          display: flex;
+        }
+      }
       #sonda-safe-area {
         position: fixed;
         inset: 0;
@@ -63,6 +82,7 @@
   </head>
   <body>
     <div id="jogo"></div>
+    <div id="gire"></div>
     <div id="sonda-safe-area" aria-hidden="true"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
