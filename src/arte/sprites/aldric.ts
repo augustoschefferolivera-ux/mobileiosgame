@@ -1,5 +1,6 @@
 // Aldric, o jogador: 24 × 24 px de arte (48 pt), de frente, a partir da
-// referência aprovada (design/arte/aldric24-referencia.png). Virado para a
+// referência aprovada (design/arte/aldric24-referencia.png), sem a espada que
+// ela pendura ao lado (pedido do usuário, 2026-10-13). Virado para a
 // esquerda, o render espelha a grade; a luz é de cima, então o espelho não a
 // inverte (style card §3). Os quadros de andar e de respirar saem do parado por
 // troca de linhas e de pixels; os demais são desenhados à mão (style card §4).
@@ -18,18 +19,18 @@ export const ALDRIC_PARADO: Grade = [
   '.....KMLHKCOOCKHLMK.....',
   '.....KDMDKOOOOKDMDK.....',
   '......KcKDOYYODKcK......',
-  '....K.KcKDOABODKcK......',
-  '...KZKKcKDOOOODKcK......',
-  '..KMGMKHKDDOODDKHK......',
-  '...KHKKcKGGZZGGKcK......',
-  '...KSKKcKDDOODDKcK......',
-  '...KSKKcKDMssMDKcK......',
-  '...KSKcKKDDKKDDKKcK.....',
-  '...KSKCKKDMKKMDKKCK.....',
-  '...KSKK.KDMKKMDK.K......',
-  '...KSK..KDDKKDDK........',
-  '...KSK.KMLMKKMLMK.......',
-  '....K..KKKKKKKKKK.......',
+  '......KcKDOABODKcK......',
+  '......KcKDOOOODKcK......',
+  '......KHKDDOODDKHK......',
+  '......KcKGGZZGGKcK......',
+  '......KcKDDOODDKcK......',
+  '......KcKDMssMDKcK......',
+  '.....KcKKDDKKDDKKcK.....',
+  '.....KCKKDMKKMDKKCK.....',
+  '......K.KDMKKMDK.K......',
+  '........KDDKKDDK........',
+  '.......KMLMKKMLMK.......',
+  '.......KKKKKKKKKK.......',
 ];
 
 /** A grade com as linhas a partir de `de` trocadas. */
@@ -66,16 +67,16 @@ function comPasso(de: number, pernas: readonly string[]): Grade {
 
 /** Andar: a bota esquerda (do Aldric, à direita da tela) e a direita sobem 2 px e o corpo desce 1 px, alternados com o passo neutro (o parado). */
 export const ALDRIC_ANDAR_1: Grade = comPasso(20, [
-  '...KSKKKMLMKKMDK.K......',
-  '...KSK.KKKKKKDDK........',
-  '...KSK......KMLMK.......',
-  '....K.......KKKKK.......',
+  '......KKMLMKKMDK.K......',
+  '.......KKKKKKDDK........',
+  '............KMLMK.......',
+  '............KKKKK.......',
 ]);
 export const ALDRIC_ANDAR_3: Grade = comPasso(20, [
-  '...KSKK.KDMKKMLMKK......',
-  '...KSK..KDDKKKKKK.......',
-  '...KSK.KMLMK............',
-  '....K..KKKKK............',
+  '......K.KDMKKMLMKK......',
+  '........KDDKKKKKK.......',
+  '.......KMLMK............',
+  '.......KKKKK............',
 ]);
 
 /** Esquiva, 1º e 3º quadros: agachado, o corpo 3 px abaixo e os joelhos para fora. */
@@ -94,16 +95,16 @@ export const ALDRIC_AGACHADO: Grade = [
   '.....KDMDKOOOOKDMDK.....',
   '.....KKcKDOYYODKcKK.....',
   '....KcKcKDOABODKcKcK....',
-  '...KZKcKKDOOOODKKcKK....',
-  '..KMGMKHKGGZZGGKHKcK....',
-  '...KHKKcKDDOODDKcKK.....',
-  '...KSKcKDDMssMDDKcK.....',
-  '...KSKKDDMKKKKMDDKK.....',
-  '...KSKKDMK....KMDK......',
-  '...KSKKMLMK..KMLMK......',
-  '...KSKKKKKK..KKKKK......',
-  '...KSK..................',
-  '....K...................',
+  '....KKcKKDOOOODKKcKK....',
+  '....KcKHKGGZZGGKHKcK....',
+  '.....KKcKDDOODDKcKK.....',
+  '.....KcKDDMssMDDKcK.....',
+  '.....KKDDMKKKKMDDKK.....',
+  '......KDMK....KMDK......',
+  '......KMLMK..KMLMK......',
+  '......KKKKK..KKKKK......',
+  '........................',
+  '........................',
 ];
 
 /** Esquiva, 2º quadro: enrolado na capa, só o elmo, os olhos e a brasa à vista. */
@@ -134,39 +135,25 @@ export const ALDRIC_ROLANDO: Grade = [
   '........................',
 ];
 
-/** Aparo: a espada atravessada na altura do queixo, a guarda à direita da tela e as duas mãos no cabo. */
-export const ALDRIC_APARO: Grade = [
-  '........................',
-  '..........KKKK..........',
-  '.........KMLLMK.........',
-  '........KDLHHLDK........',
-  '........KDMLLMDK........',
-  '........KKKKKKKK....K...',
-  '........KDAKKADK...KMK..',
-  '..KKKKKKKKKKKKKKKKKKMKK.',
-  '.KHSSSSSSSSSSSSSSSKHMGZK',
-  '..KssssssssssssssKKHMKK.',
-  '...KKKDMDKOOOOKDKKKMK...',
-  '......KcKDOYYODKcK.K....',
-  '......KcKDOABODKcK......',
-  '......KcKDOOOODKcK......',
-  '......KHKDDOODDKHK......',
-  '......KcKGGZZGGKcK......',
-  '......KcKDDOODDKcK......',
-  '......KcKDMssMDKcK......',
-  '.....KcKKDDKKDDKKcK.....',
-  '.....KCKKDMKKMDKKCK.....',
-  '.....KK.KDMKKMDK.K......',
-  '........KDDKKDDK........',
-  '.......KMLMKKMLMK.......',
-  '.......KKKKKKKKKK.......',
-];
+/** Aparo: os punhos erguidos em guarda ao lado do visor, os antebraços até as ombreiras; as mãos saem do lado do corpo. */
+export const ALDRIC_APARO: Grade = comPixels(
+  comLinhas(ALDRIC_PARADO, 4, [
+    '.....KKKKDMLLMDKKKK.....',
+    '.....KLMKKKKKKKKMLK.....',
+    '.....KMDKDAKKADKDMK.....',
+    '.....KMDKKDMMDKKDMK.....',
+    '.....KMDKCCOOCCKDMK.....',
+  ]),
+  [
+    [7, 14, 'c'],
+    [16, 14, 'c'],
+  ],
+);
 
-/** Aparo, 2º quadro: o brilho corre pela lâmina. */
+/** Aparo, 2º quadro: o brilho corre pelas manoplas. */
 export const ALDRIC_APARO_2: Grade = comPixels(ALDRIC_APARO, [
-  [2, 8, 'S'],
-  [7, 8, 'H'],
-  [8, 8, 'H'],
+  [6, 5, 'H'],
+  [17, 5, 'H'],
 ]);
 
 /** Frasco: a mão direita (à direita da tela) leva o frasco de brasa ao visor. */
@@ -179,9 +166,9 @@ export const ALDRIC_FRASCO: Grade = comLinhas(ALDRIC_PARADO, 4, [
   '.....KMLHKCOOCKKcLMK....',
   '.....KDMDKOOOOKcKMDK....',
   '......KcKDOYYODKKKK.....',
-  '....K.KcKDOABODK........',
-  '...KZKKcKDOOOODK........',
-  '..KMGMKHKDDOODDKKK......',
+  '......KcKDOABODK........',
+  '......KcKDOOOODK........',
+  '......KHKDDOODDKKK......',
 ]);
 
 /** Frasco, 2º quadro: o frasco inclinado e a brasa escorrendo para o visor. */
@@ -192,7 +179,7 @@ export const ALDRIC_FRASCO_2: Grade = comPixels(ALDRIC_FRASCO, [
   [13, 6, 'a'],
 ]);
 
-/** Apagar, 1º quadro: ajoelhado sobre a espada, a cabeça baixa e os olhos apagados. */
+/** Apagar, 1º quadro: ajoelhado, a cabeça baixa e os olhos apagados, as mãos caídas ao lado do corpo. */
 export const ALDRIC_AJOELHADO: Grade = [
   '........................',
   '........................',
@@ -206,18 +193,18 @@ export const ALDRIC_AJOELHADO: Grade = [
   '......KKKDMLLMDKKK......',
   '.....KMLHKKKKKKHLMK.....',
   '....KKDMDKcKKcKDMDK.....',
-  '...KZKKcKKKDDKKKcK......',
-  '..KMGMKcKDOCCODKcK......',
-  '...KHKKHKDOBCODKHK......',
-  '...KSK.KKDOOOODKK.......',
-  '...KSK.KcKGGGGKcK.......',
-  '...KSKKcKDDOODDKcK......',
-  '...KSKKcKDMssMDKKK......',
-  '...KSKKKDDMKKKKMDDK.....',
-  '...KSKKDDMK...KDDMK.....',
-  '...KSKKMLMKK..KKMLMK....',
-  '...KSKKKKKK....KKKKK....',
-  '....K...................',
+  '......KcKKKDDKKKcK......',
+  '......KcKDOCCODKcK......',
+  '......KHKDOBCODKHK......',
+  '.......KKDOOOODKK.......',
+  '.......KcKGGGGKcK.......',
+  '......KcKDDOODDKcK......',
+  '......KcKDMssMDKKK......',
+  '......KKDDMKKKKMDDK.....',
+  '......KDDMK...KDDMK.....',
+  '......KMLMKK..KKMLMK....',
+  '......KKKKK....KKKKK....',
+  '........................',
 ];
 
 /** Os quadros de cada animação, na ordem de exibição (style card §4 e §7). */

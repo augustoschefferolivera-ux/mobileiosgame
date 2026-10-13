@@ -108,7 +108,7 @@ Os tamanhos da simulação (raio de colisão, `tamanho_px` em `inimigos.json`) n
 - **Linhas internas seletivas:** dobras e divisões no tom escuro do próprio material (e no musgo, p na pele, c na capa, D no ferro); K por dentro só onde separa partes grandes (braço do tronco, rosto do capuz, pernas).
 - **Sem pontilhado de ruído em sprite:** textura por dobras (linhas de 1 px na direção do tecido) e por blocos de tom. Dither (Bayer 4 × 4) só em degradê de efeito, de luz e na transição das rochas.
 - **Ataque inimigo não tem contorno:** branco puro (W) ou vermelho (R) liso. A falta de contorno é o sinal de "isto fere"; o projétil do jogador sempre tem contorno.
-- **Silhuetas distintas por papel:** Aldric vertical com espada ao lado e capa; massa curvada de capuz; Oco Grande largo, com braço-clava; Noviça estreita, em triângulo.
+- **Silhuetas distintas por papel:** Aldric vertical, de capa e ombreiras, sem espada (a espada da referência saiu a pedido do usuário em 2026-10-13; no aparo, os punhos erguidos em guarda); massa curvada de capuz; Oco Grande largo, com braço-clava; Noviça estreita, em triângulo.
 
 ## 6. Efeitos e armas (procedurais)
 
