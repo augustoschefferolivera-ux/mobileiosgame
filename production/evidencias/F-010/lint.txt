@@ -1,0 +1,13 @@
+Relatório de lint da F-010 (design/decisoes-F-010.md LT3)
+
+ESLint: 327 arquivos
+  vdc/textos: 75 arquivos verificados, 0 erros
+  vdc/glossario: 327 arquivos verificados, 0 erros
+  total: 0 erros, 0 avisos
+
+Glossário dos dados (scripts/glossario-dados.mjs): 47 arquivos .json, .html, .webmanifest, .yml e .sh verificados
+
+Avisos:
+  src/dados/textos/pt-BR.json:223: mortes
+
+11 palavras: 0 violações; extras: 1 avisos

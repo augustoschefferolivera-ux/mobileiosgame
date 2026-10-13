@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.logica.json",
     "lint": "eslint .",
     "test:lint": "vitest run tests/lint.test.ts",
+    "lint:relatorio": "node scripts/lint-relatorio.mjs",
     "dev": "vite",
     "build": "vite build",
     "build:debug": "vite build --mode debug --outDir dist-debug",
