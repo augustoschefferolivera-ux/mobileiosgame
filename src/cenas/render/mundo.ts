@@ -14,12 +14,13 @@
 // pelo delta toroidal, arredondada para o pixel do canvas como a câmera. Nada é
 // alocado por frame.
 import type Phaser from 'phaser';
-import { CAB, CAPACIDADE_DE_INIMIGOS, FASE, JOGADOR, JOGADOR3, JOGADOR3_U8, JOGADOR4_U8, type Estado } from '../../logica/nucleo/estado';
+import { CAB, CAPACIDADE_DE_INIMIGOS, emJogo, JOGADOR, JOGADOR3, JOGADOR3_U8, JOGADOR4_U8, type Estado } from '../../logica/nucleo/estado';
 import type { DadosDaVigilia } from '../../logica/mundo/dados';
 import { ALTURA_DA_TELA, ALTURA_DO_MAPA, LARGURA_DA_TELA, LARGURA_DO_MAPA, copiaMaisProxima, interpolarNoToro } from '../../logica/mundo/toro';
 import { ESCALA_DA_GRADE } from '../../arte/catalogo';
 import { aldricEspelhado, quadroDoAldric } from './aldric';
 import { ORIGEM_X, ORIGEM_Y, direcao16 } from './arte';
+import { COR } from '../paleta';
 import { CHAVE_DO_ATLAS, CHAVE_DO_CHAO, NOMES_DAS_MOLDURAS, escalaPara, indiceDaMoldura } from './atlas';
 import { arredondarParaOPixel } from './camera';
 import { MEMBROS_DAS_ARMAS, MEMBROS_DAS_PARTICULAS, MEMBROS_DOS_DIGITOS, MEMBROS_DO_SAL, prepararArmas, prepararMortes, prepararNumeros, prepararParticulas, prepararSal, prepararStatus } from './armas';
@@ -29,7 +30,7 @@ import { CAPACIDADE_DE_MORTES, EfeitosDaVigilia } from './efeitos';
 import type { EscritorDaHorda } from './escritores';
 import { membrosDoMundo, molduraDaRocha, prepararMundo } from './pickups';
 import { MEMBROS_DO_CHEFE, prepararChefe } from './chefe';
-import { MEMBROS_DAS_ESTRUTURAS, alfaDoEscurecimento, prepararEstruturas } from './estruturas';
+import { MEMBROS_DAS_ESTRUTURAS, prepararEstruturas, veuDaVigilia } from './estruturas';
 import { criarSaidaDaHorda, prepararHorda, prepararQuadrosDaHorda, type DesenhoDoTipo } from './horda';
 /** Molduras do marcador de direção nos 4 ângulos desenhados. */
 const MARCADORES = [0, 1, 2, 3].map((k) => indiceDaMoldura(`marcador_${k}`));
@@ -96,6 +97,11 @@ export class RenderDaVigilia implements RenderDoMundo {
   /** O véu preto do escurecimento (ES1), acima da horda e abaixo dos telegrafos. */
   private readonly veu: Phaser.GameObjects.Image | null = null;
   private alfaDoVeu = 0;
+  private corDoVeu = 0;
+  private alfaDaAurora = 0;
+  /** A luz da aurora do Amanhecer (F-009 AN4): aditiva, na posição da câmera, acima do véu. */
+  private readonly aurora: Phaser.GameObjects.Image | null = null;
+  private readonly veuAtual = new Float64Array(3);
   private readonly chao: Phaser.GameObjects.TileSprite;
   private readonly jogador: Phaser.GameObjects.Image;
   private readonly brilho: Phaser.GameObjects.Image;
@@ -158,6 +164,7 @@ export class RenderDaVigilia implements RenderDoMundo {
       this.status = camada(CAPACIDADE_DE_INIMIGOS);
       // O véu: um quadrado preto do tamanho da tela (390 × 844 pt e a folga), que segue a câmera (só render, fora do hash).
       this.veu = cena.add.image(dados.inicioX, dados.inicioY, CHAVE_DO_ATLAS, 'quadrado').setTint(0x000000).setAlpha(0).setVisible(false).setScale(escalaPara('quadrado', LARGURA_DA_TELA + 8), escalaPara('quadrado', ALTURA_DA_TELA + 8));
+      this.aurora = cena.add.image(dados.inicioX, dados.inicioY, CHAVE_DO_ATLAS, 'quadrado').setTint(COR.brasaClara).setAlpha(0).setVisible(false).setBlendMode(ADITIVO).setScale(escalaPara('quadrado', LARGURA_DA_TELA + 8), escalaPara('quadrado', ALTURA_DA_TELA + 8));
       this.telegrafos = camada(MEMBROS_DOS_TELEGRAFOS);
       this.golpesDoChefe = camada(MEMBROS_DO_CHEFE);
       this.sal = camada(MEMBROS_DO_SAL);
@@ -228,16 +235,29 @@ export class RenderDaVigilia implements RenderDoMundo {
     this.desenharAldric(e, jx, jy);
   }
 
-  /** O véu do escurecimento (ES1): o alfa pelo relógio, na posição da câmera; só reescreve o alfa quando muda. */
+  /** O véu da Vigília (ES1; o vinho de A Fome e o céu do Amanhecer, F-009): alfa, cor e aurora pelo estado; só reescreve o que muda. */
   private escurecer(e: Estado, camX: number, camY: number): void {
     const veu = this.veu;
     if (veu === null) return;
-    const a = alfaDoEscurecimento(e.cab[CAB.relogio]!);
+    const v = this.veuAtual;
+    veuDaVigilia(e, v);
+    const a = v[0]!;
     if (a !== this.alfaDoVeu) {
       this.alfaDoVeu = a;
       veu.setAlpha(a).setVisible(a > 0);
     }
+    if (v[1] !== this.corDoVeu) {
+      this.corDoVeu = v[1]!;
+      veu.setTint(this.corDoVeu);
+    }
     if (a > 0) veu.setPosition(camX, camY);
+    const aurora = this.aurora;
+    if (aurora === null) return;
+    if (v[2] !== this.alfaDaAurora) {
+      this.alfaDaAurora = v[2]!;
+      aurora.setAlpha(this.alfaDaAurora).setVisible(this.alfaDaAurora > 0);
+    }
+    if (this.alfaDaAurora > 0) aurora.setPosition(camX, camY);
   }
 
   /** O Aldric pelo estado (src/cenas/render/aldric.ts), a luz da brasa, o marcador de direção e os rastros da esquiva. */
@@ -253,7 +273,7 @@ export class RenderDaVigilia implements RenderDoMundo {
       this.jogador.setFrame(NOMES_DAS_MOLDURAS[quadro]!);
     }
     this.jogador.setPosition(jx, jy).setScale(escalaX, ESCALA);
-    const viva = u4[JOGADOR4_U8.fase] === FASE.viva;
+    const viva = emJogo(u4[JOGADOR4_U8.fase]!);
     // A brasa respira devagar (±10% de alfa, 2 s); no Apagar, se apaga com o corpo.
     const apagando = viva ? 1 : Math.max(0, 1 - u4[JOGADOR4_U8.apagandoPassos]! / PASSOS_DO_APAGAR);
     this.brilho.setPosition(jx, jy).setAlpha(apagando * (0.9 + 0.1 * Math.cos((passo * Math.PI) / 60)));

@@ -216,3 +216,19 @@ export function estadoDoFrasco(quadrosPressionado: number, cargas: number, hp: n
 
 /** Desenho do botão do Frasco: anel de 64 pt, rótulo de 12 pt e uma marca por carga (até 3), sem texto por quadro. */
 export const BOTAO_DO_FRASCO_DESENHO = { raioDoAnel: 32, traco: 3, raioDaMarca: 4, entreMarcas: 14, marcasAbaixoDoCentro: 16, alfaEsmaecido: 0.35 } as const;
+
+/**
+ * Barras do chefe (F-009 HD1, B §5.12), abaixo das Almas: o nome, a barra de HP (12 pt) e a de Postura (8 pt) logo abaixo, centradas na
+ * área segura com no máximo 300 pt. Os limiares de fase (60% e 25% do HP) são marcas de 1 pt na barra de HP.
+ */
+export const BARRAS_DO_CHEFE = { abaixoDoTopo: 154, larguraMaxima: 300, recuo: 24, alturaDoHp: 12, alturaDaPostura: 8, entreBarras: 4, nomeAcima: 18, corpoDoNome: 13, marcasDeFase: [60, 25] as readonly number[] } as const;
+
+/** Caixa da barra de HP do chefe (a de Postura fica `alturaDoHp + entreBarras` abaixo, com a mesma largura), escrita em `out`. */
+export function caixaDasBarrasDoChefe(insets: Insets, out: CaixaDaBarra): CaixaDaBarra {
+  const util = LARGURA_LOGICA - insets.esquerda - insets.direita - 2 * BARRAS_DO_CHEFE.recuo;
+  out.largura = Math.max(0, Math.min(BARRAS_DO_CHEFE.larguraMaxima, util));
+  out.x = insets.esquerda + (LARGURA_LOGICA - insets.esquerda - insets.direita - out.largura) / 2;
+  out.y = insets.topo + BARRAS_DO_CHEFE.abaixoDoTopo;
+  out.altura = BARRAS_DO_CHEFE.alturaDoHp;
+  return out;
+}

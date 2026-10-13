@@ -2,7 +2,7 @@
 // Apagar (ajoelhado e a cinza em 3 quadros), a esquiva (agachado, rolando,
 // agachado), o aparo e o Frasco em 2 quadros, o andar de 4 e o parado de 2.
 // Tudo pelo passo da simulação: a imagem pausada depende só do estado.
-import { CAB, FASE, JOGADOR, JOGADOR3, JOGADOR3_U8, JOGADOR4_U8, type Estado } from '../../logica/nucleo/estado';
+import { CAB, emJogo, JOGADOR, JOGADOR3, JOGADOR3_U8, JOGADOR4_U8, type Estado } from '../../logica/nucleo/estado';
 import { indiceDaMoldura } from './atlas';
 
 const i = indiceDaMoldura;
@@ -26,7 +26,7 @@ export function quadroDoAldric(e: Estado): number {
   const u4 = e.jogador4U8;
   const passo = e.cab[CAB.passo]!;
   const fase = u4[JOGADOR4_U8.fase]!;
-  if (fase !== FASE.viva) {
+  if (!emJogo(fase)) {
     const p = u4[JOGADOR4_U8.apagandoPassos]!;
     let q = 0;
     while (q < 3 && p >= INICIO_DO_APAGAR[q + 1]!) q++;

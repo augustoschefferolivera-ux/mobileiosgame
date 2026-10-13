@@ -445,6 +445,10 @@ const CAMPOS_PROJETIL3_U16 = ['donoSlot', 'donoGeracao'] as const;
 /** Fases da Vigília (decisoes-F-007 AG4): em FIM o `passo` não faz nada e o hash fica congelado. */
 /** 3 e 4 (F-009 FM1, AN1): A Fome e o Amanhecer, em que as armas, os ataques, o diretor e os pickups também não rodam. */
 export const FASE = { viva: 0, apagando: 1, fim: 2, aFome: 3, amanhecer: 4 } as const;
+/** A Vigília ainda se joga: viva, em A Fome ou no Amanhecer (o jogador anda e o `passo` anda nas três; F-009). */
+export function emJogo(fase: number): boolean {
+  return fase === FASE.viva || fase === FASE.aFome || fase === FASE.amanhecer;
+}
 /** Por que a Vigília acabou; 3 e 4 ficam reservados às F-009 (decisoes-F-007 AG4). */
 export const CAUSA_DO_FIM = { nenhuma: 0, apagar: 1, abandonar: 2, aFome: 3, amanhecer: 4 } as const;
 

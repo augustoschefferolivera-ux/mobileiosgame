@@ -2,7 +2,7 @@
 // do marco (anel de 224 pt de raio), a Fogueira (o losango da base, a chama e o anel do raio de 64 pt) e o véu do escurecimento.
 // Formas simples do atlas (anel, quadrado, triângulo), tingidas: a arte é da F-011. Cada função escreve uma SaidaDeSprites que os
 // escritores só copiam; nada é alocado por quadro e as contas de posição vão em linha (ADR-0005 §2).
-import { CAB, ETAPA, FOGUEIRA_F32, FOGUEIRA_U8, type Estado } from '../../logica/nucleo/estado';
+import { CAB, CHEFE_U16, CHEFE_U32, ETAPA, FOGUEIRA_F32, FOGUEIRA_U8, type Estado } from '../../logica/nucleo/estado';
 import type { DadosDaVigilia } from '../../logica/mundo/dados';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from '../../logica/mundo/toro';
 import { COR } from '../paleta';
@@ -33,6 +33,31 @@ export function alfaDoEscurecimento(relogio: number): number {
   if (relogio <= ESCURECIMENTO.inicioEmPassos) return 0;
   const a = (ESCURECIMENTO.alfaPorDegrau * (relogio - ESCURECIMENTO.inicioEmPassos)) / ESCURECIMENTO.passosPorDegrau;
   return a < ESCURECIMENTO.alfaMaximo ? a : ESCURECIMENTO.alfaMaximo;
+}
+
+/**
+ * O céu das duas fases finais (F-009 FM1, AN4), só render: em A Fome o véu fica vinho e cresce de 0,40 a 0,75 pelos passos da fome; no
+ * Amanhecer o véu preto cai de 0,40 a 0 em 600 passos e uma luz de brasa (aditiva) sobe de 0 a 0,30. `ate` = 520 passos é a fome mais
+ * curta que mata (a mais comprida acaba em FIM de qualquer jeito).
+ */
+export const CEU_FINAL = { fome: { cor: 0x3a0a14, de: 0.4, ate: 0.75, passos: 520 }, amanhecer: { passos: 600, aurora: 0.3 } } as const;
+
+/** O véu da Vigília no estado: [0] alfa, [1] cor e [2] alfa da luz da aurora (0 fora do Amanhecer). Sem alocar. */
+export function veuDaVigilia(e: Estado, out: Float64Array): void {
+  const etapa = e.fogueiraU8[FOGUEIRA_U8.etapa]!;
+  out[1] = 0x000000;
+  out[2] = 0;
+  if (etapa === ETAPA.aFome) {
+    const f = Math.min(1, e.chefeU32[CHEFE_U32.fomePassos]! / CEU_FINAL.fome.passos);
+    out[0] = CEU_FINAL.fome.de + (CEU_FINAL.fome.ate - CEU_FINAL.fome.de) * f;
+    out[1] = CEU_FINAL.fome.cor;
+  } else if (etapa === ETAPA.amanhecer) {
+    const f = Math.min(1, e.chefeU16[CHEFE_U16.amanhecerPassos]! / CEU_FINAL.amanhecer.passos);
+    out[0] = ESCURECIMENTO.alfaMaximo * (1 - f);
+    out[2] = CEU_FINAL.amanhecer.aurora * f;
+  } else {
+    out[0] = alfaDoEscurecimento(e.cab[CAB.relogio]!);
+  }
 }
 
 /**

@@ -8,11 +8,12 @@
 import Phaser from 'phaser';
 import { alvoDaPausa, alvoDoAparo, alvoDoFrasco, areaDoJoystick, type Alvo } from '../entrada/alvos';
 import { RAIO_DO_JOYSTICK_PT, RAIO_DO_PINO_PT } from '../entrada/joystick';
-import { CAB, FASE, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR3_U8, JOGADOR4, JOGADOR4_U8, PROGRESSAO, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, type Estado } from '../logica/nucleo/estado';
+import { CAB, CAUSA_DO_FIM, emJogo, FASE, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR3_U8, JOGADOR4, JOGADOR4_U8, PROGRESSAO, VAGAS_DE_ARMA, VAGAS_DE_PASSIVA, type Estado } from '../logica/nucleo/estado';
 import { ALTURA_LOGICA, LARGURA_LOGICA, medirSafeArea, type Insets } from '../plataforma/safeArea';
 import type { ContextoDoJogo } from './contexto';
 import { COR, cameraLogica, css, texto } from './estilo';
 import { IDS_DOS_PROMPTS, promptEmTela } from './prompts';
+import { BarrasDoChefe } from './barrasDoChefe';
 import { RetardoDeHp } from './retardoDeHp';
 import {
   BARRA_DE_HP,
@@ -81,6 +82,9 @@ const ALFA_DA_VAGA_VAZIA = 0.3;
 const ALFA_DO_FUNDO_DA_VAGA = 0.55;
 const TRACO_DAS_ALMAS = 3;
 
+/** 22:30 em passos: daí até as 23:00 o relógio pisca em brasa. */
+const RELOGIO_QUE_PISCA = 81000;
+
 export class Hud extends Phaser.Scene {
   private base: Phaser.GameObjects.Image | null = null;
   private anel: Phaser.GameObjects.Image | null = null;
@@ -117,11 +121,13 @@ export class Hud extends Phaser.Scene {
   private retardoDesenhado = -1;
   private numeroDeHpDesenhado = -1;
   private almasTexto: Phaser.GameObjects.Text | null = null;
+  private barrasDoChefe: BarrasDoChefe | null = null;
   /** Relógio "m:ss" e Hora em romanos (HU1); -1 = nada ainda. */
   private relogioTexto: Phaser.GameObjects.Text | null = null;
   private horaTexto: Phaser.GameObjects.Text | null = null;
   private readonly posicoesDoRelogio = { relogioX: 0, hora: 0, y: 0 };
   private segundosDesenhados = -1;
+  private piscaDesenhada = 0;
   private horaDesenhada = -1;
   private readonly posicaoDeAlmas = { x: 0, y: 0 };
   /** As Almas que o HUD já mostra; -1 = nada ainda. */
@@ -183,9 +189,11 @@ export class Hud extends Phaser.Scene {
     this.numeroDeHp = texto(this, 0, 0, 'A5.HUD.HP', BARRA_DE_HP.corpoDoNumero, COR.osso, { hp: 0 }).setOrigin(0, 0);
     this.almasTexto = texto(this, 0, 0, 'A5.HUD.ALMAS', HUD_DE_ALMAS.corpo, COR.osso, { almas: '0' }).setOrigin(0, 0).setStroke(css(COR.pedra), TRACO_DAS_ALMAS);
     this.almasDesenhadas = -1;
+    this.barrasDoChefe = new BarrasDoChefe(this);
     this.relogioTexto = texto(this, 0, 0, 'A5.HUD.RELOGIO', HUD_DO_RELOGIO.corpoDoRelogio, COR.osso, { min: 0, seg: '00' }).setOrigin(1, 0);
     this.horaTexto = texto(this, 0, 0, 'A5.HUD.HORA', HUD_DO_RELOGIO.corpoDaHora, COR.sal, { hora: 'I' }).setOrigin(0, 0);
     this.segundosDesenhados = this.horaDesenhada = -1;
+    this.piscaDesenhada = 0;
     this.vinheta = null;
     this.alfaDaVinhetaDesenhado = 0;
     this.retardo.reiniciar();
@@ -241,6 +249,7 @@ export class Hud extends Phaser.Scene {
       .fillRect(bx - i.entre / 2 - i.barraLargura, by - i.barraAltura / 2, i.barraLargura, i.barraAltura)
       .fillRect(bx + i.entre / 2, by - i.barraAltura / 2, i.barraLargura, i.barraAltura);
     this.diagramarProgresso(ins);
+    this.barrasDoChefe?.diagramar(ins);
     const cx = a.x + a.largura / 2;
     const cy = a.y + a.altura / 2;
     this.promptCentro = { x: cx, y: cy };
@@ -320,7 +329,7 @@ export class Hud extends Phaser.Scene {
       this.retardo.reiniciar();
     }
     // As Almas ficam de fora da pausa (AM5) e do fim da Vigília (o Resultado tem as suas).
-    const mostrarAlmas = e.jogador4U8[JOGADOR4_U8.fase] === FASE.viva && !sim.pausa.ativa;
+    const mostrarAlmas = emJogo(e.jogador4U8[JOGADOR4_U8.fase]!) && !sim.pausa.ativa;
     if (mostrarAlmas !== this.almasTexto!.visible) this.almasTexto!.setVisible(mostrarAlmas);
     this.atualizarRelogio(e, mostrarAlmas);
     const almas = e.progresso[PROGRESSAO.almas]!;
@@ -360,6 +369,12 @@ export class Hud extends Phaser.Scene {
     if (segundos !== this.segundosDesenhados) {
       this.segundosDesenhados = segundos;
       this.relogioTexto!.setText(t('A5.HUD.RELOGIO', partesDoRelogio(segundos)));
+    }
+    // De 22:30 a 23:00 o relógio fica em brasa e pisca (alfa 1 e 0,5 a cada 30 passos; com Flashes desligado, estático; F-009 HD1).
+    const fome = relogio >= RELOGIO_QUE_PISCA ? (this.ctx.opcoes.flashes && Math.floor(e.cab[CAB.passo]! / 30) % 2 === 1 ? 2 : 1) : 0;
+    if (fome !== this.piscaDesenhada) {
+      this.piscaDesenhada = fome;
+      this.relogioTexto!.setColor(css(fome === 0 ? COR.osso : COR.brasa)).setAlpha(fome === 2 ? 0.5 : 1);
     }
     const hora = horaDoRelogio(relogio);
     if (hora !== this.horaDesenhada) {
@@ -575,11 +590,15 @@ export class Hud extends Phaser.Scene {
       this.pino!.setPosition(j.origemX + j.pinoX, j.origemY + j.pinoY);
     }
     const sim = this.ctx.simulacao;
+    // O Amanhecer esconde o HUD inteiro (F-009 AN4): 10 s de céu, sem barras nem botões.
+    const semHud = sim !== null && (sim.estado.jogador4U8[JOGADOR4_U8.fase] === FASE.amanhecer || (sim.estado.jogador4U8[JOGADOR4_U8.fase] === FASE.fim && sim.estado.jogador4U8[JOGADOR4_U8.causaDoFim] === CAUSA_DO_FIM.amanhecer));
+    if (semHud === this.scene.isVisible()) this.scene.setVisible(!semHud);
     const mostrar = sim === null ? -1 : promptEmTela(sim.estado);
     if (mostrar !== this.promptMostrado) this.trocarPrompt(mostrar);
     if (sim !== null) {
       this.atualizarProgresso(sim);
       this.atualizarHp(sim);
+      this.barrasDoChefe!.atualizar(sim.estado, sim.dados.chefe.posturaMax);
       this.atualizarStamina(sim);
       this.atualizarAparo(sim);
       this.atualizarFrasco(sim);

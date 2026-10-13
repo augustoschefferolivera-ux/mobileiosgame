@@ -18,6 +18,8 @@ export const COR = {
    * #c8324b, 53,1 contra o fundo #1a1f2b; contraste do osso sobre ele 4,86). #c8324b não passa: ΔE 0 contra si mesma.
    */
   retardoDeHp: 0x9e3a52,
+  /** Barra de Postura do chefe (F-009 HD1): azul-aço; ΔE ≥ 20 contra o fundo e contra a Cinza vermelha da barra de HP dele. */
+  postura: 0x7aa2c9,
   osso: 0xe8dcc4,
   sal: 0xdfe8ea,
   /** Branco puro: telegrafo, projétil da Noviça e flash (reservado; design/decisoes-F-006.md RE4 a RE6). */
