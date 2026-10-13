@@ -135,7 +135,7 @@
 | 0:00 | Tela de Acender | 1 toque |
 | 0:05 | Direto para a Vigília com Aldric na Charneca (sem passar pelo Santuário) | Jogar antes de ver menus |
 | 0:10 | Prompt "Deslize para mover" no joystick | some ao mover |
-| 1:00 | Oco Grande telegrafando: câmera lenta leve 0,5 s + prompt "Deslize rápido para esquivar" | 1 vez |
+| 1:00 | Oco Grande telegrafando: câmera lenta leve 0,5 s + prompt "Toque duas vezes para esquivar" | 1 vez |
 | 3:00 | Noviça: "Toque em ⟲ no momento do brilho para aparar" | 1 vez; se falhar 2 vezes, repete com janela +0,1 s |
 | 5:00 | Primeira Fogueira: tour de 3 balões | puláveis |
 | Primeiro Apagar | Resultado explica Cinzas Perdidas em 1 balão; volta ao Santuário com Iselda apresentando a árvore e 300 Almas garantidas para a primeira compra | compra guiada |

@@ -68,6 +68,7 @@ Branch `claude/clever-galileo-26bjed`, criada de `origin/claude/f006-esquiva-weo
 - "Tá muito bom o resultado até agora."
 - **Bug de movimento no joystick:** andando reto, uma virada pequena do dedo vira o personagem bruscamente. Investigar o vetor do joystick (zona morta radial 0,15, curva linear, sem suavização; D2 §4) e a mira das armas pela última direção.
 - **Bug de movimento no joystick: feito.** Causa: perto da zona morta (0,15) um desvio pequeno do dedo gira muito o ângulo do vetor, e a direção (que também mira as armas) mudava num único quadro. O tradutor agora limita o giro da direção a 540°/s de tempo real do quadro (`GIRO_MAX_GRAUS_S`, `src/entrada/joystick.ts`), com o módulo intacto; vale de imediato partindo do repouso e na reversão acima de 150°. Fora da simulação (replay e hashes não mudam).
+- **Esquiva por movimento rápido do joystick (swipe): removida (2026-10-13).** "Muito ruim de controlar"; a esquiva fica no toque duplo (e Espaço no debug), texto do tutorial atualizado. ADR-0012 §9.
 - **Passar por cima dos mobs:** em aberto. Hoje o jogador é bloqueado pelos inimigos (D3 S4) e só os atravessa nos i-frames da esquiva (D6 ES7). O usuário ainda vai decidir.
 - **Gráficos:** plano em `design/arte/plano-de-arte.md` (100% por IA em código; personagem 24×24, os outros do menor ao maior que der; sessão própria com pesquisa, style card, produção, revisão de consistência e teste no iPhone).
 

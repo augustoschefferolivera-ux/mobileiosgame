@@ -15,10 +15,10 @@ Este roteiro é da Q-29 do brief ("build de teste em iPhone real logo depois da 
 | # | Conferência | Como | Passa quando |
 |---|---|---|---|
 | 1 | Toques | `?debug=1`, tocar com 3 a 5 dedos e soltar | `entrada.maxToques` chega a 5 e `toquesPerdidos` fica em 0 |
-| 2 | `TouchEvent.timeStamp` | `?debug=1`, um swipe e um toque duplo | a diferença entre o `timeStamp` do toque e o `performance.now()` fica abaixo de 60.000 ms (a heurística do tradutor). Se passar, swipe e toque duplo não funcionam no aparelho; a saída é o listener gravar `performance.now()` no lugar do `timeStamp` (decisão da F-010, D6 §10) |
+| 2 | `TouchEvent.timeStamp` | `?debug=1` e um toque duplo | a diferença entre o `timeStamp` do toque e o `performance.now()` fica abaixo de 60.000 ms (a heurística do tradutor). Se passar, o toque duplo não funciona no aparelho; a saída é o listener gravar `performance.now()` no lugar do `timeStamp` (decisão da F-010, D6 §10) |
 | 3 | F-003.4 literal | `?cenario=horda&teto=300&debug=1`, 30 s; depois o mesmo com `?cenario=horda_com_ataques&teto=300&debug=1` | fps ≥ 55 nos 30 s, nas duas |
 | 4 | Render | `?render=image` e `?buffer=dinamico` contra o padrão (`gpu`) | a mesma imagem e o fps do padrão ou melhor |
-| 5 | Esquiva e aparo | jogo normal e `?cenario=oco_grande_sozinho`, `?cenario=novica_sozinha` | o swipe de 400 pt/s esquiva; anote as esquivas sem querer (94% das inversões rápidas do joystick viram esquiva nos traços sintéticos, 83% com janela de 50 ms) e a sensação do aparo, que é o critério de sucesso do marco (brief §9) |
+| 5 | Esquiva e aparo | jogo normal e `?cenario=oco_grande_sozinho`, `?cenario=novica_sozinha` | o toque duplo esquiva e um arrasto rápido do joystick não esquiva; anote a sensação do aparo, que é o critério de sucesso do marco (brief §9) |
 | 6 | ProMotion | jogo normal, `debug=1` | o jogo não perde esquiva nem aparo em quadros sem passo; sem tremor |
 | 7 | Áudio | os sons da esquiva, do aparo e do telegrafo, com a chave de silêncio nas duas posições e com a pausa | toca com som ligado, cala com a chave em silêncio; a pausa muda o som |
 | 8 | Cerco e sobreposição | `?cenario=horda_com_ataques` | reavaliar a sobreposição visual (S2) e o cerco (S4) da D3 §9 |
@@ -67,7 +67,7 @@ Este é o roteiro da D10 §5 (`design/decisoes-F-010.md`, IP1 a IP4). Os passos 
 3. **fps da Hora IV (F-010.5).** Abra `<URL>/?debug=1&cenario=hora4_armas`, aguarde 15 s e **grave a tela (Central de Controle) com o painel do `?debug=1` visível por 60 s**: a linha `fpsMedioDaHora` é a média da Hora corrente (o `fps` é o instantâneo) e `__GAME_DEBUG__.fpsPorHora` guarda a de cada Hora. Critério: `fpsMedioDaHora` da Hora IV ≥ 55, um vídeo por aparelho (iPhone 11 ou 12 e iPhone 14 ou mais novo).
 4. **Três Vigílias seguidas sem recarga (F-010.5).** Abra `<URL>/?debug=1&inicio=15:00` e jogue três Vigílias seguidas (Vigília > Apagar > Resultado > Voltar > Vigília), sem fechar nem recarregar a aba; ao fim o painel deve mostrar `recargas 0` (a linha `recargas` conta as vezes que a aba recarregou a página, por `sessionStorage`; o evento `sessao` da telemetria local leva o `fps_por_hora` ao fim de cada Vigília). Grave a tela inteira.
 5. **Memória.** No Mac, Safari > Desenvolvedor > o iPhone > a aba > Linha do Tempo > Memória, durante o passo 4: capture a maior leitura (critério < 150 MB).
-6. **Calibrações (anotar, não bloqueiam):** `entrada.relogioDeToque`; swipe, toque duplo, segurar (18 passos), janela do aparo, cor e vinheta do HP, câmera lenta a 30 fps (se o aparelho cair em Low Power), brilho do telegrafo, menu da Fogueira, borda da arena, véu da fome, cegueira; e as perguntas "esquiva sem querer" e "esquiva com uma mão".
+6. **Calibrações (anotar, não bloqueiam):** `entrada.relogioDeToque`; toque duplo, segurar (18 passos), janela do aparo, cor e vinheta do HP, câmera lenta a 30 fps (se o aparelho cair em Low Power), brilho do telegrafo, menu da Fogueira, borda da arena, véu da fome, cegueira; e as perguntas "esquiva sem querer" e "esquiva com uma mão".
 
 Arquivos a entregar em `production/evidencias/F-010/`: `iphone-11-ou-12.mp4` e `iphone-14.mp4` (cada um com os passos 3 e 4 do aparelho) e `memoria-safari.png`. Enquanto não existirem, o `scripts/verify.sh` os lista como `PEND` (marca `pendente_de_aparelho` na entrada de `feature_list.json`) e não bloqueia.
 
