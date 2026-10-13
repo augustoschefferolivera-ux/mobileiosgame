@@ -75,9 +75,12 @@ describe('partículas (F-011)', () => {
     prepararParticulas(ef, e, 1, 600, 1200, out);
     const pa = ef.particulas;
     const t = 5;
+    // O acerto nasce a 8 pt do ponto do evento (600, 1200), na direção da velocidade.
+    expect(Math.hypot(pa.x[0]! - 600, pa.y[0]! - 1200)).toBeCloseTo(8, 9);
+    expect(Math.atan2(pa.y[0]! - 1200, pa.x[0]! - 600)).toBeCloseTo(Math.atan2(pa.vy[0]!, pa.vx[0]!), 9);
     expect(out.visivel[0]).toBe(1);
-    expect(out.x[0]).toBe(Math.round((600 + pa.vx[0]! * t) * 2) / 2);
-    expect(out.y[0]).toBe(Math.round((1200 + pa.vy[0]! * t + 0.5 * pa.gravidade[0]! * t * t) * 2) / 2);
+    expect(out.x[0]).toBe(Math.round((pa.x[0]! + pa.vx[0]! * t) * 2) / 2);
+    expect(out.y[0]).toBe(Math.round((pa.y[0]! + pa.vy[0]! * t + 0.5 * pa.gravidade[0]! * t * t) * 2) / 2);
     expect([out.moldura[0], out.cor[0], out.alpha[0]]).toEqual([indiceDaMoldura('ponto'), pa.cor[0], 1]);
     consumirEm(ef, e, 40);
     prepararParticulas(ef, e, 1, 600, 1200, out);

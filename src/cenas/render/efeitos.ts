@@ -23,6 +23,9 @@ export const JANELA_DE_AGREGACAO = 12;
 /** A base do número fica 2 pt acima do topo da hitbox (N5). */
 const ACIMA_DA_HITBOX_PT = 2;
 
+/** As partículas do acerto nascem a 8 pt do ponto do inimigo, na direção em que saltam (F-011). */
+const AFASTAMENTO_DO_ACERTO = 8;
+
 /** Partículas do render (F-011, style card §6): faíscas, lascas de sal, cinza e brasas. */
 export const CAPACIDADE_DE_PARTICULAS = 256;
 
@@ -191,6 +194,8 @@ export class EfeitosDaVigilia {
       let grande = 0;
       let px = 0;
       let py = 0;
+      // Distância do ponto do evento em que a partícula nasce, na direção em que salta.
+      let afasta = 0;
       if (tipo === EVENTO.acerto) {
         const slot = u32[i + EV.alvo]! & 0xffff;
         if (slot < CAPACIDADE_DE_INIMIGOS) this.acertos[slot] = u32[i + EV.passo]!;
@@ -198,6 +203,8 @@ export class EfeitosDaVigilia {
         const arma = (u32[i + EV.tipoArmaForma]! >>> 8) & 0xff;
         px = f32[i + EV.floats]!;
         py = f32[i + EV.floats + 1]!;
+        // As faíscas e lascas saltam da superfície do corpo, não do miolo (o miolo fica para o telegrafo, RE4).
+        afasta = AFASTAMENTO_DO_ACERTO;
         if (arma === ARMA.facas_de_sal) {
           quantas = 2;
           vel = 1.6;
@@ -297,12 +304,14 @@ export class EfeitosDaVigilia {
         // No aparo, os 10 em anel regular; nos outros, direção e força sorteadas pelo hash.
         const ang = tipo === EVENTO.aparo ? (q * 2 * Math.PI) / quantas : (h & 1023) * DOIS_PI_POR_1024;
         const forca = vel * (tipo === EVENTO.aparo ? 1 : 0.6 + ((h >>> 10) & 7) * 0.08);
+        const cos = Math.cos(ang);
+        const sen = Math.sin(ang);
         pa.ativo[livre] = 1;
-        pa.x[livre] = px;
-        pa.y[livre] = py;
-        pa.vx[livre] = Math.cos(ang) * forca;
+        pa.x[livre] = px + cos * afasta;
+        pa.y[livre] = py + sen * afasta;
+        pa.vx[livre] = cos * forca;
         // A cinza sobe antes de cair; as faíscas saem para todo lado.
-        pa.vy[livre] = Math.sin(ang) * forca - (grande === 1 ? 0.5 : 0);
+        pa.vy[livre] = sen * forca - (grande === 1 ? 0.5 : 0);
         pa.gravidade[livre] = grav;
         pa.passo[livre] = passoDoEvento;
         pa.vida[livre] = vida + ((h >>> 13) & 3);

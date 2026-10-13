@@ -129,6 +129,22 @@ describe('brilho do telegrafo no corpo por tintBlend (RE4)', () => {
     expect([TEL_OCO, TEL_NOVICA]).toEqual([36, 30]);
   });
 
+  it('acertado no meio do telegrafo, o corpo fica no "inspirar" e a silhueta branca continua (o aviso não some com as facas)', () => {
+    const e = estadoCom([]);
+    const g = por(e, TIPO.oco_grande, 0, -100);
+    telegrafar(e, g, TEL_OCO - 30);
+    const acertos = new Float64Array(500).fill(-1e9);
+    acertos[g] = e.cab[CAB.passo]!;
+    const h = criarSaidaDaHorda();
+    prepararHorda(e, 1, J.x, J.y, h);
+    prepararQuadrosDaHorda(e, TABELA, acertos, h);
+    expect(h.quadro[g]).toBe(TABELA[TIPO.oco_grande]!.acerto);
+    const out = criarSaidaDeSprites(MEMBROS_DOS_MEDIOS);
+    prepararMedios(e, h, TABELA, D, 1, out);
+    expect([out.moldura[0], out.visivel[1], out.moldura[1]]).toEqual([TABELA[TIPO.oco_grande]!.telegrafo, 1, TABELA[TIPO.oco_grande]!.branco]);
+    expect(out.alpha[1]).toBeCloseTo(30 / 35, 12);
+  });
+
   it('interpolado pelo alfa do render, sem passar de [0, 1]', () => {
     const e = estadoCom([]);
     const g = por(e, TIPO.oco_grande, 0, -100);

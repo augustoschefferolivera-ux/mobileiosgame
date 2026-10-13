@@ -52,8 +52,8 @@ const DIRECAO = { base: 0, rotacao: 0 };
 
 /**
  * A 2ª camada de médios (RE8), em pares de membros na ordem dos slots: o corpo (membro 2k) e a silhueta branca do
- * telegrafo por cima (2k + 1). O corpo usa o quadro da arte (F-011): o acerto, o telegrafo ("inspirar"), o ataque
- * na recuperação ou o andar, espelhado pela direção (no telegrafo, pela mira). O brilho do telegrafo (RE4) é o
+ * telegrafo por cima (2k + 1). O corpo usa o quadro da arte (F-011): o telegrafo ("inspirar", que vale mesmo sob
+ * acerto), o acerto, o ataque na recuperação ou o andar, espelhado pela direção (no telegrafo, pela mira). O brilho do telegrafo (RE4) é o
  * `blend` de 1 em T a 0 no último passo, interpolado pelo `alfa`: a silhueta branca tem alfa 1 − blend, e o corpo
  * termina em branco puro. O resto da camada fica invisível. Devolve quantos médios foram escritos.
  */
@@ -77,8 +77,8 @@ export function prepararMedios(e: Estado, horda: SaidaDaHorda, tabela: readonly 
       if (passos > tel - 1) passos = tel - 1;
       blend = 1 - passos / (tel - 1);
     }
-    const acertado = horda.quadro[s] === d.acerto;
-    const quadro = acertado ? d.acerto : fase === FASE_DO_ATAQUE.telegrafo ? d.telegrafo : fase === FASE_DO_ATAQUE.recuperacao ? d.ataque : horda.quadro[s]!;
+    // No telegrafo o "inspirar" e a silhueta branca valem mesmo sob acerto: o aviso do golpe (RE4) não some com as facas.
+    const quadro = fase === FASE_DO_ATAQUE.telegrafo ? d.telegrafo : horda.quadro[s] === d.acerto ? d.acerto : fase === FASE_DO_ATAQUE.recuperacao ? d.ataque : horda.quadro[s]!;
     const espelhar = fase === FASE_DO_ATAQUE.telegrafo ? ini.miraX[s]! < 0 : horda.espelhar[s] === 1;
     const escalaX = espelhar ? -d.escala : d.escala;
     const corpo = 2 * k;
@@ -94,7 +94,7 @@ export function prepararMedios(e: Estado, horda: SaidaDaHorda, tabela: readonly 
     out.cor[corpo] = BRANCO;
     out.blend[corpo] = blend;
     const brilho = corpo + 1;
-    if (fase === FASE_DO_ATAQUE.telegrafo && !acertado && blend < 1) {
+    if (fase === FASE_DO_ATAQUE.telegrafo && blend < 1) {
       out.visivel[brilho] = 1;
       out.x[brilho] = horda.x[s]!;
       out.y[brilho] = horda.y[s]!;
