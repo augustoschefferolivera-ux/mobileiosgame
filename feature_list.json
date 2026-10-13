@@ -951,7 +951,7 @@
       "evidencias": [
         {
           "arquivo": "production/evidencias/F-009/luta.webm",
-          "descricao": "Vídeo de 30 s da luta (B; design/decisoes-F-009.md §5)"
+          "descricao": "Vídeo da luta em tempo real, 35 s com a transição para a fase 2 (B; design/decisoes-F-009.md §5; e2e/f009.spec.ts)"
         },
         {
           "arquivo": "production/evidencias/F-009/amanhecer.png",
@@ -964,6 +964,14 @@
         {
           "arquivo": "production/evidencias/F-009/chefe-390x844.png",
           "descricao": "`?cenario=lanterneiro`: barras de HP e Postura do chefe (design/decisoes-F-009.md §5)"
+        },
+        {
+          "arquivo": "production/evidencias/F-009/resultado-a-fome-390x844.png",
+          "descricao": "Resultado de A Fome (23:00 com o chefe vivo): título \"A Fome desce.\", \"Chefe mais longe\", Brasas 0 e a mancha de A Fome (F-009.15; e2e/f009.spec.ts)"
+        },
+        {
+          "arquivo": "production/evidencias/F-009/resultado-amanhecer-390x844.png",
+          "descricao": "Resultado do Amanhecer (chefe derrotado): \"Chefe mais longe\" Derrotado e 1 Brasa (F-009.15; e2e/f009.spec.ts)"
         },
         {
           "arquivo": "production/evidencias/F-009/u9.log",
