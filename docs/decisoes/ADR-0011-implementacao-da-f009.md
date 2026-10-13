@@ -1,6 +1,6 @@
 # ADR-0011 — Decisões de implementação da F-009 (O Lanterneiro, Amanhecer e A Fome)
 
-- **Status:** em curso, parte 2a (simulação do chefe). São as decisões técnicas tomadas ao implementar `design/decisoes-F-009.md` (aqui, **D9**), aprovada pelo usuário sem vetos em 2026-10-12. A parte 2a (layout v9, Lanterneiro, Postura, fases, Fúria, ataques e arena), a 2b (Amanhecer, A Fome, Resultado e meta) e a 2c (render, cenário, Playwright e evidências) acrescentam as suas seções.
+- **Status:** em curso, partes 2a (simulação do chefe) e 2b (Amanhecer, A Fome, Resultado e meta) feitas. São as decisões técnicas tomadas ao implementar `design/decisoes-F-009.md` (aqui, **D9**), aprovada pelo usuário sem vetos em 2026-10-12. A parte 2a (layout v9, Lanterneiro, Postura, fases, Fúria, ataques e arena), a 2b (Amanhecer, A Fome, Resultado e meta) e a 2c (render, cenário, Playwright e evidências) acrescentam as suas seções.
 - **Fontes:** B §3.11, §4, §5.8, §5.11 e §11.3 (F-009); D9; D2 a D8; ADR-0002 §3, §9, §14 e §15; ADR-0005 a ADR-0010.
 
 ## 1. Estado v9 e determinismo (parte 2a)
@@ -40,6 +40,25 @@
 - **Fúria (FU1):** `n = ⌊(relogio − 90.000)/600⌋ + 1`; o dano bruto de todo golpe e tick do chefe é `fround(dano × (100 + 5n)/100)` (55 → 57,75 → 60,5 → 63,25); o evento 44 sai no passo em que `n` muda (sem estado; não sai na transição, com o relógio parado). `CENARIO.semFome` já desliga a transição para A_FOME em `rodarEtapa` (a 2b troca o FIM imediato pelo dreno).
 - **Ameaças aparáveis:** o telegrafo branco com o jogador dentro da forma soma a `ameacasAparaveis`; `rodarChefe` recebe e devolve ameaças e aparos de `rodarAtaques` por `RESUMO` (Int32Array), e `concluirAparos` fecha uma vez.
 
+## 4. A Fome e o Amanhecer (parte 2b)
+
+- **Gancho:** `verificarFimDoChefe` (`amanhecer.ts`), chamada uma vez por passo por `rodarEtapa` na etapa CHEFE, depois do passo da fase VIVA: `chefeU8.morto` = 1 vence o 23:00 (a morte no passo do vencimento vale) e começa o Amanhecer; senão, com `relogio ≥ 82.800`, sem `CENARIO.semFome` e fora da transição de fase, começa A Fome. Fica numa função à parte para não crescer `rodarEtapa` (orçamento de inlining). Se o jogador morreu no mesmo passo (fase APAGANDO), `rodarEtapa` já saiu e vale o Apagar (as 200 Almas do chefe já entraram).
+- **Corte do combate (`cortarOCombate`, em `fome.ts`, comum às duas fases):** projéteis e ondas liberados, `ataqueFase`/`ataqueTimer`/`ataqueId` de todo inimigo vivo zerados, zonas, cegueira e Agarrar zerados, Frasco zerado sem evento, congelamento, esquiva e aparo zerados. Os inimigos ficam onde estão (nenhum passo os move). Não há inimigo "em cinza": a D9 FM1 diz "parados e em cinza", lido como parados (o critério F-009.4 só pede parados); o Amanhecer os remove de verdade.
+- **Passo fora da fase VIVA (`passoFora`):** `rodarFome` e `rodarAmanhecer` recebem os comandos; `andarSemAcoes` zera `acoes` (restituídos depois, como na Fogueira), roda `moverJogador` e a mancha. A regeneração de stamina continua (vem de `rodarTimersEComandos`, dentro de `moverJogador`) e a Brasa Firme segue valendo: sem gasto de stamina isso só mantém a stamina cheia, igual ao que a D9 descreve.
+- **A Fome:** `n` = `fomePassos` + 1; a cada `fomeTick` (10) o tick `k` = n/10 − 1 fere `hpMax × (18 + k)/1800` por `danoAoJogador` com origem `fome` (5; armadura e Brasa Firme valem, esquiva e aparo não: não passa por `resolver`). `hp ≤ 0` → `encerrarVigilia(aFome)` no mesmo passo, sem APAGANDO. Sem sorteio.
+- **Amanhecer:** `iniciarAmanhecer` desfaz a arena, credita as Almas do chão (`tipo` alma) e libera as Cinzas de XP (os baús no chão ficam, parados), zera níveis pendentes, baús por fechar, fila e oferta, corta o combate e grava o evento 46. `rodarAmanhecer`: no 1º passo `matarInimigo(CAUSA.cinza)` em todo vivo (sem Cinza, Alma nem `mortes`); no passo 600, `encerrarVigilia(amanhecer)`. `almasAoSantuario(amanhecer, N)` = `N + ⌊(N + 1)/2⌋` (= `⌊(3N + 1)/2⌋`), limitado a 2³⁰ − 1; a conta evita 3N.
+- **Abandonar:** o bit de Abandonar da pausa agora vale na fase VIVA, em A Fome e no Amanhecer (antes só na VIVA); em A Fome ele deixa de ser engolido pelo passo da fome. Decisão minha: sem isso a pausa não encerraria a Vigília nessas fases.
+
+## 5. Resultado e meta v2 (parte 2b)
+
+- **`ResultadoDaVigilia`:** campos novos `brasas` (1 no Amanhecer, 0 nas outras causas), `chefeFase` (`chefeU8.faseMax`: 0 = a arena não chegou a formar), `chefeDerrotado` e `chefeQuebras` (telemetria RE2, para a 2c). `linhasDoResultado` devolve 7 linhas (tempo, nível, mortes, dano, chefe mais longe, Almas ao Santuário, Brasas); `valorDoChefe` dá "Derrotado", "O Lanterneiro, Fase N" ou "—" (ids `A7.RESULTADO.CHEFE_FASE`, `CHEFE_DERROTADO`, `CHEFE_NENHUM`). `tituloDoResultado(aFome)` = `A4.A_FOME.01`.
+- **Meta v2:** `Meta.brasas`; `VERSAO_DO_META` 2. `lerMeta` aceita a v1 (soma conferida sobre o corpo sem `brasas`) e a devolve v2 com `brasas` 0 e soma vazia (nasce na próxima gravação); v2 exige `brasas` inteiro. `aplicarFimDeVigilia` soma `r.brasas` e liga `primeiroApagarFeito` no Apagar e em A Fome (FM3, divergência aprovada de D7 RS8). A mancha antiga fica no Amanhecer (D7 MC3).
+- **Sem RNG novo** em nenhuma das duas partes.
+
+## 6. Save (parte 2b)
+
+- `restaurar` devolve `'fase'` se o buffer carregado tem fase diferente de VIVA: nenhuma Fogueira existe depois de 20:00 e o `vigilia` só é gravado no passo 0 e nelas, então um save com A Fome, Amanhecer, APAGANDO ou FIM é corrompido (D9 §4). O layout não mudou na 2b (continua v9, 76.868 B; hashes da 2a intactos).
+
 ## 8. Medidas (parte 2a)
 
 - **Alocação da luta (E7, F-009.14):** `tests/cenas/alocacao-chefe.test.ts`: a luta inteira (Espada, Facas e Círculo nv8, ataques, aparos, esquivas, Quebras, as duas transições, a morte e o novo surgimento, Convocar, Explosão, zonas, cegueira, Agarrar, a Fúria desligada pelo relógio fixo), o jogador invulnerável e parado dentro da arena, o HP do chefe reposto nos limiares a cada 1.500 passos e os convocados mortos a cada 40 passos (como as armas fazem). **7 a 8 B por passo em 5 rodadas, com 150.000 passos de aquecimento (≈ 7 s)**; com 63.000 o V8 ainda não otimizou `moverHorda`, `limitarPelaArena` e as funções da caixa, e a medida passa de 500 B por passo (o mesmo efeito das notas do ADR-0008 sobre o E7b). Os convocados vivos aos montes (sem os matar) elevam `limitarPelaArena` a ~135 B/passo: o teste os mata, como o F-008.8.
@@ -56,3 +75,17 @@
 - **Campos e funções novos:** `chefeU8.morto` (1 depois da morte; o `chefeSlot` volta a 0xFFFF), `chefeU32.fomePassos` e `chefeU16.amanhecerPassos` (zerados, para a 2b), `surgirChefe(e, dados)`, `chefeVivo(e)`, `ganharPostura`, `quebrarPeloAgarrar`; `ETAPA.amanhecer`, `FASE.aFome` e `FASE.amanhecer`, `ORIGEM_DO_DANO.fome`, `EVENTO.amanhecerIniciado` e `fomeDesceu` já existem como constantes, sem uso. `CENARIO.semFome` já desliga o 23:00 em `rodarEtapa` (o FIM imediato por `encerrarVigilia(aFome)` segue valendo sem a flag, até a 2b o trocar). O gancho do Amanhecer (AN1) é o `chefeU8.morto` = 1 com a etapa CHEFE, no fim do passo em `rodarEtapa`; a arena segue ativa depois da morte (`desfazerArena` é da 2b).
 - **Dados prontos:** `dados.chefe` já traz `fomeTick`, `fomeBase`, `fomeDivisor`, `amanhecerPassos` e `almas` (200).
 - **Os testes que a 2b troca:** o F-008.4g (FIM imediato aos 23:00 com o chefe vivo) e os que cruzam 20:00 sem o bit `ataques` não mudaram; os que cruzam com ele agora têm o chefe e a arena.
+
+- **Da parte 2b:** (1) o Abandonar vale também em A Fome e no Amanhecer (seção 4); (2) os inimigos de A Fome ficam parados em vez de "em cinza" (seção 4); (3) em A Fome o 23:00 também vale sem chefe vivo (ataques desligados): o gatilho da D9 diz "chefe vivo", mas na etapa CHEFE o chefe só pode estar vivo ou morto (e morto já foi para o Amanhecer); (4) as 3 divergências aprovadas da D9 que cabiam à 2b (doc 02 §3 em FM2, D7 RS8 em FM3) estão implementadas como aprovadas.
+
+## 11. Medidas e testes da parte 2b
+
+- **Alocação:** `tests/cenas/alocacao-chefe.test.ts` ganhou o teste de ciclos de A Fome e de Amanhecer (11,6 B/passo com 30.000 de aquecimento; o `danoAoJogador` da fome pesa 8 B/passo em média, ~85 B por tick). A luta da 2a segue em 7 a 9 B/passo com 150.000, 250.000 e 300.000 de aquecimento. Antes disso, deixar o chefe morrer de verdade no meio da luta (Amanhecer cortando projéteis e ondas) fazia o aquecimento ficar instável (42 e 85 B/passo em `salvaDeFacas`/`golpear`); o teste agora remove o chefe na fase 3 com `matarInimigo(CAUSA.cinza)`, sem morte, e volta à fase VIVA se alguma morte natural acontecer. O limite de 16 B não mudou.
+- **Testes:** `tests/logica/chefe/fome.test.ts` (F-009.4), `tests/logica/chefe/amanhecer.test.ts` (F-009.7 e determinismo), `tests/logica/vigilia/meta.test.ts` (meta v2, F-009.15), `tests/cenas/apagar-e-resultado.test.ts` (linhas e títulos), `tests/logica/save/vigilia.test.ts` (fase). O F-008.4g (`marcos.test.ts`) agora espera A_FOME com fase 3 e sem FIM no mesmo passo.
+
+## 12. O que a parte 2c precisa saber
+
+- **Fases e etapa para o render:** `jogador4U8.fase` 3 (A Fome) e 4 (Amanhecer); `fogueiraU8.etapa` 4 e 5. `chefeU32.fomePassos` (0 a ~520+) e `chefeU16.amanhecerPassos` (0 a 600) alimentam o céu: o véu cai a 0 em 600 passos; o texto `A4.AMANHECER.01` fica 120 passos depois do FIM e só então abre o Resultado (a cena cuida disso: o FIM sai no passo 600). `FASE.aFome` termina em FIM sem APAGANDO: a tela é `A4.A_FOME.01` (já em `tituloDoResultado`).
+- **Eventos:** 46 `amanhecerIniciado` e 47 `fomeDesceu` (x, y); `danoAoJogador` com forma = origem 5 nos ticks da fome (agregar como `fome` na telemetria RE2, junto de `efeito` 4). O `Resultado` traz `chefeQuebras`, `chefeFase` e `chefeDerrotado` para o evento `chefe` da telemetria; a duração é `relogio − 72.000` (o relógio fica parado depois).
+- **Resultado:** `src/cenas/Resultado.ts` agora mostra 7 linhas (`LINHAS` = 7, 34 pt entre linhas: conferir o encaixe no 390 × 844 com mancha e mapa pequeno). O stub que monta os rótulos precisa dos campos novos (já tem).
+- **A cena (`Vigilia.ts`)** decide o que fazer em `FASE.aFome`/`amanhecer` (HUD, véu e relógio parado); o `avancar` não para: o jogador anda nas duas fases e o `passo` anda, o `relogio` não.
