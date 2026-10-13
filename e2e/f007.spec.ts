@@ -66,7 +66,8 @@ test('F-007.4: morrer de propósito, APAGANDO e FIM(apagar) no passo 30, Resulta
   expect(lido.ativo.some((id) => /REVIVER/i.test(id))).toBe(false);
   expect(lido.ativo, 'a linha da mancha (30% de 1.000)').toContain('A7.RESULTADO.MANCHA');
   expect(lido.ativo, 'as Almas do HUD saem do Resultado').not.toContain('A5.HUD.ALMAS');
-  expect(lido.ativo.filter((id) => id.startsWith('A2.TUTORIAL')), 'nenhum prompt sob o véu').toEqual([]);
+  // O único A2.TUTORIAL no Resultado do 1º Apagar é o balão das Cinzas da F-010 (A2.TUTORIAL.05); nenhum prompt de tutorial sob o véu.
+  expect(lido.ativo.filter((id) => id.startsWith('A2.TUTORIAL')), 'só o balão das Cinzas sob o véu').toEqual(['A2.TUTORIAL.05']);
   expect(textoDe('A4.APAGAR.01')).not.toBe('');
   expect(lido.meta.seq, 'o meta foi gravado uma vez no fim').toBeGreaterThan(0);
   await page.waitForTimeout(400);

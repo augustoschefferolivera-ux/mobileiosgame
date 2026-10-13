@@ -59,8 +59,8 @@ export class Santuario extends Phaser.Scene {
     this.iselda = texto(this, 0, 0, 'A9.SANTUARIO.ISELDA', 16, COR.osso).setOrigin(0.5);
     this.fala = texto(this, 0, 0, 'A9.SANTUARIO.ISELDA_FALA_01', 14, COR.brasaClara, undefined, 340).setOrigin(0.5);
     this.vigilia = texto(this, 0, 0, 'A9.SANTUARIO.VIGILIA', 22, COR.osso).setOrigin(0.5);
-    this.convite = texto(this, 0, 0, 'A8.SISTEMA.CONVITE_PWA', 16, COR.osso, undefined, 320).setOrigin(0.5);
-    this.passos = texto(this, 0, 0, 'A8.SISTEMA.CONVITE_PASSOS', 14, COR.sal, undefined, 320).setOrigin(0.5);
+    this.convite = texto(this, 0, 0, 'A8.SISTEMA.CONVITE_PWA', 16, COR.osso, undefined, 270).setOrigin(0.5);
+    this.passos = texto(this, 0, 0, 'A8.SISTEMA.CONVITE_PASSOS', 14, COR.sal, undefined, 270).setOrigin(0.5);
     this.agoraNao = texto(this, 0, 0, 'A8.SISTEMA.AGORA_NAO', 18, COR.osso).setOrigin(0.5);
     this.titulo = texto(this, 0, 0, 'A9.SANTUARIO.ARVORE', 18, COR.osso).setOrigin(0.5);
     this.nos.length = this.ranks.length = 0;
