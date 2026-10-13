@@ -5,8 +5,10 @@ import { describe, expect, it } from 'vitest';
 import { BRUTO, LIQUIDO, ORIGEM_DO_DANO, aplicarContato, danoAoJogador } from '../../../src/logica/mundo/contato';
 import { nascerInimigo } from '../../../src/logica/mundo/inimigos';
 import { TIPO } from '../../../src/logica/mundo/tipos';
-import { CENARIO, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR_U8, TODOS_OS_TUTORIAIS, criarEstado, hashEstado, reiniciarEstado, type Estado, type RanksDaFundacao } from '../../../src/logica/nucleo/estado';
+import { CENARIO, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR_U8, PROGRESSAO, TODOS_OS_TUTORIAIS, criarEstado, hashEstado, reiniciarEstado, type Estado, type RanksDaFundacao } from '../../../src/logica/nucleo/estado';
 import { avancar } from '../../../src/logica/nucleo/passo';
+import { cruzarNiveis } from '../../../src/logica/progressao/atributos';
+import { hpMaximo } from '../../../src/logica/progressao/tabela';
 import { armadura } from '../../../src/logica/progressao/dano';
 import { MULTIPLICADOR_DA_BIGORNA } from '../../../src/logica/progressao/efeitosDaFundacao';
 import { parametrosDoCenario } from '../../../src/plataforma/cenarios';
@@ -38,6 +40,22 @@ describe('efeitos dos ranks (FD4 a FD6)', () => {
     expect([...e.fundacaoU8]).toEqual([5, 5, 3, 3]);
     expect(armadura(comFundacao(ZERO), DB)).toBe(0);
     expect(comFundacao(ZERO).jogador2[JOGADOR2.hpMax]).toBe(DB.hpInicial);
+  });
+
+  it('Fôlego no level-up (crítico M5): o nível 2 recalcula o HP máximo com o Σ% da passiva mais o Fôlego, e não o de Pele', () => {
+    const t = DB.progressao;
+    const subir = (fundacao: RanksDaFundacao): Estado => {
+      const e = comFundacao(fundacao);
+      e.progresso[PROGRESSAO.xp] = t.custo[1]!;
+      expect(cruzarNiveis(e, DB)).toBe(1);
+      return e;
+    };
+    const base = t.hpBase + t.hpPorNivel;
+    const folego = subir({ ...ZERO, folego: 5 });
+    expect(folego.jogador2[JOGADOR2.hpMax]).toBe(hpMaximo(base, t.hpPct + 25));
+    expect(folego.jogador2[JOGADOR2.hpMax]).toBeGreaterThan(subir(ZERO).jogador2[JOGADOR2.hpMax]!);
+    expect(folego.jogador[JOGADOR.hp]).toBe(folego.jogador2[JOGADOR2.hpMax]);
+    expect(subir({ ...ZERO, pele: 5 }).jogador2[JOGADOR2.hpMax]).toBe(hpMaximo(base, t.hpPct));
   });
 
   it('Casco 3: o contato abre 18 + 9 = 27 passos de invulnerabilidade; o fator 0,3 do acerto não muda', () => {

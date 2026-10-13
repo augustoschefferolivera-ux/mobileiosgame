@@ -15,6 +15,8 @@ import { CAUSA_DO_FIM, FASE, hashEstado, JOGADOR, JOGADOR4_U8, JOGADOR_U8, PROGR
 import { MARCO, metaPadrao } from '../../src/logica/save/meta';
 import { ArmazenamentoDoMeta, CHAVE_DO_META } from '../../src/plataforma/armazenamento';
 import { RegistroDeTelemetria } from '../../src/plataforma/telemetria';
+import { ArmazenamentoDaVigilia, CHAVE_DO_ANDAMENTO, GravadorDaVigilia } from '../../src/plataforma/vigiliaGuardada';
+import { CAB } from '../../src/logica/nucleo/estado';
 import { DADOS_SEM_OBSTACULOS as D } from '../logica/apoio';
 
 interface Interno {
@@ -28,6 +30,7 @@ interface Interno {
   fecharBalaoDasCinzas(): void;
   sairDeCena(): void;
   mudarDegradacao(nivel: number): void;
+  aoStep(): void;
   tetoDaProxima: { valor: number } | null;
   render: unknown;
   fecharPausa(): void;
@@ -340,5 +343,30 @@ describe('degradação na Vigília (F-010 DG2 a DG4)', () => {
     v.render = { aplicarDegradacao: vi.fn() };
     v.mudarDegradacao(3);
     expect(v.tetoDaProxima).toBeNull();
+  });
+});
+
+describe('elos da Vigília com a simulação e o save (crítico da F-010, M2 e M3)', () => {
+  it('M2: o nível 3 da degradação medido chega ao diretor como comando ao vivo (DG3)', () => {
+    const medidor = { simulou: vi.fn() };
+    const { v, sim } = montar(100, { degradacao: { nivel: 3, forcado: null }, medidor } as unknown as Partial<ContextoDoJogo>);
+    v.game = { sound: { setMute: vi.fn() }, loop: { rawDelta: 0 } };
+    v.scene = { get: () => ({ balaoAberto: false }) };
+    (v as unknown as { telemetriaDeCombate: { ler: () => void } }).telemetriaDeCombate = { ler: () => undefined };
+    sim.comandosAoVivo.degradacao[0] = 0;
+    v.aoStep();
+    expect(sim.comandosAoVivo.degradacao[0]).toBe(3);
+  });
+
+  it('M3: a pausa automática grava o `andamento` do passo atual (PS1)', () => {
+    const f = new Map<string, string>();
+    const arm = new ArmazenamentoDaVigilia({ getItem: (k) => f.get(k) ?? null, setItem: (k, x) => void f.set(k, x), removeItem: (k) => void f.delete(k) });
+    const { v, sim, estado } = montar();
+    sim.gravador = new GravadorDaVigilia(arm, estado, 600);
+    estado.cab[CAB.passo] = 321;
+    expect(f.has(CHAVE_DO_ANDAMENTO)).toBe(false);
+    v.sairDeCena();
+    expect(arm.lerAndamento()?.passo).toBe(321);
+    expect(sim.pausa.origem).toBe('automatica');
   });
 });
