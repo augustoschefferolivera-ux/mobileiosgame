@@ -1,7 +1,9 @@
 // Árvore da Fundação (design/decisoes-F-010.md FD1 a FD10): os 8 nós de `arvore.json`, o custo de cada rank e as funções puras de compra e reembolso. Módulo puro: nada de I/O, relógio ou RNG. O custo roda fora do laço
 // quente, em Float32 com a potência iterativa (ADR-0002 §5): nunca `Math.pow` nem `**`.
 import arvore from '../../dados/arvore.json';
-import { LIMITE_DE_ALMAS } from '../nucleo/estado';
+import { ARMA } from '../armas/tabela';
+import { LIMITE_DE_ALMAS, type ArmaInicial, type RanksDaFundacao } from '../nucleo/estado';
+import { RANK_MAXIMO_MAOS } from './efeitosDaFundacao';
 import type { Meta } from '../save/meta';
 
 /** Um nó da Fundação, na ordem de `arvore.json` (a ordem do doc 08 §4.1 e a dos 8 ranks do meta). */
@@ -107,4 +109,20 @@ export function reembolsar(meta: Meta): Meta | Recusado {
 /** `true` se `r` é uma recusa (e não um meta). */
 export function foiRecusado(r: Meta | Recusado): r is Recusado {
   return 'recusa' in r;
+}
+
+/** O que o botão Vigília passa à simulação a partir do meta (FD4 a FD7): os 4 ranks lidos pelo estado e a lista `armas`. */
+export interface ParametrosDaFundacao {
+  readonly fundacao: RanksDaFundacao;
+  /** `null` com Mãos de aprendiz em 0 (o hash de sempre); com rank r > 0, a Espada Longa no nível 1 + r (máx. 4; FD7). */
+  readonly armas: readonly ArmaInicial[] | null;
+}
+
+export function parametrosDaFundacao(meta: Meta): ParametrosDaFundacao {
+  const r = meta.fundacao.ranks;
+  const maos = Math.min(r[NO.maos]!, RANK_MAXIMO_MAOS);
+  return {
+    fundacao: { pele: r[NO.pele]!, folego: r[NO.folego]!, casco: r[NO.casco]!, bigorna: r[NO.bigorna]! },
+    armas: maos === 0 ? null : [{ codigo: ARMA.espada_longa_do_juramento, nivel: 1 + maos }],
+  };
 }
