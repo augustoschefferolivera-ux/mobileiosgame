@@ -23,7 +23,7 @@ import { IDS_DE_PASSIVA } from '../logica/progressao/tabela';
 import { verificarNaN } from '../logica/nucleo/nan';
 import { passo } from '../logica/nucleo/passo';
 import { resultadoDaVigilia, type ResultadoDaVigilia } from '../logica/mundo/vigilia';
-import { comOpcoes, comTutoriais, reservarIdDaVigilia } from '../logica/save/meta';
+import { MARCO, comMarco, comOpcoes, comTutoriais, reservarIdDaVigilia } from '../logica/save/meta';
 import { GravadorDaVigilia, creditarFim } from '../plataforma/vigiliaGuardada';
 import { sortearSeed } from '../plataforma/parametros';
 import { criarDadosDaCharneca } from '../plataforma/dadosDaVigilia';
@@ -345,6 +345,8 @@ export class Vigilia extends Phaser.Scene {
     if (fase !== FASE.fim || sim.fimCreditado) return;
     sim.fimCreditado = true;
     const r = resultadoDaVigilia(sim.estado, sim.dados);
+    // GA3: o balão das Cinzas Perdidas entra no Resultado do primeiro Apagar ou A Fome (decidido antes do crédito), com ou sem mancha.
+    const comBalao = (r.causa === CAUSA_DO_FIM.apagar || r.causa === CAUSA_DO_FIM.aFome) && (this.ctx.meta.atual.marcos & MARCO.balaoCinzas) === 0;
     sim.resultado = r;
     // FIM atômico (SV4): o meta com o crédito e `ultimaEncerrada` primeiro; só então saem o `vigilia` e o `andamento`.
     this.ctx.meta.atual = creditarFim(this.ctx.meta.armazenamento, this.ctx.vigiliaGuardada, this.ctx.meta.atual, r, sim.idVigilia);
@@ -374,7 +376,7 @@ export class Vigilia extends Phaser.Scene {
       this.esperaDoResultado = ESPERA_DO_AMANHECER_MS;
       return;
     }
-    resultado.mostrarResultado(r);
+    resultado.mostrarResultado(r, comBalao);
     this.ctx.entrada.tradutor.mudarModo('resultado');
   }
 

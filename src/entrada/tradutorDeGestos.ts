@@ -94,6 +94,8 @@ export class TradutorDeGestos {
   toqueNaPausa: string | null = null;
   /** No modo resultado: o botão acionado neste frame ('voltar' ou 'repetir'). */
   toqueNoResultado: string | null = null;
+  /** No modo resultado: algum dedo foi solto neste frame, em qualquer ponto (fecha o balão das Cinzas; F-010 GA3). */
+  soltouNoResultado = false;
   /** 'vigilia': joystick, botão e gesto; 'pausa': só os alvos da tela de pausa (P8); 'modal': só os do modal (M5). */
   modo: ModoDoTradutor = 'vigilia';
   /** No modo modal: os alvos tocados neste quadro (índice da carta, ou 0 = Continuar do baú), em ordem. */
@@ -172,6 +174,7 @@ export class TradutorDeGestos {
     this.pedidoDePausa = null;
     this.toqueNaPausa = null;
     this.toqueNoResultado = null;
+    this.soltouNoResultado = false;
     this.frascoEmCura = false;
     this.fogueiraAberta = false;
     this.nToquesNoModal = 0;
@@ -227,6 +230,7 @@ export class TradutorDeGestos {
     this.pedidoDePausa = null;
     this.toqueNaPausa = null;
     this.toqueNoResultado = null;
+    this.soltouNoResultado = false;
     this.nToquesNoModal = 0;
     if (fila.soltarTodos) {
       for (let s = 0; s < MAX_DEDOS; s++) this.soltar(s);
@@ -542,6 +546,7 @@ export class TradutorDeGestos {
       return;
     }
     if (this.modo === 'resultado') {
+      this.soltouNoResultado = true;
       const k = this.alvoInicial[s]!;
       if (k >= 0 && contem(this.alvosDoResultado[k]!, x, y)) this.toqueNoResultado = this.alvosDoResultado[k]!.id;
       return;

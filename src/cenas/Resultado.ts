@@ -35,6 +35,9 @@ export class Resultado extends Phaser.Scene {
   private mancha: Phaser.GameObjects.Text | null = null;
   private voltar: Phaser.GameObjects.Text | null = null;
   private repetir: Phaser.GameObjects.Text | null = null;
+  /** O balão das Cinzas Perdidas (F-010 GA3): visível no Resultado do primeiro Apagar ou A Fome, até o toque. */
+  private balao: Phaser.GameObjects.Text | null = null;
+  private fundoDoBalao: Phaser.GameObjects.Graphics | null = null;
   private readonly alvos: Alvo[] = [];
   private resultado: ResultadoDaVigilia | null = null;
   private noFim = false;
@@ -58,6 +61,8 @@ export class Resultado extends Phaser.Scene {
     this.mancha = texto(this, 0, 0, 'A7.RESULTADO.MANCHA', 16, COR.alma, { almas: 0, hora: 'I' }, LARGURA_LOGICA - 2 * MARGEM_LATERAL).setOrigin(0.5).setVisible(false);
     this.voltar = texto(this, 0, 0, 'A7.RESULTADO.VOLTAR', 18, COR.osso).setOrigin(0.5).setVisible(false);
     this.repetir = texto(this, 0, 0, 'A7.RESULTADO.REPETIR', 18, COR.osso).setOrigin(0.5).setVisible(false);
+    this.fundoDoBalao = this.add.graphics().setVisible(false);
+    this.balao = texto(this, 0, 0, 'A2.TUTORIAL.05', 15, COR.osso, undefined, 300).setOrigin(0.5).setVisible(false);
     this.resultado = null;
     this.noFim = false;
     // Invisível até o Apagar ou o Abandonar (como a pausa): só então a cena entra no textoAtivo.
@@ -93,7 +98,7 @@ export class Resultado extends Phaser.Scene {
   }
 
   /** FIM: título da causa, linhas, mancha, mapa e botões; os valores finais valem já no 1º quadro (RS5). */
-  mostrarResultado(r: ResultadoDaVigilia): void {
+  mostrarResultado(r: ResultadoDaVigilia, comBalao = false): void {
     if (this.titulo === null) return;
     this.scene.setVisible(true);
     this.resultado = r;
@@ -114,6 +119,18 @@ export class Resultado extends Phaser.Scene {
     else this.mancha!.setVisible(false);
     this.voltar!.setVisible(true);
     this.repetir!.setVisible(true);
+    this.balao!.setVisible(comBalao);
+    this.diagramar();
+  }
+
+  /** O balão das Cinzas está na tela (GA3). */
+  get balaoAberto(): boolean {
+    return this.balao?.visible === true;
+  }
+
+  /** Um toque fecha o balão (GA3); a Vigília grava o marco. */
+  fecharBalao(): void {
+    this.balao?.setVisible(false);
     this.diagramar();
   }
 
@@ -155,6 +172,13 @@ export class Resultado extends Phaser.Scene {
       g.lineStyle(2, COR.laranjaQueimado).strokeRect(a.x, a.y, a.largura, a.altura);
     }
     this.botoes!.setVisible(this.noFim);
+    // O balão fica logo acima do Voltar, num painel de pedra com contorno de brasa.
+    const alto = 64;
+    const larg = Math.min(340, LARGURA_LOGICA - ins.esquerda - ins.direita - 2 * 24);
+    const by = voltar!.y - 16 - alto;
+    this.balao!.setPosition(cx, by + alto / 2);
+    this.fundoDoBalao!.clear().setVisible(this.balao!.visible);
+    this.fundoDoBalao!.fillStyle(COR.pedra, 1).fillRect(cx - larg / 2, by, larg, alto).lineStyle(2, COR.brasa).strokeRect(cx - larg / 2, by, larg, alto);
   }
 
   /** Mapa pequeno (RS7): o contorno do mapa na proporção e um ponto na posição da mancha; sem texto. */
