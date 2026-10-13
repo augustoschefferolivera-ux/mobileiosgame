@@ -1,29 +1,18 @@
 # F-001 — log do teste de determinismo (Vitest, Node); desde a F-002, com o roteiro de ComandosDoPasso
-# gerado em 2026-10-12T06:40:12.193Z com Node v22.22.0
-# referencia: seed=1 passos=1000 hash=fa024a61 (comparado pela Playwright, F-001.11)
-seed=1 passos=1000 execucao1=c052c6c9 execucao2=c052c6c9 iguais=true
-horda no passo 1000: vivos=15 spawns=15 mortes=0 1a_morte=passo -1 1o_acerto=passo 146 hp=138
-cenario horda: seed=1 passos=1800 hash=1b64832e (comparado pela Playwright no E3)
-trilha passo=100 hash=894d77cb cabecalho=a8b085e9 rng=6a3ca424 jogador=bdf13cdf mundo=fe551825 inimigos=c4bd4415 projeteis=df8aa6aa progressao=925b24df pickups=4fcc326f efeitos=a6f9fa25 combate=fb300987
-trilha passo=200 hash=be5c4c85 cabecalho=458098e9 rng=6a3ca424 jogador=b6d11f35 mundo=8191e459 inimigos=bc0431c9 projeteis=df8aa6aa progressao=925b24df pickups=4fcc326f efeitos=a6f9fa25 combate=fb300987
-trilha passo=300 hash=18422ecf cabecalho=a687aba1 rng=6a3ca424 jogador=51fb8203 mundo=04ceb08d inimigos=60d2ee0d projeteis=df8aa6aa progressao=925b24df pickups=4fcc326f efeitos=a6f9fa25 combate=fb300987
-trilha passo=400 hash=aa93efa1 cabecalho=b68267f9 rng=6a3ca424 jogador=3f0317a3 mundo=a10d7721 inimigos=f142b21f projeteis=df8aa6aa progressao=925b24df pickups=4fcc326f efeitos=a6f9fa25 combate=fb300987
-trilha passo=500 hash=afbef9a4 cabecalho=092ae101 rng=6a3ca424 jogador=c080d748 mundo=244a4355 inimigos=66643a95 projeteis=df8aa6aa progressao=925b24df pickups=4fcc326f efeitos=a6f9fa25 combate=fb300987
-trilha passo=600 hash=8b87bf49 cabecalho=e5d5fc99 rng=6a3ca424 jogador=f00e51a4 mundo=7b184bf1 inimigos=809f0974 projeteis=df8aa6aa progressao=925b24df pickups=4fcc326f efeitos=a6f9fa25 combate=fb300987
-trilha passo=700 hash=09c1b111 cabecalho=b40667d1 rng=6a3ca424 jogador=d7860f43 mundo=fe551825 inimigos=b2d7f1cb projeteis=df8aa6aa progressao=925b24df pickups=4fcc326f efeitos=a6f9fa25 combate=fb300987
-trilha passo=800 hash=ecc41e0e cabecalho=9a78cb19 rng=6a3ca424 jogador=de31da62 mundo=8191e459 inimigos=03fa2941 projeteis=df8aa6aa progressao=925b24df pickups=4fcc326f efeitos=a6f9fa25 combate=fb300987
-trilha passo=900 hash=496276bc cabecalho=9d57de01 rng=6a3ca424 jogador=b1c29e7a mundo=04ceb08d inimigos=a6d02a7b projeteis=df8aa6aa progressao=925b24df pickups=4fcc326f efeitos=a6f9fa25 combate=fb300987
-trilha passo=1000 hash=c052c6c9 cabecalho=27ebb799 rng=6a3ca424 jogador=2cae1828 mundo=a10d7721 inimigos=95fd98b8 projeteis=df8aa6aa progressao=925b24df pickups=4fcc326f efeitos=a6f9fa25 combate=fb300987
+# gerado em 2026-10-13T12:57:52.800Z com Node v22.22.0
+# referencia: seed=1 passos=1000 hash=ecbabaed (comparado pela Playwright, F-001.11)
+seed=1 passos=1000 execucao1=7c4a2315 execucao2=7c4a2315 iguais=true
+horda no passo 1000: vivos=15 spawns=16 mortes=1 1a_morte=passo 217 1o_acerto=passo 146 hp=138
+cenario horda: seed=1 passos=1800 hash=f23bcad3 (comparado pela Playwright no E3)
+trilha passo=100 hash=7f849f02 cabecalho=e49602ed rng=6a3ca424 jogador=bdf13cdf mundo=fe551825 inimigos=c4bd4415 projeteis=df8aa6aa progressao=925b24df pickups=4fcc326f efeitos=a6f9fa25 combate=fb300987 vigilia=c7da09ec fogueira=383c02c3 chefe=d9c7a66b fundacao=4b95f515
+trilha passo=200 hash=3fe6009e cabecalho=3cd2de6d rng=6a3ca424 jogador=e45f6907 mundo=8191e459 inimigos=bc0431c9 projeteis=df8aa6aa progressao=925b24df pickups=4fcc326f efeitos=a6f9fa25 combate=fb300987 vigilia=6c8f9abc fogueira=383c02c3 chefe=d9c7a66b fundacao=4b95f515
+trilha passo=300 hash=9387d7ba cabecalho=2208f305 rng=3b373b5b jogador=96fdcf36 mundo=11e219c3 inimigos=cf8f6ba2 projeteis=df8aa6aa progressao=925b24df pickups=01e56178 efeitos=a6f9fa25 combate=fb300987 vigilia=42810f3c fogueira=383c02c3 chefe=d9c7a66b fundacao=4b95f515
+trilha passo=400 hash=59e41f44 cabecalho=c88019dd rng=3b373b5b jogador=4e9ec28d mundo=6749baef inimigos=5b58c5a4 projeteis=df8aa6aa progressao=925b24df pickups=01e56178 efeitos=a6f9fa25 combate=fb300987 vigilia=354c1f5f fogueira=383c02c3 chefe=d9c7a66b fundacao=4b95f515
+trilha passo=500 hash=452b6222 cabecalho=01205055 rng=3b373b5b jogador=4934fcdc mundo=a3af61bb inimigos=977f23f1 projeteis=df8aa6aa progressao=925b24df pickups=01e56178 efeitos=a6f9fa25 combate=fb300987 vigilia=2fa97e79 fogueira=383c02c3 chefe=d9c7a66b fundacao=4b95f515
+trilha passo=600 hash=bd7887da cabecalho=36dac5ed rng=3b373b5b jogador=2abde7a0 mundo=e2e05ddf inimigos=7bf17415 projeteis=df8aa6aa progressao=925b24df pickups=01e56178 efeitos=a6f9fa25 combate=fb300987 vigilia=2fa97e79 fogueira=383c02c3 chefe=d9c7a66b fundacao=4b95f515
+trilha passo=700 hash=ab506a2a cabecalho=470f7095 rng=3b373b5b jogador=0eda1ffb mundo=dc2e686b inimigos=6396b136 projeteis=df8aa6aa progressao=925b24df pickups=01e56178 efeitos=a6f9fa25 combate=fb300987 vigilia=2fa97e79 fogueira=383c02c3 chefe=d9c7a66b fundacao=4b95f515
+trilha passo=800 hash=a54b1a5a cabecalho=cbdaf7dd rng=3b373b5b jogador=733ff87e mundo=18940f37 inimigos=8f70c69b projeteis=df8aa6aa progressao=925b24df pickups=01e56178 efeitos=a6f9fa25 combate=fb300987 vigilia=2fa97e79 fogueira=383c02c3 chefe=d9c7a66b fundacao=4b95f515
+trilha passo=900 hash=4325faac cabecalho=39a388d5 rng=3b373b5b jogador=413f925e mundo=11e219c3 inimigos=7ea48b95 projeteis=df8aa6aa progressao=925b24df pickups=01e56178 efeitos=a6f9fa25 combate=fb300987 vigilia=2fa97e79 fogueira=383c02c3 chefe=d9c7a66b fundacao=4b95f515
+trilha passo=1000 hash=7c4a2315 cabecalho=c320ceed rng=3b373b5b jogador=cc447634 mundo=6749baef inimigos=bbea1316 projeteis=df8aa6aa progressao=925b24df pickups=01e56178 efeitos=a6f9fa25 combate=fb300987 vigilia=2fa97e79 fogueira=383c02c3 chefe=d9c7a66b fundacao=4b95f515
 roteiro: costura x no passo 258, costura y no passo 962, 91 passos de deslize
-1 passo/frame: 1000 frames hash=fa024a61; 5 passos/frame: 200 frames hash=fa024a61; iguais=true
-chromium (Playwright): seed=1 passos=1000 (17 pelo driver real + 983 por avancar) hash=fa024a61 iguais=true
-chromium (Playwright), cenário horda: seed=1 passos=1800 hash=1b64832e iguais=true
-chromium (Playwright), 1ª morte da Vigília normal: seed=1 passo=433 hash=3b6ee2e8 iguais=true
-chromium (Playwright), tres_armas: seed=1 passo=601 hash=82e929e9 iguais=true
-chromium (Playwright), nivel_tres depois das 2 cartas: seed=1 passo=1 hash=286ca680 iguais=true
-chromium (Playwright), bau_uniao: seed=1 golpe=28 captura=285 hash=369426c6 iguais=true
-chromium (Playwright), esquiva: seed=1 passo=303 hash=4b5e7ac3 iguais=true
-chromium (Playwright), esquivaPerfeita: seed=1 passo=315 hash=8f372159 iguais=true
-chromium (Playwright), congelado: seed=1 passo=315 hash=a84a5e54 iguais=true
-chromium (Playwright), aparo: seed=1 passo=429 hash=90592ca0 iguais=true
-chromium (Playwright), contraAtaque: seed=1 passo=430 hash=a754da76 iguais=true
+1 passo/frame: 1000 frames hash=ecbabaed; 5 passos/frame: 200 frames hash=ecbabaed; iguais=true

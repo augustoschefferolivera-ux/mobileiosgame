@@ -1,6 +1,6 @@
 # U7 da F-008 (design/decisoes-F-008.md §6): 20 minutos com o Coroado, a Fogueira e o bot que descansa e forja. Medida, sem gate nem decisão.
 # Alvos de Almas do Q-21 (coletadas na Vigília; a árvore é da F-010): ≈ 400 / 1.100 / 1.600. Jogador invulnerável, 72000 passos, seed 1.
-seed 1 parado  1ª União: sem União; Almas na mão: 5:00=215 10:00=400 15:00=702 20:00=702; nível 14; Fogueiras 0 (Descansos 0, Forjas 0); marcos concluídos 3, vencidos 0
-seed 1 circulo 1ª União: sem União; Almas na mão: 5:00=14 10:00=150 15:00=390 20:00=2987; nível 24; Fogueiras 3 (Descansos 3, Forjas 0); marcos concluídos 3, vencidos 0
-seed 1 cacando 1ª União: minuto 10.35 (forja); Almas na mão: 5:00=661 10:00=2869 15:00=8491 20:00=15983; nível 46; Fogueiras 3 (Descansos 3, Forjas 1); marcos concluídos 3, vencidos 0
+seed 1 parado  1ª União: sem União; Almas na mão: 5:00=311 10:00=431 15:00=748 20:00=748; nível 15; Fogueiras 0 (Descansos 0, Forjas 0); marcos concluídos 3, vencidos 0
+seed 1 circulo 1ª União: sem União; Almas na mão: 5:00=66 10:00=207 15:00=334 20:00=986; nível 17; Fogueiras 0 (Descansos 0, Forjas 0); marcos concluídos 1, vencidos 2
+seed 1 cacando 1ª União: minuto 10.35 (forja); Almas na mão: 5:00=678 10:00=3013 15:00=4096 20:00=5799; nível 33; Fogueiras 3 (Descansos 3, Forjas 1); marcos concluídos 3, vencidos 0
 repetição (seed 1, cacando, 72000 passos): iguais=true

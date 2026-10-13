@@ -25,7 +25,7 @@ total: 7852 Almas (um só nó de 5 ranks: 1.969; de 3: 1.029).
 
 ## Vigílias para comprar tudo, com as Almas ao Santuário medidas na F-009 (u9.log, seeds 1 a 8) aos 20:00 de 400 / 1.100 / 1.600 coletadas
 amanhecer, corpo_a_corpo       900 /  1950 /  2700 Almas por Vigília => 9 / 5 / 3 Vigílias
-a_fome, parado                 280 /   770 /  1120 Almas por Vigília => 29 / 11 / 8 Vigílias
+amanhecer, parado              900 /  1950 /  2700 Almas por Vigília => 9 / 5 / 3 Vigílias
 
 A D10 FD10 estimou 5 a 20 Vigílias com os alvos líquidos de B §5.14 (400 / 1.100 / 1.600) e escreveu 7.851 de cabeça; o total do código é o de cima.
 O 1º Apagar garante 300 (GA1). Nenhuma decisão sai daqui: se o ritmo parecer errado, é balanceamento.
