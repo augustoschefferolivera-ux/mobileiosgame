@@ -1,0 +1,24 @@
+# U9 da F-009 (design/decisoes-F-009.md §6): a luta com o Lanterneiro de 20:00 a 23:00. Medida, sem gate nem decisão.
+# Cenário lanterneiro (nível 29, Espada + Facas + Círculo nv8, Elmo e Luvas nv5, 3 Frascos), jogador mortal, seeds 1 a 8.
+# "corpo_a_corpo": anda até 90 px do chefe, apara os brancos e esquiva dos vermelhos; "parado": só apara e esquiva. Os dois bebem o Frasco abaixo de 60 de HP.
+# As seeds não mudam a luta: o chefe não usa RNG e o diretor está desligado; as 8 seeds repetem o mesmo resultado (a medida é determinística).
+# Almas aos 20:00 do Q-21 (≈ 400 / 1100 / 1600); o Santuário soma as 200 do chefe e o ×1,5 do Amanhecer (A Fome e o Apagar: 70%).
+seed 1 corpo_a_corpo fim amanhecer chefe morto em 77.2 s             fase máxima 3; quebras 8; Almas ao Santuário (400 / 1100 / 1600 aos 20:00): 900 / 1950 / 2700; HP no fim 107
+seed 1 parado        fim a_fome    chefe morto em o chefe não morreu fase máxima 3; quebras 14; Almas ao Santuário (400 / 1100 / 1600 aos 20:00): 280 / 770 / 1120; HP no fim 0
+seed 2 corpo_a_corpo fim amanhecer chefe morto em 77.2 s             fase máxima 3; quebras 8; Almas ao Santuário (400 / 1100 / 1600 aos 20:00): 900 / 1950 / 2700; HP no fim 107
+seed 2 parado        fim a_fome    chefe morto em o chefe não morreu fase máxima 3; quebras 14; Almas ao Santuário (400 / 1100 / 1600 aos 20:00): 280 / 770 / 1120; HP no fim 0
+seed 3 corpo_a_corpo fim amanhecer chefe morto em 77.2 s             fase máxima 3; quebras 8; Almas ao Santuário (400 / 1100 / 1600 aos 20:00): 900 / 1950 / 2700; HP no fim 107
+seed 3 parado        fim a_fome    chefe morto em o chefe não morreu fase máxima 3; quebras 14; Almas ao Santuário (400 / 1100 / 1600 aos 20:00): 280 / 770 / 1120; HP no fim 0
+seed 4 corpo_a_corpo fim amanhecer chefe morto em 77.2 s             fase máxima 3; quebras 8; Almas ao Santuário (400 / 1100 / 1600 aos 20:00): 900 / 1950 / 2700; HP no fim 107
+seed 4 parado        fim a_fome    chefe morto em o chefe não morreu fase máxima 3; quebras 14; Almas ao Santuário (400 / 1100 / 1600 aos 20:00): 280 / 770 / 1120; HP no fim 0
+seed 5 corpo_a_corpo fim amanhecer chefe morto em 77.2 s             fase máxima 3; quebras 8; Almas ao Santuário (400 / 1100 / 1600 aos 20:00): 900 / 1950 / 2700; HP no fim 107
+seed 5 parado        fim a_fome    chefe morto em o chefe não morreu fase máxima 3; quebras 14; Almas ao Santuário (400 / 1100 / 1600 aos 20:00): 280 / 770 / 1120; HP no fim 0
+seed 6 corpo_a_corpo fim amanhecer chefe morto em 77.2 s             fase máxima 3; quebras 8; Almas ao Santuário (400 / 1100 / 1600 aos 20:00): 900 / 1950 / 2700; HP no fim 107
+seed 6 parado        fim a_fome    chefe morto em o chefe não morreu fase máxima 3; quebras 14; Almas ao Santuário (400 / 1100 / 1600 aos 20:00): 280 / 770 / 1120; HP no fim 0
+seed 7 corpo_a_corpo fim amanhecer chefe morto em 77.2 s             fase máxima 3; quebras 8; Almas ao Santuário (400 / 1100 / 1600 aos 20:00): 900 / 1950 / 2700; HP no fim 107
+seed 7 parado        fim a_fome    chefe morto em o chefe não morreu fase máxima 3; quebras 14; Almas ao Santuário (400 / 1100 / 1600 aos 20:00): 280 / 770 / 1120; HP no fim 0
+seed 8 corpo_a_corpo fim amanhecer chefe morto em 77.2 s             fase máxima 3; quebras 8; Almas ao Santuário (400 / 1100 / 1600 aos 20:00): 900 / 1950 / 2700; HP no fim 107
+seed 8 parado        fim a_fome    chefe morto em o chefe não morreu fase máxima 3; quebras 14; Almas ao Santuário (400 / 1100 / 1600 aos 20:00): 280 / 770 / 1120; HP no fim 0
+resumo corpo_a_corpo: chefe morto em 8 de 8 lutas; tempo médio até a morte 77.2 s (alvo do doc 06: 120 a 180 s; a janela de luta é de 180 s); quebras médias 8.0
+taxa de derrota por fome (os dois comportamentos): 8 de 16 lutas
+repetição (seed 1, corpo_a_corpo): iguais=true
