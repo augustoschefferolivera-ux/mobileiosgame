@@ -16,6 +16,7 @@ import { rodarFrameComPausas } from '../logica/nucleo/driver';
 import { CAB, CAUSA_DO_FIM, emJogo, CENARIO, ETAPA, FASE, FOGUEIRA_U32, FOGUEIRA_U8, JOGADOR, JOGADOR3_U8, JOGADOR4, JOGADOR4_U8, PROMPT, TIPO_DE_CARTA, TODOS_OS_TUTORIAIS, criarEstado, tutoriaisCumpridos, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
 import { EVENTO, EV, eventosEscritos, inicioDoEvento } from '../logica/nucleo/eventos';
 import { IDS_DE_ARMA } from '../logica/armas/tabela';
+import { parametrosDaFundacao, parametrosDaFundacaoDeDebug } from '../logica/progressao/fundacao';
 import { modalAberto } from '../logica/progressao/modal';
 import { nivelOfertado } from '../logica/progressao/oferta';
 import { IDS_DE_PASSIVA } from '../logica/progressao/tabela';
@@ -87,6 +88,8 @@ export class Vigilia extends Phaser.Scene {
     const params: Partial<ParametrosDaVigilia> = {
       // Sem ?cenario, a Vigília de produção, com os ataques dos inimigos (VT1); com ele, quem decide é a receita.
       ...(this.ctx.cenario ? this.ctx.cenario.parametros : { cenario: CENARIO.ataques, tutoriaisVistos: meta.tutoriais }),
+      // A Fundação do meta (FD4 a FD7), ou a de ?fundacao no debug; os cenários ignoram as duas (FD12).
+      ...(this.ctx.cenario ? {} : this.ctx.fundacaoDeDebug !== null ? parametrosDaFundacaoDeDebug(this.ctx.fundacaoDeDebug) : parametrosDaFundacao(meta)),
       mancha: meta.mancha === null ? null : { x: meta.mancha.x, y: meta.mancha.y, almas: meta.mancha.almas },
       ...(this.ctx.almasIniciais === null ? {} : { almasIniciais: this.ctx.almasIniciais }),
       teto: this.ctx.teto.valor,
@@ -375,10 +378,11 @@ export class Vigilia extends Phaser.Scene {
     this.ctx.entrada.tradutor.mudarModo('resultado');
   }
 
-  /** Voltar leva à cena Acender (o Santuário é da F-010); Repetir abre uma Vigília nova, de seed nova, com a mancha do meta (RS6). */
+  /** Voltar leva ao Santuário (D10 SN2), com a seed da próxima Vigília já sorteada (SN5); Repetir abre uma Vigília nova, de seed nova, com a mancha do meta (RS6). */
   private tratarToqueDoResultado(botao: string): void {
     if (botao === 'voltar') {
-      this.scene.start('Acender');
+      this.ctx.seed = sortearSeed();
+      this.scene.start('Santuario');
     } else if (botao === 'repetir') {
       this.ctx.seed = sortearSeed();
       this.scene.restart();

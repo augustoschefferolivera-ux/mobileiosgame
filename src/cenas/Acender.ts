@@ -211,7 +211,10 @@ export class Acender extends Phaser.Scene {
     });
     // Toque antes do fim da sonda: a Vigília fica com o fallback (300) e nada vai para o cache (decisoes-F-004 §5).
     this.ctx.sondaDoTeto = null;
-    this.scene.start('Vigilia');
+    // O Santuário é sempre a próxima cena (SN2), menos ao Continuar (SN3) e, no build de debug, com ?cenario ou ?inicio sem ?santuario=1 (SN4).
+    const direto = alvo === 'continuar' || (!this.ctx.passaPeloSantuario && (this.ctx.cenario !== null || this.ctx.inicio !== null));
+    if (direto) this.scene.start('Vigilia');
+    else this.scene.start('Santuario');
   };
 
   /**

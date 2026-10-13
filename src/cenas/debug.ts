@@ -340,6 +340,12 @@ export interface GameDebug {
   readonly estado: string;
   /** A tela em exibição, em minúsculas: 'boot', 'acender', 'vigilia' e 'resultado' (do Apagar em diante). */
   readonly tela: string;
+  /** A cena em exibição pelo nome da classe (F-010 SN6): 'Boot', 'Acender', 'Santuario', 'Vigilia' e 'Resultado' (do Apagar em diante). */
+  readonly cena: string;
+  /** O Santuário (F-010 SN6): Almas, Brasas, o nó selecionado (0 a 7 ou null), a árvore aberta, o Reembolsar armado, o convite aberto, o gasto e os 8 ranks; null fora dele. */
+  readonly santuario: { almas: number; brasas: number; selecionado: number | null; arvoreAberta: boolean; reembolsoArmado: boolean; conviteAberto: boolean; falaDeIselda: boolean; gasto: number; ranks: number[]; recusa: string | null } | null;
+  /** O resultado do `navigator.storage.persist()` em standalone: true, false, ou null (sem API, fora do modo instalado ou ainda sem resposta; F-010 ST2). */
+  readonly persistido: boolean | null;
   /** Fim da Vigília, Frasco e mancha, lidos do estado (F-007); null sem simulação. */
   readonly vigilia: {
     fase: string;
@@ -357,7 +363,7 @@ export interface GameDebug {
   /** O Lanterneiro vivo (F-009 §5): fase, HP, Postura, Quebra e o ataque em curso; null sem chefe vivo. */
   readonly chefe: { slot: number; fase: number; faseMax: number; hp: number; hpMax: number; postura: number; quebraPassos: number; transicaoPassos: number; ataqueFase: number; ataqueId: number; quebras: number; presoPassos: number; cegoPassos: number } | null;
   /** O meta lido do armazenamento (cópia): Almas do Santuário, mancha, tutoriais e opções. */
-  readonly meta: { almas: number; mancha: { x: number; y: number; hora: number; almas: number } | null; tutoriais: number; primeiroApagarFeito: boolean; seq: number };
+  readonly meta: { almas: number; mancha: { x: number; y: number; hora: number; almas: number } | null; tutoriais: number; primeiroApagarFeito: boolean; seq: number; brasas: number; vigiliasConcluidas: number; marcos: number; conviteRecusadoEm: number | null; fundacao: { ranks: number[]; gasto: number } };
   readonly vivos: Record<TipoVivo, number>;
   /** Quantos dos oco_grande vivos são convertidos do excedente (ADR-0002 §8.7). */
   readonly convertidos: number;
@@ -519,6 +525,29 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     get tela() {
       return ctx.tela.toLowerCase();
     },
+    get cena() {
+      return ctx.tela.charAt(0) + ctx.tela.slice(1).toLowerCase();
+    },
+    get santuario() {
+      const s = ctx.santuario;
+      if (s === null) return null;
+      const m = ctx.meta.atual;
+      return {
+        almas: m.almas,
+        brasas: m.brasas,
+        selecionado: s.selecionado,
+        arvoreAberta: s.arvoreAberta,
+        reembolsoArmado: s.reembolsoArmado,
+        conviteAberto: s.conviteAberto,
+        falaDeIselda: s.falaDeIselda,
+        gasto: m.fundacao.gasto,
+        ranks: [...m.fundacao.ranks],
+        recusa: s.recusa,
+      };
+    },
+    get persistido() {
+      return ctx.persistido;
+    },
     get vigilia() {
       const sim = ctx.simulacao;
       if (!sim) return null;
@@ -593,6 +622,11 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
         tutoriais: m.tutoriais,
         primeiroApagarFeito: m.primeiroApagarFeito,
         seq: m.seq,
+        brasas: m.brasas,
+        vigiliasConcluidas: m.vigiliasConcluidas,
+        marcos: m.marcos,
+        conviteRecusadoEm: m.conviteRecusadoEm,
+        fundacao: { ranks: [...m.fundacao.ranks], gasto: m.fundacao.gasto },
       };
     },
     get vivos() {

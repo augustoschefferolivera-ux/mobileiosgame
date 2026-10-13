@@ -5,7 +5,7 @@ import { expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { alvosDoAcender } from '../src/entrada/alvos';
+import { alvosDoAcender, alvosDoSantuario } from '../src/entrada/alvos';
 import type { EntradaDebug, GameDebug } from '../src/cenas/debug';
 import { SEED_PADRAO } from '../src/logica/nucleo/referencia';
 import { insetsZerados, type Insets } from '../src/plataforma/safeArea';
@@ -53,6 +53,13 @@ export async function tocarAcender(page: Page, insets: Insets = insetsZerados())
   const b = alvosDoAcender(insets, [])[0]!;
   const p = await paraPagina(page, b.x + b.largura / 2, b.y + b.altura / 2);
   await page.touchscreen.tap(p.x, p.y);
+  // Sem ?cenario nem ?inicio o Santuário é a próxima cena (F-010 SN2, SN4): o botão Vigília leva à Vigília.
+  await page.waitForFunction(() => ['VIGILIA', 'SANTUARIO'].includes(window.__GAME_DEBUG__.estado));
+  if ((await page.evaluate(() => window.__GAME_DEBUG__.estado)) === 'SANTUARIO') {
+    const v = alvosDoSantuario(insets, []).find((a) => a.id === 'vigilia')!;
+    const q = await paraPagina(page, v.x + v.largura / 2, v.y + v.altura / 2);
+    await page.touchscreen.tap(q.x, q.y);
+  }
   await page.waitForFunction(() => window.__GAME_DEBUG__.estado === 'VIGILIA');
 }
 
