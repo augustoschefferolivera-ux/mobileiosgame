@@ -70,8 +70,8 @@
     },
     {
       "id": "A2.TUTORIAL.05",
-      "texto": "…",
-      "contexto": "Primeiro Apagar: balão que explica as Cinzas Perdidas (doc 11 §4); placeholder até o roteiro (doc 17)",
+      "texto": "Suas Almas ficaram na mancha. Volte lá para recuperá-las.",
+      "contexto": "Primeiro Apagar: balão que explica as Cinzas Perdidas (doc 11 §4); rascunho provisório até o roteiro (doc 17, D10 TX1)",
       "limite_palavras": 12
     },
     {
@@ -327,6 +327,12 @@
       "limite_palavras": null
     },
     {
+      "id": "A8.SISTEMA.CONVITE_PASSOS",
+      "texto": "Toque em Compartilhar e escolha Adicionar à Tela de Início.",
+      "contexto": "Convite PWA: instruções do iOS, que não tem aviso de instalação (D10 PW3); rascunho provisório (TX1)",
+      "limite_palavras": null
+    },
+    {
       "id": "A8.SISTEMA.AGORA_NAO",
       "texto": "Agora não",
       "contexto": "Convite PWA: recusar (repete após 5 Vigílias, doc 11 §4)",
@@ -396,6 +402,36 @@
       "id": "A9.SANTUARIO.REEMBOLSAR_CONFIRMA",
       "texto": "Esquecer o que esta árvore lembra?",
       "contexto": "Árvore: confirmação do reembolso (doc 11 §3.13); placeholder até o roteiro (doc 17)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A9.SANTUARIO.ALMAS",
+      "texto": "Almas: {almas}",
+      "contexto": "Santuário: barra superior, saldo de Almas (D10 SN1); rascunho provisório (TX1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A9.SANTUARIO.BRASAS",
+      "texto": "Brasas: {brasas}",
+      "contexto": "Santuário: barra superior, Brasas só contadas (D10 SN1, D9 AN3); rascunho provisório (TX1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A9.SANTUARIO.SEM_ALMAS",
+      "texto": "Almas insuficientes",
+      "contexto": "Árvore: recusa de compra sem Almas (D10 FD2); rascunho provisório (TX1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A9.SANTUARIO.ISELDA_FALA_01",
+      "texto": "A Chama guarda o que você foi. Comece por aqui.",
+      "contexto": "Santuário: Iselda apresenta a árvore, na primeira chegada depois do primeiro Apagar (D10 GA2); rascunho provisório até o roteiro (TX1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A9.SANTUARIO.VOLTAR",
+      "texto": "Voltar",
+      "contexto": "Árvore: botão que fecha o painel de Iselda (D10 FD1); rascunho provisório (TX1)",
       "limite_palavras": null
     },
     {

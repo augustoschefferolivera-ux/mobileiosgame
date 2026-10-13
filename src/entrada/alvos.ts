@@ -208,6 +208,74 @@ export function alvosDoResultado(insets: Insets, out: Alvo[]): Alvo[] {
   return out;
 }
 
+/**
+ * Santuário (design/decisoes-F-010.md SN1): o botão Vigília (288 × 72 pt, na base, acima do inset) e Iselda (alvo de 96 pt
+ * em volta do círculo de brasa de 56 pt, no alto da área útil). O convite da Tela de Início tem o seu botão.
+ */
+export const ISELDA = { alvo: 96, circulo: 56 } as const;
+
+export function alvosDoSantuario(insets: Insets, out: Alvo[]): Alvo[] {
+  const larguraUtil = LARGURA_LOGICA - insets.esquerda - insets.direita;
+  const largura = Math.max(ALVO_MINIMO_PT, Math.min(BOTAO_DA_PAUSA.largura, larguraUtil));
+  const x = insets.esquerda + (larguraUtil - largura) / 2;
+  const cx = insets.esquerda + larguraUtil / 2;
+  out.length = 0;
+  out.push({ id: 'vigilia', x, y: ALTURA_LOGICA - insets.baixo - MARGEM_DO_CONTINUAR - BOTAO_DA_PAUSA.altura, largura, altura: BOTAO_DA_PAUSA.altura });
+  out.push({ id: 'iselda', x: cx - ISELDA.alvo / 2, y: insets.topo + 96, largura: ISELDA.alvo, altura: ISELDA.alvo });
+  return out;
+}
+
+/** Convite "Adicionar à Tela de Início" (PW3): o botão Agora não, no pé do painel, acima do botão Vigília. */
+export function alvosDoConvite(insets: Insets, out: Alvo[]): Alvo[] {
+  const base = alvosDoSantuario(insets, []);
+  const v = base[0]!;
+  out.length = 0;
+  out.push({ id: 'agoraNao', x: v.x, y: v.y - ENTRE_BOTOES - v.altura, largura: v.largura, altura: v.altura });
+  return out;
+}
+
+/** A grade da árvore da Fundação (FD1): 2 colunas × 4 linhas, as linhas de até 96 pt; o painel de detalhe fica abaixo dela. */
+export const ARVORE = { colunas: 2, linhas: 4, linhaMax: 96, entre: 8, margem: 16, topoDoTitulo: 48, painelMin: 150, rodapeEntre: 12 } as const;
+
+export interface MedidasDaArvore {
+  /** Esquerda da primeira coluna, topo da grade, altura de cada linha e largura de cada coluna. */
+  readonly x0: number;
+  readonly yDaGrade: number;
+  readonly linha: number;
+  readonly coluna: number;
+  /** Topo do rodapé (Reembolsar e Voltar). */
+  readonly yDoRodape: number;
+  /** O painel de detalhe, entre o fim da grade e o rodapé. */
+  readonly painelY: number;
+  readonly painelAltura: number;
+}
+
+/** A linha encolhe de 96 até 72 pt se os insets pedem; o painel de detalhe fica com o resto. */
+export function medidasDaArvore(insets: Insets): MedidasDaArvore {
+  const a = ARVORE;
+  const larguraUtil = LARGURA_LOGICA - insets.esquerda - insets.direita - 2 * a.margem;
+  const coluna = Math.max(ALVO_MINIMO_PT, (larguraUtil - a.entre) / a.colunas);
+  const x0 = insets.esquerda + (LARGURA_LOGICA - insets.esquerda - insets.direita - (2 * coluna + a.entre)) / 2;
+  const yDoRodape = ALTURA_LOGICA - insets.baixo - a.rodapeEntre - ALVO_MINIMO_PT;
+  const yDaGrade = insets.topo + a.topoDoTitulo;
+  const sobra = yDoRodape - a.rodapeEntre - yDaGrade - a.painelMin - (a.linhas - 1) * a.entre;
+  const linha = Math.max(ALVO_MINIMO_PT, Math.min(a.linhaMax, Math.floor(sobra / a.linhas)));
+  const fim = yDaGrade + a.linhas * linha + (a.linhas - 1) * a.entre;
+  return { x0, yDaGrade, linha, coluna, yDoRodape, painelY: fim + a.entre, painelAltura: yDoRodape - a.rodapeEntre - fim - a.entre };
+}
+
+/** Alvos da árvore: `no0` a `no7` (ordem de `arvore.json`), Reembolsar e Voltar no rodapé (72 pt). */
+export function alvosDaArvore(insets: Insets, out: Alvo[]): Alvo[] {
+  const m = medidasDaArvore(insets);
+  out.length = 0;
+  for (let i = 0; i < 8; i++) {
+    out.push({ id: `no${i}`, x: m.x0 + (i % ARVORE.colunas) * (m.coluna + ARVORE.entre), y: m.yDaGrade + Math.floor(i / ARVORE.colunas) * (m.linha + ARVORE.entre), largura: m.coluna, altura: m.linha });
+  }
+  out.push({ id: 'reembolsar', x: m.x0, y: m.yDoRodape, largura: m.coluna, altura: ALVO_MINIMO_PT });
+  out.push({ id: 'voltar', x: m.x0 + m.coluna + ARVORE.entre, y: m.yDoRodape, largura: m.coluna, altura: ALVO_MINIMO_PT });
+  return out;
+}
+
 /** Caixa da opção de números (P9): 28 pt com borda de 2 pt, a 20 pt da direita da linha, centrada na altura. */
 export const CAIXA_DA_OPCAO = { lado: 28, borda: 2, margem: 20 } as const;
 
@@ -277,4 +345,7 @@ export const ALVOS_POR_TELA: Record<string, (insets: Insets, out: Alvo[]) => Alv
   cartas: alvosDasCartas,
   bau: alvosDoBau,
   fogueira: alvosDaFogueira,
+  santuario: alvosDoSantuario,
+  convite: alvosDoConvite,
+  arvore: alvosDaArvore,
 };
