@@ -6,6 +6,8 @@
 // A F-009 (layout 9) traz o elo 8 → 9. Módulo puro, sem I/O.
 
 import { BYTES_DO_LAYOUT_8, CAB, CHEFE_U16, LAYOUT, SEM_CHEFE } from '../nucleo/estado';
+import { NUMERO_DE_NOS } from '../progressao/fundacao';
+import type { Meta } from './meta';
 
 /** O envelope lido do JSON, ainda sem tipo (a validação vem depois da migração). */
 export type EnvelopeBruto = Record<string, unknown>;
@@ -57,6 +59,29 @@ export function migrarLayout(bytes: Uint8Array, de: number, ate: number, cadeia:
   for (let l = de; l < ate; l++) {
     const passo = cadeia[l];
     if (passo === undefined) return null;
+    atual = passo(atual);
+  }
+  return atual;
+}
+
+/** `vN → vN+1` sobre o meta já lido e validado na versão `N` (os campos que a versão não tinha vêm com o padrão; MT2). */
+export type MigracaoDeMeta = (meta: Meta) => Meta;
+
+/**
+ * Cadeia do meta (D10 MT2); índice 0 = v1 → v2. A 1 → 2 acrescenta `brasas` 0 (F-009); a 2 → 3 acrescenta a Fundação zerada
+ * (ranks 0, `gasto` 0), os marcos em 0 e o convite sem recusa (F-010). A soma é refeita na gravação.
+ */
+export const MIGRACOES_DO_META: readonly MigracaoDeMeta[] = [
+  (m) => ({ ...m, versao: 2, brasas: 0, soma: '' }),
+  (m) => ({ ...m, versao: 3, fundacao: { ranks: new Array<number>(NUMERO_DE_NOS).fill(0), gasto: 0 }, marcos: 0, conviteRecusadoEm: null, soma: '' }),
+];
+
+/** Leva o meta da versão `de` até `ate` pela cadeia. Sem elo (versão futura ou 0), devolve o meta como está: quem chama já recusou essas. */
+export function migrarMeta(meta: Meta, de: number, ate: number, cadeia: readonly MigracaoDeMeta[] = MIGRACOES_DO_META): Meta {
+  let atual = meta;
+  for (let v = de; v < ate; v++) {
+    const passo = cadeia[v - 1];
+    if (passo === undefined) return atual;
     atual = passo(atual);
   }
   return atual;

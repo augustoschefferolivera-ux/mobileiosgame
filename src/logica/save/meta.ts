@@ -5,8 +5,22 @@
 import { CAUSA_DO_FIM, LIMITE_DE_ALMAS } from '../nucleo/estado';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA } from '../mundo/toro';
 import type { ResultadoDaVigilia } from '../mundo/vigilia';
+import { NOS_DA_FUNDACAO, NUMERO_DE_NOS } from '../progressao/fundacao';
+import { migrarMeta } from './migracoes';
 
-export const VERSAO_DO_META = 2;
+export const VERSAO_DO_META = 3;
+
+/** Bits de `Meta.marcos` (D10 MT1): o que o Santuário já mostrou ao jogador. */
+export const MARCO = { balaoCinzas: 1, iselda: 2 } as const;
+/** Saldo mínimo depois do primeiro Apagar ou A Fome (GA1, Q-20). */
+export const ALMAS_GARANTIDAS = 300;
+const TODOS_OS_MARCOS = MARCO.balaoCinzas | MARCO.iselda;
+
+/** A árvore da Fundação no meta (D10 MT1): um rank u8 por nó, na ordem de `arvore.json`, e o que já se pagou (para reembolsar). */
+export interface FundacaoDoMeta {
+  readonly ranks: readonly number[];
+  readonly gasto: number;
+}
 
 /** A mancha das Cinzas Perdidas guardada: posição, Hora (1 a 5), rótulo da capela (null no MVP) e Almas (SV3). */
 export interface ManchaDoMeta {
@@ -42,6 +56,12 @@ export interface Meta {
   /** Neutros até a F-008 (retomada) e a F-010. */
   readonly proximaIdVigilia: number;
   readonly ultimaEncerrada: number | null;
+  /** Ranks da Fundação e o gasto (F-010, versão 3 do meta). */
+  readonly fundacao: FundacaoDoMeta;
+  /** Máscara de MARCO (balão das Cinzas, apresentação de Iselda; versão 3). */
+  readonly marcos: number;
+  /** `vigiliasConcluidas` da recusa do convite "Adicionar à Tela de Início", ou null (versão 3). */
+  readonly conviteRecusadoEm: number | null;
 }
 
 export function metaPadrao(): Meta {
@@ -58,6 +78,9 @@ export function metaPadrao(): Meta {
     vigiliasConcluidas: 0,
     proximaIdVigilia: 1,
     ultimaEncerrada: null,
+    fundacao: { ranks: new Array<number>(NUMERO_DE_NOS).fill(0), gasto: 0 },
+    marcos: 0,
+    conviteRecusadoEm: null,
   };
 }
 
@@ -89,7 +112,7 @@ function hex16(v: number): string {
 
 /** O texto que a soma confere: o objeto sem a soma, com as chaves na ordem fixa. */
 function corpoDoMeta(m: Meta): string {
-  // A versão 1 não tinha `brasas`: a soma dela é conferida sem o campo (a migração 1 → 2 em `lerMeta`).
+  // As versões antigas conferem a soma sem os campos que ainda não existiam (a migração em `examinarMeta`).
   return JSON.stringify({
     versao: m.versao,
     seq: m.seq,
@@ -102,6 +125,7 @@ function corpoDoMeta(m: Meta): string {
     vigiliasConcluidas: m.vigiliasConcluidas,
     proximaIdVigilia: m.proximaIdVigilia,
     ultimaEncerrada: m.ultimaEncerrada,
+    ...(m.versao >= 3 ? { fundacao: { ranks: m.fundacao.ranks, gasto: m.fundacao.gasto }, marcos: m.marcos, conviteRecusadoEm: m.conviteRecusadoEm } : {}),
   });
 }
 
@@ -121,23 +145,50 @@ function lerMancha(v: unknown): ManchaDoMeta | null | undefined {
   return { x: m.x as number, y: m.y as number, hora: m.hora, rotulo: null, almas: m.almas };
 }
 
+function lerFundacao(v: unknown): FundacaoDoMeta | undefined {
+  if (typeof v !== 'object' || v === null) return undefined;
+  const f = v as Record<string, unknown>;
+  if (!Array.isArray(f.ranks) || f.ranks.length !== NUMERO_DE_NOS || !inteiro(f.gasto, 0, LIMITE_DE_ALMAS - 1)) return undefined;
+  let soma = 0;
+  for (let i = 0; i < NUMERO_DE_NOS; i++) {
+    const n = NOS_DA_FUNDACAO[i]!;
+    // Rank inteiro de 0 ao máximo do nó; os nós bloqueados só valem 0 (FD8).
+    if (!inteiro(f.ranks[i], 0, n.ativo ? n.ranks : 0)) return undefined;
+    soma += f.ranks[i] as number;
+  }
+  // Ranks comprados sem nada pago não existem (o `gasto` é a soma do que se pagou).
+  if (soma > 0 && f.gasto === 0) return undefined;
+  return { ranks: [...(f.ranks as number[])], gasto: f.gasto };
+}
+
+/** O resultado de `examinarMeta`: o meta (os padrões se o texto não vale), se o texto valia e a versão em que foi gravado. */
+export interface MetaExaminado {
+  readonly meta: Meta;
+  readonly valido: boolean;
+  readonly versaoLida: number;
+}
+
 /**
- * Lê o texto gravado (SV9): texto ausente, JSON quebrado, soma errada, campo fora do tipo ou versão desconhecida
- * dão os padrões, sem lançar; a versão 0 (sem campo `versao`) migra para os padrões. A versão 1 migra para a 2 com
- * `brasas` 0 (F-009), conferida pela soma da própria versão. Nunca devolve o objeto lido.
+ * Lê o texto gravado (SV9, MT2): texto ausente, JSON quebrado, soma errada, campo fora do tipo ou versão desconhecida
+ * (inclusive a maior que a do código) dão os padrões, sem lançar; a versão 0 (sem campo `versao`) também. As versões 1 e 2
+ * conferem a soma da própria versão e migram em cadeia até a atual (`migracoes.ts`: 1 → 2 com `brasas` 0; 2 → 3 com a
+ * Fundação zerada). Nunca devolve o objeto lido.
  */
-export function lerMeta(texto: string | null): Meta {
-  if (texto === null) return metaPadrao();
+export function examinarMeta(texto: string | null): MetaExaminado {
+  const padrao = { meta: metaPadrao(), valido: false, versaoLida: VERSAO_DO_META };
+  if (texto === null) return padrao;
   try {
     const bruto: unknown = JSON.parse(texto);
-    if (typeof bruto !== 'object' || bruto === null) return metaPadrao();
+    if (typeof bruto !== 'object' || bruto === null) return padrao;
     const o = bruto as Record<string, unknown>;
-    const v1 = o.versao === 1;
-    if ((!v1 && o.versao !== VERSAO_DO_META) || typeof o.soma !== 'string') return metaPadrao();
+    const v = o.versao;
+    if (!(v === 1 || v === 2 || v === 3) || typeof o.soma !== 'string') return padrao;
     const op = o.opcoes as Record<string, unknown> | null;
     const mancha = lerMancha(o.mancha);
+    const fundacao = v >= 3 ? lerFundacao(o.fundacao) : metaPadrao().fundacao;
     if (
       mancha === undefined ||
+      fundacao === undefined ||
       op === null ||
       typeof op !== 'object' ||
       typeof op.som !== 'boolean' ||
@@ -145,21 +196,23 @@ export function lerMeta(texto: string | null): Meta {
       typeof op.numerosDeDano !== 'boolean' ||
       !inteiro(o.seq, 0, LIMITE_DE_ALMAS - 1) ||
       !inteiro(o.almas, 0, LIMITE_DE_ALMAS - 1) ||
-      !(v1 || inteiro(o.brasas, 0, LIMITE_DE_ALMAS - 1)) ||
+      !(v < 2 || inteiro(o.brasas, 0, LIMITE_DE_ALMAS - 1)) ||
       !inteiro(o.tutoriais, 0, 7) ||
       typeof o.primeiroApagarFeito !== 'boolean' ||
       !inteiro(o.vigiliasConcluidas, 0, LIMITE_DE_ALMAS - 1) ||
       !inteiro(o.proximaIdVigilia, 1, LIMITE_DE_ALMAS - 1) ||
-      !(o.ultimaEncerrada === null || inteiro(o.ultimaEncerrada, 0, LIMITE_DE_ALMAS - 1))
+      !(o.ultimaEncerrada === null || inteiro(o.ultimaEncerrada, 0, LIMITE_DE_ALMAS - 1)) ||
+      !(v < 3 || inteiro(o.marcos, 0, TODOS_OS_MARCOS)) ||
+      !(v < 3 || o.conviteRecusadoEm === null || inteiro(o.conviteRecusadoEm, 0, LIMITE_DE_ALMAS - 1))
     ) {
-      return metaPadrao();
+      return padrao;
     }
     const lido: Meta = {
-      versao: v1 ? 1 : VERSAO_DO_META,
+      versao: v,
       seq: o.seq,
       soma: o.soma,
       almas: o.almas,
-      brasas: v1 ? 0 : (o.brasas as number),
+      brasas: v < 2 ? 0 : (o.brasas as number),
       mancha,
       tutoriais: o.tutoriais,
       primeiroApagarFeito: o.primeiroApagarFeito,
@@ -167,13 +220,21 @@ export function lerMeta(texto: string | null): Meta {
       vigiliasConcluidas: o.vigiliasConcluidas,
       proximaIdVigilia: o.proximaIdVigilia,
       ultimaEncerrada: o.ultimaEncerrada,
+      fundacao,
+      marcos: v < 3 ? 0 : (o.marcos as number),
+      conviteRecusadoEm: v < 3 ? null : (o.conviteRecusadoEm as number | null),
     };
-    if (somaDoTexto(corpoDoMeta(lido)) !== o.soma) return metaPadrao();
-    // Migração 1 → 2: o resto fica; a soma nova nasce na próxima gravação.
-    return v1 ? { ...lido, versao: VERSAO_DO_META, soma: '' } : lido;
+    if (somaDoTexto(corpoDoMeta(lido)) !== o.soma) return padrao;
+    // A soma nova nasce na próxima gravação (a migração limpa a velha).
+    return { meta: v === VERSAO_DO_META ? lido : migrarMeta(lido, v, VERSAO_DO_META), valido: true, versaoLida: v };
   } catch {
-    return metaPadrao();
+    return padrao;
   }
+}
+
+/** `examinarMeta` sem o diagnóstico: o meta migrado, ou os padrões. */
+export function lerMeta(texto: string | null): Meta {
+  return examinarMeta(texto).meta;
 }
 
 /** Uma gravação lógica a mais: `seq` cresce sempre. */
@@ -203,8 +264,11 @@ export function aplicarFimDeVigilia(m: Meta, r: ResultadoDaVigilia): Meta {
   const soma = m.almas + r.almasAoSantuario;
   const cria = r.causa === CAUSA_DO_FIM.apagar || r.causa === CAUSA_DO_FIM.aFome;
   const mancha: ManchaDoMeta | null = cria ? r.mancha : r.recuperouMancha ? null : m.mancha;
+  const creditadas = soma < LIMITE_DE_ALMAS ? soma : LIMITE_DE_ALMAS - 1;
+  // GA1 (D10): no 1º Apagar ou A Fome o saldo é completado até 300 só se estiver abaixo (Q-20), na mesma gravação do crédito.
+  const garantia = cria && !m.primeiroApagarFeito && creditadas < ALMAS_GARANTIDAS ? ALMAS_GARANTIDAS : creditadas;
   return proximo(m, {
-    almas: soma < LIMITE_DE_ALMAS ? soma : LIMITE_DE_ALMAS - 1,
+    almas: garantia,
     brasas: Math.min(LIMITE_DE_ALMAS - 1, m.brasas + r.brasas),
     mancha,
     primeiroApagarFeito: m.primeiroApagarFeito || cria,

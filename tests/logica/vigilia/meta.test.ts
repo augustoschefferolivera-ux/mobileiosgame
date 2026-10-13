@@ -66,7 +66,7 @@ describe('ler e gravar (SV1, SV9)', () => {
       JSON.stringify({ ...bom, almas: -1 }),
       JSON.stringify({ ...bom, almas: LIMITE_DE_ALMAS }),
       JSON.stringify({ ...bom, almas: 1.5 }),
-      JSON.stringify({ ...bom, versao: 3 }),
+      JSON.stringify({ ...bom, versao: 4 }),
       JSON.stringify({ ...bom, versao: 0 }),
       JSON.stringify({ almas: 5 }),
       JSON.stringify({ ...bom, mancha: { x: -1, y: 0, hora: 1, rotulo: null, almas: 3 } }),
@@ -109,14 +109,15 @@ describe('aplicarFimDeVigilia (SV1, SV7, MC3, MC8, PE6, RS8)', () => {
 
   it('Apagar: soma ao Santuário, a mancha nova substitui a antiga (recuperada ou não) e liga o primeiro Apagar', () => {
     const m = aplicarFimDeVigilia(comAntiga, resultado({}));
-    expect([m.almas, m.mancha?.almas, m.primeiroApagarFeito, m.vigiliasConcluidas]).toEqual([80, 30, true, 1]);
+    // 10 + 70 = 80 fica abaixo de 300: a garantia do 1º Apagar completa o saldo (GA1).
+    expect([m.almas, m.mancha?.almas, m.primeiroApagarFeito, m.vigiliasConcluidas]).toEqual([300, 30, true, 1]);
     const r = aplicarFimDeVigilia(comAntiga, resultado({ recuperouMancha: true, almas: 140, almasAoSantuario: 98, mancha: { x: 1, y: 2, hora: 4, rotulo: null, almas: 42 } }));
     expect(r.mancha?.almas).toBe(42);
   });
 
   it('Apagar com 0 ou 1 Alma apaga a antiga (nova = null)', () => {
     const m = aplicarFimDeVigilia(comAntiga, resultado({ almas: 1, almasAoSantuario: 1, mancha: null }));
-    expect([m.mancha, m.almas]).toEqual([null, 11]);
+    expect([m.mancha, m.almas]).toEqual([null, 300]); // 11 + a garantia do 1º Apagar (GA1)
   });
 
   it('Abandonar: mantém a antiga se não recuperou, consome se recuperou; não liga o primeiro Apagar', () => {
@@ -146,11 +147,11 @@ describe('meta v2: brasas (F-009 AN3, FM3, F-009.15)', () => {
     return JSON.stringify({ ...corpo, soma: somaDoTexto(JSON.stringify(corpo)) });
   };
 
-  it('o meta da versão 1 migra para a 2 com brasas 0 e o resto intacto; a gravação seguinte já é a versão 2', () => {
+  it('o meta da versão 1 migra (pela 2 até a 3) com brasas 0 e o resto intacto; a gravação seguinte já é a versão atual', () => {
     const m = lerMeta(textoV1());
-    expect([m.versao, m.brasas, m.seq, m.almas, m.tutoriais, m.primeiroApagarFeito, m.vigiliasConcluidas, m.opcoes.som]).toEqual([2, 0, 7, 123, 3, true, 4, false]);
+    expect([m.versao, m.brasas, m.seq, m.almas, m.tutoriais, m.primeiroApagarFeito, m.vigiliasConcluidas, m.opcoes.som]).toEqual([3, 0, 7, 123, 3, true, 4, false]);
     expect(lerMeta(serializarMeta(m))).toEqual({ ...m, soma: lerMeta(serializarMeta(m)).soma });
-    expect(JSON.parse(serializarMeta(m)).versao).toBe(2);
+    expect(JSON.parse(serializarMeta(m)).versao).toBe(3);
   });
 
   it('o v1 com a soma errada ou um campo fora do tipo cai nos padrões, como antes', () => {

@@ -167,7 +167,7 @@ describe('crédito do meta uma vez (SV7)', () => {
     v.verificarFase();
     v.verificarFase();
     const m = ctx.meta.atual;
-    expect([m.almas, m.mancha?.almas, m.primeiroApagarFeito, m.vigiliasConcluidas]).toEqual([70, 30, true, 1]);
+    expect([m.almas, m.mancha?.almas, m.primeiroApagarFeito, m.vigiliasConcluidas]).toEqual([300, 30, true, 1]); // 70 + a garantia do 1º Apagar (GA1)
     expect(resultado.mostrarApagando).toHaveBeenCalledTimes(1);
     const [e] = ctx.telemetria.eventos().filter((x) => x.evento === 'apagar');
     expect([e!.campos['almas'], e!.campos['causa'], e!.campos['nivel']]).toEqual([100, 'apagar', estado.progresso[PROGRESSAO.nivel]]);
