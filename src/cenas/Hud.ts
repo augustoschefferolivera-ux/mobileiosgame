@@ -128,6 +128,8 @@ export class Hud extends Phaser.Scene {
   private readonly posicoesDoRelogio = { relogioX: 0, hora: 0, y: 0 };
   private segundosDesenhados = -1;
   private piscaDesenhada = 0;
+  /** O Hud escondido pelo Amanhecer (a pausa também o esconde, por conta própria; só a troca desta bandeira mexe na visibilidade). */
+  private escondidoNoAmanhecer = false;
   private horaDesenhada = -1;
   private readonly posicaoDeAlmas = { x: 0, y: 0 };
   /** As Almas que o HUD já mostra; -1 = nada ainda. */
@@ -194,6 +196,7 @@ export class Hud extends Phaser.Scene {
     this.horaTexto = texto(this, 0, 0, 'A5.HUD.HORA', HUD_DO_RELOGIO.corpoDaHora, COR.sal, { hora: 'I' }).setOrigin(0, 0);
     this.segundosDesenhados = this.horaDesenhada = -1;
     this.piscaDesenhada = 0;
+    this.escondidoNoAmanhecer = false;
     this.vinheta = null;
     this.alfaDaVinhetaDesenhado = 0;
     this.retardo.reiniciar();
@@ -592,7 +595,10 @@ export class Hud extends Phaser.Scene {
     const sim = this.ctx.simulacao;
     // O Amanhecer esconde o HUD inteiro (F-009 AN4): 10 s de céu, sem barras nem botões.
     const semHud = sim !== null && (sim.estado.jogador4U8[JOGADOR4_U8.fase] === FASE.amanhecer || (sim.estado.jogador4U8[JOGADOR4_U8.fase] === FASE.fim && sim.estado.jogador4U8[JOGADOR4_U8.causaDoFim] === CAUSA_DO_FIM.amanhecer));
-    if (semHud === this.scene.isVisible()) this.scene.setVisible(!semHud);
+    if (semHud !== this.escondidoNoAmanhecer) {
+      this.escondidoNoAmanhecer = semHud;
+      this.scene.setVisible(!semHud);
+    }
     const mostrar = sim === null ? -1 : promptEmTela(sim.estado);
     if (mostrar !== this.promptMostrado) this.trocarPrompt(mostrar);
     if (sim !== null) {
