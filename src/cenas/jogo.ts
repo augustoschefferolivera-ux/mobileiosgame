@@ -18,8 +18,10 @@ import { criarDadosDaCharneca } from '../plataforma/dadosDaVigilia';
 import { ArmazenamentoDoMeta } from '../plataforma/armazenamento';
 import { ArmazenamentoDaVigilia } from '../plataforma/vigiliaGuardada';
 import { RegistroDeTelemetria } from '../plataforma/telemetria';
+import { pedirPersistencia } from '../plataforma/pwa';
 import { suportaWebGL } from '../plataforma/webgl';
 import { Acender } from './Acender';
+import { Santuario } from './Santuario';
 import { FeedbackDaInterface } from './feedback';
 import { Boot } from './Boot';
 import { Resultado } from './Resultado';
@@ -85,6 +87,10 @@ export function iniciarJogo(): Phaser.Game | null {
     vistos: params.vistos,
     inicio: params.inicio,
     almasIniciais: params.almas,
+    passaPeloSantuario: params.santuario,
+    fundacaoDeDebug: params.fundacao,
+    santuario: null,
+    persistido: null,
     meta: { armazenamento: armazenamentoDoMeta, atual: meta },
     vigiliaGuardada: new ArmazenamentoDaVigilia(),
     retomada: null,
@@ -149,8 +155,10 @@ export function iniciarJogo(): Phaser.Game | null {
         if (ehBuildDeDebug) ligarTecladoDeDebug(window, ctx.entrada.tradutor.teclado, () => ctx.entrada.tradutor.pedirEsquivaDoTeclado());
       },
     },
-    scene: [new Boot(ctx), new Acender(ctx), new Vigilia(ctx), new Hud(ctx), new Fogueira(ctx), new Modal(ctx), new Pausa(ctx), new Resultado(ctx)],
+    scene: [new Boot(ctx), new Acender(ctx), new Santuario(ctx), new Vigilia(ctx), new Hud(ctx), new Fogueira(ctx), new Modal(ctx), new Pausa(ctx), new Resultado(ctx)],
   });
+  // ST2: no boot, em standalone, pede o armazenamento persistente (a resposta vai ao __GAME_DEBUG__; falha não bloqueia).
+  void pedirPersistencia(navigator, window).then((r) => (ctx.persistido = r));
   const debug = instalarDebug(jogo, ctx);
   if (ctx.debug) instalarPainelDeDebug(document, () => instantaneoDoDebug(debug));
   return jogo;

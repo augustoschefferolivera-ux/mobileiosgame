@@ -27,11 +27,12 @@ export interface SondaPendente {
   readonly identidade: IdentidadeDoCache;
 }
 import type { MedidorDeQuadros } from './medidas';
+import type { EstadoDoSantuario } from './modeloDoSantuario';
 import type { FeedbackDaInterface } from './feedback';
 import type { EfeitosDaVigilia } from './render/efeitos';
 import type { EscritorDaHorda } from './render/escritores';
 
-export type Tela = 'BOOT' | 'ACENDER' | 'VIGILIA' | 'RESULTADO';
+export type Tela = 'BOOT' | 'ACENDER' | 'SANTUARIO' | 'VIGILIA' | 'RESULTADO';
 
 export interface Simulacao {
   estado: Estado;
@@ -97,6 +98,14 @@ export interface ContextoDoJogo {
   readonly inicio: number | null;
   /** ?almas=N (só no build de debug): Almas iniciais da Vigília, fora do meta (decisoes-F-007 MC12); null sem o parâmetro. */
   readonly almasIniciais: number | null;
+  /** ?santuario=1 (só no build de debug): `?cenario` e `?inicio` também passam pelo Santuário (D10 SN4). */
+  readonly passaPeloSantuario: boolean;
+  /** ?fundacao=a,f,c,b,m (só no build de debug; D10 FD12): os ranks de debug, que valem no lugar dos do meta e não o gravam; null sem o parâmetro. */
+  readonly fundacaoDeDebug: readonly number[] | null;
+  /** O estado do Santuário (selecionado, árvore aberta...) enquanto a cena existe, para o debug; null fora dela. */
+  santuario: EstadoDoSantuario | null;
+  /** Resultado do `navigator.storage.persist()` em standalone (true, false, ou null sem a API ou fora do modo instalado; D10 ST2). */
+  persistido: boolean | null;
   /** O meta: o armazenamento (localStorage com queda para a memória) e a cópia lida no boot, a que o fim da Vigília atualiza. */
   readonly meta: { readonly armazenamento: ArmazenamentoDoMeta; atual: Meta };
   /** O `vigilia` e o `andamento` guardados (F-008 SV2): o gravador escreve, o Acender lê. */

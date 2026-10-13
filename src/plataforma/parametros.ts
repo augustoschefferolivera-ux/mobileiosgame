@@ -33,6 +33,10 @@ export interface Parametros {
   vistos: number | null;
   /** ?almas=N (só no build de debug): Almas dadas no início da Vigília, sem gravar no meta (decisoes-F-007 MC12); null sem o parâmetro e na produção. */
   almas: number | null;
+  /** ?santuario=1 (só no build de debug): `?cenario` e `?inicio` passam a levar da Tela de Acender ao Santuário (D10 SN4). */
+  santuario: boolean;
+  /** ?fundacao=a,f,c,b,m (só no build de debug; D10 FD12): ranks de Pele, Fôlego, Casco, Bigorna e Mãos, cada um de 0 ao máximo do nó; null sem o parâmetro ou se algum valor não vale. Não grava no meta. */
+  fundacao: readonly number[] | null;
 }
 
 const PRODUCAO: Parametros = {
@@ -48,6 +52,8 @@ const PRODUCAO: Parametros = {
   inicio: null,
   vistos: null,
   almas: null,
+  santuario: false,
+  fundacao: null,
 };
 
 export function lerParametros(busca: string, ehBuildDeDebug: boolean): Parametros {
@@ -71,6 +77,8 @@ export function lerParametros(busca: string, ehBuildDeDebug: boolean): Parametro
     inicio: lerInicio(p.get('inicio')),
     vistos: lerVistos(p.get('visto')),
     almas: lerAlmas(p.get('almas')),
+    santuario: p.get('santuario') === '1',
+    fundacao: lerFundacao(p.get('fundacao')),
   };
 }
 
@@ -89,6 +97,18 @@ function lerAlmas(texto: string | null): number | null {
   if (texto === null || !/^\d{1,10}$/.test(texto)) return null;
   const n = Number(texto);
   return n < LIMITE_DE_ALMAS ? n : null;
+}
+
+/** Máximo de cada rank do `?fundacao`, na ordem Pele, Fôlego, Casco, Bigorna e Mãos (a mesma de `arvore.json`). */
+const MAXIMO_DA_FUNDACAO_DE_DEBUG = [5, 5, 3, 3, 3] as const;
+
+/** Cinco inteiros separados por vírgula, cada um de 0 ao máximo do nó; qualquer outra coisa é ignorada, como ?seed. */
+function lerFundacao(texto: string | null): readonly number[] | null {
+  if (texto === null) return null;
+  const partes = texto.split(',');
+  if (partes.length !== MAXIMO_DA_FUNDACAO_DE_DEBUG.length || !partes.every((x) => /^\d$/.test(x))) return null;
+  const ranks = partes.map(Number);
+  return ranks.every((r, i) => r <= MAXIMO_DA_FUNDACAO_DE_DEBUG[i]!) ? ranks : null;
 }
 
 /** Bits dos nomes de TUTORIAL listados (valor desconhecido é ignorado); null sem o parâmetro. */

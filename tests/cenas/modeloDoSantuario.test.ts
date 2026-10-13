@@ -1,7 +1,7 @@
 // Santuário e árvore (design/decisoes-F-010.md SN1, FD1, FD2, FD9, GA2, PW3), sem Phaser: o modelo puro e os alvos.
 import { describe, expect, it } from 'vitest';
 import { ALVO_MINIMO_PT, alvosDaArvore, alvosDoSantuario, medidasDaArvore, type Alvo } from '../../src/entrada/alvos';
-import { abrirArvore, detalheDoNo, entrarNoSantuario, fecharArvore, iseldaApresenta, recusarConvite, tocarNo, tocarReembolsar } from '../../src/cenas/santuario';
+import { abrirArvore, detalheDoNo, entrarNoSantuario, fecharArvore, iseldaApresenta, recusarConvite, tocarNo, tocarReembolsar } from '../../src/cenas/modeloDoSantuario';
 import { NO } from '../../src/logica/progressao/fundacao';
 import { MARCO, metaPadrao, type Meta } from '../../src/logica/save/meta';
 import { ALTURA_LOGICA, insetsZerados } from '../../src/plataforma/safeArea';

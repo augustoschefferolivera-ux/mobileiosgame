@@ -119,10 +119,27 @@ export interface ParametrosDaFundacao {
 }
 
 export function parametrosDaFundacao(meta: Meta): ParametrosDaFundacao {
-  const r = meta.fundacao.ranks;
+  return parametrosDosRanks(meta.fundacao.ranks);
+}
+
+function parametrosDosRanks(r: readonly number[]): ParametrosDaFundacao {
   const maos = Math.min(r[NO.maos]!, RANK_MAXIMO_MAOS);
   return {
     fundacao: { pele: r[NO.pele]!, folego: r[NO.folego]!, casco: r[NO.casco]!, bigorna: r[NO.bigorna]! },
     armas: maos === 0 ? null : [{ codigo: ARMA.espada_longa_do_juramento, nivel: 1 + maos }],
   };
+}
+
+/**
+ * Os parâmetros do `?fundacao=a,f,c,b,m` de debug (FD12): os 5 ranks na ordem Pele, Fôlego, Casco, Bigorna e Mãos. Mesma regra
+ * do meta (Mãos 0 deixa `armas` nulo). Não toca no meta.
+ */
+export function parametrosDaFundacaoDeDebug(ranks: readonly number[]): ParametrosDaFundacao {
+  const r = new Array<number>(NUMERO_DE_NOS).fill(0);
+  r[NO.pele] = ranks[0]!;
+  r[NO.folego] = ranks[1]!;
+  r[NO.casco] = ranks[2]!;
+  r[NO.bigorna] = ranks[3]!;
+  r[NO.maos] = ranks[4]!;
+  return parametrosDosRanks(r);
 }
