@@ -311,6 +311,8 @@ export type TipoInjetado = keyof typeof TIPO_DE_TOQUE;
 export interface EntradaDebug {
   /** navigator.maxTouchPoints: toques simultâneos que o aparelho informa (5 no iPhone; conferir no aparelho, Q-29). */
   readonly maxToques: number;
+  /** O relógio que a camada de toque grava (F-010 PS5): 'timeStamp' do evento, ou 'performance' (performance.now()) se o aparelho o deu em outra origem; null antes do 1º toque. */
+  readonly relogioDeToque: 'timeStamp' | 'performance' | null;
   /** Joystick em pt lógicos; a origem fica com ativo = false depois de soltar (F-002.4); `criados` conta os donos desde o início da Vigília. */
   readonly joystick: { ativo: boolean; origemX: number; origemY: number; vx: number; vy: number; criados: number };
   /**
@@ -794,6 +796,9 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     entrada: {
       get maxToques() {
         return navigator.maxTouchPoints;
+      },
+      get relogioDeToque() {
+        return ctx.camada?.relogioDeToque ?? null;
       },
       get joystick() {
         const { ativo, origemX, origemY, vx, vy } = ctx.entrada.tradutor.joystick;

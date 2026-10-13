@@ -17,6 +17,10 @@ export function clienteParaPontos(clientX: number, clientY: number, caixa: Caixa
   out.y = ((clientY - caixa.top) * ALTURA_LOGICA) / caixa.height;
 }
 
+/** Um `timeStamp` a mais de 60 s do `performance.now()` está em outro relógio (o Safari do iOS já o deu em outra origem; D6 §10, D10 PS5). */
+export const RELOGIO_DE_TOQUE_SUSPEITO_MS = 60_000;
+export type RelogioDeToque = 'timeStamp' | 'performance';
+
 export class CamadaDeToque {
   private readonly ouvintes: AoSoltar[] = [];
   private readonly ponto = { x: 0, y: 0 };
@@ -24,12 +28,26 @@ export class CamadaDeToque {
   private readonly caixa: Caixa = { left: 0, top: 0, width: 0, height: 0 };
   private caixaValida = false;
   private mouseApertado = false;
+  /** O relógio dos toques, decidido no 1º toque (PS5); null antes dele. Sem depender do aparelho para existir. */
+  relogioDeToque: RelogioDeToque | null = null;
 
   constructor(
     private readonly alvo: HTMLElement,
     private readonly aceitarMouse: boolean,
     private readonly fila: FilaDeToques,
+    private readonly agora: () => number = () => performance.now(),
   ) {}
+
+  /**
+   * O instante do evento no relógio do quadro. No 1º toque compara `timeStamp` com `performance.now()`: se passarem de
+   * 60.000 ms de diferença, todos os toques da sessão passam a gravar `performance.now()` (PS5).
+   */
+  private instante(e: Event): number {
+    if (this.relogioDeToque === null) {
+      this.relogioDeToque = Math.abs(e.timeStamp - this.agora()) > RELOGIO_DE_TOQUE_SUSPEITO_MS ? 'performance' : 'timeStamp';
+    }
+    return this.relogioDeToque === 'timeStamp' ? e.timeStamp : this.agora();
+  }
 
   ligar(): void {
     this.alvo.addEventListener('touchstart', this.aoTouchStart, NAO_PASSIVO);
@@ -91,7 +109,7 @@ export class CamadaDeToque {
     for (let i = 0; i < e.changedTouches.length; i++) {
       const toque = e.changedTouches[i]!;
       this.paraPontos(toque.clientX, toque.clientY);
-      this.fila.empurrar(tipo, toque.identifier, this.ponto.x, this.ponto.y, e.timeStamp);
+      this.fila.empurrar(tipo, toque.identifier, this.ponto.x, this.ponto.y, this.instante(e));
     }
     this.fila.gravarRetrato(e.touches);
   }
@@ -102,7 +120,7 @@ export class CamadaDeToque {
     if (tipo === TIPO_DE_TOQUE.fim && !this.mouseApertado) return;
     this.mouseApertado = tipo !== TIPO_DE_TOQUE.fim;
     this.paraPontos(e.clientX, e.clientY);
-    this.fila.empurrar(tipo, ID_DO_MOUSE, this.ponto.x, this.ponto.y, e.timeStamp);
+    this.fila.empurrar(tipo, ID_DO_MOUSE, this.ponto.x, this.ponto.y, this.instante(e));
     if (tipo === TIPO_DE_TOQUE.fim) this.avisar(e.clientX, e.clientY);
   };
 
