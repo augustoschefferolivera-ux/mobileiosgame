@@ -9,8 +9,8 @@
 // do level up ou o Continuar do baú; design/decisoes-F-005.md M4 e M5): sem
 // joystick, botão de pausa nem gesto; cada toque que começa e solta no mesmo
 // alvo entra, em ordem, numa lista de até 8 por quadro. Na F-006 (decisoes-F-006
-// GE1 a GE3), o swipe do dedo do joystick e o toque duplo na área dele viram a
-// esquiva: o tradutor liga o bit `ACAO.esquiva` e a `mira` nos ComandosDoPasso
+// GE2 e GE3), o toque duplo na área do joystick vira a esquiva (o swipe do
+// dedo, GE1, foi removido a pedido do usuário; ADR-0012 §9): o tradutor liga o bit `ACAO.esquiva` e a `mira` nos ComandosDoPasso
 // e nunca os desliga (a fonte ao vivo consome a borda). Não aloca.
 import combate from '../dados/combate.json';
 import { ACAO, type ComandosDoPasso } from '../logica/nucleo/comandos';
@@ -33,14 +33,7 @@ const ACAO_DA_FOGUEIRA = [ACAO.descansar, ACAO.forjar, ACAO.partir] as const;
 
 /** Gesto de pausa (P3): "parado" = até 10 pt do ponto do touchstart, por pelo menos 500 ms (o UILongPressGestureRecognizer). */
 export const GESTO_DE_PAUSA = { movimentoMaximoPt: 10, duracaoMs: 500, dedos: 2 } as const;
-/** Swipe e toque duplo (combate.json, `gestos`): os números moram nos dados. */
-const SWIPE = {
-  velocidadeMinPtS: combate.gestos.swipe.velocidade_min_pt_s,
-  janelaMs: combate.gestos.swipe.janela_ms,
-  dtMinMs: combate.gestos.swipe.dt_min_ms,
-  distanciaMinPt: combate.gestos.swipe.distancia_min_pt,
-  amostras: combate.gestos.swipe.amostras,
-} as const;
+/** Toque duplo (combate.json, `gestos`): os números moram nos dados. */
 const TOQUE_DUPLO = {
   intervaloMaxMs: combate.gestos.toque_duplo.intervalo_max_ms,
   duracaoMaxMs: combate.gestos.toque_duplo.duracao_max_ms,
@@ -127,12 +120,6 @@ export class TradutorDeGestos {
   private readonly alvosDaPausa: Alvo[] = [];
   private readonly alvosDasCartas: Alvo[] = [];
   private readonly alvosDoBau: Alvo[] = [];
-  /** Anel de amostras (x, y, t) do dedo dono do joystick, para o swipe (GE1). */
-  private readonly amostras = new Float64Array(SWIPE.amostras * 3);
-  private nAmostras = 0;
-  private cabeca = 0;
-  /** O swipe só dispara de novo depois que a velocidade cai a 400 pt/s ou menos. */
-  private swipeArmado = true;
   /** O último toque curto na área do joystick, esperando o par do toque duplo (GE2). */
   private temToque = false;
   private toqueFimT = 0;
@@ -260,7 +247,6 @@ export class TradutorDeGestos {
           if (s === this.dono) {
             this.atualX = ev[i + 2]!;
             this.atualY = ev[i + 3]!;
-            this.avaliarSwipe(out, this.atualX, this.atualY, t);
           }
         } else {
           // O gesto pode completar entre o último quadro e o fim do dedo: avalia no instante do evento.
@@ -419,9 +405,6 @@ export class TradutorDeGestos {
           this.pedirEsquiva(this.saida, 0, 0);
         }
       }
-      this.nAmostras = this.cabeca = 0;
-      this.swipeArmado = true;
-      this.empurrarAmostra(x, y, t);
       this.papel[s] = PAPEL.joystick;
       this.dono = s;
       this.joystickCriados++;
@@ -481,52 +464,6 @@ export class TradutorDeGestos {
     const dy = y - this.inicioY[s]!;
     const m = this.papel[s] === PAPEL.joystick ? TOQUE_DUPLO.deslocamentoMaxPt : GESTO_DE_PAUSA.movimentoMaximoPt;
     if (dx * dx + dy * dy > m * m) this.parado[s] = 0;
-  }
-
-  private empurrarAmostra(x: number, y: number, t: number): void {
-    const k = (this.cabeca % SWIPE.amostras) * 3;
-    this.amostras[k] = x;
-    this.amostras[k + 1] = y;
-    this.amostras[k + 2] = t;
-    this.cabeca++;
-    if (this.nAmostras < SWIPE.amostras) this.nAmostras++;
-  }
-
-  /**
-   * Swipe (GE1): a cada move do dono do joystick, a amostra mais antiga dentro
-   * de 100 ms até a atual dá a velocidade e a direção. Dispara com Δt ≥ 16 ms,
-   * distância ≥ 24 pt e velocidade estritamente acima de 400 pt/s (comparada ao
-   * quadrado, sem divisão); só rearma quando a velocidade cai a 400 pt/s ou menos.
-   */
-  private avaliarSwipe(out: ComandosDoPasso, x: number, y: number, t: number): void {
-    if (this.modo !== 'vigilia') return;
-    this.empurrarAmostra(x, y, t);
-    const n = this.nAmostras;
-    let antiga = -1;
-    for (let k = 1; k < n; k++) {
-      const idx = ((this.cabeca - 1 - k + SWIPE.amostras * 2) % SWIPE.amostras) * 3;
-      const idade = t - this.amostras[idx + 2]!;
-      if (idade < 0 || idade > SWIPE.janelaMs) break;
-      antiga = idx;
-    }
-    if (antiga < 0) {
-      this.swipeArmado = true;
-      return;
-    }
-    const dt = t - this.amostras[antiga + 2]!;
-    if (dt < SWIPE.dtMinMs) return;
-    const dx = x - this.amostras[antiga]!;
-    const dy = y - this.amostras[antiga + 1]!;
-    const d2 = dx * dx + dy * dy;
-    const limite = SWIPE.velocidadeMinPtS * dt;
-    if (d2 * 1e6 > limite * limite) {
-      if (this.swipeArmado && d2 >= SWIPE.distanciaMinPt * SWIPE.distanciaMinPt) {
-        this.swipeArmado = false;
-        this.pedirEsquiva(out, dx, dy);
-      }
-    } else {
-      this.swipeArmado = true;
-    }
   }
 
   /** Fim de um toque curto e parado na área do joystick: fica esperando o par (GE2). */

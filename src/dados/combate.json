@@ -51,13 +51,6 @@
     "teto_por_fonte": 128
   },
   "gestos": {
-    "swipe": {
-      "velocidade_min_pt_s": 400,
-      "janela_ms": 100,
-      "dt_min_ms": 16,
-      "distancia_min_pt": 24,
-      "amostras": 16
-    },
     "toque_duplo": {
       "intervalo_max_ms": 250,
       "duracao_max_ms": 200,

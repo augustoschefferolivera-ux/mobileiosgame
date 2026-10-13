@@ -1,5 +1,5 @@
 // PS5 (design/decisoes-F-010.md, F-010.14): com o `timeStamp` do toque a mais de 60.000 ms de `performance.now()`, a camada de toque
-// grava `performance.now()` no lugar, e o swipe de teste continua reconhecido pelo tradutor.
+// grava `performance.now()` no lugar, e o toque duplo de teste continua reconhecido pelo tradutor.
 import { describe, expect, it } from 'vitest';
 import { CamadaDeToque, RELOGIO_DE_TOQUE_SUSPEITO_MS } from '../../src/entrada/camadaDeToque';
 import { FilaDeToques } from '../../src/entrada/filaDeToques';
@@ -48,17 +48,21 @@ describe('relógio dos toques (PS5)', () => {
     expect(90_000).toBeGreaterThan(RELOGIO_DE_TOQUE_SUSPEITO_MS);
   });
 
-  it('o swipe de teste (50 pt em 80 ms) continua reconhecido com o relógio trocado', () => {
+  it('o toque duplo de teste continua reconhecido com o relógio trocado', () => {
     const agora = { v: 1000 };
     const { fila, toque } = montar(agora);
     const trad = new TradutorDeGestos();
     trad.reiniciar();
     trad.definirArea(insetsZerados());
-    toque('touchstart', 100, 600, 1000 + 90_000);
-    agora.v = 1080;
-    toque('touchmove', 150, 600, 1080 + 90_000);
     const cmd = criarComandos();
-    trad.traduzir(fila, cmd, 1080);
+    toque('touchstart', 100, 600, 1000 + 90_000);
+    agora.v = 1100;
+    toque('touchend', 100, 600, 1100 + 90_000);
+    trad.traduzir(fila, cmd, 1100);
+    expect(cmd.acoes[0]).toBe(0);
+    agora.v = 1250;
+    toque('touchstart', 110, 600, 1250 + 90_000);
+    trad.traduzir(fila, cmd, 1250);
     expect(cmd.acoes[0]).toBe(ACAO.esquiva);
   });
 });

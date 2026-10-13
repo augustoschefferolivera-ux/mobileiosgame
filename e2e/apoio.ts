@@ -122,8 +122,8 @@ export async function esperarIguais(page: Page, a: Buffer, b: Buffer, rotulo: st
 }
 
 /**
- * Arrasto de um dedo a no máximo 150 pt/s (passos de 6 pt a cada 40 ms), para o joystick nunca contar como
- * swipe (400 pt/s; decisoes-F-006 GE1, VT5). `mover` envia cada ponto intermediário.
+ * Arrasto de um dedo a no máximo 150 pt/s (passos de 6 pt a cada 40 ms), como um polegar real no joystick.
+ * `mover` envia cada ponto intermediário.
  */
 export async function arrastarDevagar(
   page: Page,

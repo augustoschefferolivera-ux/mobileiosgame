@@ -1,5 +1,5 @@
-// F-006 na Playwright (projeto taps-game; design/decisoes-F-006.md VT7, VT8, VT9): F-006.5 (swipe e toque
-// duplo geram esquiva), F-006.6 (toque no botão Aparo no telegrafo), F-006.8 (prompts dos minutos 1 e 3), a
+// F-006 na Playwright (projeto taps-game; design/decisoes-F-006.md VT7, VT8, VT9): F-006.5 (arrasto rápido não esquiva,
+// toque duplo gera esquiva), F-006.6 (toque no botão Aparo no telegrafo), F-006.8 (prompts dos minutos 1 e 3), a
 // referência Node × Chromium e as evidências: o vídeo esquiva-e-aparo.webm e os quatro PNG de revisão.
 // As referências e o roteiro do vídeo vêm do Vitest (tests/logica/combate/referencias.test.ts).
 import { expect, test, type Page } from '@playwright/test';
@@ -101,7 +101,7 @@ async function imporRoteiro(page: Page, ref: ReferenciaF006): Promise<void> {
 // ---------------------------------------------------------------------------------------------------------------
 // F-006.5
 
-test('F-006.5: swipe sintético gera esquiva (e 385 pt/s não); dois toques curtos geram esquiva na última direção', async ({ page }) => {
+test('F-006.5: arrasto rápido do joystick não gera esquiva; dois toques curtos geram esquiva na última direção', async ({ page }) => {
   test.setTimeout(90_000);
   await abrir(page, SEM_HORDA);
   await tocarAcender(page);
@@ -110,7 +110,7 @@ test('F-006.5: swipe sintético gera esquiva (e 385 pt/s não); dois toques curt
   const antes = await estado();
   expect(antes.j.stamina).toBe(100);
   expect(antes.j.esquivaPasso).toBe(0);
-  // 50 pt em 80 ms = 625 pt/s (≥ 24 pt e > 400 pt/s); as marcas ficam a menos de 60 s do relógio do quadro.
+  // 50 pt em 80 ms (625 pt/s) foi um swipe; o swipe foi removido a pedido do usuário (ADR-0012 §9) e não esquiva mais.
   const injetar = (tipo: 'inicio' | 'move' | 'fim', id: number, x: number, y: number, dt: number) =>
     page.evaluate(([tipo, id, x, y, dt, t0]) => window.__GAME_DEBUG__.entrada.injetar(tipo!, id!, x!, y!, t0! + dt!), [tipo, id, x, y, dt, T0] as const);
   const T0 = await page.evaluate(() => Math.round(performance.now()));
@@ -119,22 +119,10 @@ test('F-006.5: swipe sintético gera esquiva (e 385 pt/s não); dois toques curt
   await quadros(page);
   await avancar(page, 1);
   const depois = await estado();
-  expect(depois.j.stamina).toBe(75);
-  expect(depois.j.esquivaPasso).toBeGreaterThan(0);
-  expect(depois.esquivas).toBe(1);
+  expect(depois.j.stamina).toBe(100);
+  expect(depois.j.esquivaPasso).toBe(0);
+  expect(depois.esquivas).toBe(0);
   await injetar('fim', 21, 150, 650, 90);
-  await quadros(page);
-  // Contraprova: 50 pt em 130 ms (385 pt/s) não gera esquiva (a igualdade exata em 400 pt/s fica no Vitest).
-  await avancar(page, 60);
-  const T1 = await page.evaluate(() => Math.round(performance.now()));
-  const lento = (tipo: 'inicio' | 'move' | 'fim', x: number, y: number, dt: number) =>
-    page.evaluate(([tipo, x, y, dt, t0]) => window.__GAME_DEBUG__.entrada.injetar(tipo!, 22, x!, y!, t0! + dt!), [tipo, x, y, dt, T1] as const);
-  await lento('inicio', 100, 700, 0);
-  await lento('move', 150, 700, 130);
-  await quadros(page);
-  await avancar(page, 1);
-  expect((await estado()).esquivas).toBe(1);
-  await lento('fim', 150, 700, 140);
   await quadros(page);
   await avancar(page, 60);
   // Toque duplo: dois toques de 100 ms, 150 ms entre eles e a 20 pt, geram esquiva (a última direção, sem mira).
@@ -240,12 +228,13 @@ test('F-006.8 (a): ?inicio=01:00 — o prompt de esquiva só no 1º telegrafo do
   }, tele.passo + 40);
   await quadros(page);
   expect(await page.evaluate(() => window.__GAME_DEBUG__.textoAtivo)).toContain('A2.TUTORIAL.02');
-  // Uma esquiva por swipe sintético o cumpre; o fade de 200 ms termina e o texto sai.
+  // Uma esquiva por toque duplo sintético a cumpre; o fade de 200 ms termina e o texto sai.
   const t0 = await page.evaluate(() => Math.round(performance.now()));
   await page.evaluate((t0) => {
     const d = window.__GAME_DEBUG__;
     d.entrada.injetar('inicio', 41, 100, 650, t0);
-    d.entrada.injetar('move', 41, 150, 650, t0 + 80);
+    d.entrada.injetar('fim', 41, 100, 650, t0 + 100);
+    d.entrada.injetar('inicio', 42, 120, 650, t0 + 250);
   }, t0);
   await quadros(page);
   await avancar(page, 1);

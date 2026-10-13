@@ -274,44 +274,9 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "swipe",
         "toque_duplo"
       ],
       "properties": {
-        "swipe": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "velocidade_min_pt_s",
-            "janela_ms",
-            "dt_min_ms",
-            "distancia_min_pt",
-            "amostras"
-          ],
-          "properties": {
-            "velocidade_min_pt_s": {
-              "type": "number",
-              "exclusiveMinimum": 0
-            },
-            "janela_ms": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "dt_min_ms": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "distancia_min_pt": {
-              "type": "number",
-              "exclusiveMinimum": 0
-            },
-            "amostras": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 64
-            }
-          }
-        },
         "toque_duplo": {
           "type": "object",
           "additionalProperties": false,

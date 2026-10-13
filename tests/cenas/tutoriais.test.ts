@@ -87,7 +87,7 @@ describe('prompts na tela (TU4, TU11)', () => {
   });
 
   it('os três textos existem em pt-BR.json, com o glifo ⟲ no do aparo', () => {
-    expect(t('A2.TUTORIAL.02')).toBe('Deslize rápido para esquivar');
+    expect(t('A2.TUTORIAL.02')).toBe('Toque duas vezes para esquivar');
     expect(t('A2.TUTORIAL.03')).toContain('⟲');
   });
 });

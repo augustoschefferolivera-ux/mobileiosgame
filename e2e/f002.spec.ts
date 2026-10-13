@@ -26,7 +26,7 @@ async function dedo(page: Page): Promise<{
       atual = { x, y };
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: await ponto(x, y) });
     },
-    // O arrasto vai a ≤ 150 pt/s: um salto rápido do joystick contaria como swipe (decisoes-F-006 GE1, VT5).
+    // O arrasto vai a ≤ 150 pt/s, como um polegar real.
     mover: async (x, y) => {
       await arrastarDevagar(page, atual, { x, y }, enviar);
       atual = { x, y };

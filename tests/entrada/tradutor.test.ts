@@ -372,191 +372,33 @@ const consumir = (): void => {
   cmd.mira[0] = cmd.mira[1] = 0;
 };
 
-describe('swipe do dedo do joystick (GE1; F-006.5, parte do tradutor)', () => {
-  it('os números vêm do combate.json', () => {
-    expect(combate.gestos.swipe).toEqual({ velocidade_min_pt_s: 400, janela_ms: 100, dt_min_ms: 16, distancia_min_pt: 24, amostras: 16 });
+describe('arrasto rápido do joystick (o swipe, GE1, foi removido; ADR-0012 §9)', () => {
+  it('o combate.json não tem mais o bloco do swipe', () => {
+    expect(Object.keys(combate.gestos)).toEqual(['toque_duplo']);
   });
 
-  const swipe = (dx: number, dy: number, dt: number): boolean => {
-    em(1000, T.inicio, 1, 100, 600);
-    em(1000 + dt, T.move, 1, 100 + dx, 600 + dy);
-    frame();
-    return acoes() === ACAO.esquiva;
-  };
-
-  it('50 pt em 80 ms (625 pt/s) disparam, com a mira normalizada; o joystick não muda', () => {
-    expect(swipe(50, 0, 80)).toBe(true);
-    expect([cmd.mira[0], cmd.mira[1]]).toEqual([1, 0]);
-    expect(trad.joystick).toMatchObject({ ativo: true, origemX: 100, origemY: 600 });
-  });
-
-  it('a mira tem módulo 1 ± 1e-7 em qualquer direção', () => {
-    expect(swipe(30, 40, 80)).toBe(true);
-    expect(Math.abs(Math.hypot(cmd.mira[0]!, cmd.mira[1]!) - 1)).toBeLessThan(1e-7);
-    expect(cmd.mira[0]).toBeCloseTo(0.6, 6);
-    expect(cmd.mira[1]).toBeCloseTo(0.8, 6);
-  });
-
-  it('50 pt em 125 ms (400 pt/s) não disparam: a velocidade é estritamente maior', () => {
-    expect(swipe(50, 0, 125)).toBe(false);
-  });
-
-  it('50 pt em 130 ms (385 pt/s) não disparam; 50 pt em 100 ms (a borda da janela, 500 pt/s) disparam', () => {
-    expect(swipe(50, 0, 130)).toBe(false);
-    trad.reiniciar();
-    fila.reiniciar();
-    naTela = [];
-    expect(swipe(50, 0, 100)).toBe(true);
-  });
-
-  it('23 pt em 40 ms não disparam (distância); 24 pt em 40 ms disparam', () => {
-    expect(swipe(23, 0, 40)).toBe(false);
-    trad.reiniciar();
-    fila.reiniciar();
-    naTela = [];
-    expect(swipe(24, 0, 40)).toBe(true);
-  });
-
-  it('70 pt no mesmo timeStamp e 60 pt em 15 ms não disparam (Δt mínimo); 60 pt em 16 ms disparam', () => {
-    expect(swipe(70, 0, 0)).toBe(false);
-    trad.reiniciar();
-    fila.reiniciar();
-    naTela = [];
-    expect(swipe(60, 0, 15)).toBe(false);
-    trad.reiniciar();
-    fila.reiniciar();
-    naTela = [];
-    expect(swipe(60, 0, 16)).toBe(true);
-  });
-
-  it('o limite é estrito com ms inteiros: 32 pt em 80 ms, 30 pt em 75 ms e 40 pt em 100 ms (400 pt/s exatos) não disparam; 33 em 80 e 41 em 100 disparam', () => {
-    const novo = (): void => {
-      trad.reiniciar();
-      fila.reiniciar();
-      naTela = [];
-      consumir();
-    };
-    expect(swipe(32, 0, 80)).toBe(false);
-    novo();
-    expect(swipe(30, 0, 75)).toBe(false);
-    novo();
-    expect(swipe(40, 0, 100)).toBe(false);
-    novo();
-    expect(swipe(33, 0, 80)).toBe(true);
-    novo();
-    expect(swipe(41, 0, 100)).toBe(true);
-  });
-
-  it('a janela de 100 ms: a amostra a 99 e a 100 ms entram; a 101 ms já saiu e 50 pt (495 pt/s) não disparam', () => {
-    const novo = (): void => {
-      trad.reiniciar();
-      fila.reiniciar();
-      naTela = [];
-      consumir();
-    };
-    expect(swipe(50, 0, 99)).toBe(true);
-    novo();
-    expect(swipe(50, 0, 100)).toBe(true);
-    novo();
-    expect(swipe(50, 0, 101)).toBe(false);
-  });
-
-  it('rearma quando a velocidade cai a 400 pt/s ou menos, com amostras ainda na janela: o arranque seguinte dispara', () => {
-    for (const lento of [20, 32]) {
-      trad.reiniciar();
-      fila.reiniciar();
-      naTela = [];
-      consumir();
-      em(1000, T.inicio, 1, 100, 600);
-      em(1080, T.move, 1, 150, 600);
-      frame();
-      expect(acoes()).toBe(ACAO.esquiva);
-      consumir();
-      // 20 pt (250 pt/s) ou 32 pt (400 pt/s exatos) em 80 ms: o dedo segue lento, a amostra de 1080 ainda na janela.
-      em(1160, T.move, 1, 150 + lento, 600);
-      frame();
-      expect(acoes(), `lento ${lento}`).toBe(0);
-      em(1200, T.move, 1, 150 + lento + 60, 600);
-      frame();
-      expect(acoes(), `lento ${lento}`).toBe(ACAO.esquiva);
-    }
-  });
-
-  it('só o dono do joystick: um 2º dedo rápido não dispara', () => {
-    em(1000, T.inicio, 1, 100, 600);
-    em(1000, T.inicio, 2, 100, 650);
-    em(1080, T.move, 2, 160, 650);
-    frame();
-    expect(acoes()).toBe(0);
-  });
-
-  it('na pausa e no modal não dispara', () => {
-    for (const modo of ['pausa', 'modal'] as const) {
-      trad.mudarModo(modo);
-      em(1000, T.inicio, 1, 100, 600);
-      em(1080, T.move, 1, 160, 600);
-      frame();
-      expect(acoes(), modo).toBe(0);
-      trad.mudarModo('vigilia');
-      fila.reiniciar();
-      naTela = [];
-    }
-  });
-
-  it('o dono que já existe quando o modo muda (sem passar por mudarModo) não gera esquiva na pausa nem no modal', () => {
-    for (const modo of ['pausa', 'modal'] as const) {
-      trad.reiniciar();
-      fila.reiniciar();
-      naTela = [];
-      consumir();
-      em(1000, T.inicio, 1, 100, 600);
-      frame();
-      expect(trad.joystick.ativo).toBe(true);
-      trad.modo = modo;
-      em(1080, T.move, 1, 160, 600);
-      frame();
-      expect(acoes(), modo).toBe(0);
-      expect([cmd.mira[0], cmd.mira[1]], modo).toEqual([0, 0]);
-    }
-  });
-
-  it('um 2º swipe no mesmo gesto, sem a velocidade cair, não dispara; depois de uma pausa lenta, rearma', () => {
+  it('50 pt em 80 ms (625 pt/s), 200 pt em 50 ms e uma inversão brusca NÃO esquivam; o joystick segue o dedo', () => {
     em(1000, T.inicio, 1, 100, 600);
     em(1080, T.move, 1, 150, 600);
     frame();
-    expect(acoes()).toBe(ACAO.esquiva);
-    consumir();
-    em(1100, T.move, 1, 200, 600);
-    em(1120, T.move, 1, 250, 600);
+    expect(acoes()).toBe(0);
+    em(1130, T.move, 1, 350, 600);
     frame();
     expect(acoes()).toBe(0);
-    // Lento: a velocidade cai a ≤ 400 pt/s e rearma; o novo arranque dispara de novo.
-    em(1400, T.move, 1, 255, 600);
-    em(1500, T.move, 1, 305, 600);
+    em(1150, T.move, 1, 100, 600);
+    em(1170, T.move, 1, 350, 650);
     frame();
-    expect(acoes()).toBe(ACAO.esquiva);
+    expect(acoes()).toBe(0);
+    expect([cmd.mira[0], cmd.mira[1]]).toEqual([0, 0]);
+    expect(trad.joystick).toMatchObject({ ativo: true, origemX: 100, origemY: 600 });
   });
 
-  it('um arrasto lento de 70 pt em 400 ms não gera ações', () => {
+  it('um arrasto lento de 70 pt em 400 ms também não gera ações', () => {
     em(1000, T.inicio, 1, 100, 600);
     for (let k = 1; k <= 4; k++) em(1000 + k * 100, T.move, 1, 100 + k * 17.5, 600);
     frame();
     expect(acoes()).toBe(0);
     expect(trad.joystick.vx).toBe(1);
-  });
-
-  it('as ações não se apagam sozinhas: o tradutor só liga o bit', () => {
-    expect(swipe(50, 0, 80)).toBe(true);
-    em(1200, T.move, 1, 150, 600);
-    frame();
-    expect(acoes()).toBe(ACAO.esquiva);
-  });
-
-  it('mudarModo zera a esquiva pendente', () => {
-    expect(swipe(50, 0, 80)).toBe(true);
-    trad.mudarModo('pausa');
-    expect(acoes()).toBe(0);
-    expect([cmd.mira[0], cmd.mira[1]]).toEqual([0, 0]);
   });
 });
 
