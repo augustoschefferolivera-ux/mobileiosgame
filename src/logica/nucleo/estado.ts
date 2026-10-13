@@ -18,7 +18,8 @@
 // design/decisoes-F-008.md §1), outra vez só no fim, depois dos 74.680 bytes do v7: a etapa e os marcos, a
 // arena, a Fogueira, o empurrão do Grito, os obstáculos ativos e, por inimigo, o ataque e a convocação do Coroado. Na F-009
 // (VERSAO_LAYOUT 9; design/decisoes-F-009.md §1), mais um bloco só no fim, depois dos 76.788 bytes do v8: o Lanterneiro
-// (Postura, fases, esperas, mira e zonas), a cegueira, o Agarrar, A Fome e o Amanhecer.
+// (Postura, fases, esperas, mira e zonas), a cegueira, o Agarrar, A Fome e o Amanhecer. Na F-010 (VERSAO_LAYOUT 10;
+// design/decisoes-F-010.md LY1), +4 bytes no fim, depois dos 76.868 do v9: os ranks da Fundação que a simulação lê.
 import type { DadosDaVigilia } from '../mundo/dados';
 import { criarAnel, esvaziarAnel, type AnelDeEventos } from './eventos';
 import { fnv1aByte, fnv1aBytes, FNV_BASE } from './hash';
@@ -26,12 +27,16 @@ import { alocar, bytesDoPool, esvaziarPool, viewsDoPool, type Pool } from './poo
 import { FLUXOS, PALAVRAS_POR_FLUXO, indiceDoFluxo, semear, type Fluxo } from './rng';
 import { CODIGOS_DE_ARMA, NUMERO_DE_ATRIBUTOS, POR_NIVEL } from '../armas/tabela';
 import { recalcularDano } from '../progressao/dano';
+import {
+  FUNDACAO_U8, HP_PCT_POR_RANK_DE_FOLEGO, RANK_MAXIMO_BIGORNA, RANK_MAXIMO_CASCO, RANK_MAXIMO_FOLEGO, RANK_MAXIMO_PELE,
+} from '../progressao/efeitosDaFundacao';
+import { hpMaximo } from '../progressao/tabela';
 import { PASSOS_POR_MINUTO } from '../diretor/timeline';
 import { gravarDanoNoSpawn, gravarHpNoSpawn } from '../mundo/escala';
 import { TIPO } from '../mundo/tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, normalizarNoToro } from '../mundo/toro';
 
-export const VERSAO_LAYOUT = 9;
+export const VERSAO_LAYOUT = 10;
 
 /** Palavras do cabeçalho (Uint32). As não usadas ficam em zero e entram no hash. */
 export const CAB = {
@@ -274,6 +279,15 @@ export interface ParametrosDaVigilia {
   readonly mancha: ManchaInicial | null;
   /** Almas dadas no início (só o ?almas do build de debug; decisoes-F-007 MC12). Entra no hash; não grava no meta. */
   readonly almasIniciais: number;
+  /** Ranks da Fundação que a simulação lê, do meta ou do `?fundacao` de debug (F-010 FD4 a FD6, FD12). Entram no hash. */
+  readonly fundacao: RanksDaFundacao;
+}
+/** Os ranks da Fundação com efeito direto na simulação (Mãos de aprendiz entra pela lista `armas`, FD7). */
+export interface RanksDaFundacao {
+  readonly pele: number;
+  readonly folego: number;
+  readonly casco: number;
+  readonly bigorna: number;
 }
 /** A mancha de uma Vigília anterior: posição no mapa e Almas a devolver (decisoes-F-007 MC6; `almas` ≥ 1 e < 2^30). */
 export interface ManchaInicial {
@@ -297,6 +311,7 @@ export const PARAMETROS_PADRAO: ParametrosDaVigilia = {
   inicioLivre: false,
   mancha: null,
   almasIniciais: 0,
+  fundacao: { pele: 0, folego: 0, casco: 0, bigorna: 0 },
 };
 /** Os saldos de Almas (`almas`, mancha, `valor` do pickup) ficam abaixo de 2^30 (decisoes-F-007 AM7; regra do laço quente). */
 export const LIMITE_DE_ALMAS = 1_073_741_824;
@@ -608,6 +623,10 @@ export const CHEFE_U8 = {
 } as const;
 const BYTES_CHEFE_U8 = 8;
 
+/** Ranks da Fundação lidos pela simulação (F-010 FD4 a FD6): quatro bytes, sem folga; os índices moram em efeitosDaFundacao.ts. */
+export { FUNDACAO_U8 };
+const BYTES_FUNDACAO_U8 = 4;
+
 const PALAVRAS_RNG = FLUXOS.length * PALAVRAS_POR_FLUXO;
 const BYTES_CAB = PALAVRAS_CAB * 4;
 const BYTES_RNG = PALAVRAS_RNG * 4;
@@ -682,7 +701,10 @@ const INICIO_CHEFE = BYTES_DO_LAYOUT_8;
 const INICIO_CHEFE_U32 = INICIO_CHEFE + FLOATS_CHEFE * 4;
 const INICIO_CHEFE_U16 = INICIO_CHEFE_U32 + PALAVRAS_CHEFE_U32 * 4;
 const INICIO_CHEFE_U8 = INICIO_CHEFE_U16 + HALFWORDS_CHEFE * 2;
-export const BYTES_ESTADO = INICIO_CHEFE_U8 + BYTES_CHEFE_U8;
+export const BYTES_DO_LAYOUT_9 = INICIO_CHEFE_U8 + BYTES_CHEFE_U8;
+
+const INICIO_FUNDACAO_U8 = BYTES_DO_LAYOUT_9;
+export const BYTES_ESTADO = INICIO_FUNDACAO_U8 + BYTES_FUNDACAO_U8;
 
 /** Deslocamento de cada seção no buffer (o teste de layout trava todos e o alinhamento de cada view). */
 export const LAYOUT = {
@@ -739,6 +761,8 @@ export const LAYOUT = {
   chefeU32: INICIO_CHEFE_U32,
   chefeU16: INICIO_CHEFE_U16,
   chefeU8: INICIO_CHEFE_U8,
+  fimDoV9: BYTES_DO_LAYOUT_9,
+  fundacaoU8: INICIO_FUNDACAO_U8,
   fim: BYTES_ESTADO,
 } as const;
 
@@ -781,6 +805,8 @@ export interface Estado {
   readonly chefeU16: Uint16Array;
   /** Fase do chefe, preso, morto e quebras, pelos índices de CHEFE_U8 (F-009). */
   readonly chefeU8: Uint8Array;
+  /** Ranks da Fundação lidos pela simulação (Pele, Fôlego, Casco, Bigorna), pelos índices de FUNDACAO_U8 (F-010). */
+  readonly fundacaoU8: Uint8Array;
   /** Build: as 5 vagas de arma. */
   readonly build: Build;
   /** Bloco do mundo e do diretor, pelos índices de MUNDO. */
@@ -849,6 +875,7 @@ export function criarEstado(seed: number, dados: DadosDaVigilia, params: Partial
     chefeU32: new Uint32Array(buffer, INICIO_CHEFE_U32, PALAVRAS_CHEFE_U32),
     chefeU16: new Uint16Array(buffer, INICIO_CHEFE_U16, HALFWORDS_CHEFE),
     chefeU8: new Uint8Array(buffer, INICIO_CHEFE_U8, BYTES_CHEFE_U8),
+    fundacaoU8: new Uint8Array(buffer, INICIO_FUNDACAO_U8, BYTES_FUNDACAO_U8),
     build: {
       recarga: new Uint16Array(buffer, INICIO_BUILD, V),
       esperaPulso: new Uint16Array(buffer, INICIO_BUILD + 2 * V, V),
@@ -973,6 +1000,15 @@ export function reiniciarEstado(e: Estado, seed: number, dados: DadosDaVigilia, 
     if (!Number.isInteger(m.almas) || m.almas < 1 || m.almas >= LIMITE_DE_ALMAS) throw new Error(`mancha: Almas inválidas: ${m.almas}`);
     if (!(m.x >= 0 && m.x < LARGURA_DO_MAPA && m.y >= 0 && m.y < ALTURA_DO_MAPA)) throw new Error('mancha fora do mapa');
   }
+  const fu = p.fundacao;
+  if (
+    !Number.isInteger(fu.pele) || fu.pele < 0 || fu.pele > RANK_MAXIMO_PELE ||
+    !Number.isInteger(fu.folego) || fu.folego < 0 || fu.folego > RANK_MAXIMO_FOLEGO ||
+    !Number.isInteger(fu.casco) || fu.casco < 0 || fu.casco > RANK_MAXIMO_CASCO ||
+    !Number.isInteger(fu.bigorna) || fu.bigorna < 0 || fu.bigorna > RANK_MAXIMO_BIGORNA
+  ) {
+    throw new Error(`ranks da Fundação inválidos: ${JSON.stringify(fu)}`);
+  }
   if (p.inimigos.length > CAPACIDADE_DE_INIMIGOS) throw new Error('inimigos demais no início');
   for (const i of p.inimigos) if (!(Math.abs(i.dx) <= 500 && Math.abs(i.dy) <= 500)) throw new Error('inimigo inicial fora do alcance');
   for (const b of p.baus) if (!(Math.abs(b.dx) <= 500 && Math.abs(b.dy) <= 500)) throw new Error('baú inicial fora do alcance');
@@ -992,7 +1028,13 @@ export function reiniciarEstado(e: Estado, seed: number, dados: DadosDaVigilia, 
   j[JOGADOR.y] = j[JOGADOR.yAnt] = dados.inicioY;
   j[JOGADOR.dirX] = 0;
   j[JOGADOR.dirY] = -1;
-  j[JOGADOR.hp] = dados.hpInicial;
+  // F-010 FD4: o HP inicial já traz o Fôlego de forja (rank 0 é o `hpInicial` de sempre). Os ranks valem desde o passo 0.
+  const hpInicial = fu.folego === 0 ? dados.hpInicial : hpMaximo(dados.progressao.hpBase, dados.progressao.hpPct + HP_PCT_POR_RANK_DE_FOLEGO * fu.folego);
+  j[JOGADOR.hp] = hpInicial;
+  e.fundacaoU8[FUNDACAO_U8.pele] = fu.pele;
+  e.fundacaoU8[FUNDACAO_U8.folego] = fu.folego;
+  e.fundacaoU8[FUNDACAO_U8.casco] = fu.casco;
+  e.fundacaoU8[FUNDACAO_U8.bigorna] = fu.bigorna;
   e.jogadorU8[JOGADOR_U8.promptMover] = p.tutoriaisVistos & TUTORIAL.mover ? PROMPT.cumprido : PROMPT.aguardando;
   // F-006: stamina cheia (ou a do cenário) e um prompt por bit de tutorial já visto.
   e.jogador3[JOGADOR3.stamina] = stamina;
@@ -1035,7 +1077,7 @@ export function reiniciarEstado(e: Estado, seed: number, dados: DadosDaVigilia, 
   e.progresso[PROGRESSAO.xpTotal] = p.xpInicial;
   e.progresso[PROGRESSAO.almas] = p.almasIniciais;
   e.atributos.set(pr.atributosIniciais);
-  e.jogador2[JOGADOR2.hpMax] = dados.hpInicial;
+  e.jogador2[JOGADOR2.hpMax] = hpInicial;
   esvaziarPool(e.poolDePickups);
   esvaziarPool(e.poolDeEfeitos);
   validarPassivas(p.passivas, dados);
@@ -1189,7 +1231,7 @@ export function hashDoBufferDoEstado(b: Uint8Array): number {
  */
 export function hashPorSecao(
   e: Estado,
-): Record<'cabecalho' | 'rng' | 'jogador' | 'mundo' | 'inimigos' | 'projeteis' | 'progressao' | 'pickups' | 'efeitos' | 'combate' | 'vigilia' | 'fogueira' | 'chefe', number> {
+): Record<'cabecalho' | 'rng' | 'jogador' | 'mundo' | 'inimigos' | 'projeteis' | 'progressao' | 'pickups' | 'efeitos' | 'combate' | 'vigilia' | 'fogueira' | 'chefe' | 'fundacao', number> {
   const secao = (inicio: number, fim: number): number => fnv1aBytes(FNV_BASE, new Uint8Array(e.buffer, inicio, fim - inicio));
   return {
     cabecalho: secao(0, BYTES_CAB),
@@ -1204,6 +1246,7 @@ export function hashPorSecao(
     combate: secao(BYTES_DO_LAYOUT_5, BYTES_DO_LAYOUT_6),
     vigilia: secao(BYTES_DO_LAYOUT_6, BYTES_DO_LAYOUT_7),
     fogueira: secao(BYTES_DO_LAYOUT_7, BYTES_DO_LAYOUT_8),
-    chefe: secao(BYTES_DO_LAYOUT_8, BYTES_ESTADO),
+    chefe: secao(BYTES_DO_LAYOUT_8, BYTES_DO_LAYOUT_9),
+    fundacao: secao(BYTES_DO_LAYOUT_9, BYTES_ESTADO),
   };
 }

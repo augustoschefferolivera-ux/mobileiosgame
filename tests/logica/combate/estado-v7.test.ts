@@ -28,7 +28,7 @@ import { DADOS_DA_CHARNECA as D, PARADO, PRODUCAO } from '../apoio';
 
 describe('layout v7 (LY1)', () => {
   it('o bloco do v7 (74.680 bytes no fim do v7); o v6 (74.636) no mesmo lugar e o bloco novo em ordem, cada deslocamento literal', () => {
-    expect(VERSAO_LAYOUT).toBe(9);
+    expect(VERSAO_LAYOUT).toBe(10);
     expect(BYTES_DO_LAYOUT_6).toBe(74_636);
     expect(BYTES_DO_LAYOUT_7).toBe(74_680);
     expect(BYTES_DO_LAYOUT_7 - BYTES_DO_LAYOUT_6).toBe(5 * 4 + 4 * 4 + 8);

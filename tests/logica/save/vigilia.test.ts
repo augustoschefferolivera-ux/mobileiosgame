@@ -108,7 +108,7 @@ describe('salvar e restaurar (F-008.1)', () => {
     const texto = serializarVigilia(e, 4);
     const lido = lerVigilia(texto);
     if (!lido.ok) throw new Error(lido.motivo);
-    expect(lido.envelope).toMatchObject({ versao: 1, layout: 9, seq: 4, hora: 0, nivel: e.progresso[PROGRESSAO.nivel], almas: e.progresso[PROGRESSAO.almas] });
+    expect(lido.envelope).toMatchObject({ versao: 1, layout: 10, seq: 4, hora: 0, nivel: e.progresso[PROGRESSAO.nivel], almas: e.progresso[PROGRESSAO.almas] });
     const n = recarregar(e, 4);
     expect(hashEstado(n)).toBe(hashEstado(e));
     expect([...n.bytes]).toEqual([...e.bytes]);
@@ -253,7 +253,7 @@ describe('leitura que nunca lança (SV6, SV7)', () => {
       return r.envelope;
     };
     const alvo = (): Estado => criarEstado(5, D, {});
-    expect(restaurar(alvo(), D, ler({ ...o, layout: 10 }))).toBe('layout');
+    expect(restaurar(alvo(), D, ler({ ...o, layout: 11 }))).toBe('layout');
     expect(restaurar(alvo(), D, ler({ ...o, layout: 7 }))).toBe('layout');
     expect(restaurar(alvo(), D, ler({ ...o, bytes: o.bytes.slice(0, -8) }))).toBe('tamanho');
     expect(restaurar(alvo(), D, ler({ ...o, bytes: '!' + o.bytes.slice(1) }))).toBe('base64');

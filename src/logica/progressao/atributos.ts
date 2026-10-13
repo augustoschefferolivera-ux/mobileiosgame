@@ -8,6 +8,7 @@ import type { DadosDaVigilia } from '../mundo/dados';
 import { EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import { CAB, JOGADOR, JOGADOR2, PROGRESSAO, VAGAS_DE_PASSIVA, type Estado } from '../nucleo/estado';
 import { recalcularDano } from './dano';
+import { FUNDACAO_U8, HP_PCT_POR_RANK_DE_FOLEGO } from './efeitosDaFundacao';
 import { hpMaximo } from './tabela';
 
 export { armadura, poderPct, recalcularDano } from './dano';
@@ -46,7 +47,7 @@ export function cruzarNiveis(e: Estado, dados: DadosDaVigilia): number {
     const novoAtributo = e.atributos[k]! + t.pontoPorNivel;
     e.atributos[k] = novoAtributo > t.tetoDoAtributo ? t.tetoDoAtributo : novoAtributo;
     const antigo = e.jogador2[JOGADOR2.hpMax]!;
-    const novo = hpMaximo(t.hpBase + t.hpPorNivel * (nivel - 1), t.hpPct);
+    const novo = hpMaximo(t.hpBase + t.hpPorNivel * (nivel - 1), t.hpPct + HP_PCT_POR_RANK_DE_FOLEGO * e.fundacaoU8[FUNDACAO_U8.folego]!);
     e.jogador2[JOGADOR2.hpMax] = novo;
     const hp = e.jogador[JOGADOR.hp]!;
     if (hp > 0) {

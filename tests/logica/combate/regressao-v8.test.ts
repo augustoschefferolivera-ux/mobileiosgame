@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { ACAO, fonteDoRoteiro, type AcaoDeRoteiro } from '../../../src/logica/nucleo/comandos';
 import { FNV_BASE, fnv1aBytes, hex8 } from '../../../src/logica/nucleo/hash';
-import { BYTES_DO_LAYOUT_8, CHEFE_U16, SEM_CHEFE, TODOS_OS_TUTORIAIS, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
+import { BYTES_DO_LAYOUT_8, BYTES_DO_LAYOUT_9, CHEFE_U16, SEM_CHEFE, TODOS_OS_TUTORIAIS, criarEstado, type Estado } from '../../../src/logica/nucleo/estado';
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { ROTEIRO_REFERENCIA } from '../../../src/logica/nucleo/referencia';
 import { parametrosDoCenario } from '../../../src/plataforma/cenarios';
@@ -44,7 +44,7 @@ describe('os campos do v8 evoluem como na F-008 enquanto nada da F-009 atua', ()
       expect(hashDosCamposV8(e)).toBe(V8[seed][1800]);
       // Sem chefe: o bloco novo segue como nasceu (só o `chefeSlot` em 0xFFFF).
       expect(e.chefeU16[CHEFE_U16.slot]).toBe(SEM_CHEFE);
-      expect(e.bytes.slice(BYTES_DO_LAYOUT_8).reduce((s, v) => s + v, 0)).toBe(2 * 255);
+      expect(e.bytes.slice(BYTES_DO_LAYOUT_8, BYTES_DO_LAYOUT_9).reduce((s, v) => s + v, 0)).toBe(2 * 255);
     });
   }
 });

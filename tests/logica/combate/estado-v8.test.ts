@@ -24,7 +24,7 @@ import { DADOS_DA_CHARNECA as D, PARADO, dadosDe } from '../apoio';
 
 describe('layout v8 (LY1)', () => {
   it('o v8 de 76.788 bytes; o v7 (74.680) no mesmo lugar e o bloco novo em ordem, cada deslocamento literal', () => {
-    expect(VERSAO_LAYOUT).toBe(9);
+    expect(VERSAO_LAYOUT).toBe(10);
     expect(BYTES_DO_LAYOUT_7).toBe(74_680);
     expect(BYTES_DO_LAYOUT_8).toBe(76_788);
     expect(BYTES_DO_LAYOUT_8 - BYTES_DO_LAYOUT_7).toBe(6 * 4 + 2 * 4 + 12 + 64 + 2 * 500 + 2 * 500);
@@ -45,7 +45,7 @@ describe('layout v8 (LY1)', () => {
       obstaculoAtivo: 74_724,
       inimigos8U8: 74_788,
       inimigos8U16: 75_788,
-      fim: 76_868,
+      fim: 76_872, // 76.868 do v9 + os 4 B da Fundação (v10)
     });
     expect(LAYOUT.jogador4U8 + 8).toBe(BYTES_DO_LAYOUT_7);
     expect(BYTES_DO_LAYOUT_6).toBe(74_636);

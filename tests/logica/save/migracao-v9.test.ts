@@ -1,7 +1,7 @@
 // Migração do `vigilia` do layout 8 para o 9 (design/decisoes-F-009.md §1; D8 SV7): o buffer ganha o bloco do chefe em
 // zero com `chefeSlot` = 0xFFFF e a versão passa a 9; o resto não muda.
 import { describe, expect, it } from 'vitest';
-import { BYTES_DO_LAYOUT_8, CAB, CHEFE_U16, SEM_CHEFE, VERSAO_LAYOUT, criarEstado, hashEstado } from '../../../src/logica/nucleo/estado';
+import { BYTES_DO_LAYOUT_8, BYTES_DO_LAYOUT_9, CAB, CHEFE_U16, SEM_CHEFE, VERSAO_LAYOUT, criarEstado, hashEstado } from '../../../src/logica/nucleo/estado';
 import { avancar } from '../../../src/logica/nucleo/passo';
 import { MIGRACOES_DO_LAYOUT, migrarLayout } from '../../../src/logica/save/migracoes';
 import { restaurar, serializarVigilia, lerVigilia } from '../../../src/logica/save/vigilia';
@@ -14,10 +14,11 @@ describe('layout 8 → 9', () => {
     const v8 = e.bytes.slice(0, BYTES_DO_LAYOUT_8);
     new Uint32Array(v8.buffer, 0, 16)[CAB.versao] = 8;
     const novo = migrarLayout(v8, 8, 9)!;
-    expect(novo.length).toBe(e.bytes.length);
+    // O elo 8 → 9 para no v9 (76.868 B); o 9 → 10 (F-010) acrescenta a Fundação depois.
+    expect(novo.length).toBe(BYTES_DO_LAYOUT_9);
     expect(new Uint32Array(novo.buffer, 0, 16)[CAB.versao]).toBe(9);
     expect([...novo.subarray(4, BYTES_DO_LAYOUT_8)]).toEqual([...e.bytes.subarray(4, BYTES_DO_LAYOUT_8)]);
-    expect([...novo]).toEqual([...e.bytes]);
+    expect([...novo.subarray(4)]).toEqual([...e.bytes.subarray(4, BYTES_DO_LAYOUT_9)]);
     expect(MIGRACOES_DO_LAYOUT[8]).toBeDefined();
   });
 

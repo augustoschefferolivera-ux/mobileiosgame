@@ -1,11 +1,11 @@
 // Migrações do save `vigilia` (design/decisoes-F-008.md SV7). Duas cadeias de funções puras, uma por eixo de versão:
-// o envelope (`versao`, hoje 1) e o buffer da simulação (`layout`, hoje 9). `MIGRACOES_DO_ENVELOPE[i]` leva a versão
+// o envelope (`versao`, hoje 1) e o buffer da simulação (`layout`, hoje 10). `MIGRACOES_DO_ENVELOPE[i]` leva a versão
 // `i + 1` à `i + 2`; `MIGRACOES_DO_LAYOUT[n]` leva o buffer do layout `n` ao `n + 1`, estendendo-o com os padrões do que o
 // layout novo acrescenta (stamina 100, contadores 0: a regra da D6 §10). Nada gravava `vigilia` antes do layout 8, então
 // as duas cadeias nascem vazias; a feature que aumentar `VERSAO_LAYOUT` acrescenta aqui a migração do layout anterior.
-// A F-009 (layout 9) traz o elo 8 → 9. Módulo puro, sem I/O.
+// A F-009 (layout 9) traz o elo 8 → 9 e a F-010 (layout 10), o 9 → 10. Módulo puro, sem I/O.
 
-import { BYTES_DO_LAYOUT_8, CAB, CHEFE_U16, LAYOUT, SEM_CHEFE } from '../nucleo/estado';
+import { BYTES_DO_LAYOUT_8, BYTES_DO_LAYOUT_9, CAB, CHEFE_U16, LAYOUT, SEM_CHEFE } from '../nucleo/estado';
 import { NUMERO_DE_NOS } from '../progressao/fundacao';
 import type { Meta } from './meta';
 
@@ -27,15 +27,26 @@ export const MIGRACOES_DO_ENVELOPE: readonly MigracaoDeEnvelope[] = [];
  * ainda não existe e o bloco novo em zero é o estado certo.
  */
 export function migrarLayout8Para9(bytes: Uint8Array): Uint8Array {
-  const novo = new Uint8Array(LAYOUT.fim);
+  const novo = new Uint8Array(BYTES_DO_LAYOUT_9);
   novo.set(bytes.subarray(0, Math.min(bytes.length, BYTES_DO_LAYOUT_8)));
   new Uint32Array(novo.buffer, 0, 16)[CAB.versao] = 9;
   new Uint16Array(novo.buffer, LAYOUT.chefeU16, 12)[CHEFE_U16.slot] = SEM_CHEFE;
   return novo;
 }
 
-/** Chave = layout de origem. Só o 8 → 9: não existe save de layout < 8 (nada gravava `vigilia`). */
-export const MIGRACOES_DO_LAYOUT: Readonly<Record<number, MigracaoDeLayout>> = { 8: migrarLayout8Para9 };
+/**
+ * Layout 9 → 10 (F-010, D8 SV7, LY1): o buffer ganha os 4 bytes da Fundação em zero (Pele, Fôlego, Casco, Bigorna em rank 0)
+ * e a palavra da versão passa a 10. Uma Vigília gravada antes da Fundação não tinha rank algum, então zero é o estado certo.
+ */
+export function migrarLayout9Para10(bytes: Uint8Array): Uint8Array {
+  const novo = new Uint8Array(LAYOUT.fim);
+  novo.set(bytes.subarray(0, Math.min(bytes.length, BYTES_DO_LAYOUT_9)));
+  new Uint32Array(novo.buffer, 0, 16)[CAB.versao] = 10;
+  return novo;
+}
+
+/** Chave = layout de origem: 8 → 9 e 9 → 10. Não existe save de layout < 8 (nada gravava `vigilia`). */
+export const MIGRACOES_DO_LAYOUT: Readonly<Record<number, MigracaoDeLayout>> = { 8: migrarLayout8Para9, 9: migrarLayout9Para10 };
 
 /**
  * Leva o envelope da versão `de` até `ate` pela cadeia dada; `null` se falta algum elo ou `de` é maior que `ate`

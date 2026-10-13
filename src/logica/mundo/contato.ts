@@ -7,6 +7,7 @@ import { ARMA } from '../armas/tabela';
 import { CAB, CAPACIDADE_DE_INIMIGOS, CENARIO, JOGADOR, JOGADOR2, JOGADOR3, JOGADOR3_U8, JOGADOR4, JOGADOR4_U32, JOGADOR4_U8, JOGADOR_U8, PROMPT, VAGAS_DE_ARMA, type Estado } from '../nucleo/estado';
 import { EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import { armadura } from '../progressao/dano';
+import { FUNDACAO_U8, MULTIPLICADOR_DA_BIGORNA, PASSOS_DE_CASCO_POR_RANK } from '../progressao/efeitosDaFundacao';
 import type { DadosDaVigilia } from './dados';
 import { GANHO, ganharPostura } from './chefe';
 import { interromperFrasco } from './frasco';
@@ -68,6 +69,8 @@ export function danoAoJogador(e: Estado, dados: DadosDaVigilia, origem: number):
   const c = dados.combate;
   reducaoDeArmadura(armadura(e, dados));
   let d = Math.fround(BRUTO[0]! * REDUCAO[1]!);
+  // Bigorna no peito (F-010 FD6): multiplicativa, só no contato, entre a armadura e a Brasa Firme.
+  if (origem === ORIGEM_DO_DANO.contato) d = Math.fround(d * MULTIPLICADOR_DA_BIGORNA[e.fundacaoU8[FUNDACAO_U8.bigorna]!]!);
   if (e.jogador3[JOGADOR3.stamina]! > c.brasaFirmeLimiar) d = Math.fround(d * c.brasaFirmeFator);
   LIQUIDO[0] = d;
   const j = e.jogador;
@@ -162,6 +165,7 @@ export function aplicarContato(e: Estado, dados: DadosDaVigilia): number {
   if (escolhido < 0) return -1;
   BRUTO[0] = maiorDano * FATOR_DO_ACERTO_DE_CONTATO;
   if (resolverAcertoNoJogador(e, dados, ORIGEM_DO_DANO.contato, escolhido) !== DESFECHO.acertou) return -1;
-  u8[JOGADOR_U8.invulContato] = PASSOS_DE_INVULNERABILIDADE;
+  // Casco (F-010 FD5): +3 passos por rank; só o contato, e o fator 0,3 do acerto não muda.
+  u8[JOGADOR_U8.invulContato] = PASSOS_DE_INVULNERABILIDADE + PASSOS_DE_CASCO_POR_RANK * e.fundacaoU8[FUNDACAO_U8.casco]!;
   return escolhido;
 }

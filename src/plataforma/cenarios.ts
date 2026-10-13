@@ -72,8 +72,8 @@ export const RECEITAS: readonly ReceitaDeCenario[] = [
   lanterneiro,
 ];
 
-/** Parâmetros da Vigília de um cenário (sem o TETO, que vem de ?teto ou da detecção). */
-export type ParametrosDoCenario = Omit<ParametrosDaVigilia, 'teto' | 'inimigos' | 'staminaInicial' | 'inicioLivre' | 'mancha' | 'almasIniciais'> &
+/** Parâmetros da Vigília de um cenário (sem o TETO, que vem de ?teto ou da detecção, nem a Fundação, que os cenários ignoram: FD12). */
+export type ParametrosDoCenario = Omit<ParametrosDaVigilia, 'teto' | 'inimigos' | 'staminaInicial' | 'inicioLivre' | 'mancha' | 'almasIniciais' | 'fundacao'> &
   Partial<Pick<ParametrosDaVigilia, 'inimigos' | 'staminaInicial' | 'inicioLivre' | 'almasIniciais'>>;
 
 export function parametrosDoCenario(id: string): ParametrosDoCenario {

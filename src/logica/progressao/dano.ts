@@ -7,6 +7,7 @@ import { gravarDanoPorAcerto, MULT_NEUTRO_PCT } from '../armas/dano';
 import { CODIGOS_DE_ARMA, NUMERO_DE_ATRIBUTOS, indiceDoNivel } from '../armas/tabela';
 import type { DadosDaVigilia } from '../mundo/dados';
 import type { Estado } from '../nucleo/estado';
+import { ARMADURA_POR_RANK_DE_PELE, FUNDACAO_U8 } from './efeitosDaFundacao';
 import { EFEITO_DE_PASSIVA } from './tabela';
 
 /** Soma do efeito das passivas de um tipo: valor × nível (Luvas: 8% por nível; Elmo: 4 de Armadura por nível). */
@@ -25,9 +26,9 @@ export function poderPct(e: Estado, dados: DadosDaVigilia): number {
   return somaDoEfeito(e, dados, EFEITO_DE_PASSIVA.poderPct);
 }
 
-/** Armadura das passivas (P5): só registrada; a redução A/(A + 20) é da F-007. */
+/** Armadura das passivas (P5) mais a Pele da Fundação, +2 por rank (F-010 FD4); a redução A/(A + 20) é da F-007. */
 export function armadura(e: Estado, dados: DadosDaVigilia): number {
-  return somaDoEfeito(e, dados, EFEITO_DE_PASSIVA.armadura);
+  return somaDoEfeito(e, dados, EFEITO_DE_PASSIVA.armadura) + ARMADURA_POR_RANK_DE_PELE * e.fundacaoU8[FUNDACAO_U8.pele]!;
 }
 
 /**
