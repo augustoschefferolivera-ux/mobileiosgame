@@ -9,9 +9,11 @@ const OPCOES = { seeds: [1], passos: 3600, comportamentos: COMPORTAMENTOS } as c
 describe('sim20', () => {
   const a = simular(OPCOES);
 
+  // Prazo explícito: 3 comportamentos × 3.600 passos com a Fogueira e o chefe passam
+  // dos 5 s padrão do Vitest com a máquina ocupada; o teste é de determinismo, não de tempo.
   it('duas execuções dão o mesmo JSON', () => {
     expect(JSON.stringify(simular(OPCOES))).toBe(JSON.stringify(a));
-  });
+  }, 60_000);
 
   it('o jogador parado morre em poucos segundos, com e sem a Brasa Firme (AG8), em 8 seeds', () => {
     for (const lado of [a.tempoAteAMorte.comBrasaFirme, a.tempoAteAMorte.semBrasaFirme]) {
