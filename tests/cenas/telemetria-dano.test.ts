@@ -152,3 +152,33 @@ describe('teto de 128 por fonte (TL1)', () => {
     expect(r.eventos()).toHaveLength(CAPACIDADE_DA_TELEMETRIA);
   });
 });
+
+describe('dano_recebido: efeito do chefe e fome agregados como o contato (F-009 RE2)', () => {
+  it('ticks de efeito e de fome a cada 10 passos viram uma linha por janela de 5 s e por fonte (nenhuma por tick)', () => {
+    const e = criarEstado(1, D, BASE);
+    const r = new RegistroDeTelemetria();
+    const tele = new TelemetriaDeCombate();
+    for (let p = 0; p < 310; p += 10) {
+      e.cab[CAB.passo] = p;
+      bater(e, 1, ORIGEM_DO_DANO.efeito);
+      bater(e, 2, ORIGEM_DO_DANO.fome);
+      tele.ler(e, r);
+    }
+    e.cab[CAB.passo] = 700;
+    tele.ler(e, r);
+    const fontes = linhas(r, 'dano_recebido').map((x) => x.campos['fonte']);
+    // A janela de 0 a 290 fecha no tick do passo 300 (que abre a seguinte), e a seguinte fecha no passo 700.
+    expect(fontes.filter((f) => f === 'efeito')).toHaveLength(2);
+    expect(fontes.filter((f) => f === 'fome')).toHaveLength(2);
+    expect(fontes).not.toContain('outra');
+  });
+
+  it('a linha que zera o HP entra na hora', () => {
+    const e = criarEstado(1, D, BASE);
+    const r = new RegistroDeTelemetria();
+    const tele = new TelemetriaDeCombate();
+    bater(e, 1000, ORIGEM_DO_DANO.fome);
+    tele.ler(e, r);
+    expect(linhas(r, 'dano_recebido').map((x) => x.campos)).toEqual([{ fonte: 'fome', minuto: 0, hp_restante: 0 }]);
+  });
+});

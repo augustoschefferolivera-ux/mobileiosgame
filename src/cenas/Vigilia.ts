@@ -13,7 +13,7 @@ import { alfa, criarAcumulador } from '../logica/nucleo/acumulador';
 import { criarCameraLenta, dispararCameraLenta, escalarDelta, escalarDeltaDoApagar } from '../logica/nucleo/cameraLenta';
 import { ACAO, criarComandos, fonteConstante, fonteDoRoteiro } from '../logica/nucleo/comandos';
 import { rodarFrameComPausas } from '../logica/nucleo/driver';
-import { CAB, CAUSA_DO_FIM, CENARIO, ETAPA, FASE, FOGUEIRA_U32, FOGUEIRA_U8, JOGADOR, JOGADOR3_U8, JOGADOR4, JOGADOR4_U8, PROMPT, TIPO_DE_CARTA, TODOS_OS_TUTORIAIS, criarEstado, tutoriaisCumpridos, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
+import { CAB, CAUSA_DO_FIM, emJogo, CENARIO, ETAPA, FASE, FOGUEIRA_U32, FOGUEIRA_U8, JOGADOR, JOGADOR3_U8, JOGADOR4, JOGADOR4_U8, PROMPT, TIPO_DE_CARTA, TODOS_OS_TUTORIAIS, criarEstado, tutoriaisCumpridos, type Estado, type ParametrosDaVigilia } from '../logica/nucleo/estado';
 import { EVENTO, EV, eventosEscritos, inicioDoEvento } from '../logica/nucleo/eventos';
 import { IDS_DE_ARMA } from '../logica/armas/tabela';
 import { modalAberto } from '../logica/progressao/modal';
@@ -21,7 +21,7 @@ import { nivelOfertado } from '../logica/progressao/oferta';
 import { IDS_DE_PASSIVA } from '../logica/progressao/tabela';
 import { verificarNaN } from '../logica/nucleo/nan';
 import { passo } from '../logica/nucleo/passo';
-import { resultadoDaVigilia } from '../logica/mundo/vigilia';
+import { resultadoDaVigilia, type ResultadoDaVigilia } from '../logica/mundo/vigilia';
 import { comOpcoes, comTutoriais, reservarIdDaVigilia } from '../logica/save/meta';
 import { GravadorDaVigilia, creditarFim } from '../plataforma/vigiliaGuardada';
 import { sortearSeed } from '../plataforma/parametros';
@@ -46,6 +46,11 @@ import { criarTabelaDeDesenho } from './render/horda';
 import { RenderDaVigilia } from './render/mundo';
 import { circuloDePixels, desenharIconeDePixels, trianguloDePixels } from './pixel';
 
+/** O texto do Amanhecer fica 120 passos (2 s) na tela antes das linhas do Resultado (AN4). */
+const ESPERA_DO_AMANHECER_MS = 2000;
+/** A causa do FIM nos eventos de telemetria `apagar`, `amanhecer` e `chefe`. */
+const CAUSA_DO_FIM_EM_TEXTO: readonly string[] = ['', 'apagar', 'abandonar', 'a_fome', 'amanhecer'];
+
 export class Vigilia extends Phaser.Scene {
   private sim: Simulacao | null = null;
   /** Eventos do anel já lidos pela telemetria da União. */
@@ -59,6 +64,9 @@ export class Vigilia extends Phaser.Scene {
   private setasGrafico: Phaser.GameObjects.Graphics | null = null;
   private readonly setas = criarSetasDeTelegrafo();
   private setasDesenhadas = 0;
+  /** O resultado do Amanhecer que espera o texto passar (AN4), e quanto falta, em ms. */
+  private resultadoAdiado: ResultadoDaVigilia | null = null;
+  private esperaDoResultado = 0;
   /** A tela de Resultado já foi aberta (em APAGANDO ou no Abandonar); o FIM só completa o que ela mostra. */
   private resultadoIniciado = false;
   /** A retomada abriu a pausa no estado antes de as cenas Pausa e Hud existirem; o 1º update as mostra. */
@@ -197,7 +205,7 @@ export class Vigilia extends Phaser.Scene {
     // Outro botão da pausa desarma o Abandonar (PE4); o próprio Abandonar arma no 1º toque e confirma no 2º.
     this.desarmarAbandonar(trad.toqueNaPausa);
     // A pausa é inerte em APAGANDO e em FIM (AG3): sem pedido de pausa, e o Resultado cuida dos toques.
-    if (trad.pedidoDePausa !== null && !sim.pausa.ativa && fase === FASE.viva) this.abrirPausa(trad.pedidoDePausa);
+    if (trad.pedidoDePausa !== null && !sim.pausa.ativa && emJogo(fase)) this.abrirPausa(trad.pedidoDePausa);
     else if (sim.pausa.ativa && trad.toqueNaPausa === 'continuar') this.fecharPausa();
     else if (sim.pausa.ativa && trad.toqueNaPausa === 'abandonar') this.tocarAbandonar();
     else if (sim.pausa.ativa && trad.toqueNaPausa === 'numeros') this.alternarOpcao('numerosDeDano');
@@ -312,7 +320,7 @@ export class Vigilia extends Phaser.Scene {
   private verificarFase(): void {
     const sim = this.sim!;
     const fase = sim.estado.jogador4U8[JOGADOR4_U8.fase]!;
-    if (fase === FASE.viva) return;
+    if (emJogo(fase)) return;
     const resultado = this.scene.get('Resultado') as Resultado;
     if (!this.resultadoIniciado) {
       this.resultadoIniciado = true;
@@ -321,6 +329,16 @@ export class Vigilia extends Phaser.Scene {
       this.ctx.entrada.fila.pedirSoltarTodos();
       if (fase === FASE.apagando) resultado.mostrarApagando();
     }
+    // O Amanhecer segura o texto 2 s (120 passos) antes das linhas; o crédito do meta já foi feito no FIM (F-009 AN4).
+    if (this.resultadoAdiado !== null) {
+      this.esperaDoResultado -= this.game.loop.rawDelta;
+      if (this.esperaDoResultado <= 0) {
+        resultado.mostrarResultado(this.resultadoAdiado);
+        this.resultadoAdiado = null;
+        this.ctx.entrada.tradutor.mudarModo('resultado');
+      }
+      return;
+    }
     if (fase !== FASE.fim || sim.fimCreditado) return;
     sim.fimCreditado = true;
     const r = resultadoDaVigilia(sim.estado, sim.dados);
@@ -328,13 +346,31 @@ export class Vigilia extends Phaser.Scene {
     // FIM atômico (SV4): o meta com o crédito e `ultimaEncerrada` primeiro; só então saem o `vigilia` e o `andamento`.
     this.ctx.meta.atual = creditarFim(this.ctx.meta.armazenamento, this.ctx.vigiliaGuardada, this.ctx.meta.atual, r, sim.idVigilia);
     const e = sim.estado;
-    this.ctx.telemetria.registrar('apagar', e.cab[CAB.passo]!, {
+    const causa = CAUSA_DO_FIM_EM_TEXTO[r.causa] ?? 'apagar';
+    // A Fome é um Apagar (B §5.11) e o Amanhecer tem o seu evento; os dois com os mesmos campos.
+    this.ctx.telemetria.registrar(r.causa === CAUSA_DO_FIM.amanhecer ? 'amanhecer' : 'apagar', e.cab[CAB.passo]!, {
       minuto: Math.floor(e.cab[CAB.relogio]! / 3600),
       nivel: r.nivel,
       almas: r.almas,
-      causa: r.causa === CAUSA_DO_FIM.abandonar ? 'abandonar' : 'apagar',
+      causa,
       posicao: [Math.round(e.jogador[JOGADOR.x]!), Math.round(e.jogador[JOGADOR.y]!)],
     });
+    // RE2: o evento `chefe` quando a arena chegou a se formar; a duração é o relógio menos 72.000 (ele fica parado depois).
+    if (r.chefeFase > 0) {
+      this.ctx.telemetria.registrar('chefe', e.cab[CAB.passo]!, {
+        nome: 'o_lanterneiro',
+        fase_alcancada: r.chefeFase,
+        duracao: Math.max(0, e.cab[CAB.relogio]! - sim.dados.marcos.chefeEm),
+        quebras_de_postura: r.chefeQuebras,
+        resultado: r.chefeDerrotado ? 'derrotado' : causa,
+      });
+    }
+    if (r.causa === CAUSA_DO_FIM.amanhecer) {
+      resultado.mostrarAmanhecer();
+      this.resultadoAdiado = r;
+      this.esperaDoResultado = ESPERA_DO_AMANHECER_MS;
+      return;
+    }
     resultado.mostrarResultado(r);
     this.ctx.entrada.tradutor.mudarModo('resultado');
   }

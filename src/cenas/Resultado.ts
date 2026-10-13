@@ -8,7 +8,7 @@ import { alvosDoResultado, type Alvo } from '../entrada/alvos';
 import type { ResultadoDaVigilia } from '../logica/mundo/vigilia';
 import { ALTURA_LOGICA, LARGURA_LOGICA } from '../plataforma/safeArea';
 import type { ContextoDoJogo } from './contexto';
-import { COR, cameraLogica, texto } from './estilo';
+import { COR, cameraLogica, css, texto } from './estilo';
 import { MAPA_PEQUENO_PT, linhaDaMancha, linhasDoResultado, pontoNoMapaPequeno, tituloDoResultado } from './linhasDoResultado';
 import { t } from './textos';
 
@@ -76,6 +76,18 @@ export class Resultado extends Phaser.Scene {
     this.diagramar();
   }
 
+  /** O Amanhecer (AN4): só o título, no céu que clareia (sem véu), até as linhas entrarem 2 s depois. */
+  mostrarAmanhecer(): void {
+    if (this.titulo === null) return;
+    this.scene.setVisible(true);
+    this.titulo.setText(t('A4.AMANHECER.01')).setData('idTexto', 'A4.AMANHECER.01').setStroke(css(COR.pedra), 4);
+    this.veu!.setAlpha(0);
+    this.tweens.killTweensOf([this.titulo!]);
+    this.titulo.setAlpha(0);
+    this.tweens.add({ targets: [this.titulo], alpha: 1, duration: FADE_MS });
+    this.diagramar();
+  }
+
   /** FIM: título da causa, linhas, mancha, mapa e botões; os valores finais valem já no 1º quadro (RS5). */
   mostrarResultado(r: ResultadoDaVigilia): void {
     if (this.titulo === null) return;
@@ -86,7 +98,7 @@ export class Resultado extends Phaser.Scene {
     this.titulo!.setText(t(id)).setData('idTexto', id);
     this.tweens.killTweensOf([this.veu!, this.titulo!]);
     this.veu!.setAlpha(1);
-    this.titulo!.setAlpha(1);
+    this.titulo!.setAlpha(1).setStroke('#000000', 0);
     const linhas = linhasDoResultado(r);
     for (let k = 0; k < LINHAS; k++) {
       this.valores[k]!.setText(t('A7.RESULTADO.VALOR', { valor: linhas[k]!.valor })).setVisible(true);
