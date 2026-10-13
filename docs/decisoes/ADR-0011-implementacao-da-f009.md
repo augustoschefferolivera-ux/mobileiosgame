@@ -9,7 +9,7 @@
   - `chefeF32`, 10 Float32 em 76.788 (`CHEFE_F32`): `hpMax`, `postura`, `miraX`, `miraY`, `zonaX0..2` (índices 4 a 6), `zonaY0..2` (7 a 9);
   - `chefeU32`, 2 palavras em 76.828 (`CHEFE_U32`): `ataqueSeq` (a posição no ciclo da fase, FS2), `fomePassos` (2b);
   - `chefeU16`, 12 halfwords em 76.836 (`CHEFE_U16`): `slot` (0xFFFF = `SEM_CHEFE`), `quebraPassos`, `posturaOciosa`, `transicaoPassos`, `convocaEspera`, `explosaoEspera`, `cegoPassos`, `amanhecerPassos` (2b), `zonaTimer0..2` (8 a 10) e 1 de folga em zero. **A D9 previa 11 e 8 Uint8 (78 B + 2 de alinhamento); o 12º halfword é o alinhamento, no mesmo total de 80 B.**
-  - `chefeU8`, 8 bytes em 76.860 (`CHEFE_U8`): `fase`, `faseMax`, `morto`, `presoPassos`, `explosaoAcertou`, `quebras` e 2 de folga.
+  - `chefeU8`, 8 bytes em 76.860 (`CHEFE_U8`): `fase`, `faseMax`, `morto`, `presoPassos`, `explosaoAcertou`, `quebras`, `quebraNova` (transitório: 1 só dentro de um passo) e 1 de folga em zero.
   Seção nova `chefe` em `hashPorSecao` (`fogueira` passa a terminar em 76.788). `BYTES_DO_LAYOUT_8` exportado. `inimigos.ataqueId` ganha 1 a 6 para o tipo 5.
 - **Constantes:** `ETAPA.amanhecer` 5; `FASE.aFome` 3 e `FASE.amanhecer` 4; `CENARIO.semFome` 16; `EVENTO` 39 a 47 (`chefeSurgiu` … `fomeDesceu`); `FORMA` 11 a 16 (`varaArco` … `agarrar`); `CAUSA.lanterneiro` 4; `ORIGEM_DO_DANO.efeito` 4 e `.fome` 5.
 - **Migração do `vigilia` 8 → 9** (`migrarLayout8Para9`, `save/migracoes.ts`): estende o buffer com o bloco novo em zero, `chefeSlot` = 0xFFFF e `CAB.versao` = 9 (o `restaurar` confere a versão depois de migrar). Teste: `tests/logica/save/migracao-v9.test.ts`.
