@@ -985,7 +985,7 @@
     {
       "id": "F-010",
       "nome": "Santuário mínimo e PWA",
-      "status": "pendente",
+      "status": "pronta",
       "escopo_b": "cena do Santuário (Acender, Iselda, botão Vigília), árvore de Fundação com 8 nós de estatística e reembolso, 300 Almas garantidas após o primeiro Apagar, save meta versionado, todos os textos em `pt-BR.json` por ID (nenhuma string no código, verificado por lint), manifest + service worker + convite \"Adicionar à Tela de Início\", overlay de paisagem, pausa em `visibilitychange`, **teste em iPhone real** (11 ou 12 e 14+) com vídeo",
       "criterio_b": "Teste: custo dos nós segue a fórmula; reembolso zera; lint de strings passa. Playwright: fluxo completo Acender → Vigília → Apagar → Santuário → comprar nó → nova Vigília. iPhone real: Hora IV com ≥ 55 fps médio e sem recarga da aba em 3 Vigílias seguidas",
       "evidencia_b": "Vídeo em iPhone real; captura de memória do Safari Web Inspector (< 150 MB); relatório do lint",

@@ -2,7 +2,7 @@
 
 ## Sessão 9 — F-008 "Horas, marcos e Fogueira", F-009 "O Lanterneiro, Amanhecer e A Fome" e F-010 "Santuário mínimo e PWA"
 
-### Estado: F-008 e F-009 prontas (aguardam a revisão do usuário); F-010 em andamento
+### Estado: F-008, F-009 e F-010 prontas (aguardam a revisão do usuário); F-010.5 pendente de aparelho (roteiro em `docs/roteiro-iphone.md`)
 
 Branch `claude/clever-galileo-26bjed`, a partir de `origin/claude/f006-esquiva-weodg1` (fim da F-007, `e2ee1e5`). A sessão da arte (Sessão 8, F-011) trabalhou ao mesmo tempo na mesma branch: cada envio foi feito depois de `git pull --rebase`, sem force-push, e nenhum arquivo da arte foi editado aqui. Pedido do usuário: as três features em ordem, com economia máxima de tokens (subagentes com esforço médio, briefs curtos, um crítico por feature com nota mínima 7, `verify.sh` completo uma vez por feature).
 
@@ -23,7 +23,16 @@ Branch `claude/clever-galileo-26bjed`, a partir de `origin/claude/f006-esquiva-w
 - **Para o usuário decidir:** o Abandonar da pausa também vale em A Fome e no Amanhecer (ADR-0011 §9, item 8); a luta corpo a corpo mata o chefe em 77 s contra o alvo de 120 a 180 s do doc 06 (balanceamento, `u9.log`).
 - **Fica registrado:** a alocação da luta fica em 7,5 B/passo com o aquecimento usual de 150.000 passos, mas sobe com aquecimentos maiores (90 B com 250.000), por desotimizações do V8 em caminhos que só rodam tarde na luta (`salvaDeFacas`, `golpear`, `limitarPelaArena`); medir no aparelho (ADR-0011 §14). Quatro commits da 2a passaram de 300 linhas (549, 653, 508 e 526), já enviados.
 
+### F-010 (pronta; F-010.5 pendente de aparelho)
+- [x] **Etapa 2** em três partes: 2a, Fundação (8 nós, custo pela fórmula, compra e reembolso puros, recusas sem débito), estado v10 (76.872 B, o v9 intacto nos primeiros 76.868: os 4 ranks que a simulação lê), meta v3 com migrações 1 → 2 → 3 e a garantia de 300 Almas, degradação no `ComandosDoPasso` (vai para o replay); 2b, cena do Santuário (Iselda, árvore 2 × 4, compra e reembolso em 2 toques, convite "Adicionar à Tela de Início"), fluxo Acender → Santuário → Vigília → Resultado → Santuário, balão das Cinzas, pausa automática (visibilitychange, pagehide, blur, áudio interrompido, paisagem) com o APAGANDO concluindo com o mesmo hash, overlay de paisagem, manifest e service worker, `persist()` em standalone, degradação no render, lint de strings com `lint.txt`; 2c, `e2e/f010.spec.ts`, as capturas, `ritmo.txt`, o `verify.sh` aceitando de forma explícita só as 3 evidências do iPhone como pendentes e `docs/roteiro-iphone.md`. Decisões técnicas e divergências em `docs/decisoes/ADR-0012-implementacao-da-f010.md`.
+- [x] **Crítico independente:** nota **7,0**; 90 mutações, 70 mortas, 20 sobreviventes (4 equivalentes). O bloqueante (o `verify.sh` chamava `npm run`, palavra do glossário) foi corrigido; os médios viraram código e teste (overlay de fps por Hora e `recargas` no debug, que faltavam; o `verify.sh` aceita o vídeo do iPhone gravado fora; testes da degradação ao vivo, da pausa automática gravando o `andamento` e do Fôlego no level-up). ADR-0012 §10.
+- [x] `scripts/verify.sh --feature F-010 --taps-game --seed 1` verde (Vitest 2.247, Playwright 79, 3 evidências PEND do iPhone); F-001 a F-009 e F-011 verdes na mesma rodada. Capturas em `production/evidencias/F-010/` conferidas a olho.
+- Determinismo: passo de referência seed 1 `29725375`, seed 424242 `1776801d`; regressão v9; o `nivel_tres` da F-005 regravado (`03aa58dd`/`fbf64c69`, só o layout).
+- **Corrigido na implementação:** HP com Fôlego 182 (rank 5) e 156 (rank 1), e a árvore inteira custa 7.852 Almas; a D10 dizia 188, 158 e 7.851 e foi alinhada (ADR-0012 §9).
+- **Para o usuário avaliar:** o balão das Cinzas aparece no primeiro Apagar mesmo com 0 Almas, quando não há mancha (o texto fala da mancha); a fala de Iselda, o balão e o convite são textos provisórios até o roteiro.
+
 ### Pendente de aparelho / para revisar
+- F-010.5: o roteiro de 6 passos em `docs/roteiro-iphone.md` (iPhone 11 ou 12 e 14+, Hora IV com ≥ 55 fps, 3 Vigílias sem recarga da aba, memória no Web Inspector); os vídeos e a captura entram em `production/evidencias/F-010/` com os nomes do `feature_list.json`.
 - F-009: a luta do chefe e o véu de A Fome no OLED; a alocação da luta em sessões longas no JavaScriptCore.
 - Gravação no Safari real (cota do `localStorage` com o `vigilia` em base64), retomada depois de jetsam de verdade, botões da Fogueira de 72 pt e o véu do escurecimento em OLED.
 
