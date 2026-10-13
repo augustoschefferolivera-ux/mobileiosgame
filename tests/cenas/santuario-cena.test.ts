@@ -116,6 +116,23 @@ describe('cena Santuario', () => {
     expect(m.visiveis()).not.toContain('A9.SANTUARIO.ISELDA_FALA_01');
   });
 
+  it('em standalone, a compra pede navigator.storage.persist() e o resultado vai ao contexto (ST2); fora dele, não pede', async () => {
+    const persist = vi.fn().mockResolvedValue(true);
+    vi.stubGlobal('navigator', { userAgent: 'node', standalone: true, storage: { persist } });
+    const m = montar({ ...aposApagar(1000), marcos: MARCO.iselda });
+    m.tocar(alvoDoSantuario('iselda'));
+    m.tocar(alvoDaArvore(`no${NO.pele}`));
+    expect(persist).not.toHaveBeenCalled();
+    m.tocar(alvoDaArvore(`no${NO.pele}`));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect([persist.mock.calls.length, m.ctx.persistido]).toEqual([1, true]);
+    vi.stubGlobal('navigator', { userAgent: 'node', storage: { persist } });
+    m.tocar(alvoDaArvore(`no${NO.pele}`));
+    await Promise.resolve();
+    expect(persist.mock.calls.length).toBe(1);
+  });
+
   it('sem Almas: o 2º toque não compra nem grava e mostra a recusa', () => {
     const m = montar({ ...aposApagar(100), marcos: MARCO.iselda });
     m.tocar(alvoDoSantuario('iselda'));

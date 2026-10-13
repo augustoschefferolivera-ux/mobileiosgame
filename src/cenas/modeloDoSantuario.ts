@@ -130,3 +130,12 @@ export function detalheDoNo(m: Meta, idx: number): DetalheDoNo {
     bloqueado: !NOS_DA_FUNDACAO[idx]!.ativo,
   };
 }
+
+/**
+ * A Tela de Acender leva direto à Vigília? Sim ao Continuar (SN3, retomada na pausa) e, no build de debug, com `?cenario` ou
+ * `?inicio` sem `?santuario=1` (SN4: os specs das F-001 a F-009 não mudam). Senão, ao Acender o Santuário é sempre a próxima cena
+ * (SN2). Em produção os três parâmetros são sempre nulos e falsos.
+ */
+export function acenderVaiDiretoAVigilia(botao: 'acender' | 'continuar', passaPeloSantuario: boolean, cenario: string | null, inicio: number | null): boolean {
+  return botao === 'continuar' || (!passaPeloSantuario && (cenario !== null || inicio !== null));
+}

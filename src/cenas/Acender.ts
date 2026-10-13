@@ -13,6 +13,7 @@ import { ALTURA_LOGICA, LARGURA_LOGICA, medirSafeArea } from '../plataforma/safe
 import type { ContextoDoJogo } from './contexto';
 import { COR, cameraLogica, texto } from './estilo';
 import { horaEmRomano } from './linhasDoResultado';
+import { acenderVaiDiretoAVigilia } from './modeloDoSantuario';
 import { formatarAlmas } from './layoutDoHud';
 import { lerOferta, recusarOferta, type OfertaDeRetomada } from './retomada';
 import { criarDadosDaCharneca } from '../plataforma/dadosDaVigilia';
@@ -212,8 +213,7 @@ export class Acender extends Phaser.Scene {
     // Toque antes do fim da sonda: a Vigília fica com o fallback (300) e nada vai para o cache (decisoes-F-004 §5).
     this.ctx.sondaDoTeto = null;
     // O Santuário é sempre a próxima cena (SN2), menos ao Continuar (SN3) e, no build de debug, com ?cenario ou ?inicio sem ?santuario=1 (SN4).
-    const direto = alvo === 'continuar' || (!this.ctx.passaPeloSantuario && (this.ctx.cenario !== null || this.ctx.inicio !== null));
-    if (direto) this.scene.start('Vigilia');
+    if (acenderVaiDiretoAVigilia(alvo, this.ctx.passaPeloSantuario, this.ctx.cenario?.id ?? null, this.ctx.inicio)) this.scene.start('Vigilia');
     else this.scene.start('Santuario');
   };
 
