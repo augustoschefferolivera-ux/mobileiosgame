@@ -1,7 +1,7 @@
 // Mancha das Cinzas Perdidas, parte pura (design/decisoes-F-007.md MC1, MC4, MC5): a divisão das Almas,
 // o ponto livre mais próximo dos obstáculos e a Hora do relógio. Funções frias, chamadas uma vez por
 // Vigília; todo número que sai daqui é pequeno (< 2^30) e as contas intermediárias ficam em linha.
-import { CAUSA_DO_FIM } from '../nucleo/estado';
+import { CAUSA_DO_FIM, LIMITE_DE_ALMAS } from '../nucleo/estado';
 import { PASSOS_POR_SEGUNDO } from '../nucleo/passos';
 import type { Obstaculos } from './obstaculos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from './toro';
@@ -27,9 +27,12 @@ export function almasNaMancha(causa: number, almas: number, pct: number): number
   return Math.floor((pct * almas + 50) / 100);
 }
 
-/** Almas que vão ao Santuário (PE6, MC1): Abandonar leva `⌊N/2⌋`; o Apagar, `N − mancha`; Amanhecer, todas. */
+/** Almas que vão ao Santuário (PE6, MC1): Abandonar leva `⌊N/2⌋`; o Apagar, `N − mancha`; o Amanhecer, ×1,5 com o meio para cima, `⌊(3N + 1)/2⌋` (F-009 AN2),
+ * limitado ao teto das Almas (`N + ⌊(N + 1)/2⌋`: a conta não passa por 3N). */
 export function almasAoSantuario(causa: number, almas: number, naMancha: number): number {
-  return causa === CAUSA_DO_FIM.abandonar ? Math.floor(almas / 2) : almas - naMancha;
+  if (causa === CAUSA_DO_FIM.abandonar) return Math.floor(almas / 2);
+  if (causa === CAUSA_DO_FIM.amanhecer) return Math.min(LIMITE_DE_ALMAS - 1, almas + ((almas + 1) >> 1));
+  return almas - naMancha;
 }
 
 /** Sobra de um pixel para a posição ficar fora da zona e não exatamente na borda (Float32). */

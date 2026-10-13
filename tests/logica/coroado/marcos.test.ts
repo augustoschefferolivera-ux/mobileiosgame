@@ -464,7 +464,7 @@ describe('marco vencido pelo relógio, 20:00 e 23:00 (AR7, AR8; F-008.4g)', () =
     expect(eventosDe(e, EVENTO.fogueiraApagada)).toHaveLength(1);
   });
 
-  it('em CHEFE, 23:00 leva a A_FOME e ao FIM com causa aFome, no mesmo passo', () => {
+  it('em CHEFE, 23:00 leva a A_FOME (fase 3, F-009 FM1): a Vigília segue até o HP zerar, sem FIM no mesmo passo', () => {
     const e = aMarco(2);
     avancar(e, D, PARADO, 10);
     e.cab[CAB.relogio] = 71_999;
@@ -475,7 +475,7 @@ describe('marco vencido pelo relógio, 20:00 e 23:00 (AR7, AR8; F-008.4g)', () =
     expect([u(e, 'etapa'), e.jogador4U8[JOGADOR4_U8.fase]]).toEqual([ETAPA.chefe, FASE.viva]);
     avancar(e, D, PARADO, 1);
     expect(e.cab[CAB.relogio]).toBe(82_800);
-    expect([u(e, 'etapa'), e.jogador4U8[JOGADOR4_U8.fase], e.jogador4U8[JOGADOR4_U8.causaDoFim]]).toEqual([ETAPA.aFome, FASE.fim, CAUSA_DO_FIM.aFome]);
+    expect([u(e, 'etapa'), e.jogador4U8[JOGADOR4_U8.fase], e.jogador4U8[JOGADOR4_U8.causaDoFim]]).toEqual([ETAPA.aFome, FASE.aFome, CAUSA_DO_FIM.nenhuma]);
   });
 
   it('o diretor segue na CHEFE (linha 20) e não nasce nada em MARCO; com marco devido também não', () => {

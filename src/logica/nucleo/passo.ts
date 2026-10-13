@@ -13,9 +13,11 @@
 import { rodarArmas } from '../armas/armas';
 import { rodarDiretor } from '../diretor/diretor';
 import { rodarAtaques } from '../mundo/ataques';
+import { rodarAmanhecer } from '../mundo/amanhecer';
 import { aplicarRotacao } from '../mundo/cenario';
 import { aplicarContato } from '../mundo/contato';
 import type { DadosDaVigilia } from '../mundo/dados';
+import { rodarFome } from '../mundo/fome';
 import { rodarFrasco } from '../mundo/frasco';
 import { rodarEtapa } from '../mundo/etapas';
 import { armasAtivas, passoFogueira } from '../mundo/fogueira';
@@ -76,7 +78,11 @@ const BIT_ABANDONAR = ACAO.abandonar;
 function passoFora(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso): void {
   const fase = e.jogador4U8[INDICE_DA_FASE]!;
   if (fase === FASE.apagando) rodarApagando(e, dados);
-  else if (fase === FASE_VIVA && (cmd.acoes[0]! & BIT_ABANDONAR) !== 0) encerrarVigilia(e, dados, CAUSA_DO_FIM.abandonar);
+  else if (fase === FASE.fim) return;
+  // O Abandonar da pausa vale na fase VIVA, em A Fome e no Amanhecer (F-009: a pausa segue funcionando nessas fases).
+  else if ((cmd.acoes[0]! & BIT_ABANDONAR) !== 0) encerrarVigilia(e, dados, CAUSA_DO_FIM.abandonar);
+  else if (fase === FASE.aFome) rodarFome(e, dados, cmd);
+  else if (fase === FASE.amanhecer) rodarAmanhecer(e, dados, cmd);
 }
 
 /** Depois do passo vivo: encostar na mancha (MC7) e a morte (AG1), que descarta a fila de modais do passo. */

@@ -231,14 +231,14 @@ describe('encerrarVigilia (AG6) e a divisão das Almas (MC1, PE6)', () => {
     }
   });
 
-  it('as 4 causas: A Fome divide como o Apagar e o Amanhecer leva tudo; encerrar duas vezes não repete o evento', () => {
-    for (const [causa, mancha] of [[CAUSA_DO_FIM.aFome, 30], [CAUSA_DO_FIM.amanhecer, 0]] as const) {
+  it('as 4 causas: A Fome divide como o Apagar e o Amanhecer leva ×1,5 (meio para cima); encerrar duas vezes não repete o evento', () => {
+    for (const [causa, mancha, santuario] of [[CAUSA_DO_FIM.aFome, 30, 70], [CAUSA_DO_FIM.amanhecer, 0, 150]] as const) {
       const e = criar({ almasIniciais: 100 });
       encerrarVigilia(e, D, causa);
       encerrarVigilia(e, D, CAUSA_DO_FIM.abandonar);
       expect(eventosDe(e, EVENTO.fimDaVigilia)).toHaveLength(1);
       const r = resultadoDaVigilia(e, D);
-      expect([r.causa, r.mancha?.almas ?? 0, r.almasAoSantuario]).toEqual([causa, mancha, 100 - mancha]);
+      expect([r.causa, r.mancha?.almas ?? 0, r.almasAoSantuario]).toEqual([causa, mancha, santuario]);
     }
   });
 
