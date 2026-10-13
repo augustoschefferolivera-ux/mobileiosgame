@@ -380,7 +380,9 @@ describe('camada GPU das armas (F-003.11 estendido)', () => {
       const u32 = layer.getMemberData(2)!;
       const f32 = new Float32Array(u32.buffer, u32.byteOffset, FLOATS_POR_MEMBRO);
       expect([f32[OFFSET.rotacao], f32[OFFSET_DA_ORIGEM.x], f32[OFFSET_DA_ORIGEM.y]]).toEqual([1.25, 0.5, 1]);
-      for (const invisivel of [0, 7]) expect(layer.getMember(invisivel)).toMatchObject({ scaleX: 0, scaleY: 0, alpha: 0 });
+      // Invisível abaixo do último visível; depois dele, fora do desenho (o memberCount vai até o último visível, F-011).
+      expect(layer.getMember(0)).toMatchObject({ scaleX: 0, scaleY: 0, alpha: 0 });
+      expect([layer.memberCount, layer.getMember(7)]).toEqual([3, null]);
       const antes = [renderer.glBufferWrappers.length, renderer.glTextureWrappers.length];
       expect(antes).toEqual([2, 1]);
       (layer as Phaser.GameObjects.SpriteGPULayer).destroy = () => undefined as never;

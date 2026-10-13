@@ -112,6 +112,7 @@ export class HordaPorGPU implements EscritorDaHorda {
   escrever(saida: SaidaDaHorda, tabela: readonly (DesenhoDoTipo | null)[]): void {
     const f32 = this.f32;
     const u32 = this.u32;
+    let ultimo = -1;
     for (let s = 0; s < CAPACIDADE_DE_INIMIGOS; s++) {
       const base = s * FLOATS_POR_MEMBRO;
       const d = tabela[saida.tipo[s]!];
@@ -121,6 +122,7 @@ export class HordaPorGPU implements EscritorDaHorda {
         f32[base + OFFSET.alpha] = 0;
         continue;
       }
+      ultimo = s;
       f32[base + OFFSET.x] = saida.x[s]!;
       f32[base + OFFSET.y] = saida.y[s]!;
       f32[base + OFFSET.escalaX] = saida.espelhar[s] === 1 ? -d.escala : d.escala;
@@ -133,6 +135,8 @@ export class HordaPorGPU implements EscritorDaHorda {
       u32[base + OFFSET.tint + 2] = tint;
       u32[base + OFFSET.tint + 3] = tint;
     }
+    // Só até o último membro visível é desenhado (F-011): os de depois não custam vértice nem pixel.
+    this.layer.memberCount = ultimo + 1;
     // O buffer inteiro sobe sem alocar; a atualização por segmento alocaria um subarray por segmento.
     this.layer.setAllSegmentsNeedUpdate();
   }

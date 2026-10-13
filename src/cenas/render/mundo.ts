@@ -61,10 +61,13 @@ interface Camada {
   readonly saida: SaidaDeSprites;
 }
 
-/** Escala da grade de arte (2 pt por px) e o tamanho do TileSprite do chão em px de textura (a tela e 32 px de folga). */
+/**
+ * Escala da grade de arte (2 pt por px) e o tamanho do TileSprite do chão em px de textura: a tela e 1 px de folga em
+ * cada lado (a câmera não treme nem dá zoom; cada pixel a mais de chão custa pintura no WebGL por software).
+ */
 const ESCALA = ESCALA_DA_GRADE.arte;
-const MEIA_LARGURA_DO_CHAO = LARGURA_DA_TELA / ESCALA / 2 + 16;
-const MEIA_ALTURA_DO_CHAO = ALTURA_DA_TELA / ESCALA / 2 + 16;
+const MEIA_LARGURA_DO_CHAO = LARGURA_DA_TELA / ESCALA / 2 + 1;
+const MEIA_ALTURA_DO_CHAO = ALTURA_DA_TELA / ESCALA / 2 + 1;
 /** Phaser.BlendModes.ADD (o módulo importa o Phaser só como tipo): a luz da brasa é aditiva (doc 13 §1.4). */
 const ADITIVO = 1;
 /** Marcador de direção a 22 pt do centro do Aldric, nas 16 direções (style card E5). */

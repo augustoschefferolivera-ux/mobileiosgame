@@ -320,13 +320,19 @@ describe('SpriteGPULayer do Phaser 4.2.1 (F-003.11)', () => {
       expect([vivo.tintTopLeft, vivo.alphaTopLeft]).toEqual([0xffffff, 1]);
       // Virado para a esquerda: o sprite espelhado pela escala negativa.
       expect(layer.getMember(5)).toMatchObject({ scaleX: -2, scaleY: 2, frame: 'oco_das_lanternas' });
-      // Os médios saem desta camada (RE8): têm a 2ª camada, acima da massa; aqui o slot dele é invisível.
-      expect(layer.getMember(7)).toMatchObject({ scaleX: 0, scaleY: 0, alpha: 0 });
-      for (const morto of [0, 4, 499]) expect(layer.getMember(morto)).toMatchObject({ scaleX: 0, scaleY: 0, alpha: 0 });
+      // Os médios saem desta camada (RE8): têm a 2ª camada, acima da massa; aqui o slot dele (7) fica de fora do desenho,
+      // que vai só até o último membro visível (F-011): os slots 6 a 499 não custam vértice nem pixel.
+      expect(layer.memberCount).toBe(6);
+      expect(layer.getMember(7)).toBeNull();
+      for (const morto of [0, 4]) expect(layer.getMember(morto)).toMatchObject({ scaleX: 0, scaleY: 0, alpha: 0 });
       // O slot que morre volta a ser invisível no frame seguinte.
       saida.tipo[3] = 0;
       horda.escrever(saida, tabela);
       expect(layer.getMember(3)).toMatchObject({ scaleX: 0, scaleY: 0, alpha: 0 });
+      // Sem ninguém visível, nada é desenhado.
+      saida.tipo[5] = 0;
+      horda.escrever(saida, tabela);
+      expect(layer.memberCount).toBe(0);
       // Limpeza: os buffers e a textura de molduras saem das listas do renderer, e o VAO de cada programa é destruído.
       let destruidos = 0;
       const vao = { destroy: () => destruidos++ };

@@ -82,6 +82,7 @@ export class CamadaPorGPU implements EscritorDeSprites {
   escrever(s: SaidaDeSprites): void {
     const f32 = this.f32;
     const u32 = this.u32;
+    let ultimo = -1;
     for (let k = 0; k < this.capacidade; k++) {
       const base = k * FLOATS_POR_MEMBRO;
       if (s.visivel[k] !== 1) {
@@ -90,6 +91,7 @@ export class CamadaPorGPU implements EscritorDeSprites {
         f32[base + OFFSET.alpha] = 0;
         continue;
       }
+      ultimo = k;
       f32[base + OFFSET.x] = s.x[k]!;
       f32[base + OFFSET.y] = s.y[k]!;
       f32[base + OFFSET.rotacao] = s.rotacao[k]!;
@@ -106,6 +108,8 @@ export class CamadaPorGPU implements EscritorDeSprites {
       u32[base + OFFSET.tint + 2] = tint;
       u32[base + OFFSET.tint + 3] = tint;
     }
+    // Só até o último membro visível é desenhado (F-011): numa camada vazia o Phaser nem desenha.
+    this.layer.memberCount = ultimo + 1;
     this.layer.setAllSegmentsNeedUpdate();
   }
 
