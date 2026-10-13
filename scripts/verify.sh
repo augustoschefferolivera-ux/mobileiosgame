@@ -58,6 +58,7 @@ npx tsc -p tsconfig.logica.json
 
 etapa "lint"
 npx eslint . | tee .verify/lint.txt
+npm run --silent lint:relatorio
 
 etapa "Vitest"
 npx vitest run
@@ -101,7 +102,15 @@ node -e '
     }
     return "";
   };
+  const pendentes = [];
   for (const ev of f.evidencias) {
+    // Evidência de iPhone real que só o usuário gera (D10 IP1): a marca `pendente_de_aparelho: true` na entrada a deixa
+    // pendente, sem bloquear, enquanto o arquivo não existe; com o arquivo no lugar ela passa pelas conferências de sempre.
+    if (ev.pendente_de_aparelho === true && !fs.existsSync(ev.arquivo)) {
+      console.log(`PEND  ${ev.arquivo} — ${ev.descricao}`);
+      pendentes.push(ev.arquivo);
+      continue;
+    }
     const existe = fs.existsSync(ev.arquivo);
     const st = existe ? fs.statSync(ev.arquivo) : null;
     const nova = st !== null && st.size > 0 && st.mtimeMs / 1000 >= inicio - 1;
@@ -110,6 +119,7 @@ node -e '
     ok = ok && !erro;
   }
   for (const a of avisos) console.log(`AVISO ${a}`);
+  if (pendentes.length > 0) console.log(`PENDENTE DE APARELHO (não bloqueia, D10 IP1): ${pendentes.length} evidência(s); o roteiro está em docs/roteiro-iphone.md`);
   if (!ok) { console.error("verify: evidência com problema (veja acima)"); process.exit(1); }
 ' "$FEATURE" "$INICIO"
 

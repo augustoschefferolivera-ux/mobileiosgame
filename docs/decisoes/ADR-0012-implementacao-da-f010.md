@@ -48,7 +48,14 @@
 - **`?santuario=1` e `?fundacao=a,f,c,b,m` (SN4, FD12):** `lerParametros` (só no build de debug); `?fundacao` entra nos parâmetros da Vigília no lugar do meta (nunca o grava) e é ignorado nos cenários.
 
 ## 6. Playwright e evidências
-(2c.)
+
+`e2e/f010.spec.ts` (projeto taps-game, build de debug, storage limpo em cada teste):
+
+- **F-010.4:** `?inicio=19:00&santuario=1`: Acender, Santuário, Vigília, Apagar, Resultado com `A2.TUTORIAL.05`, Voltar, Iselda apresentando (árvore aberta, Fôlego em destaque), `meta.almas` = max(300, líquido), 1º toque em Fôlego não gasta e o 2º gasta 300, `hpMax` 156 na Vigília seguinte e, no 2º Apagar, `almas` = saldo + líquido (sem nova garantia). Capturas `santuario`, `resultado-balao`, `iselda-apresenta` e `arvore` (tooltip da Pele, nó selecionado), 390 × 844.
+- **F-010.6:** manifest (display, nome = `t('A8.SISTEMA.TITULO')`, ícones 192 e 512 abrem e têm esses tamanhos), service worker `activated` e controlando a página no 2º load, página abre offline (`setOffline`); convite na chegada seguinte à 1ª Vigília (a recarga mantém o `localStorage`), `Agora não` grava `conviteRecusadoEm` 1; com a recusa em 2 ele não volta com 6 Vigílias e volta com 7 (meta semeado com a soma de conferência, recalculada no spec porque o Node não importa o `meta.ts`: o ESM exige atributo de importação para o JSON); em `display-mode: standalone` (matchMedia trocado) sem convite, `persist()` no boot e de novo na compra; `visibilitychange` hidden pausa com origem 'automatica', solta o joystick, `passo` e `relogio` parados por 1 s, o toque que retoma não gera esquiva nem gasta stamina; hidden em APAGANDO (passo 10) fecha o FIM na hora, `apagandoPassos` 30, `vigiliasConcluidas` 1, `vdc.vigilia` removido e hash igual ao do Apagar sem interrupção (dois contextos novos, mesma seed); 844 × 390 mostra `#gire` com `t('A8.SISTEMA.GIRE')` e a simulação parada, e o retorno a 390 × 844 mostra a pausa automática.
+- A tela de convite tinha o texto com `wordWrapWidth` 320 numa caixa de 290 pt (a captura mostrou o texto encostando nas bordas); passou a 270.
+- `ritmo.txt` (FD10) sai de `tests/logica/progressao/ritmo.test.ts` com `VDC_EVIDENCIAS=1`; `lint.txt` do `npm run lint:relatorio`, que o `scripts/verify.sh` agora roda logo depois do eslint (sem isso o arquivo ficava "antigo" para a conferência de evidências frescas).
+- **Evidências pendentes de aparelho (IP1):** a entrada com `pendente_de_aparelho: true` e sem arquivo aparece como `PEND` no verify, sem bloquear, e o verify imprime o total pendente; com o arquivo presente ela passa pelas conferências de sempre. `tests/dados.test.ts` trava a marca: só `true`, só F-010, só nos três arquivos de iPhone e com "pendente de aparelho (D10 IP1)" na descrição, e F-010.5 segue `iphone_real`. Nenhuma outra feature ganhou exceção. O roteiro está em `docs/roteiro-iphone.md` (seção "Santuário e PWA").
 
 ## 7. Testes e medidas
 
@@ -57,7 +64,7 @@
 2b: `tests/cenas/modeloDoSantuario.test.ts` (modelo, compra, reembolso, Iselda, convite, alvos), `santuario-cena.test.ts` (a cena com Phaser falso: toques → meta gravado, textos visíveis por id, `persist()`), `resultado-balao.test.ts`, `pausa-automatica.test.ts`, `vigilia-fim.test.ts` (Voltar ao Santuário, balão, pausa automática, APAGANDO com hash igual, degradação e DG4), `degradacao-render.test.ts`, `tests/entrada/relogio-de-toque.test.ts` e `tradutor.test.ts` (PS5, soltouNaPausa), `tests/plataforma/` (`pwa`, `pwa-build` com o service worker avaliado num sandbox, `orientacao`, `parametros-f010`, `cenario-hora4`), `tests/dados-f010.test.ts` (F-010.13 e .14), `tests/glossario-dados.test.ts` (F-010.3 e .10). Os testes de cena não rodam o Phaser: um `add`, `scene` e `scale` falsos (o padrão de `hud-vinheta.test.ts`) bastam porque a regra mora nos módulos puros. 2c acrescenta a Playwright.
 
 ## 8. O que ficou pendente de aparelho
-F-010.5 e as evidências `iphone-11-ou-12.mp4`, `iphone-14.mp4` e `memoria-safari.png` (D10 IP1).
+F-010.5 e as evidências `iphone-11-ou-12.mp4`, `iphone-14.mp4` e `memoria-safari.png` (D10 IP1). O roteiro para o usuário é `docs/roteiro-iphone.md`, seção "Santuário e PWA (F-010, pendente de aparelho)".
 
 ## 9. Divergências
 

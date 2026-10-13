@@ -1,4 +1,4 @@
-# Roteiro do iPhone (build de teste da F-007, com a arte da F-011)
+# Roteiro do iPhone (build de teste das F-006 a F-011)
 
 Este roteiro é da Q-29 do brief ("build de teste em iPhone real logo depois da F-006") e da VT10 de `design/decisoes-F-006.md`. Não é evidência do `verify`: a execução no aparelho é sua. O build é o de **debug** (aceita os parâmetros de URL abaixo), publicado pelo workflow `.github/workflows/pages-teste.yml` ou servido por `npm run build:debug` e `npx vite preview --outDir dist-debug`.
 
@@ -56,6 +56,19 @@ A arte é toda em pixel (1 px de arte = 2 pt) e não muda o jogo: o que se confe
 | A10 | Chão e rochas | jogo normal, andar até a borda do mapa | o chão não pisca nem mostra emenda que distraia; as rochas leem como obstáculo (tampo claro, frente escura, musgo na borda) |
 | A11 | Acender e Resultado | abrir o jogo; morrer (item 10) | o Aldric grande respira na tela de Acender com a luz da brasa; no Resultado ele aparece ajoelhado virando cinza |
 | A12 | Desempenho com a arte | itens 3 e 4 de novo | fps ≥ 55 com `teto=300`; `?render=image` dá a mesma imagem que o padrão |
+
+## Santuário e PWA (F-010, pendente de aparelho)
+
+Este é o roteiro da D10 §5 (`design/decisoes-F-010.md`, IP1 a IP4). Os passos 3 e 4 são o critério F-010.5; a F-010 foi declarada pronta sem eles, mas o MVP só é "validado em aparelho" quando você entregar os arquivos abaixo. Low Power Mode **desligado** em todos os passos e o Safari atualizado.
+
+1. **Instalar.** No Mac, rode o workflow **Pages de teste**. No iPhone, abra `<URL>/?debug=1`, anote `sondaMs` e o `teto` do overlay (5 aberturas por aparelho: reabra a aba). Compartilhar > Adicionar à Tela de Início; abra pelo ícone e confira que o convite não aparece instalado.
+2. **Fluxo.** Acender > Santuário > Vigília > jogue até o Apagar > Resultado (balão, 300 Almas) > Voltar > Iselda se apresenta > compre *Fôlego de forja* > Vigília. Gire o aparelho em cada tela (overlay e pausa) e mande o app para o segundo plano durante a Vigília e durante o Apagar.
+3. **fps da Hora IV (F-010.5).** Abra `<URL>/?debug=1&cenario=hora4_armas`, aguarde 15 s e **grave a tela (Central de Controle) com o overlay de fps visível por 60 s**. Critério: fps médio da Hora IV ≥ 55, um vídeo por aparelho (iPhone 11 ou 12 e iPhone 14 ou mais novo).
+4. **Três Vigílias seguidas sem recarga (F-010.5).** Abra `<URL>/?debug=1&inicio=15:00` e jogue três Vigílias seguidas (Vigília > Apagar > Resultado > Voltar > Vigília), sem fechar nem recarregar a aba; ao fim o overlay deve mostrar `recargas 0`. Grave a tela inteira.
+5. **Memória.** No Mac, Safari > Desenvolvedor > o iPhone > a aba > Linha do Tempo > Memória, durante o passo 4: capture a maior leitura (critério < 150 MB).
+6. **Calibrações (anotar, não bloqueiam):** `entrada.relogioDeToque`; swipe, toque duplo, segurar (18 passos), janela do aparo, cor e vinheta do HP, câmera lenta a 30 fps (se o aparelho cair em Low Power), brilho do telegrafo, menu da Fogueira, borda da arena, véu da fome, cegueira; e as perguntas "esquiva sem querer" e "esquiva com uma mão".
+
+Arquivos a entregar em `production/evidencias/F-010/`: `iphone-11-ou-12.mp4` e `iphone-14.mp4` (cada um com os passos 3 e 4 do aparelho) e `memoria-safari.png`. Enquanto não existirem, o `scripts/verify.sh` os lista como `PEND` (marca `pendente_de_aparelho` na entrada de `feature_list.json`) e não bloqueia.
 
 ## O que anotar
 

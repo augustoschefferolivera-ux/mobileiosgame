@@ -1,0 +1,31 @@
+# Ritmo de Almas × preço da árvore da Fundação (D10 FD10; informativo, sem gate; o balanceamento fica para depois do iPhone).
+
+## Preço da árvore (19 ranks ativos; 300 × 1,12^(rank−1) × (1 + 0,015 × G), Float32; o rank mais barato primeiro)
+compra  nó                            custo  acumulado
+     1  pele_que_esqueceu_de_sangrar     300        300
+     2  folego_de_forja                  305        605
+     3  casco                            309        914
+     4  bigorna_no_peito                 314       1228
+     5  maos_de_aprendiz                 318       1546
+     6  pele_que_esqueceu_de_sangrar     361       1907
+     7  folego_de_forja                  366       2273
+     8  casco                            371       2644
+     9  bigorna_no_peito                 376       3020
+    10  maos_de_aprendiz                 381       3401
+    11  pele_que_esqueceu_de_sangrar     433       3834
+    12  folego_de_forja                  438       4272
+    13  casco                            444       4716
+    14  bigorna_no_peito                 450       5166
+    15  maos_de_aprendiz                 455       5621
+    16  pele_que_esqueceu_de_sangrar     516       6137
+    17  folego_de_forja                  523       6660
+    18  pele_que_esqueceu_de_sangrar     592       7252
+    19  folego_de_forja                  600       7852
+total: 7852 Almas (um só nó de 5 ranks: 1.969; de 3: 1.029).
+
+## Vigílias para comprar tudo, com as Almas ao Santuário medidas na F-009 (u9.log, seeds 1 a 8) aos 20:00 de 400 / 1.100 / 1.600 coletadas
+amanhecer, corpo_a_corpo       900 /  1950 /  2700 Almas por Vigília => 9 / 5 / 3 Vigílias
+a_fome, parado                 280 /   770 /  1120 Almas por Vigília => 29 / 11 / 8 Vigílias
+
+A D10 FD10 estimou 5 a 20 Vigílias com os alvos líquidos de B §5.14 (400 / 1.100 / 1.600) e escreveu 7.851 de cabeça; o total do código é o de cima.
+O 1º Apagar garante 300 (GA1). Nenhuma decisão sai daqui: se o ritmo parecer errado, é balanceamento.

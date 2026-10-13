@@ -659,6 +659,26 @@ describe('feature_list.json', () => {
     }
   });
 
+  it('pendente_de_aparelho é explícito (true), só em evidência de iPhone real da F-010 (D10 IP1) e o critério F-010.5 é de iphone_real', () => {
+    for (const f of features) {
+      for (const e of lista(f, 'evidencias')) {
+        if (!('pendente_de_aparelho' in e)) continue;
+        const arq = String(e['arquivo']);
+        expect(e['pendente_de_aparelho'], arq).toBe(true);
+        expect(String(f['id']), arq).toBe('F-010');
+        expect(/iphone-[^/]+\.mp4$|memoria-safari\.png$/.test(arq), arq).toBe(true);
+        expect(String(e['descricao']), arq).toContain('pendente de aparelho (D10 IP1)');
+      }
+    }
+    const f010 = features.find((f) => f['id'] === 'F-010')!;
+    expect(lista(f010, 'evidencias').filter((e) => e['pendente_de_aparelho'] === true).map((e) => String(e['arquivo'])).sort()).toEqual([
+      'production/evidencias/F-010/iphone-11-ou-12.mp4',
+      'production/evidencias/F-010/iphone-14.mp4',
+      'production/evidencias/F-010/memoria-safari.png',
+    ]);
+    expect(lista(f010, 'criterios').find((c) => c['id'] === 'F-010.5')!['verificacao']).toBe('iphone_real');
+  });
+
   it('cada feature tem critérios completos (ao menos um de B §4, ou a origem fora do B em cada um) e uma evidência por item de evidencia_b', () => {
     for (const f of features) {
       const id = String(f['id']);
