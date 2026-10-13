@@ -29,3 +29,13 @@ As 6 capturas 390 × 844 (`e2e/f011.spec.ts`, em `production/evidencias/F-011/`)
 | `resultado-390x844.png` | O painel do Resultado e a linha lilás da mancha legíveis sobre a cena escurecida. |
 
 Nenhuma captura pediu correção nova. O que só o aparelho decide (nitidez na Retina de 3×, fps com a arte, a luz e a cunha) está nos itens A1 a A12 de `docs/roteiro-iphone.md`.
+
+## O que o `verify.sh` pegou (etapa 4)
+
+O `scripts/verify.sh --feature F-011 --taps-game --seed 1` completo achou três defeitos da arte que as capturas não mostravam; os três foram corrigidos antes do verde.
+
+| Defeito | Como apareceu | Correção |
+|---|---|---|
+| Sob acerto, o médio em telegrafo trocava para o quadro de acerto e perdia a silhueta branca: o aviso do golpe sumia debaixo das facas. | Evidência dos telegrafos da F-006 (o centro do Oco Grande não estava branco). | No telegrafo, o "inspirar" e a silhueta valem mesmo sob acerto (`src/cenas/render/ataques.ts`, com teste novo). |
+| As faíscas e lascas do acerto nasciam no centro do inimigo, por cima do miolo. | A mesma evidência, depois da 1ª correção (uma lasca S no pixel do centro). | Nascem a 8 pt do centro, na direção em que saltam (`src/cenas/render/efeitos.ts`). |
+| Cada camada da GPU desenhava a capacidade inteira (os invisíveis em escala 0), e a F-011 trouxe camadas grandes e quase vazias (sal, partículas, silhuetas dos médios); o chão tinha 32 pt de folga em cada lado. No WebGL por software a horda caiu de 42 para 29 passos/s. | Heap da F-003 (rotação abaixo do mínimo no intervalo), gesto da F-004 e arrasto da F-002 (tempo). | O escritor põe o `memberCount` no último membro visível (camada vazia nem desenha) e o chão fica com 1 px de folga: 46 passos/s. |
