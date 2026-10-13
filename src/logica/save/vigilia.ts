@@ -13,6 +13,7 @@ import {
   FOGUEIRA_U32,
   FOGUEIRA_U8,
   JOGADOR,
+  FASE,
   JOGADOR4_U8,
   LIMITE_DE_ALMAS,
   PROGRESSAO,
@@ -256,12 +257,12 @@ export function lerAndamento(texto: string | null): AndamentoDaVigilia | null {
 // ——— Carga ———
 
 /** O resultado de `restaurar`: `ok`, ou por que o save não vale (o estado deve ser descartado). */
-export type ResultadoDaCarga = 'ok' | 'base64' | 'layout' | 'tamanho' | 'disposicao' | 'nan';
+export type ResultadoDaCarga = 'ok' | 'base64' | 'layout' | 'tamanho' | 'disposicao' | 'nan' | 'fase';
 
 /**
  * Carga (SV1, SV6, SV7): decodifica, migra o layout se for menor (sem elo: `layout`), confere o tamanho, a versão e a
  * impressão da disposição dos obstáculos no cabeçalho, copia os bytes para o estado, refaz os derivados
- * (`sincronizarDerivados`: `hpMax` e as tabelas de dano vivo), esvazia o anel de eventos, confere NaN e, com a etapa
+ * (`sincronizarDerivados`: `hpMax` e as tabelas de dano vivo), esvazia o anel de eventos, confere NaN e a fase VIVA e, com a etapa
  * FOGUEIRA, guarda a sombra. O modal aberto continua aberto (a pilha mora no buffer). Com resultado diferente de `ok`, o
  * estado não serve mais e o chamador o descarta.
  */
@@ -291,6 +292,9 @@ export function restaurar(
   } catch {
     return 'nan';
   }
+  // Nenhuma Fogueira existe depois de 20:00 e o save só nasce no passo 0 e nelas: uma fase diferente de VIVA (APAGANDO, FIM,
+  // A Fome, Amanhecer) é um save corrompido (F-009, D9 §4).
+  if (e.jogador4U8[JOGADOR4_U8.fase] !== FASE.viva) return 'fase';
   if (e.fogueiraU8[FOGUEIRA_U8.etapa] === ETAPA.fogueira) guardarSombra(e);
   return 'ok';
 }

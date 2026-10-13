@@ -273,6 +273,17 @@ describe('leitura que nunca lança (SV6, SV7)', () => {
     expect(restaurar(criarEstado(1, D, {}), D, lido.envelope)).toBe('nan');
   });
 
+  it('fase diferente de VIVA (APAGANDO, FIM, A Fome, Amanhecer): save corrompido, recusado (F-009, D9 §4)', () => {
+    for (const fase of [FASE.apagando, FASE.fim, FASE.aFome, FASE.amanhecer]) {
+      const ev = criarEstado(1, D, {});
+      ev.bytes.set(new Uint8Array(e.bytes));
+      ev.jogador4U8[JOGADOR4_U8.fase] = fase;
+      const lido = lerVigilia(serializarVigilia(ev, 1));
+      if (!lido.ok) throw new Error(lido.motivo);
+      expect(restaurar(criarEstado(1, D, {}), D, lido.envelope), `fase ${fase}`).toBe('fase');
+    }
+  });
+
   it('disposição de obstáculos diferente: recusada, e a Recusar sem estado dá ⌊N/2⌋ ao Santuário', () => {
     const lido = lerVigilia(bom);
     if (!lido.ok) throw new Error(lido.motivo);
