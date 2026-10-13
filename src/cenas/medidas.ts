@@ -24,6 +24,8 @@ export class MedidorDeQuadros {
   private tRender = -1;
   private sim = 0;
   private nPassos = 0;
+  /** O custo do último quadro fechado por `fim`, de PRE_STEP a POST_RENDER, em ms (a entrada da degradação; F-010 DG1). */
+  ultimoMs = 0;
 
   inicio(t: number): void {
     this.t0 = t;
@@ -44,7 +46,8 @@ export class MedidorDeQuadros {
   fim(t: number): void {
     if (this.t0 < 0 || this.tRender < 0) return;
     const i = this.n % QUADROS_GUARDADOS;
-    this.totais[i] = t - this.t0;
+    this.ultimoMs = t - this.t0;
+    this.totais[i] = this.ultimoMs;
     this.ateRender[i] = this.tRender - this.t0;
     this.simulacao[i] = this.sim;
     this.passos[i] = Math.min(this.nPassos, 255);

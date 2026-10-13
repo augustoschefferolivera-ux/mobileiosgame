@@ -10,6 +10,7 @@ import { ARMA } from '../../logica/armas/tabela';
 import { CAPACIDADE_DE_INIMIGOS, CAB, FASE, JOGADOR, JOGADOR4_U8, type Estado } from '../../logica/nucleo/estado';
 import { CAUSA, EV, EVENTO, FLAG, FORMA, LeitorDeEventos, inicioDoEvento } from '../../logica/nucleo/eventos';
 import type { TiposDeInimigo } from '../../logica/mundo/tipos';
+import { POOL_DE_MORTES_DEGRADADO } from '../../plataforma/degradacao';
 
 /** Capacidades (ADR-0002 §4 e §15 item 2; V5). */
 export const CAPACIDADE_DE_NUMEROS = 96;
@@ -146,8 +147,22 @@ export class EfeitosDaVigilia {
   readonly feedback = { aparo: 0, esquivaPerfeita: 0, acaoNegada: 0, danoRecebido: 0 };
   numerosVivos = 0;
   private numerosLigados = true;
+  /** Até onde o nascimento procura vaga (F-010 DG2): o nível 1 da degradação reduz o pool de mortes a 150 e o anel de partículas à metade; as vagas acima do limite só terminam de vida. */
+  private limiteDeMortes = CAPACIDADE_DE_MORTES;
+  private limiteDeParticulas = CAPACIDADE_DE_PARTICULAS;
 
   constructor(private readonly tipos: TiposDeInimigo) {}
+
+  /** Nível de degradação 0 a 3 (DG2): a partir do 1, pool de mortes de 150 e anel de partículas pela metade. Só o render muda; fora do hash. */
+  limitarPorDegradacao(nivel: number): void {
+    this.limiteDeMortes = nivel >= 1 ? POOL_DE_MORTES_DEGRADADO : CAPACIDADE_DE_MORTES;
+    this.limiteDeParticulas = nivel >= 1 ? CAPACIDADE_DE_PARTICULAS >> 1 : CAPACIDADE_DE_PARTICULAS;
+  }
+
+  /** Os limites vigentes, para o debug e os testes. */
+  get limites(): { mortes: number; particulas: number } {
+    return { mortes: this.limiteDeMortes, particulas: this.limiteDeParticulas };
+  }
 
   reiniciar(): void {
     this.numeros.ativo.fill(0);
@@ -232,8 +247,8 @@ export class EfeitosDaVigilia {
         if (((u32[i + EV.inimigoFlagsCausa]! >>> 16) & 0xff) !== CAUSA.arma) continue;
         const m = this.mortes;
         let j = 0;
-        while (j < CAPACIDADE_DE_MORTES && m.ativo[j] === 1) j++;
-        if (j === CAPACIDADE_DE_MORTES) {
+        while (j < this.limiteDeMortes && m.ativo[j] === 1) j++;
+        if (j === this.limiteDeMortes) {
           this.recusados.mortes++;
           continue;
         }
@@ -292,8 +307,8 @@ export class EfeitosDaVigilia {
       const passoDoEvento = u32[i + EV.passo]!;
       let livre = 0;
       for (let q = 0; q < quantas; q++) {
-        while (livre < CAPACIDADE_DE_PARTICULAS && pa.ativo[livre] === 1) livre++;
-        if (livre === CAPACIDADE_DE_PARTICULAS) {
+        while (livre < this.limiteDeParticulas && pa.ativo[livre] === 1) livre++;
+        if (livre === this.limiteDeParticulas) {
           this.particulasRecusadas += quantas - q;
           break;
         }
@@ -330,8 +345,8 @@ export class EfeitosDaVigilia {
       if (apagando ? passo % 2 === 0 : u4[JOGADOR4_U8.frascoPasso]! > 0 && passo % 5 === 0) {
         const pa = this.particulas;
         let k = 0;
-        while (k < CAPACIDADE_DE_PARTICULAS && pa.ativo[k] === 1) k++;
-        if (k === CAPACIDADE_DE_PARTICULAS) this.particulasRecusadas++;
+        while (k < this.limiteDeParticulas && pa.ativo[k] === 1) k++;
+        if (k === this.limiteDeParticulas) this.particulasRecusadas++;
         else {
           let h = Math.imul(passo ^ 0x5bd1e995, 0x27d4eb2d);
           h ^= h >>> 15;

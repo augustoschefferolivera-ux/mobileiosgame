@@ -95,6 +95,8 @@ export function iniciarJogo(): Phaser.Game | null {
     santuario: null,
     persistido: null,
     orientacao,
+    degradacao: { nivel: 0, forcado: null },
+    identidadeDoTeto: identidade,
     meta: { armazenamento: armazenamentoDoMeta, atual: meta },
     vigiliaGuardada: new ArmazenamentoDaVigilia(),
     retomada: null,

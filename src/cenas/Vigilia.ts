@@ -25,7 +25,10 @@ import { avancar, passo } from '../logica/nucleo/passo';
 import { resultadoDaVigilia, type ResultadoDaVigilia } from '../logica/mundo/vigilia';
 import { MARCO, comMarco, comOpcoes, comTutoriais, reservarIdDaVigilia } from '../logica/save/meta';
 import { GravadorDaVigilia, creditarFim } from '../plataforma/vigiliaGuardada';
+import { criarDegradacao, registrarQuadro } from '../plataforma/degradacao';
 import { sortearSeed } from '../plataforma/parametros';
+import { armazenamentoLocal, gravarCacheDoTeto } from '../plataforma/sonda';
+import { tetoRebaixado, type Teto } from '../plataforma/teto';
 import { criarDadosDaCharneca } from '../plataforma/dadosDaVigilia';
 import { prepararFogueiraDoCenario, prepararNivelDoCenario } from '../plataforma/cenarios';
 import inimigos from '../dados/inimigos.json';
@@ -73,6 +76,10 @@ export class Vigilia extends Phaser.Scene {
   private resultadoIniciado = false;
   /** A retomada abriu a pausa no estado antes de as cenas Pausa e Hud existirem; o 1º update as mostra. */
   private pausaDaRetomadaPendente = false;
+  /** A degradação medida desta Vigília (F-010 DG1): janela de 2 s sobre a CPU de PRE_STEP a POST_RENDER; o nível vigente mora em `ctx.degradacao`. */
+  private degradacao = criarDegradacao(0);
+  /** O TETO 300 que o nível 3 gravou em `vdc.teto` (DG4): vale a partir da próxima Vigília, quando esta cena fechar. */
+  private tetoDaProxima: Teto | null = null;
 
   constructor(private readonly ctx: ContextoDoJogo) {
     super({ key: 'Vigilia' });
@@ -151,6 +158,9 @@ export class Vigilia extends Phaser.Scene {
     this.scene.launch('Pausa');
     this.scene.launch('Resultado');
     this.pausaDaRetomadaPendente = false;
+    this.degradacao = criarDegradacao(performance.now());
+    this.tetoDaProxima = null;
+    this.ctx.degradacao.nivel = 0;
     if (retomada !== null) this.abrirPausaDaRetomada();
     const eventos = this.game.events;
     eventos.on(Phaser.Core.Events.PRE_STEP, this.aoPreStep, this);
@@ -183,6 +193,7 @@ export class Vigilia extends Phaser.Scene {
       eventos.off(Phaser.Core.Events.BLUR, aoSumir);
       contextoDeAudio?.removeEventListener('statechange', aoMudarOAudio);
       naoOuvirOGiro();
+      if (this.tetoDaProxima !== null) this.ctx.teto = this.tetoDaProxima;
       eventos.off(Phaser.Core.Events.PRE_STEP, this.aoPreStep, this);
       eventos.off(Phaser.Core.Events.STEP, this.aoStep, this);
       eventos.off(Phaser.Core.Events.PRE_RENDER, this.aoPreRender, this);
@@ -222,6 +233,8 @@ export class Vigilia extends Phaser.Scene {
     // O menu da Fogueira vale com a simulação rodando na etapa FOGUEIRA, sem pausa nem modal (F-008 FG8).
     trad.fogueiraAberta = sim.estado.fogueiraU8[FOGUEIRA_U8.etapa] === ETAPA.fogueira && fase === FASE.viva && !sim.pausa.ativa && !modalAberto(sim.estado);
     trad.traduzir(this.ctx.entrada.fila, sim.comandosAoVivo, performance.now());
+    // O nível 3 da degradação chega à simulação como comando (DG3); o replay o grava com o resto.
+    sim.comandosAoVivo.degradacao[0] = this.ctx.degradacao.nivel;
     // Outro botão da pausa desarma o Abandonar (PE4); o próprio Abandonar arma no 1º toque e confirma no 2º.
     this.desarmarAbandonar(trad.toqueNaPausa);
     // A pausa é inerte em APAGANDO e em FIM (AG3): sem pedido de pausa, e o Resultado cuida dos toques.
@@ -559,7 +572,23 @@ export class Vigilia extends Phaser.Scene {
   }
 
   private aoPostRender(): void {
-    this.ctx.medidor.fim(performance.now());
+    const agora = performance.now();
+    this.ctx.medidor.fim(agora);
+    const d = this.ctx.degradacao;
+    const medido = registrarQuadro(this.degradacao, this.ctx.medidor.ultimoMs, agora);
+    const nivel = d.forcado ?? medido;
+    if (nivel !== d.nivel) this.mudarDegradacao(nivel);
+  }
+
+  /** O nível mudou (DG2 a DG4): o render aplica os níveis 1 e 2; ao subir ao 3 numa Vigília de TETO 500, `vdc.teto` passa a 300 (vale na próxima). */
+  mudarDegradacao(nivel: number): void {
+    this.ctx.degradacao.nivel = nivel;
+    this.render?.aplicarDegradacao(nivel);
+    if (nivel < 3) return;
+    const novo = tetoRebaixado(this.ctx.teto);
+    if (novo === null) return;
+    gravarCacheDoTeto(armazenamentoLocal(), this.ctx.identidadeDoTeto, novo.valor);
+    this.tetoDaProxima = novo;
   }
 
   override update(): void {

@@ -109,6 +109,10 @@ export interface ContextoDoJogo {
   persistido: boolean | null;
   /** O observador da orientação (overlay `#gire`, F-010 PS3): a Vigília pausa quando o aparelho vira para paisagem. */
   readonly orientacao: ObservadorDeOrientacao;
+  /** A degradação em curso (F-010 DG1 a DG3): o nível vigente 0 a 3 e, no build de debug, o nível imposto por `__GAME_DEBUG__.degradar` (null = o medido). */
+  readonly degradacao: { nivel: number; forcado: number | null };
+  /** A identidade do cache `vdc.teto` (build, Safari e classe de tela), para o rebaixamento do TETO (DG4). */
+  readonly identidadeDoTeto: IdentidadeDoCache;
   /** O meta: o armazenamento (localStorage com queda para a memória) e a cópia lida no boot, a que o fim da Vigília atualiza. */
   readonly meta: { readonly armazenamento: ArmazenamentoDoMeta; atual: Meta };
   /** O `vigilia` e o `andamento` guardados (F-008 SV2): o gravador escreve, o Acender lê. */

@@ -348,6 +348,8 @@ export interface GameDebug {
   readonly santuario: { almas: number; brasas: number; selecionado: number | null; arvoreAberta: boolean; reembolsoArmado: boolean; conviteAberto: boolean; falaDeIselda: boolean; gasto: number; ranks: number[]; recusa: string | null } | null;
   /** O resultado do `navigator.storage.persist()` em standalone: true, false, ou null (sem API, fora do modo instalado ou ainda sem resposta; F-010 ST2). */
   readonly persistido: boolean | null;
+  /** A degradação (F-010 DG1): o nível vigente 0 a 3 e os limites de render dele (pool de mortes e anel de partículas); null fora da Vigília. */
+  readonly degradacao: { nivel: number; forcado: number | null; poolDeMortes: number; particulas: number } | null;
   /** Fim da Vigília, Frasco e mancha, lidos do estado (F-007); null sem simulação. */
   readonly vigilia: {
     fase: string;
@@ -456,6 +458,8 @@ export interface GameDebug {
   readonly save: { seq: number; hash: string } | null;
   hash(): string | null;
   audio(): string;
+  /** Impõe o nível de degradação 0 a 3 (null devolve ao medido); só no build de debug (F-010). */
+  degradar?: (nivel: number | null) => void;
   pausar?: () => void;
   retomar?: () => void;
   /** Roda n passos (para antes num modal aberto) e devolve quantos rodaram. Só no build de debug. */
@@ -549,6 +553,10 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     },
     get persistido() {
       return ctx.persistido;
+    },
+    get degradacao() {
+      const l = ctx.simulacao?.efeitos?.limites;
+      return l ? { nivel: ctx.degradacao.nivel, forcado: ctx.degradacao.forcado, poolDeMortes: l.mortes, particulas: l.particulas } : null;
     },
     get vigilia() {
       const sim = ctx.simulacao;
@@ -820,6 +828,10 @@ export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug
     },
   };
   if (ctx.ehBuildDeDebug) {
+    debug.degradar = (nivel) => {
+      if (nivel !== null && !(Number.isInteger(nivel) && nivel >= 0 && nivel <= 3)) throw new Error(`degradar: nível inválido: ${String(nivel)}`);
+      ctx.degradacao.forcado = nivel;
+    };
     debug.pausar = () => {
       if (ctx.simulacao) ctx.simulacao.pausada = true;
     };

@@ -31,6 +31,7 @@ import type { EscritorDaHorda } from './escritores';
 import { membrosDoMundo, molduraDaRocha, prepararMundo } from './pickups';
 import { MEMBROS_DO_CHEFE, prepararChefe } from './chefe';
 import { MEMBROS_DAS_ESTRUTURAS, prepararEstruturas, veuDaVigilia } from './estruturas';
+import { luzLigada } from '../../plataforma/degradacao';
 import { criarSaidaDaHorda, prepararHorda, prepararQuadrosDaHorda, type DesenhoDoTipo } from './horda';
 /** Molduras do marcador de direção nos 4 ângulos desenhados. */
 const MARCADORES = [0, 1, 2, 3].map((k) => indiceDaMoldura(`marcador_${k}`));
@@ -99,6 +100,8 @@ export class RenderDaVigilia implements RenderDoMundo {
   private alfaDoVeu = 0;
   private corDoVeu = 0;
   private alfaDaAurora = 0;
+  /** A luz (brasa e aurora, aditivas) está ligada? O nível 2 da degradação a apaga (F-010 DG2). */
+  private luz = true;
   /** A luz da aurora do Amanhecer (F-009 AN4): aditiva, na posição da câmera, acima do véu. */
   private readonly aurora: Phaser.GameObjects.Image | null = null;
   private readonly veuAtual = new Float64Array(3);
@@ -255,9 +258,22 @@ export class RenderDaVigilia implements RenderDoMundo {
     if (aurora === null) return;
     if (v[2] !== this.alfaDaAurora) {
       this.alfaDaAurora = v[2]!;
-      aurora.setAlpha(this.alfaDaAurora).setVisible(this.alfaDaAurora > 0);
+      aurora.setAlpha(this.alfaDaAurora).setVisible(this.alfaDaAurora > 0 && this.luz);
     }
     if (this.alfaDaAurora > 0) aurora.setPosition(camX, camY);
+  }
+
+  /**
+   * Degradação 0 a 3 (F-010 DG2), só render: do nível 1 em diante os pools de mortes e de partículas encolhem; do 2, a luz da brasa
+   * e a aurora (aditivas) se apagam. Chamado só quando o nível muda.
+   */
+  aplicarDegradacao(nivel: number): void {
+    this.efeitos?.limitarPorDegradacao(nivel);
+    const luz = luzLigada(nivel);
+    if (luz === this.luz) return;
+    this.luz = luz;
+    this.brilho.setVisible(luz);
+    this.aurora?.setVisible(luz && this.alfaDaAurora > 0);
   }
 
   /** O Aldric pelo estado (src/cenas/render/aldric.ts), a luz da brasa, o marcador de direção e os rastros da esquiva. */

@@ -27,6 +27,9 @@ interface Interno {
   tratarToqueDoResultado(b: string): void;
   fecharBalaoDasCinzas(): void;
   sairDeCena(): void;
+  mudarDegradacao(nivel: number): void;
+  tetoDaProxima: { valor: number } | null;
+  render: unknown;
   fecharPausa(): void;
   abrirPausa(origem: 'botao' | 'gesto'): void;
   desarmarAbandonar(toque: string | null): void;
@@ -311,5 +314,31 @@ describe('pausa automática e APAGANDO (F-010 PS1, PS2, PS4)', () => {
     estado.jogador4U8[JOGADOR4_U8.fase] = FASE.fim;
     v.sairDeCena();
     expect([sim.pausa.ativa, cena.pausaCena.mostrar.mock.calls.length]).toEqual([false, 0]);
+  });
+});
+
+describe('degradação na Vigília (F-010 DG2 a DG4)', () => {
+  const ctxDeDegradacao = (valor: 300 | 500): Partial<ContextoDoJogo> => ({
+    teto: { valor, origem: 'sonda', sondaMs: 1 },
+    degradacao: { nivel: 0, forcado: null },
+    identidadeDoTeto: { build: 'x', versaoDoSafari: null, tela: 'y' },
+  });
+
+  it('cada mudança de nível chega ao render; só o nível 3 numa Vigília de TETO 500 prepara o 300 da próxima (a em curso mantém o 500)', () => {
+    const { v, ctx } = montar(100, ctxDeDegradacao(500));
+    const aplicar = vi.fn();
+    v.render = { aplicarDegradacao: aplicar };
+    v.mudarDegradacao(1);
+    v.mudarDegradacao(2);
+    expect([aplicar.mock.calls, v.tetoDaProxima, ctx.teto.valor]).toEqual([[[1], [2]], null, 500]);
+    v.mudarDegradacao(3);
+    expect([ctx.degradacao.nivel, v.tetoDaProxima?.valor, ctx.teto.valor]).toEqual([3, 300, 500]);
+  });
+
+  it('numa Vigília de TETO 300 o nível 3 não rebaixa nada', () => {
+    const { v } = montar(100, ctxDeDegradacao(300));
+    v.render = { aplicarDegradacao: vi.fn() };
+    v.mudarDegradacao(3);
+    expect(v.tetoDaProxima).toBeNull();
   });
 });

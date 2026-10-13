@@ -49,3 +49,13 @@ export function decidirTeto(e: EntradasDoTeto): Teto {
   if (e.sonda !== null) return { valor: e.sonda.valor, origem: 'sonda', sondaMs: e.sonda.ms };
   return { valor: TETO_DE_FALLBACK, origem: 'fallback', sondaMs: null };
 }
+
+/**
+ * DG4: o nível 3 da degradação numa Vigília de TETO 500 rebaixa o TETO para 300 (gravado em `vdc.teto` e valendo na próxima Vigília;
+ * a em curso mantém o que tem). Devolve o TETO novo, ou null se não há o que rebaixar: já é 300, ou veio de `?teto` (o override de
+ * debug não mexe no cache).
+ */
+export function tetoRebaixado(t: Teto): Teto | null {
+  if (t.valor !== 500 || t.origem === 'override') return null;
+  return { valor: 300, origem: 'cache', sondaMs: t.sondaMs };
+}
