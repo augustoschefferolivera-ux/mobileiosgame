@@ -2,13 +2,13 @@
 // contador, o que está pendente é descartado e o jogador anda 10 s sob o céu que clareia; no passo 600 a Vigília termina com
 // as Almas ×1,5 e uma Brasa. Sem RNG.
 import type { ComandosDoPasso } from '../nucleo/comandos';
-import { CAB, CAPACIDADE_DE_PICKUPS, CHEFE_U16, ETAPA, FASE, FOGUEIRA_U8, JOGADOR, JOGADOR4_U8, PROGRESSAO, TIPO_DE_PICKUP, CAPACIDADE_DE_INIMIGOS, CAUSA_DO_FIM, type Estado } from '../nucleo/estado';
+import { CAB, CAPACIDADE_DE_PICKUPS, CENARIO, CHEFE_U16, CHEFE_U8, ETAPA, FASE, FOGUEIRA_U8, JOGADOR, JOGADOR4_U8, PROGRESSAO, TIPO_DE_PICKUP, CAPACIDADE_DE_INIMIGOS, CAUSA_DO_FIM, type Estado } from '../nucleo/estado';
 import { CAUSA, EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import { limparOferta } from '../progressao/oferta';
 import { creditarAlmas, liberarPickup } from '../progressao/pickups';
 import { desfazerArena } from './arena';
 import type { DadosDaVigilia } from './dados';
-import { andarSemAcoes, cortarOCombate } from './fome';
+import { andarSemAcoes, cortarOCombate, iniciarFome } from './fome';
 import { matarInimigo } from './inimigos';
 import { encerrarVigilia } from './vigilia';
 
@@ -56,4 +56,13 @@ export function rodarAmanhecer(e: Estado, dados: DadosDaVigilia, cmd: ComandosDo
   }
   andarSemAcoes(e, dados, cmd);
   if (n >= dados.chefe.amanhecerPassos) encerrarVigilia(e, dados, CAUSA_DO_FIM.amanhecer);
+}
+
+/**
+ * O fim da etapa CHEFE, uma vez por passo, no fim do passo da fase VIVA (OP da D9): a morte do Lanterneiro (AN1) vence o 23:00 (a
+ * morte no passo do vencimento vale); às 23:00 (AR8, FM1), fora da transição de fase, começa A Fome. Chamada só por `rodarEtapa`.
+ */
+export function verificarFimDoChefe(e: Estado, dados: DadosDaVigilia): void {
+  if (e.chefeU8[CHEFE_U8.morto] === 1) iniciarAmanhecer(e);
+  else if (e.cab[CAB.relogio]! >= dados.marcos.aFomeEm && (e.cab[CAB.cenario]! & CENARIO.semFome) === 0 && e.chefeU16[CHEFE_U16.transicaoPassos] === 0) iniciarFome(e);
 }

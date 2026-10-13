@@ -3,6 +3,7 @@
 import { CAUSA_DO_FIM } from '../logica/nucleo/estado';
 import type { ResultadoDaVigilia } from '../logica/mundo/vigilia';
 import { HORA_A_FOME } from '../logica/mundo/mancha';
+import { t } from './textos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA } from '../logica/mundo/toro';
 
 /** Segundos em `m:ss`, truncados (RS2): 754 → "12:34". */
@@ -19,10 +20,11 @@ export function horaEmRomano(hora: number): string {
   return ROMANOS[hora] ?? '';
 }
 
-/** Id do título (AG5, RS9): "Você se apaga." no Apagar e em A Fome; "Abandonar Vigília" no Abandonar; Amanhecer tem o seu. */
+/** Id do título (AG5, RS9, F-009 FM3): "Você se apaga." no Apagar; "A Fome desce." em A Fome; "Abandonar Vigília" no Abandonar; Amanhecer tem o seu. */
 export function tituloDoResultado(causa: number): string {
   if (causa === CAUSA_DO_FIM.abandonar) return 'A6.PAUSA.ABANDONAR';
   if (causa === CAUSA_DO_FIM.amanhecer) return 'A4.AMANHECER.01';
+  if (causa === CAUSA_DO_FIM.aFome) return 'A4.A_FOME.01';
   return 'A4.APAGAR.01';
 }
 
@@ -32,14 +34,23 @@ export interface LinhaDoResultado {
   readonly valor: string;
 }
 
-/** As cinco linhas (RS1), sem "Chefe mais longe" nem "Brasas" (F-009): tempo, nível, mortes, dano e Almas ao Santuário (RS5). */
+/** O valor de "Chefe mais longe" (RE1): "Derrotado", nome e "Fase N" (a maior alcançada) ou "—" se a arena não chegou a formar. */
+export function valorDoChefe(r: ResultadoDaVigilia): string {
+  if (r.chefeDerrotado) return t('A7.RESULTADO.CHEFE_DERROTADO');
+  if (r.chefeFase === 0) return t('A7.RESULTADO.CHEFE_NENHUM');
+  return t('A7.RESULTADO.CHEFE_FASE', { nome: t('E1.LANTERNEIRO.NOME'), fase: r.chefeFase });
+}
+
+/** As sete linhas (RS1, RE1): tempo, nível, mortes, dano, chefe mais longe, Almas ao Santuário (RS5) e Brasas desta Vigília. */
 export function linhasDoResultado(r: ResultadoDaVigilia): LinhaDoResultado[] {
   return [
     { rotulo: 'A7.RESULTADO.TEMPO', valor: tempoEmTexto(r.segundos) },
     { rotulo: 'A7.RESULTADO.NIVEL', valor: String(r.nivel) },
     { rotulo: 'A7.RESULTADO.MORTES', valor: String(r.mortes) },
     { rotulo: 'A7.RESULTADO.DANO', valor: String(r.danoRecebido) },
+    { rotulo: 'A7.RESULTADO.CHEFE', valor: valorDoChefe(r) },
     { rotulo: 'A7.RESULTADO.ALMAS', valor: String(r.almasAoSantuario) },
+    { rotulo: 'A7.RESULTADO.BRASAS', valor: String(r.brasas) },
   ];
 }
 

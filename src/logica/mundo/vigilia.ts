@@ -2,7 +2,7 @@
 // FIM, Abandonar, a divisão das Almas, a mancha das Cinzas Perdidas e o `ResultadoDaVigilia`. O estado só
 // guarda a fase e a causa; o resultado é calculado dele (as Almas, o relógio e a posição ficam congelados
 // em FIM). Regra do laço quente: o que roda por passo (morte, APAGANDO, mancha) não passa double.
-import { CAB, CAPACIDADE_DE_PROJETEIS, CAUSA_DO_FIM, FASE, JOGADOR, JOGADOR3_U8, JOGADOR4, JOGADOR4_U32, JOGADOR4_U8, MUNDO, PROGRESSAO, type Estado } from '../nucleo/estado';
+import { CAB, CAPACIDADE_DE_PROJETEIS, CAUSA_DO_FIM, CHEFE_U8, FASE, JOGADOR, JOGADOR3_U8, JOGADOR4, JOGADOR4_U32, JOGADOR4_U8, MUNDO, PROGRESSAO, type Estado } from '../nucleo/estado';
 import { EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import { liberarProjetil } from '../armas/projeteis';
 import { limparOferta } from '../progressao/oferta';
@@ -148,6 +148,14 @@ export interface ResultadoDaVigilia {
   readonly mancha: ManchaDoResultado | null;
   /** A mancha do meta foi recuperada nesta Vigília (MC8). */
   readonly recuperouMancha: boolean;
+  /** Brasas ganhas nesta Vigília (F-009 AN3, RE1): 1 no Amanhecer, 0 nas outras causas. */
+  readonly brasas: number;
+  /** Maior fase do Lanterneiro alcançada (0 = a arena não chegou a formar; 1 a 3), "Chefe mais longe" (RE1). */
+  readonly chefeFase: number;
+  /** O Lanterneiro morreu nesta Vigília (o Resultado diz "Derrotado"). */
+  readonly chefeDerrotado: boolean;
+  /** Quebras de Postura da luta (telemetria, RE2). */
+  readonly chefeQuebras: number;
 }
 
 /** Rascunho do ponto livre: x, y e a margem (entrada), x e y (saída). */
@@ -177,5 +185,9 @@ export function resultadoDaVigilia(e: Estado, dados: DadosDaVigilia): ResultadoD
     almasAoSantuario: almasAoSantuario(causa, almas, naMancha),
     mancha,
     recuperouMancha: e.jogador4U8[JOGADOR4_U8.manchaAtiva] === 0 && e.jogador4U32[JOGADOR4_U32.manchaAlmas]! > 0,
+    brasas: causa === CAUSA_DO_FIM.amanhecer ? 1 : 0,
+    chefeFase: e.chefeU8[CHEFE_U8.faseMax]!,
+    chefeDerrotado: e.chefeU8[CHEFE_U8.morto] === 1,
+    chefeQuebras: e.chefeU8[CHEFE_U8.quebras]!,
   };
 }

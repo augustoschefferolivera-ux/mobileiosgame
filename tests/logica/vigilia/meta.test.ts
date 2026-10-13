@@ -18,6 +18,10 @@ const resultado = (parcial: Partial<ResultadoDaVigilia>): ResultadoDaVigilia => 
   almasAoSantuario: 70,
   mancha: { x: 100, y: 200, hora: 2, rotulo: null, almas: 30 },
   recuperouMancha: false,
+  brasas: 0,
+  chefeFase: 0,
+  chefeDerrotado: false,
+  chefeQuebras: 0,
   ...parcial,
 });
 
@@ -62,7 +66,7 @@ describe('ler e gravar (SV1, SV9)', () => {
       JSON.stringify({ ...bom, almas: -1 }),
       JSON.stringify({ ...bom, almas: LIMITE_DE_ALMAS }),
       JSON.stringify({ ...bom, almas: 1.5 }),
-      JSON.stringify({ ...bom, versao: 2 }),
+      JSON.stringify({ ...bom, versao: 3 }),
       JSON.stringify({ ...bom, versao: 0 }),
       JSON.stringify({ almas: 5 }),
       JSON.stringify({ ...bom, mancha: { x: -1, y: 0, hora: 1, rotulo: null, almas: 3 } }),
@@ -132,6 +136,52 @@ describe('aplicarFimDeVigilia (SV1, SV7, MC3, MC8, PE6, RS8)', () => {
   it('o saldo do Santuário para em 2^30 − 1', () => {
     const m = aplicarFimDeVigilia({ ...metaPadrao(), almas: LIMITE_DE_ALMAS - 5 }, resultado({ almasAoSantuario: 1000 }));
     expect(m.almas).toBe(LIMITE_DE_ALMAS - 1);
+  });
+});
+
+describe('meta v2: brasas (F-009 AN3, FM3, F-009.15)', () => {
+  /** O texto que a versão 1 gravava (sem `brasas`), com a soma dela. */
+  const textoV1 = (): string => {
+    const corpo = { versao: 1, seq: 7, almas: 123, mancha: null, tutoriais: 3, primeiroApagarFeito: true, opcoes: { som: false, flashes: true, numerosDeDano: true }, vigiliasConcluidas: 4, proximaIdVigilia: 5, ultimaEncerrada: 4 };
+    return JSON.stringify({ ...corpo, soma: somaDoTexto(JSON.stringify(corpo)) });
+  };
+
+  it('o meta da versão 1 migra para a 2 com brasas 0 e o resto intacto; a gravação seguinte já é a versão 2', () => {
+    const m = lerMeta(textoV1());
+    expect([m.versao, m.brasas, m.seq, m.almas, m.tutoriais, m.primeiroApagarFeito, m.vigiliasConcluidas, m.opcoes.som]).toEqual([2, 0, 7, 123, 3, true, 4, false]);
+    expect(lerMeta(serializarMeta(m))).toEqual({ ...m, soma: lerMeta(serializarMeta(m)).soma });
+    expect(JSON.parse(serializarMeta(m)).versao).toBe(2);
+  });
+
+  it('o v1 com a soma errada ou um campo fora do tipo cai nos padrões, como antes', () => {
+    expect(lerMeta(textoV1().replace('"seq":7', '"seq":8'))).toEqual(metaPadrao());
+    expect(lerMeta(textoV1().replace('"soma":"', '"soma":"0'))).toEqual(metaPadrao());
+  });
+
+  it('o v2 confere a soma com o campo brasas (alterá-lo à mão derruba o meta) e exige brasas inteiro', () => {
+    const m = aplicarFimDeVigilia(metaPadrao(), resultado({ causa: CAUSA_DO_FIM.amanhecer, mancha: null, brasas: 1 }));
+    const texto = serializarMeta(m);
+    expect(lerMeta(texto).brasas).toBe(1);
+    expect(lerMeta(texto.replace('"brasas":1', '"brasas":9'))).toEqual(metaPadrao());
+    expect(lerMeta(texto.replace('"brasas":1', '"brasas":-1'))).toEqual(metaPadrao());
+  });
+
+  it('o Amanhecer soma 1 Brasa por Vigília (0 e depois 1 e 2); as outras causas não somam; a mancha antiga fica', () => {
+    const antiga = { x: 5, y: 6, hora: 1, rotulo: null, almas: 40 } as const;
+    let m: Meta = { ...metaPadrao(), mancha: antiga };
+    m = aplicarFimDeVigilia(m, resultado({ causa: CAUSA_DO_FIM.amanhecer, almas: 1200, almasAoSantuario: 1800, mancha: null, brasas: 1 }));
+    expect([m.brasas, m.almas, m.mancha]).toEqual([1, 1800, antiga]);
+    m = aplicarFimDeVigilia(m, resultado({ causa: CAUSA_DO_FIM.abandonar, mancha: null, brasas: 0 }));
+    expect(m.brasas).toBe(1);
+    m = aplicarFimDeVigilia(m, resultado({ causa: CAUSA_DO_FIM.amanhecer, mancha: null, brasas: 1 }));
+    expect(m.brasas).toBe(2);
+  });
+
+  it('A Fome liga o primeiro Apagar (FM3) e cria a mancha; o Abandonar e o Amanhecer não ligam', () => {
+    const fome = aplicarFimDeVigilia(metaPadrao(), resultado({ causa: CAUSA_DO_FIM.aFome }));
+    expect([fome.primeiroApagarFeito, fome.mancha?.almas]).toEqual([true, 30]);
+    const amanhecer = aplicarFimDeVigilia(metaPadrao(), resultado({ causa: CAUSA_DO_FIM.amanhecer, mancha: null, brasas: 1 }));
+    expect(amanhecer.primeiroApagarFeito).toBe(false);
   });
 });
 

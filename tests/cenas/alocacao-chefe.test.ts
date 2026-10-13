@@ -8,7 +8,7 @@ import { ACERTO } from '../../src/logica/armas/acerto';
 import { ARMA } from '../../src/logica/armas/tabela';
 import { acertarNoChefe, surgirChefe } from '../../src/logica/mundo/chefe';
 import { ACAO, type ComandosDoPasso, type FonteDeComandos } from '../../src/logica/nucleo/comandos';
-import { CAB, CAPACIDADE_DE_INIMIGOS, CENARIO, CHEFE_F32, CHEFE_U16, CHEFE_U8, FASE, FOGUEIRA_U32, JOGADOR3_U16, JOGADOR4_U32, JOGADOR4_U8, PROGRESSAO, SEM_CHEFE, TODOS_OS_TUTORIAIS, criarEstado, type Estado } from '../../src/logica/nucleo/estado';
+import { CAB, CAPACIDADE_DE_INIMIGOS, CENARIO, CHEFE_F32, CHEFE_U16, CHEFE_U32, CHEFE_U8, ETAPA, FASE, FOGUEIRA_U32, FOGUEIRA_U8, JOGADOR, JOGADOR2, JOGADOR3_U16, JOGADOR4_U32, JOGADOR4_U8, PROGRESSAO, SEM_CHEFE, TODOS_OS_TUTORIAIS, criarEstado, type Estado } from '../../src/logica/nucleo/estado';
 import { CAUSA, FORMA } from '../../src/logica/nucleo/eventos';
 import { matarInimigo } from '../../src/logica/mundo/inimigos';
 import { avancar } from '../../src/logica/nucleo/passo';
@@ -84,7 +84,10 @@ function cuidarDaLuta(e: Estado): void {
   const passo = e.cab[CAB.passo]!;
   const s = e.chefeU16[CHEFE_U16.slot]!;
   if (s === SEM_CHEFE) {
-    // Morreu: a Vigília recomeça a luta (o estado de teste não tem Amanhecer ainda).
+    // O chefe saiu (abaixo): a luta recomeça. Uma morte de verdade (um golpe a mais) leva ao Amanhecer, medido no teste seguinte:
+    // aqui a Vigília volta à fase VIVA e à etapa CHEFE.
+    e.jogador4U8[JOGADOR4_U8.fase] = FASE.viva;
+    e.fogueiraU8[FOGUEIRA_U8.etapa] = ETAPA.chefe;
     e.chefeU8[CHEFE_U8.morto] = 0;
     e.cab[CAB.relogio] = 72_000;
     surgirChefe(e, D);
@@ -93,8 +96,10 @@ function cuidarDaLuta(e: Estado): void {
   if (passo % 1500 === 0 && e.chefeU16[CHEFE_U16.transicaoPassos] === 0) {
     const fase = e.chefeU8[CHEFE_U8.fase]!;
     const hpMax = e.chefeF32[CHEFE_F32.hpMax]!;
-    // No limiar da próxima fase (ou, na 3, morto), para a transição ou a morte vir no fim do passo.
-    e.inimigos.hp[s] = fase === 1 ? Math.fround((hpMax * 60) / 100) : fase === 2 ? Math.fround((hpMax * 25) / 100) : 0;
+    // No limiar da próxima fase, para a transição vir no fim do passo; na 3 o chefe é removido (como a cinza do 20:00 faz com um
+    // Coroado) em vez de morrer: a morte leva ao Amanhecer, que corta projéteis e ondas e muda o regime do aquecimento.
+    if (fase === 3) matarInimigo(e, D, s, CAUSA.cinza);
+    else e.inimigos.hp[s] = fase === 1 ? Math.fround((hpMax * 60) / 100) : Math.fround((hpMax * 25) / 100);
   }
   if (passo % 700 === 350) e.chefeF32[CHEFE_F32.postura] = Math.max(e.chefeF32[CHEFE_F32.postura]!, 90);
   // O dano do jogador entra pelo ponto único do chefe (as armas têm os testes de alocação delas): um golpe da Espada a cada 15 passos,
@@ -135,3 +140,55 @@ describe('alocação do Lanterneiro (E7, F-009.14)', () => {
   }, 900_000);
 });
 
+describe('alocação de A Fome e do Amanhecer (E7, F-009.14)', () => {
+  it(`ciclos de A Fome (até o HP zerar) e de Amanhecer (600 passos), ${MEDIDOS} passos depois de 30.000: ≤ ${LIMITE} B por passo`, async () => {
+    const e = criarEstado(11, D, {
+      cenario: CENARIO.diretorDesligado,
+      relogioInicial: 79_000,
+      inicioLivre: true,
+      tutoriaisVistos: TODOS_OS_TUTORIAIS,
+      armas: [{ codigo: ARMA.espada_longa_do_juramento, nivel: 1 }],
+    });
+    e.fogueiraU8[FOGUEIRA_U8.etapa] = ETAPA.chefe;
+    const fonte: FonteDeComandos = {
+      comandosDoPasso(_passo, out: ComandosDoPasso) {
+        out.movimento[0] = 1;
+        out.movimento[1] = 0;
+        out.acoes[0] = 0;
+        out.mira[0] = 1;
+        out.mira[1] = 0;
+      },
+    };
+    let ciclo = 0;
+    let fome = 0;
+    let amanheceres = 0;
+    const reiniciar = (): void => {
+      e.jogador4U8[JOGADOR4_U8.fase] = FASE.viva;
+      e.jogador4U8[JOGADOR4_U8.causaDoFim] = 0;
+      e.fogueiraU8[FOGUEIRA_U8.etapa] = ETAPA.chefe;
+      e.jogador[JOGADOR.hp] = e.jogador2[JOGADOR2.hpMax]!;
+      e.chefeU16[CHEFE_U16.amanhecerPassos] = 0;
+      e.chefeU32[CHEFE_U32.fomePassos] = 0;
+      if (ciclo++ % 2 === 0) {
+        e.chefeU8[CHEFE_U8.morto] = 0;
+        e.cab[CAB.relogio] = 82_799;
+      } else {
+        e.chefeU8[CHEFE_U8.morto] = 1;
+        e.cab[CAB.relogio] = 80_000;
+      }
+    };
+    reiniciar();
+    const { porPasso, maiores } = await medir((n) => {
+      for (let k = 0; k < n; k++) {
+        if (e.jogador4U8[JOGADOR4_U8.fase] === FASE.fim) reiniciar();
+        avancar(e, D, fonte, 1);
+        if (e.jogador4U8[JOGADOR4_U8.fase] === FASE.aFome) fome++;
+        if (e.jogador4U8[JOGADOR4_U8.fase] === FASE.amanhecer) amanheceres++;
+      }
+    }, 30_000);
+    // O que o teste mede aconteceu: muitos passos de cada fase e vários fins.
+    expect(fome).toBeGreaterThan(5000);
+    expect(amanheceres).toBeGreaterThan(5000);
+    expect(porPasso, maiores.join('; ')).toBeLessThanOrEqual(LIMITE);
+  }, 300_000);
+});

@@ -6,7 +6,7 @@ import { CAUSA_DO_FIM, LIMITE_DE_ALMAS } from '../nucleo/estado';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA } from '../mundo/toro';
 import type { ResultadoDaVigilia } from '../mundo/vigilia';
 
-export const VERSAO_DO_META = 1;
+export const VERSAO_DO_META = 2;
 
 /** A mancha das Cinzas Perdidas guardada: posição, Hora (1 a 5), rótulo da capela (null no MVP) e Almas (SV3). */
 export interface ManchaDoMeta {
@@ -31,6 +31,8 @@ export interface Meta {
   readonly soma: string;
   /** Saldo de Almas do Santuário. */
   readonly almas: number;
+  /** Brasas ganhas nos Amanheceres (F-009 AN3, versão 2 do meta); só contabilizadas até a F-010. */
+  readonly brasas: number;
   readonly mancha: ManchaDoMeta | null;
   /** Máscara de TUTORIAL (mover 1, esquiva 2, aparo 4). */
   readonly tutoriais: number;
@@ -48,6 +50,7 @@ export function metaPadrao(): Meta {
     seq: 0,
     soma: '',
     almas: 0,
+    brasas: 0,
     mancha: null,
     tutoriais: 0,
     primeiroApagarFeito: false,
@@ -86,10 +89,12 @@ function hex16(v: number): string {
 
 /** O texto que a soma confere: o objeto sem a soma, com as chaves na ordem fixa. */
 function corpoDoMeta(m: Meta): string {
+  // A versão 1 não tinha `brasas`: a soma dela é conferida sem o campo (a migração 1 → 2 em `lerMeta`).
   return JSON.stringify({
     versao: m.versao,
     seq: m.seq,
     almas: m.almas,
+    ...(m.versao >= 2 ? { brasas: m.brasas } : {}),
     mancha: m.mancha,
     tutoriais: m.tutoriais,
     primeiroApagarFeito: m.primeiroApagarFeito,
@@ -118,7 +123,8 @@ function lerMancha(v: unknown): ManchaDoMeta | null | undefined {
 
 /**
  * Lê o texto gravado (SV9): texto ausente, JSON quebrado, soma errada, campo fora do tipo ou versão desconhecida
- * dão os padrões, sem lançar; a versão 0 (sem campo `versao`) migra para os padrões. Nunca devolve o objeto lido.
+ * dão os padrões, sem lançar; a versão 0 (sem campo `versao`) migra para os padrões. A versão 1 migra para a 2 com
+ * `brasas` 0 (F-009), conferida pela soma da própria versão. Nunca devolve o objeto lido.
  */
 export function lerMeta(texto: string | null): Meta {
   if (texto === null) return metaPadrao();
@@ -126,7 +132,8 @@ export function lerMeta(texto: string | null): Meta {
     const bruto: unknown = JSON.parse(texto);
     if (typeof bruto !== 'object' || bruto === null) return metaPadrao();
     const o = bruto as Record<string, unknown>;
-    if (o.versao !== VERSAO_DO_META || typeof o.soma !== 'string') return metaPadrao();
+    const v1 = o.versao === 1;
+    if ((!v1 && o.versao !== VERSAO_DO_META) || typeof o.soma !== 'string') return metaPadrao();
     const op = o.opcoes as Record<string, unknown> | null;
     const mancha = lerMancha(o.mancha);
     if (
@@ -138,6 +145,7 @@ export function lerMeta(texto: string | null): Meta {
       typeof op.numerosDeDano !== 'boolean' ||
       !inteiro(o.seq, 0, LIMITE_DE_ALMAS - 1) ||
       !inteiro(o.almas, 0, LIMITE_DE_ALMAS - 1) ||
+      !(v1 || inteiro(o.brasas, 0, LIMITE_DE_ALMAS - 1)) ||
       !inteiro(o.tutoriais, 0, 7) ||
       typeof o.primeiroApagarFeito !== 'boolean' ||
       !inteiro(o.vigiliasConcluidas, 0, LIMITE_DE_ALMAS - 1) ||
@@ -147,10 +155,11 @@ export function lerMeta(texto: string | null): Meta {
       return metaPadrao();
     }
     const lido: Meta = {
-      versao: VERSAO_DO_META,
+      versao: v1 ? 1 : VERSAO_DO_META,
       seq: o.seq,
       soma: o.soma,
       almas: o.almas,
+      brasas: v1 ? 0 : (o.brasas as number),
       mancha,
       tutoriais: o.tutoriais,
       primeiroApagarFeito: o.primeiroApagarFeito,
@@ -159,7 +168,9 @@ export function lerMeta(texto: string | null): Meta {
       proximaIdVigilia: o.proximaIdVigilia,
       ultimaEncerrada: o.ultimaEncerrada,
     };
-    return somaDoTexto(corpoDoMeta(lido)) === o.soma ? lido : metaPadrao();
+    if (somaDoTexto(corpoDoMeta(lido)) !== o.soma) return metaPadrao();
+    // Migração 1 → 2: o resto fica; a soma nova nasce na próxima gravação.
+    return v1 ? { ...lido, versao: VERSAO_DO_META, soma: '' } : lido;
   } catch {
     return metaPadrao();
   }
@@ -184,8 +195,8 @@ export function comTutoriais(m: Meta, mascara: number): Meta {
 /**
  * O crédito do fim da Vigília (SV1, SV7, MC3, MC8, PE6, RS8). As Almas do Santuário somam `almasAoSantuario` com
  * o teto de 2^30 − 1. A mancha: o Apagar (e A Fome) substitui a do meta pela nova (ou `null` com N < 2); Abandonar e
- * Amanhecer mantêm a antiga, a não ser que ela tenha sido recuperada (consumida). `primeiroApagarFeito` liga no
- * Apagar. `vigiliasConcluidas` conta toda Vigília encerrada. Chamar duas vezes credita duas vezes: o guarda é do
+ * Amanhecer mantêm a antiga, a não ser que ela tenha sido recuperada (consumida). `primeiroApagarFeito` liga no Apagar
+ * e em A Fome (FM3: B §5.11 chama A Fome de Apagar). `brasas` soma as da Vigília (AN3). `vigiliasConcluidas` conta toda Vigília encerrada. Chamar duas vezes credita duas vezes: o guarda é do
  * chamador (`fimCreditado`).
  */
 export function aplicarFimDeVigilia(m: Meta, r: ResultadoDaVigilia): Meta {
@@ -194,8 +205,9 @@ export function aplicarFimDeVigilia(m: Meta, r: ResultadoDaVigilia): Meta {
   const mancha: ManchaDoMeta | null = cria ? r.mancha : r.recuperouMancha ? null : m.mancha;
   return proximo(m, {
     almas: soma < LIMITE_DE_ALMAS ? soma : LIMITE_DE_ALMAS - 1,
+    brasas: Math.min(LIMITE_DE_ALMAS - 1, m.brasas + r.brasas),
     mancha,
-    primeiroApagarFeito: m.primeiroApagarFeito || r.causa === CAUSA_DO_FIM.apagar,
+    primeiroApagarFeito: m.primeiroApagarFeito || cria,
     vigiliasConcluidas: Math.min(LIMITE_DE_ALMAS - 1, m.vigiliasConcluidas + 1),
   });
 }

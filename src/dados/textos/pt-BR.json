@@ -261,6 +261,24 @@
       "limite_palavras": null
     },
     {
+      "id": "A7.RESULTADO.CHEFE_FASE",
+      "texto": "{nome}, Fase {fase}",
+      "contexto": "Resultado: valor de \"Chefe mais longe\" quando o chefe não caiu; {nome} e {fase} (1 a 3) (F-009 RE1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A7.RESULTADO.CHEFE_DERROTADO",
+      "texto": "Derrotado",
+      "contexto": "Resultado: valor de \"Chefe mais longe\" quando o Lanterneiro caiu (F-009 RE1)",
+      "limite_palavras": null
+    },
+    {
+      "id": "A7.RESULTADO.CHEFE_NENHUM",
+      "texto": "—",
+      "contexto": "Resultado: valor de \"Chefe mais longe\" quando a arena do chefe não chegou a se formar (F-009 RE1)",
+      "limite_palavras": null
+    },
+    {
       "id": "A7.RESULTADO.ALMAS",
       "texto": "Almas",
       "contexto": "Resultado: rótulo (doc 11 §3.12)",

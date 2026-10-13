@@ -21,6 +21,10 @@ const R: ResultadoDaVigilia = {
   almasAoSantuario: 700,
   mancha: { x: 585, y: 1266, hora: 4, rotulo: null, almas: 300 },
   recuperouMancha: false,
+  brasas: 0,
+  chefeFase: 0,
+  chefeDerrotado: false,
+  chefeQuebras: 0,
 };
 
 describe('câmera lenta do Apagar (AG2)', () => {
@@ -57,11 +61,21 @@ describe('Resultado (RS1 a RS7, RS9)', () => {
     expect([0, 59, 60, 754, 3599].map(tempoEmTexto)).toEqual(['0:00', '0:59', '1:00', '12:34', '59:59']);
   });
 
-  it('cinco linhas: tempo, nível, mortes, dano e Almas ao Santuário; sem Chefe nem Brasas (F-009) e sem Reviver', () => {
+  it('sete linhas: tempo, nível, mortes, dano, chefe mais longe, Almas ao Santuário e Brasas (F-009 RE1), sem Reviver', () => {
     const l = linhasDoResultado(R);
-    expect(l.map((x) => x.rotulo)).toEqual(['A7.RESULTADO.TEMPO', 'A7.RESULTADO.NIVEL', 'A7.RESULTADO.MORTES', 'A7.RESULTADO.DANO', 'A7.RESULTADO.ALMAS']);
-    expect(l.map((x) => x.valor)).toEqual(['12:34', '7', '340', '412', '700']);
-    expect(l.some((x) => /CHEFE|BRASAS|REVIVER/.test(x.rotulo))).toBe(false);
+    expect(l.map((x) => x.rotulo)).toEqual(['A7.RESULTADO.TEMPO', 'A7.RESULTADO.NIVEL', 'A7.RESULTADO.MORTES', 'A7.RESULTADO.DANO', 'A7.RESULTADO.CHEFE', 'A7.RESULTADO.ALMAS', 'A7.RESULTADO.BRASAS']);
+    expect(l.map((x) => x.valor)).toEqual(['12:34', '7', '340', '412', '—', '700', '0']);
+    expect(l.some((x) => /REVIVER/.test(x.rotulo))).toBe(false);
+  });
+
+  it('"Chefe mais longe": "—" sem arena, nome e Fase N (a maior alcançada), "Derrotado" se caiu; Brasas 0 ou 1 (F-009.15)', () => {
+    const valor = (p: Partial<ResultadoDaVigilia>): string => linhasDoResultado({ ...R, ...p }).find((x) => x.rotulo === 'A7.RESULTADO.CHEFE')!.valor;
+    expect([t('A7.RESULTADO.CHEFE'), t('A7.RESULTADO.BRASAS')]).toEqual(['Chefe mais longe', 'Brasas']);
+    expect(valor({ chefeFase: 0 })).toBe('—');
+    expect([1, 2, 3].map((f) => valor({ chefeFase: f }))).toEqual(['O Lanterneiro, Fase 1', 'O Lanterneiro, Fase 2', 'O Lanterneiro, Fase 3']);
+    expect(valor({ chefeFase: 3, chefeDerrotado: true })).toBe('Derrotado');
+    const brasas = (b: number): string => linhasDoResultado({ ...R, brasas: b }).at(-1)!.valor;
+    expect([brasas(0), brasas(1)]).toEqual(['0', '1']);
   });
 
   it('a linha da mancha: Hora em romanos nas Horas I a IV, A Fome na 5; sem mancha, nada', () => {
@@ -76,6 +90,8 @@ describe('Resultado (RS1 a RS7, RS9)', () => {
     expect(t(tituloDoResultado(CAUSA_DO_FIM.apagar))).toBe('Você se apaga.');
     expect(tituloDoResultado(CAUSA_DO_FIM.abandonar)).toBe('A6.PAUSA.ABANDONAR');
     expect(tituloDoResultado(CAUSA_DO_FIM.amanhecer)).toBe('A4.AMANHECER.01');
+    expect(tituloDoResultado(CAUSA_DO_FIM.aFome)).toBe('A4.A_FOME.01');
+    expect([t('A4.A_FOME.01'), t('A4.AMANHECER.01')]).toEqual(['A Fome desce.', 'Amanhecer.']);
   });
 
   it('o mapa pequeno tem 120 pt de altura na proporção do mapa e o ponto cai no canto certo', () => {

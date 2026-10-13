@@ -17,7 +17,7 @@ const ALFA_DO_VEU = 0.6;
 /** Véu cheio atrás das linhas do Resultado: o jogo já acabou. */
 const ALFA_DO_VEU_NO_FIM = 0.9;
 const FADE_MS = 200;
-const LINHAS = 5;
+const LINHAS = 7;
 const ENTRE_LINHAS = 34;
 const MARGEM_LATERAL = 40;
 
@@ -46,7 +46,7 @@ export class Resultado extends Phaser.Scene {
     this.botoes = this.add.graphics().setVisible(false);
     this.titulo = texto(this, 0, 0, 'A4.APAGAR.01', 26, COR.osso).setOrigin(0.5).setAlpha(0);
     this.rotulos.length = this.valores.length = 0;
-    const ids = linhasDoResultado({ segundos: 0, nivel: 1, mortes: 0, danoRecebido: 0, almasAoSantuario: 0 } as ResultadoDaVigilia).map((l) => l.rotulo);
+    const ids = linhasDoResultado({ segundos: 0, nivel: 1, mortes: 0, danoRecebido: 0, almasAoSantuario: 0, brasas: 0, chefeFase: 0, chefeDerrotado: false } as ResultadoDaVigilia).map((l) => l.rotulo);
     for (let k = 0; k < LINHAS; k++) {
       this.rotulos.push(texto(this, 0, 0, ids[k]!, 18, COR.osso).setOrigin(0, 0.5).setVisible(false));
       this.valores.push(texto(this, 0, 0, 'A7.RESULTADO.VALOR', 18, COR.osso, { valor: 0 }).setOrigin(1, 0.5).setVisible(false));

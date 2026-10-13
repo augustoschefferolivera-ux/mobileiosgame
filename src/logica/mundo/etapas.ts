@@ -7,9 +7,7 @@
 import {
   CAB,
   CAPACIDADE_DE_INIMIGOS,
-  CENARIO,
   CHEFE_U16,
-  CHEFE_U8,
   ETAPA,
   FOGUEIRA_F32,
   FOGUEIRA_U32,
@@ -34,8 +32,7 @@ import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_M
 import { verificarFaseDoChefe } from './ataquesDoChefe';
 import { chefeLigado, surgirChefe } from './chefe';
 import { apagarFogueira, verificarRaio } from './fogueira';
-import { iniciarAmanhecer } from './amanhecer';
-import { iniciarFome } from './fome';
+import { verificarFimDoChefe } from './amanhecer';
 
 const N = CAPACIDADE_DE_INIMIGOS;
 /** Distância do centro da arena em que os Coroados nascem (AR2), em px. */
@@ -77,13 +74,8 @@ export function rodarEtapa(e: Estado, dados: DadosDaVigilia): void {
   const relogio = e.cab[CAB.relogio]!;
   const marcos = dados.marcos;
   if (etapa === ETAPA.chefe) {
-    // Morte do Lanterneiro (AN1): o Amanhecer. Antes do 23:00 (a morte no passo do vencimento vale).
-    if (e.chefeU8[CHEFE_U8.morto] === 1) {
-      iniciarAmanhecer(e);
-      return;
-    }
-    // 23:00 (AR8, FM1): A Fome, fora da transição de fase. O dano de fome é de `rodarFome`.
-    if (relogio >= marcos.aFomeEm && (e.cab[CAB.cenario]! & CENARIO.semFome) === 0 && e.chefeU16[CHEFE_U16.transicaoPassos] === 0) iniciarFome(e);
+    // Na etapa CHEFE: a morte do Lanterneiro (Amanhecer) e as 23:00 (A Fome), numa função à parte (orçamento de inlining).
+    verificarFimDoChefe(e, dados);
     return;
   }
   if (relogio >= marcos.chefeEm) {
