@@ -96,9 +96,9 @@ function cuidarDaLuta(e: Estado): void {
   if (passo % 1500 === 0 && e.chefeU16[CHEFE_U16.transicaoPassos] === 0) {
     const fase = e.chefeU8[CHEFE_U8.fase]!;
     const hpMax = e.chefeF32[CHEFE_F32.hpMax]!;
-    // No limiar da próxima fase, para a transição vir no fim do passo; na 3 o chefe é removido (como a cinza do 20:00 faz com um
-    // Coroado) em vez de morrer: a morte leva ao Amanhecer, que corta projéteis e ondas e muda o regime do aquecimento.
-    if (fase === 3) matarInimigo(e, D, s, CAUSA.cinza);
+    // No limiar da próxima fase, para a transição vir no fim do passo; na 3 o HP vai a 1 e o próximo golpe o mata de verdade: a
+    // morte leva ao Amanhecer, que corta projéteis e ondas (M1 do crítico: nada de matarInimigo(cinza) para esconder esse regime).
+    if (fase === 3) e.inimigos.hp[s] = 1;
     else e.inimigos.hp[s] = fase === 1 ? Math.fround((hpMax * 60) / 100) : Math.fround((hpMax * 25) / 100);
   }
   if (passo % 700 === 350) e.chefeF32[CHEFE_F32.postura] = Math.max(e.chefeF32[CHEFE_F32.postura]!, 90);

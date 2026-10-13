@@ -105,13 +105,15 @@ export function salvaDeFacas(e: Estado, dados: DadosDaVigilia, v: number, contra
   const pool = e.poolDeProjeteis;
   const limiteLogico = limiteDeProjeteis(e);
   let criadas = 0;
-  const porAlvo = Math.floor(nf / M);
+  // Divisões exatas (sem Math.floor sobre quociente fracionário): o V8 mantém o feedback inteiro estável e não desotimiza
+  // quando M deixa de dividir nf.
   const sobra = nf % M;
+  const porAlvo = (nf - sobra) / M;
   for (let k = 0; k < nf; k++) {
     const alvo = k % M;
     const s = CAND_SLOT[alvo]!;
     const mAlvo = porAlvo + (alvo < sobra ? 1 : 0);
-    const indice = Math.floor(k / M);
+    const indice = (k - alvo) / M;
     let ux = ini.x[s]! - jx;
     if (ux > MEIA_LARGURA_DO_MAPA) ux -= LARGURA_DO_MAPA;
     if (ux < -MEIA_LARGURA_DO_MAPA) ux += LARGURA_DO_MAPA;

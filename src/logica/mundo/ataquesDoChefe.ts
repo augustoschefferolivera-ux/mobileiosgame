@@ -290,16 +290,13 @@ function fixarZona(e: Estado): void {
   }
 }
 
-/** O dano bruto de um golpe do chefe com a Fúria (FU1) em BRUTO[0]: `dano × (100 + 5n)/100`, em Float32. */
-function bruto(e: Estado, dados: DadosDaVigilia, dano: number): void {
+/** O dano bruto de um golpe do chefe com a Fúria (FU1): lê o dano base de BRUTO[0] (o chamador o grava, sem double por argumento) e o deixa lá multiplicado por `(100 + 5n)/100`, em Float32. */
+function bruto(e: Estado, dados: DadosDaVigilia): void {
   const c = dados.chefe;
   const relogio = e.cab[CAB.relogio]!;
-  if (relogio < c.furiaInicio) {
-    BRUTO[0] = dano;
-    return;
-  }
+  if (relogio < c.furiaInicio) return;
   const n = Math.floor((relogio - c.furiaInicio) / c.furiaIntervalo) + 1;
-  BRUTO[0] = Math.fround((dano * (100 + c.furiaPct * n)) / 100);
+  BRUTO[0] = Math.fround((BRUTO[0]! * (100 + c.furiaPct * n)) / 100);
 }
 
 /** O golpe do chefe pelo caminho único (EP1): o aparo antes da esquiva e do dano, só nos brancos; devolve o desfecho. */
@@ -347,8 +344,8 @@ function resolver(e: Estado, dados: DadosDaVigilia, s: number, id: number): void
   }
   let desfecho = ERROU;
   if (pegaOJogador(e, dados, s, id)) {
-    if (id === A.agarrar) bruto(e, dados, (e.jogador2[JOGADOR2.hpMax]! * c.agarrarPct) / 100);
-    else bruto(e, dados, c.dano[id]!);
+    BRUTO[0] = id === A.agarrar ? (e.jogador2[JOGADOR2.hpMax]! * c.agarrarPct) / 100 : c.dano[id]!;
+    bruto(e, dados);
     desfecho = golpear(e, dados, s, id);
     if (desfecho === DESFECHO.aparado && id === A.agarrar) quebrarPeloAgarrar(e, dados);
     else if (desfecho === DESFECHO.acertou) {
@@ -386,7 +383,8 @@ function varrerAnel(e: Estado, dados: DadosDaVigilia, s: number, restante: numbe
   const dif = V[2]! - r;
   if (dif > lim || dif < -lim) return;
   e.chefeU8[CHEFE_U8.explosaoAcertou] = 1;
-  bruto(e, dados, c.dano[A.explosao]!);
+  BRUTO[0] = c.dano[A.explosao]!;
+  bruto(e, dados);
   const desfecho = resolverAcertoNoJogador(e, dados, ORIGEM_DO_DANO.golpe, s);
   eventoDoGolpe(e, s, A.explosao, desfecho);
 }
@@ -409,7 +407,8 @@ function rodarZonas(e: Estado, dados: DadosDaVigilia, s: number): void {
     if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
     const lim = c.zonaRaio + RAIO_DO_JOGADOR;
     if (dx * dx + dy * dy > lim * lim) continue;
-    tickNoJogador(e, dados, s, c.tickZona, 3);
+    BRUTO[0] = c.tickZona;
+    tickNoJogador(e, dados, s, 3);
   }
 }
 
@@ -419,12 +418,15 @@ function rodarCegueira(e: Estado, dados: DadosDaVigilia, s: number): void {
   if (t === 0) return;
   const novo = t - 1;
   e.chefeU16[CHEFE_U16.cegoPassos] = novo;
-  if (novo % dados.chefe.tickPassos === 0) tickNoJogador(e, dados, s, dados.chefe.tickCego, 0);
+  if (novo % dados.chefe.tickPassos === 0) {
+    BRUTO[0] = dados.chefe.tickCego;
+    tickNoJogador(e, dados, s, 0);
+  }
 }
 
-/** Um tick de efeito (AT4): origem `efeito`, os i-frames o evitam, sem esquiva perfeita; o evento 43 só nos ticks de zona (forma 3). */
-function tickNoJogador(e: Estado, dados: DadosDaVigilia, s: number, dano: number, forma: number): void {
-  bruto(e, dados, dano);
+/** Um tick de efeito (AT4), com o dano base já em BRUTO[0]: origem `efeito`, os i-frames o evitam, sem esquiva perfeita; o evento 43 só nos ticks de zona (forma 3). */
+function tickNoJogador(e: Estado, dados: DadosDaVigilia, s: number, forma: number): void {
+  bruto(e, dados);
   const desfecho = resolverAcertoNoJogador(e, dados, ORIGEM_DO_DANO.efeito, s);
   if (desfecho === DESFECHO.acertou && forma !== 0) efeitoNoJogador(e, s, forma, 0);
 }
