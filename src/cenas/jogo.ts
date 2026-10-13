@@ -19,7 +19,7 @@ import { ArmazenamentoDoMeta } from '../plataforma/armazenamento';
 import { ArmazenamentoDaVigilia } from '../plataforma/vigiliaGuardada';
 import { RegistroDeTelemetria } from '../plataforma/telemetria';
 import { instalarOverlayDeGiro } from '../plataforma/orientacao';
-import { pedirPersistencia } from '../plataforma/pwa';
+import { pedirPersistencia, registrarServiceWorker } from '../plataforma/pwa';
 import { suportaWebGL } from '../plataforma/webgl';
 import { Acender } from './Acender';
 import { Santuario } from './Santuario';
@@ -62,6 +62,7 @@ export function iniciarJogo(): Phaser.Game | null {
   bloquearGestos(document);
   document.title = t('A8.SISTEMA.TITULO');
   // PS3: o overlay de paisagem é preenchido pelo código (o HTML não tem texto) e cobre também o aviso sem WebGL.
+  registrarServiceWorker(navigator, window, import.meta.env.DEV);
   const orientacao = instalarOverlayDeGiro(elemento('gire'), t('A8.SISTEMA.GIRE'), window);
   if (!suportaWebGL(document)) {
     mostrarSemWebGL(elemento('jogo'));

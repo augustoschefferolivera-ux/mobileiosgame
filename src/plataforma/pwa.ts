@@ -46,3 +46,25 @@ export async function pedirPersistencia(nav: NavegadorPwa, janela: JanelaPwa): P
     return null;
   }
 }
+
+export interface NavegadorComServiceWorker {
+  readonly serviceWorker?: { register(url: string, opcoes: { scope: string }): Promise<unknown> };
+}
+export interface JanelaComCarga {
+  readonly document: { readonly readyState: string };
+  addEventListener(tipo: 'load', fn: () => void): void;
+}
+
+/**
+ * Registra o service worker `./sw.js` (escopo `./`) depois do `load` (PW2), nos builds de produção e de debug; no `vite dev`
+ * (`emDev`) não. Sem a API ou com falha, o jogo segue sem cache: nunca lança.
+ */
+export function registrarServiceWorker(nav: NavegadorComServiceWorker, janela: JanelaComCarga, emDev: boolean): void {
+  const sw = nav.serviceWorker;
+  if (emDev || sw === undefined) return;
+  const registrar = (): void => {
+    sw.register('./sw.js', { scope: './' }).catch(() => undefined);
+  };
+  if (janela.document.readyState === 'complete') registrar();
+  else janela.addEventListener('load', registrar);
+}
