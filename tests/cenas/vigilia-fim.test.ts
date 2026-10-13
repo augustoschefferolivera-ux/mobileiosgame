@@ -10,7 +10,8 @@ import { FilaDeToques } from '../../src/entrada/filaDeToques';
 import { criarAcumulador } from '../../src/logica/nucleo/acumulador';
 import { criarCameraLenta } from '../../src/logica/nucleo/cameraLenta';
 import { criarComandos, fonteConstante } from '../../src/logica/nucleo/comandos';
-import { CAUSA_DO_FIM, FASE, JOGADOR, JOGADOR4_U8, JOGADOR_U8, PROGRESSAO, PROMPT, TUTORIAL, criarEstado } from '../../src/logica/nucleo/estado';
+import { avancar } from '../../src/logica/nucleo/passo';
+import { CAUSA_DO_FIM, FASE, hashEstado, JOGADOR, JOGADOR4_U8, JOGADOR_U8, PROGRESSAO, PROMPT, TUTORIAL, criarEstado } from '../../src/logica/nucleo/estado';
 import { MARCO, metaPadrao } from '../../src/logica/save/meta';
 import { ArmazenamentoDoMeta, CHAVE_DO_META } from '../../src/plataforma/armazenamento';
 import { RegistroDeTelemetria } from '../../src/plataforma/telemetria';
@@ -25,6 +26,7 @@ interface Interno {
   persistirTutoriais(): void;
   tratarToqueDoResultado(b: string): void;
   fecharBalaoDasCinzas(): void;
+  sairDeCena(): void;
   fecharPausa(): void;
   abrirPausa(origem: 'botao' | 'gesto'): void;
   desarmarAbandonar(toque: string | null): void;
@@ -70,12 +72,13 @@ function montar(almas = 100, ctxExtra: Partial<ContextoDoJogo> = {}) {
   const resultado = { mostrarApagando: vi.fn(), mostrarResultado: vi.fn(), esconder: vi.fn(), balaoAberto: true, fecharBalao: vi.fn() };
   const pausaCena = { mostrar: vi.fn(), esconder: vi.fn() };
   const hud = { sys: { setVisible: vi.fn() } };
-  const cena = { start: vi.fn(), restart: vi.fn(), hud, get: (k: string) => (k === 'Pausa' ? pausaCena : k === 'Hud' ? hud : resultado) };
+  const cena = { start: vi.fn(), restart: vi.fn(), hud, pausaCena, get: (k: string) => (k === 'Pausa' ? pausaCena : k === 'Hud' ? hud : resultado) };
   const v = new Vigilia(ctx) as unknown as Interno;
   v.sim = sim;
   v.scene = cena;
-  v.game = { sound: { setMute: vi.fn() } };
-  return { v, ctx, sim, estado, resultado, cena, gravado };
+  const setMute = vi.fn();
+  v.game = { sound: { setMute } };
+  return { v, ctx, sim, estado, resultado, cena, gravado, setMute };
 }
 
 describe('Abandonar (PE4, PE5)', () => {
@@ -240,5 +243,73 @@ describe('balão das Cinzas (F-010 GA3)', () => {
     expect(resultado.fecharBalao).toHaveBeenCalledTimes(1);
     expect(ctx.meta.atual.marcos & MARCO.balaoCinzas).toBe(MARCO.balaoCinzas);
     expect(JSON.parse(gravado.get(CHAVE_DO_META)!).marcos).toBe(MARCO.balaoCinzas);
+  });
+});
+
+describe('pausa automática e APAGANDO (F-010 PS1, PS2, PS4)', () => {
+  it('Vigília correndo: abre a pausa automática, solta os dedos, passa o tradutor ao modo pausa e cala o som', () => {
+    const { v, ctx, sim, cena, setMute } = montar();
+    v.sairDeCena();
+    expect([sim.pausa.ativa, sim.pausa.origem, ctx.entrada.tradutor.modo]).toEqual([true, 'automatica', 'pausa']);
+    expect(cena.pausaCena.mostrar).toHaveBeenCalledWith(true);
+    expect(cena.hud.sys.setVisible).toHaveBeenLastCalledWith(false);
+    expect(setMute).toHaveBeenLastCalledWith(true);
+  });
+
+  it('gatilhos repetidos (visibilitychange, pagehide, BLUR) abrem uma pausa só', () => {
+    const { v, cena } = montar();
+    v.sairDeCena();
+    v.sairDeCena();
+    v.sairDeCena();
+    expect(cena.pausaCena.mostrar).toHaveBeenCalledTimes(1);
+  });
+
+  it('a pausa do botão já aberta só cala; o modal aberto só solta os dedos e cala (sem pausa)', () => {
+    const a = montar();
+    a.v.abrirPausa('botao');
+    a.cena.pausaCena.mostrar.mockClear();
+    a.v.sairDeCena();
+    expect([a.sim.pausa.origem, a.cena.pausaCena.mostrar.mock.calls.length, a.setMute.mock.lastCall]).toEqual(['botao', 0, [true]]);
+    const b = montar();
+    b.estado.progresso[PROGRESSAO.niveisPendentes] = 1;
+    b.v.sairDeCena();
+    expect([b.sim.pausa.ativa, b.setMute.mock.lastCall]).toEqual([false, [true]]);
+  });
+
+  it('continuar da automática: fecharPausa devolve o som pela opção e o modo ao tradutor', () => {
+    const { v, ctx, sim, setMute } = montar();
+    v.sairDeCena();
+    v.fecharPausa();
+    expect([sim.pausa.ativa, sim.pausa.origem, ctx.entrada.tradutor.modo]).toEqual([false, null, 'vigilia']);
+    expect(setMute).toHaveBeenLastCalledWith(false);
+  });
+
+  it('APAGANDO no passo 10: conclui os 20 passos de uma vez, grava o FIM uma vez, sem pausa, e o hash é o de um Apagar sem interrupção', () => {
+    const { v, ctx, sim, estado, resultado, cena } = montar(100);
+    const controle = criarEstado(1, D, { almasIniciais: 100, armas: [], cenario: 1 });
+    const parado = fonteConstante(criarComandos());
+    for (const e of [estado, controle]) {
+      e.jogador[JOGADOR.hp] = 0;
+      avancar(e, D, parado, 11);
+      expect(e.jogador4U8[JOGADOR4_U8.fase]).toBe(FASE.apagando);
+    }
+    avancar(controle, D, parado, 64);
+    expect(controle.jogador4U8[JOGADOR4_U8.fase]).toBe(FASE.fim);
+    v.sairDeCena();
+    expect([estado.jogador4U8[JOGADOR4_U8.fase], estado.jogador4U8[JOGADOR4_U8.causaDoFim]]).toEqual([FASE.fim, CAUSA_DO_FIM.apagar]);
+    expect(hashEstado(estado)).toBe(hashEstado(controle));
+    expect([sim.pausa.ativa, cena.pausaCena.mostrar.mock.calls.length, resultado.mostrarResultado.mock.calls.length]).toEqual([false, 0, 1]);
+    const m = ctx.meta.atual;
+    expect([m.vigiliasConcluidas, m.primeiroApagarFeito, m.almas]).toEqual([1, true, 300]);
+    v.sairDeCena();
+    v.verificarFase();
+    expect(ctx.meta.atual.vigiliasConcluidas).toBe(1);
+  });
+
+  it('no FIM não há nada a fazer: sem pausa e sem novo andamento', () => {
+    const { v, sim, estado, cena } = montar();
+    estado.jogador4U8[JOGADOR4_U8.fase] = FASE.fim;
+    v.sairDeCena();
+    expect([sim.pausa.ativa, cena.pausaCena.mostrar.mock.calls.length]).toEqual([false, 0]);
   });
 });

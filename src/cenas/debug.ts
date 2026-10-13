@@ -399,7 +399,7 @@ export interface GameDebug {
   /** Inimigos mortos por arma (o contador do estado). */
   readonly mortes: number;
   /** Pausa do jogador (fora do estado; o estado de jogo continua VIGILIA). */
-  readonly pausa: { ativa: boolean; origem: 'botao' | 'gesto' | null };
+  readonly pausa: { ativa: boolean; origem: 'botao' | 'gesto' | 'automatica' | null };
   readonly opcoes: { numerosDeDano: boolean; som: boolean; flashes: boolean };
   /** Quadros de render que faltam do flash branco (decisoes-F-006 RE3); só leitura. */
   readonly flash: number;

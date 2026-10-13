@@ -46,6 +46,9 @@ export class Pausa extends Phaser.Scene {
   private rotuloDoSom: Phaser.GameObjects.Text | null = null;
   private rotuloDosFlashes: Phaser.GameObjects.Text | null = null;
   private continuar: Phaser.GameObjects.Text | null = null;
+  /** A pausa automática (F-010 PS1): só o véu, o título e este texto; qualquer toque continua. */
+  private toqueParaContinuar: Phaser.GameObjects.Text | null = null;
+  private automatica = false;
   private rotuloDoAbandonar: Phaser.GameObjects.Text | null = null;
   private avisoDoAbandonar: Phaser.GameObjects.Text | null = null;
   private readonly rotulosDasEstatisticas: Phaser.GameObjects.Text[] = [];
@@ -78,6 +81,8 @@ export class Pausa extends Phaser.Scene {
     this.rotuloDoSom = texto(this, 0, 0, 'A6.PAUSA.SOM', TAMANHO_DO_ROTULO_DA_DUPLA, COR.osso).setOrigin(0, 0.5);
     this.rotuloDosFlashes = texto(this, 0, 0, 'A6.PAUSA.FLASHES', TAMANHO_DO_ROTULO_DA_DUPLA, COR.osso).setOrigin(0, 0.5);
     this.continuar = texto(this, 0, 0, 'A6.PAUSA.CONTINUAR', 18, COR.osso).setOrigin(0.5);
+    this.toqueParaContinuar = texto(this, 0, 0, 'A6.PAUSA.TOQUE_PARA_CONTINUAR', 18, COR.osso).setOrigin(0.5).setVisible(false);
+    this.automatica = false;
     this.rotuloDoAbandonar = texto(this, 0, 0, 'A6.PAUSA.ABANDONAR', 18, COR.osso).setOrigin(0.5);
     this.avisoDoAbandonar = texto(this, 0, 0, 'A6.PAUSA.ABANDONAR_AVISO', 14, COR.sal, undefined, LARGURA_DO_AVISO).setOrigin(0.5, 0);
     this.rotulosDasEstatisticas.length = this.valoresDasEstatisticas.length = 0;
@@ -108,6 +113,7 @@ export class Pausa extends Phaser.Scene {
       this.rotuloDoSom!,
       this.rotuloDosFlashes!,
       this.continuar!,
+      this.toqueParaContinuar!,
       this.rotuloDoAbandonar!,
       this.avisoDoAbandonar!,
       ...this.rotulosDasEstatisticas,
@@ -116,10 +122,16 @@ export class Pausa extends Phaser.Scene {
     ];
   }
 
-  /** Mostra a tela com a build atual (fade de 200 ms que não bloqueia toque). */
-  mostrar(): void {
+  /**
+   * Mostra a tela com a build atual (fade de 200 ms que não bloqueia toque). Com `automatica` (PS1: a aba saiu de cena, o
+   * aparelho girou, o áudio foi interrompido) mostra só o véu, o título e `A6.PAUSA.TOQUE_PARA_CONTINUAR`.
+   */
+  mostrar(automatica = false): void {
     if (this.aberta) return;
     this.aberta = true;
+    this.automatica = automatica;
+    for (const o of [this.botoes!, this.rotuloDaOpcao!, this.rotuloDoSom!, this.rotuloDosFlashes!, this.continuar!, this.rotuloDoAbandonar!]) o.setVisible(!automatica);
+    this.toqueParaContinuar!.setVisible(automatica);
     this.preencherBuild();
     this.preencherEstatisticas();
     this.desenhadas = -1;
@@ -182,7 +194,8 @@ export class Pausa extends Phaser.Scene {
     const cx = ins.esquerda + (LARGURA_LOGICA - ins.esquerda - ins.direita) / 2;
     this.veu!.clear().fillStyle(COR.pedra, ALFA_DO_VEU).fillRect(0, 0, LARGURA_LOGICA, ALTURA_LOGICA);
     // Textos no terço de cima: o título e, logo abaixo, até 11 linhas da build.
-    this.titulo!.setPosition(cx, ins.topo + TITULO_ABAIXO_DO_TOPO);
+    this.titulo!.setPosition(cx, this.automatica ? ALTURA_LOGICA / 2 - 24 : ins.topo + TITULO_ABAIXO_DO_TOPO);
+    this.toqueParaContinuar!.setPosition(cx, ALTURA_LOGICA / 2 + 24);
     // Cada linha centrada pelo conjunto "nome  Nível n" (só o nome, na União).
     let y = ins.topo + PRIMEIRA_LINHA_ABAIXO_DO_TOPO;
     for (let v = 0; v < PARES_DA_PAUSA; v++) {
@@ -215,6 +228,13 @@ export class Pausa extends Phaser.Scene {
     this.rotuloDosFlashes!.setPosition(flashes!.x + OPCAO_DUPLA.margem, flashes!.y + flashes!.altura / 2);
     this.continuar!.setPosition(cont!.x + cont!.largura / 2, cont!.y + cont!.altura / 2);
     this.desenharBotoes();
+    if (this.automatica) this.ocultarOQueNaoEDaAutomatica();
+  }
+
+  /** Na pausa automática só o véu, o título e o convite a tocar ficam visíveis (a build, as estatísticas e os botões somem). */
+  private ocultarOQueNaoEDaAutomatica(): void {
+    const ocultos = [...this.nomes, ...this.niveis, ...this.rotulosDasEstatisticas, ...this.valoresDasEstatisticas, this.estatisticasEmUmaLinha!, this.avisoDoAbandonar!, this.botoes!];
+    for (const o of ocultos) o.setVisible(false);
   }
 
   private assinaturaDasOpcoes(): number {

@@ -900,3 +900,17 @@ describe('suavização da direção do joystick', () => {
     expect(cmd.mira[1]).toBe(0);
   });
 });
+
+describe('pausa automática (F-010 PS1): qualquer dedo solto continua', () => {
+  it('no modo pausa, soltar o dedo em qualquer ponto liga soltouNaPausa por um frame, sem acionar nenhum alvo', () => {
+    fila.pedirSoltarTodos();
+    trad.mudarModo('pausa');
+    toque(T.inicio, 5, 20, 300);
+    frame();
+    toque(T.fim, 5, 20, 300);
+    frame();
+    expect([trad.soltouNaPausa, trad.toqueNaPausa]).toEqual([true, null]);
+    frame();
+    expect(trad.soltouNaPausa).toBe(false);
+  });
+});

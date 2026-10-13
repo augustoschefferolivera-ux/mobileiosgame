@@ -54,7 +54,7 @@ const COS_REVERSAO = Math.cos((REVERSAO_IMEDIATA_GRAUS * Math.PI) / 180);
 /** Um timeStamp a mais de 60 s do relógio do quadro está em outro relógio: vale o agora do quadro (P3). */
 const RELOGIO_SUSPEITO_MS = 60_000;
 
-export type OrigemDaPausa = 'botao' | 'gesto';
+export type OrigemDaPausa = 'botao' | 'gesto' | 'automatica';
 export type ModoDoTradutor = 'vigilia' | 'pausa' | 'modal' | 'resultado';
 export type TipoDeModal = 'cartas' | 'bau';
 /** Toques em alvo do modal guardados por quadro (M4): a 8 fps, um toque duplo entre dois quadros conta como 2. */
@@ -92,6 +92,8 @@ export class TradutorDeGestos {
   frascoEmCura = false;
   /** No modo pausa: o alvo da tela de pausa acionado neste frame (começou e soltou dentro). */
   toqueNaPausa: string | null = null;
+  /** No modo pausa: algum dedo foi solto neste frame, em qualquer ponto (a pausa automática continua com ele; F-010 PS1). */
+  soltouNaPausa = false;
   /** No modo resultado: o botão acionado neste frame ('voltar' ou 'repetir'). */
   toqueNoResultado: string | null = null;
   /** No modo resultado: algum dedo foi solto neste frame, em qualquer ponto (fecha o balão das Cinzas; F-010 GA3). */
@@ -173,6 +175,7 @@ export class TradutorDeGestos {
     this.modo = 'vigilia';
     this.pedidoDePausa = null;
     this.toqueNaPausa = null;
+    this.soltouNaPausa = false;
     this.toqueNoResultado = null;
     this.soltouNoResultado = false;
     this.frascoEmCura = false;
@@ -229,6 +232,7 @@ export class TradutorDeGestos {
     this.saida = out;
     this.pedidoDePausa = null;
     this.toqueNaPausa = null;
+    this.soltouNaPausa = false;
     this.toqueNoResultado = null;
     this.soltouNoResultado = false;
     this.nToquesNoModal = 0;
@@ -551,6 +555,7 @@ export class TradutorDeGestos {
       if (k >= 0 && contem(this.alvosDoResultado[k]!, x, y)) this.toqueNoResultado = this.alvosDoResultado[k]!.id;
       return;
     }
+    if (this.modo === 'pausa') this.soltouNaPausa = true;
     const k = this.alvoInicial[s]!;
     const alvos = this.alvosDoModo();
     if (k < 0 || !contem(alvos[k]!, x, y)) return;

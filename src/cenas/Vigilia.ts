@@ -21,7 +21,7 @@ import { modalAberto } from '../logica/progressao/modal';
 import { nivelOfertado } from '../logica/progressao/oferta';
 import { IDS_DE_PASSIVA } from '../logica/progressao/tabela';
 import { verificarNaN } from '../logica/nucleo/nan';
-import { passo } from '../logica/nucleo/passo';
+import { avancar, passo } from '../logica/nucleo/passo';
 import { resultadoDaVigilia, type ResultadoDaVigilia } from '../logica/mundo/vigilia';
 import { MARCO, comMarco, comOpcoes, comTutoriais, reservarIdDaVigilia } from '../logica/save/meta';
 import { GravadorDaVigilia, creditarFim } from '../plataforma/vigiliaGuardada';
@@ -32,6 +32,7 @@ import inimigos from '../dados/inimigos.json';
 import vigilantes from '../dados/vigilantes.json';
 import charneca from '../dados/regioes/charneca_das_lanternas.json';
 import type { ContextoDoJogo, Simulacao } from './contexto';
+import type { OrigemDaPausa } from '../entrada/tradutorDeGestos';
 import type { OfertaDeRetomada } from './retomada';
 import { TelemetriaDeCombate } from './telemetriaDeCombate';
 import type { Modal } from './Modal';
@@ -156,16 +157,32 @@ export class Vigilia extends Phaser.Scene {
     eventos.on(Phaser.Core.Events.STEP, this.aoStep, this);
     eventos.on(Phaser.Core.Events.PRE_RENDER, this.aoPreRender, this);
     eventos.on(Phaser.Core.Events.POST_RENDER, this.aoPostRender, this);
-    // O `andamento` também sai quando a aba some (SV3).
-    const aoSumir = (): void => this.sim?.gravador?.salvarAndamento(this.sim.estado);
+    // A aba sai de cena (PS1): visibilitychange, pagehide, HIDDEN e BLUR do Phaser, o áudio interrompido e a paisagem. O `andamento`
+    // também sai aí (SV3). Voltar a ficar visível só tira o mudo se nenhuma pausa o segura (PS2).
+    const aoSumir = (): void => this.sairDeCena();
     const aoMudarVisibilidade = (): void => {
-      if (document.visibilityState === 'hidden') aoSumir();
+      if (document.visibilityState === 'hidden') this.sairDeCena();
+      else this.voltarAFicarVisivel();
+    };
+    const contextoDeAudio = (this.game.sound as { context?: AudioContext }).context;
+    const aoMudarOAudio = (): void => {
+      if ((contextoDeAudio?.state as string | undefined) === 'interrupted') this.sairDeCena();
     };
     document.addEventListener('visibilitychange', aoMudarVisibilidade);
     window.addEventListener('pagehide', aoSumir);
+    eventos.on(Phaser.Core.Events.HIDDEN, aoSumir);
+    eventos.on(Phaser.Core.Events.BLUR, aoSumir);
+    contextoDeAudio?.addEventListener('statechange', aoMudarOAudio);
+    const naoOuvirOGiro = this.ctx.orientacao.aoMudar((paisagem) => {
+      if (paisagem) this.sairDeCena();
+    });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       document.removeEventListener('visibilitychange', aoMudarVisibilidade);
       window.removeEventListener('pagehide', aoSumir);
+      eventos.off(Phaser.Core.Events.HIDDEN, aoSumir);
+      eventos.off(Phaser.Core.Events.BLUR, aoSumir);
+      contextoDeAudio?.removeEventListener('statechange', aoMudarOAudio);
+      naoOuvirOGiro();
       eventos.off(Phaser.Core.Events.PRE_STEP, this.aoPreStep, this);
       eventos.off(Phaser.Core.Events.STEP, this.aoStep, this);
       eventos.off(Phaser.Core.Events.PRE_RENDER, this.aoPreRender, this);
@@ -209,7 +226,7 @@ export class Vigilia extends Phaser.Scene {
     this.desarmarAbandonar(trad.toqueNaPausa);
     // A pausa é inerte em APAGANDO e em FIM (AG3): sem pedido de pausa, e o Resultado cuida dos toques.
     if (trad.pedidoDePausa !== null && !sim.pausa.ativa && emJogo(fase)) this.abrirPausa(trad.pedidoDePausa);
-    else if (sim.pausa.ativa && trad.toqueNaPausa === 'continuar') this.fecharPausa();
+    else if (sim.pausa.ativa && (trad.toqueNaPausa === 'continuar' || (sim.pausa.origem === 'automatica' && trad.soltouNaPausa))) this.fecharPausa();
     else if (sim.pausa.ativa && trad.toqueNaPausa === 'abandonar') this.tocarAbandonar();
     else if (sim.pausa.ativa && trad.toqueNaPausa === 'numeros') this.alternarOpcao('numerosDeDano');
     else if (sim.pausa.ativa && trad.toqueNaPausa === 'som') this.alternarOpcao('som');
@@ -316,6 +333,45 @@ export class Vigilia extends Phaser.Scene {
     this.ctx.meta.atual = novo;
   }
 
+  /**
+   * A aba saiu de cena (PS1, PS2, PS4). Ordem: (1) APAGANDO conclui sozinho, sem pausa; (2) grava o `andamento`; (3) abre a pausa
+   * automática se a Vigília corre e não há modal nem pausa; (4) cala o som. Com modal aberto só solta os dedos; com a pausa do botão
+   * já aberta só cala. Idempotente: os vários gatilhos podem disparar juntos.
+   */
+  sairDeCena(): void {
+    const sim = this.sim;
+    if (!sim) return;
+    const fase = sim.estado.jogador4U8[JOGADOR4_U8.fase]!;
+    if (fase === FASE.apagando) {
+      this.concluirApagando();
+      return;
+    }
+    if (fase === FASE.fim) return;
+    sim.gravador?.salvarAndamento(sim.estado);
+    if (!sim.pausa.ativa) {
+      if (modalAberto(sim.estado)) this.ctx.entrada.fila.pedirSoltarTodos();
+      else if (emJogo(fase)) this.abrirPausa('automatica');
+    }
+    this.game.sound.setMute(true);
+  }
+
+  /** Voltou a ficar visível: sem pausa nem Resultado segurando o mudo (modal que silenciou sem pausar), o som volta pela opção. */
+  private voltarAFicarVisivel(): void {
+    const sim = this.sim;
+    if (sim && !sim.pausa.ativa) this.game.sound.setMute(!this.ctx.opcoes.som);
+  }
+
+  /**
+   * PS4: a aba sumiu durante APAGANDO (≤ 30 passos). Os passos que faltam rodam de uma vez (são fixos e não dependem do relógio,
+   * então o hash é o mesmo da câmera lenta) e o FIM é gravado pelo caminho de sempre (meta, depois `vigilia` e `andamento`, SV4);
+   * o Resultado já está pronto na volta. Sem tela de pausa.
+   */
+  private concluirApagando(): void {
+    const sim = this.sim!;
+    for (let k = 0; k < 64 && sim.estado.jogador4U8[JOGADOR4_U8.fase] === FASE.apagando; k++) avancar(sim.estado, sim.dados, sim.fonte, 1);
+    this.verificarFase();
+  }
+
   /** O botão Abandonar (PE4): o 1º toque arma (borda de brasa e aviso), o 2º confirma e roda o passo com o bit 16 (PE5). */
   private tocarAbandonar(): void {
     const sim = this.sim!;
@@ -410,7 +466,7 @@ export class Vigilia extends Phaser.Scene {
    * render congela, todos os dedos são soltos e o tradutor passa ao modo da
    * tela de pausa. O estado de jogo (`__GAME_DEBUG__.estado`) continua VIGILIA.
    */
-  private abrirPausa(origem: 'botao' | 'gesto'): void {
+  private abrirPausa(origem: OrigemDaPausa): void {
     const sim = this.sim!;
     sim.pausa.ativa = true;
     sim.pausa.abandonarArmado = false;
@@ -422,7 +478,7 @@ export class Vigilia extends Phaser.Scene {
     this.game.sound.setMute(true);
     // A Hud some enquanto a pausa está aberta: a build e as estatísticas caíam sobre a barra de HP e os slots.
     this.scene.get('Hud').sys.setVisible(false);
-    (this.scene.get('Pausa') as Pausa).mostrar();
+    (this.scene.get('Pausa') as Pausa).mostrar(origem === 'automatica');
   }
 
   /** Abre o modal (M5): ver abrirModal em escolhaDoModal. */
