@@ -11,7 +11,7 @@ import { criarAcumulador } from '../../src/logica/nucleo/acumulador';
 import { criarCameraLenta } from '../../src/logica/nucleo/cameraLenta';
 import { criarComandos, fonteConstante } from '../../src/logica/nucleo/comandos';
 import { CAUSA_DO_FIM, FASE, JOGADOR, JOGADOR4_U8, JOGADOR_U8, PROGRESSAO, PROMPT, TUTORIAL, criarEstado } from '../../src/logica/nucleo/estado';
-import { metaPadrao } from '../../src/logica/save/meta';
+import { MARCO, metaPadrao } from '../../src/logica/save/meta';
 import { ArmazenamentoDoMeta, CHAVE_DO_META } from '../../src/plataforma/armazenamento';
 import { RegistroDeTelemetria } from '../../src/plataforma/telemetria';
 import { DADOS_SEM_OBSTACULOS as D } from '../logica/apoio';
@@ -24,6 +24,7 @@ interface Interno {
   alternarOpcao(q: 'numerosDeDano' | 'som' | 'flashes'): void;
   persistirTutoriais(): void;
   tratarToqueDoResultado(b: string): void;
+  fecharBalaoDasCinzas(): void;
   fecharPausa(): void;
   abrirPausa(origem: 'botao' | 'gesto'): void;
   desarmarAbandonar(toque: string | null): void;
@@ -66,7 +67,7 @@ function montar(almas = 100, ctxExtra: Partial<ContextoDoJogo> = {}) {
     efeitos: null,
   };
   ctx.simulacao = sim;
-  const resultado = { mostrarApagando: vi.fn(), mostrarResultado: vi.fn(), esconder: vi.fn() };
+  const resultado = { mostrarApagando: vi.fn(), mostrarResultado: vi.fn(), esconder: vi.fn(), balaoAberto: true, fecharBalao: vi.fn() };
   const pausaCena = { mostrar: vi.fn(), esconder: vi.fn() };
   const hud = { sys: { setVisible: vi.fn() } };
   const cena = { start: vi.fn(), restart: vi.fn(), hud, get: (k: string) => (k === 'Pausa' ? pausaCena : k === 'Hud' ? hud : resultado) };
@@ -175,10 +176,10 @@ describe('crédito do meta uma vez (SV7)', () => {
 });
 
 describe('Voltar e Repetir (RS6)', () => {
-  it('Voltar vai à Acender; Repetir sorteia seed nova e reinicia a Vigília', () => {
+  it('Voltar vai ao Santuário (F-010 SN2) com seed nova; Repetir sorteia seed nova e reinicia a Vigília', () => {
     const { v, ctx, cena } = montar();
     v.tratarToqueDoResultado('voltar');
-    expect(cena.start).toHaveBeenCalledWith('Acender');
+    expect(cena.start).toHaveBeenCalledWith('Santuario');
     const seed = ctx.seed;
     v.tratarToqueDoResultado('repetir');
     expect(cena.restart).toHaveBeenCalledTimes(1);
@@ -207,5 +208,37 @@ describe('opções e tutoriais no meta (SV4, SV6)', () => {
     outro.estado.jogadorU8[JOGADOR_U8.promptMover] = PROMPT.cumprido;
     outro.v.persistirTutoriais();
     expect(outro.gravado.has(CHAVE_DO_META)).toBe(false);
+  });
+});
+
+describe('balão das Cinzas (F-010 GA3)', () => {
+  const apagar = (v: Interno, estado: ReturnType<typeof montar>['estado']): void => {
+    estado.jogador4U8[JOGADOR4_U8.fase] = FASE.fim;
+    estado.jogador4U8[JOGADOR4_U8.causaDoFim] = CAUSA_DO_FIM.apagar;
+    v.verificarFase();
+  };
+
+  it('o 1º Apagar pede o balão (com ou sem mancha); com o marco já ligado, não', () => {
+    const a = montar(100);
+    apagar(a.v, a.estado);
+    expect(a.resultado.mostrarResultado).toHaveBeenCalledWith(expect.anything(), true);
+    const b = montar(100, { meta: { armazenamento: montar().ctx.meta.armazenamento, atual: { ...metaPadrao(), marcos: MARCO.balaoCinzas } } });
+    apagar(b.v, b.estado);
+    expect(b.resultado.mostrarResultado).toHaveBeenCalledWith(expect.anything(), false);
+  });
+
+  it('Abandonar nunca pede o balão', () => {
+    const { v, resultado } = montar(100);
+    v.tocarAbandonar();
+    v.tocarAbandonar();
+    expect(resultado.mostrarResultado).toHaveBeenCalledWith(expect.anything(), false);
+  });
+
+  it('o toque fecha o balão e grava o marco no meta (uma vez)', () => {
+    const { v, ctx, resultado, gravado } = montar(100);
+    v.fecharBalaoDasCinzas();
+    expect(resultado.fecharBalao).toHaveBeenCalledTimes(1);
+    expect(ctx.meta.atual.marcos & MARCO.balaoCinzas).toBe(MARCO.balaoCinzas);
+    expect(JSON.parse(gravado.get(CHAVE_DO_META)!).marcos).toBe(MARCO.balaoCinzas);
   });
 });

@@ -215,7 +215,11 @@ export class Vigilia extends Phaser.Scene {
     else if (sim.pausa.ativa && trad.toqueNaPausa === 'som') this.alternarOpcao('som');
     else if (sim.pausa.ativa && trad.toqueNaPausa === 'flashes') this.alternarOpcao('flashes');
     else if (trad.modo === 'modal') this.tratarToquesDoModal();
-    else if (trad.modo === 'resultado' && trad.toqueNoResultado !== null) this.tratarToqueDoResultado(trad.toqueNoResultado);
+    else if (trad.modo === 'resultado') {
+      // O balão das Cinzas (GA3) fecha com qualquer toque e liga o marco no meta.
+      if (trad.soltouNoResultado) this.fecharBalaoDasCinzas();
+      if (trad.toqueNoResultado !== null) this.tratarToqueDoResultado(trad.toqueNoResultado);
+    }
     const t0 = performance.now();
     // Câmera lenta (FB5): o fator vale sobre o delta, só com a simulação rodando (pausa e modal não gastam os 500 ms).
     // A do Apagar (AG2) vale enquanto a fase for APAGANDO, por cima da do tutorial, sem gastar os 500 ms dela.
@@ -300,6 +304,16 @@ export class Vigilia extends Phaser.Scene {
   private desarmarAbandonar(toque: string | null): void {
     const sim = this.sim!;
     if (sim.pausa.ativa && toque !== null && toque !== 'abandonar') sim.pausa.abandonarArmado = false;
+  }
+
+  /** Fecha o balão `A2.TUTORIAL.05` e grava o marco `balaoCinzas` (GA3); sem balão aberto, não faz nada. */
+  private fecharBalaoDasCinzas(): void {
+    const resultado = this.scene.get('Resultado') as Resultado;
+    if (!resultado.balaoAberto) return;
+    resultado.fecharBalao();
+    const novo = comMarco(this.ctx.meta.atual, MARCO.balaoCinzas);
+    this.ctx.meta.armazenamento.gravar(novo);
+    this.ctx.meta.atual = novo;
   }
 
   /** O botão Abandonar (PE4): o 1º toque arma (borda de brasa e aviso), o 2º confirma e roda o passo com o bit 16 (PE5). */
