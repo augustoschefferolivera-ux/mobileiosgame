@@ -118,6 +118,7 @@ function iniciarQuebra(e: Estado, dados: DadosDaVigilia, forma: number): void {
   const s = e.chefeU16[CHEFE_U16.slot]!;
   e.chefeF32[CHEFE_F32.postura] = c.posturaMax;
   e.chefeU16[CHEFE_U16.quebraPassos] = c.quebraPassos;
+  e.chefeU8[CHEFE_U8.quebraNova] = 1;
   if (e.chefeU8[CHEFE_U8.quebras]! < 255) e.chefeU8[CHEFE_U8.quebras] = e.chefeU8[CHEFE_U8.quebras]! + 1;
   cancelarAtaqueDoChefe(e);
   FLOATS_DO_EVENTO[0] = e.inimigos.x[s]!;

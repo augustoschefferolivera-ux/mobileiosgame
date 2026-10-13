@@ -7,6 +7,8 @@
 import {
   CAB,
   CAPACIDADE_DE_INIMIGOS,
+  CENARIO,
+  CHEFE_U16,
   ETAPA,
   FOGUEIRA_F32,
   FOGUEIRA_U32,
@@ -17,6 +19,7 @@ import {
   JOGADOR4_U8,
   LINHA_LIVRE,
   MUNDO,
+  SEM_CHEFE,
   type Estado,
 } from '../nucleo/estado';
 import { CAUSA, EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
@@ -28,6 +31,7 @@ import { GRANDES, MAX_GRANDES } from './grade';
 import { NASCIMENTO, matarInimigo, nascerInimigoDoRascunho } from './inimigos';
 import { TIPO } from './tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from './toro';
+import { verificarFaseDoChefe } from './ataquesDoChefe';
 import { chefeLigado, surgirChefe } from './chefe';
 import { apagarFogueira, verificarRaio } from './fogueira';
 import { encerrarVigilia } from './vigilia';
@@ -63,6 +67,8 @@ export function rodarEtapa(e: Estado, dados: DadosDaVigilia): void {
   // Imunidade ao pulso do Círculo (CR8): o afastamento que a aura gravou neste passo nos corpos grandes imunes é desfeito
   // antes de a horda andar. Fora de rodarAura, que precisa caber inlinada em rodarArmas (ADR-0008).
   if (GRANDES[MAX_GRANDES]! > 0) zerarEmpurraoDosImunes(e, dados);
+  // Início da transição de fase do Lanterneiro (F-009 FS1): no fim do passo, depois dos acertos e da máquina do chefe.
+  if (e.chefeU16[CHEFE_U16.slot] !== SEM_CHEFE) verificarFaseDoChefe(e, dados);
   if (e.cab[CAB.linhaFixa] !== LINHA_LIVRE || e.jogador4U8[JOGADOR4_U8.fase] !== FASE.viva) return;
   const u8 = e.fogueiraU8;
   const etapa = u8[FOGUEIRA_U8.etapa]!;
@@ -71,7 +77,7 @@ export function rodarEtapa(e: Estado, dados: DadosDaVigilia): void {
   const marcos = dados.marcos;
   if (etapa === ETAPA.chefe) {
     // 23:00 (AR8): A Fome. O dano de fome e o Lanterneiro são da F-009; aqui o FIM é imediato, como o gancho pede.
-    if (relogio >= marcos.aFomeEm) {
+    if (relogio >= marcos.aFomeEm && (e.cab[CAB.cenario]! & CENARIO.semFome) === 0) {
       u8[FOGUEIRA_U8.etapa] = ETAPA.aFome;
       encerrarVigilia(e, dados, CAUSA_DO_FIM.aFome);
     }
@@ -286,7 +292,7 @@ function rodarConvocacoes(e: Estado, dados: DadosDaVigilia): void {
   }
 }
 
-function convocar(e: Estado, dados: DadosDaVigilia, s: number, tipo: number): void {
+export function convocar(e: Estado, dados: DadosDaVigilia, s: number, tipo: number): void {
   const c = dados.combate;
   const ini = e.inimigos;
   const cx = ini.x[s]!;

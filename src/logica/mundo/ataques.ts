@@ -16,6 +16,8 @@ import {
   CAPACIDADE_DE_INIMIGOS,
   CAPACIDADE_DE_PROJETEIS,
   CENARIO,
+  CHEFE_U16,
+  SEM_CHEFE,
   FOGUEIRA_F32,
   FOGUEIRA_U8,
   JOGADOR,
@@ -32,6 +34,7 @@ import { BRUTO, DESFECHO, ORIGEM_DO_DANO, resolverAcertoNoJogador } from './cont
 import type { DadosDaVigilia } from './dados';
 import { RAIO_DO_JOGADOR } from './jogador';
 import { aparar, cancelarAtaque, concluirAparos } from './aparo';
+import { RESUMO, rodarChefe } from './ataquesDoChefe';
 import { FASE_DO_ATAQUE, TIPO } from './tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from './toro';
 
@@ -312,6 +315,15 @@ export function rodarAtaques(e: Estado, dados: DadosDaVigilia): void {
       const alcance = raioDoArco + RAIO_DO_JOGADOR;
       if (d2 <= alcance * alcance && dx * ini.miraX[s]! + dy * ini.miraY[s]! >= COSSENO_DO_ARCO * Math.sqrt(d2)) ameacas++;
     }
+  }
+  // O Lanterneiro (F-009): a máquina dele soma às ameaças e aos aparos do passo, que `concluirAparos` fecha adiante.
+  if (e.chefeU16[CHEFE_U16.slot] !== SEM_CHEFE) {
+    RESUMO[0] = ameacas;
+    RESUMO[1] = aparados;
+    RESUMO[2] = janelaAtiva ? 1 : 0;
+    rodarChefe(e, dados);
+    ameacas = RESUMO[0]!;
+    aparados = RESUMO[1]!;
   }
   e.jogador3U16[JOGADOR3_U16.ameacasAparaveis] = ameacas;
   // Depois do laço (AP6): zera `aparoJanela`, arma o Contra-ataque e aplica a Postura Quebrada em área.

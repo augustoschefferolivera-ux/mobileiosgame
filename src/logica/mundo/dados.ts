@@ -108,6 +108,9 @@ export interface TabelaDoChefe {
   readonly gatilho: Float64Array;
   readonly aparavel: Uint8Array;
   readonly convocaIntervalo: number;
+  readonly convocaQuantidade: number;
+  readonly convocaAnel: number;
+  readonly convocaTipo: number;
   readonly convocaCast: number;
   readonly convocaRecuperacao: number;
   readonly convocaPrimeira: number;
@@ -125,6 +128,7 @@ export interface TabelaDoChefe {
   readonly zonaRaio: number;
   readonly zonasMaximas: number;
   readonly agarrarPct: number;
+  readonly agarrarAlcance: number;
   readonly presoPassos: number;
   readonly furiaInicio: number;
   readonly furiaIntervalo: number;
@@ -325,7 +329,7 @@ export function criarDadosDaVigilia(
     progressao: criarTabelaDeProgressao(progressao, vigilante, tabelaDeArmas),
     timeline,
     marcos,
-    combate: criarTabelaDeCombate(combate, vigilante, inimigos),
+    combate: comOConvocarDoChefe(criarTabelaDeCombate(combate, vigilante, inimigos), chefe),
     chefe,
   };
 }
@@ -565,7 +569,7 @@ export function criarTabelaDoChefe(j: ChefesDoJson, c: CombateDoJson): TabelaDoC
   const lanterna = ataque('lanterna_arremessada');
   const explosao = ataque('explosao_de_luz');
   const agarrar = ataque('agarrar')['agarrar'] as { dano_hp_pct: number; preso_s: number };
-  const convoca = (fases[1] as unknown as { convoca: { intervalo_s: number } }).convoca;
+  const convoca = (fases[1] as unknown as { convoca: { intervalo_s: number; quantidade: number; anel_corpos?: number; inimigo: string } }).convoca;
   const meiaLargura = ch.largura_px / 2;
   const meiaAltura = ch.altura_px / 2;
   const tick = k.tick_passos;
@@ -600,6 +604,9 @@ export function criarTabelaDoChefe(j: ChefesDoJson, c: CombateDoJson): TabelaDoC
     gatilho,
     aparavel,
     convocaIntervalo: segundosEmPassos(convoca.intervalo_s),
+    convocaQuantidade: convoca.quantidade,
+    convocaAnel: (convoca.anel_corpos ?? 0) * CORPO_PX,
+    convocaTipo: codigoDoTipo(convoca.inimigo),
     convocaCast: k.convocar.cast_passos,
     convocaRecuperacao: k.convocar.recuperacao_passos,
     convocaPrimeira: k.convocar.primeira_na_fase_2_passos,
@@ -616,6 +623,7 @@ export function criarTabelaDoChefe(j: ChefesDoJson, c: CombateDoJson): TabelaDoC
     zonaRaio: (lanterna['raio_corpos'] as number) * CORPO_PX,
     zonasMaximas: k.zonas_maximas,
     agarrarPct: agarrar.dano_hp_pct,
+    agarrarAlcance: (ataque('agarrar')['raio_corpos'] as number) * CORPO_PX,
     presoPassos: segundosEmPassos(agarrar.preso_s),
     furiaInicio: c.furia.inicio_relogio,
     furiaIntervalo: segundosEmPassos(ch.furia.intervalo_s),
@@ -648,4 +656,16 @@ function comOChefe(t: TiposDeInimigo, chefe: TabelaDoChefe): TiposDeInimigo {
   comportamento[c] = COMPORTAMENTO.pararADistancia;
   grande[c] = 1;
   return { ...t, existe, raio, velocidade, distancia, comportamento, grande };
+}
+
+/**
+ * O Convocar do Lanterneiro (FS3) reaproveita `convocar` do Coroado, que lê a quantidade, o anel e o tipo dos convocados da
+ * tabela de combate por tipo: o tipo 5 recebe os dele (10 Ocos das Lanternas a 112 px). `convocaPassos` fica em 0, pois
+ * quem convoca é a máquina do chefe (`rodarChefe`) e não a `rodarConvocacoes` dos Coroados.
+ */
+function comOConvocarDoChefe(c: TabelaDeCombate, chefe: TabelaDoChefe): TabelaDeCombate {
+  c.convocaQuantidade[TIPO.o_lanterneiro] = chefe.convocaQuantidade;
+  c.convocaAnel[TIPO.o_lanterneiro] = chefe.convocaAnel;
+  c.convocaTipo[TIPO.o_lanterneiro] = chefe.convocaTipo;
+  return c;
 }

@@ -585,7 +585,7 @@ export const CHEFE_U16 = {
 const HALFWORDS_CHEFE = 12;
 /** "Sem Lanterneiro" em `CHEFE_U16.slot`. */
 export const SEM_CHEFE = 0xffff;
-/** Registro da F-009, Uint8 (8 B; 2 de folga em zero). */
+/** Registro da F-009, Uint8 (8 B; 1 de folga em zero). */
 export const CHEFE_U8 = {
   /** Fase atual: 0 (sem chefe), 1 a 3 (FS1). */
   fase: 0,
@@ -599,6 +599,8 @@ export const CHEFE_U8 = {
   explosaoAcertou: 4,
   /** Quebras de Postura da luta (telemetria, RE2). */
   quebras: 5,
+  /** 1 entre a abertura da Quebra e o fim do `rodarChefe` do mesmo passo (a Quebra só conta a partir do passo seguinte); em repouso é 0. */
+  quebraNova: 6,
 } as const;
 const BYTES_CHEFE_U8 = 8;
 

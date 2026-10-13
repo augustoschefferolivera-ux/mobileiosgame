@@ -8,7 +8,9 @@ import { SEM_APARADO } from '../armas/acerto';
 import { CAB, CAPACIDADE_DE_INIMIGOS, JOGADOR, JOGADOR3, JOGADOR3_U16, JOGADOR3_U8, JOGADOR4_U32, PROMPT, VAGAS_DE_ARMA, type Estado } from '../nucleo/estado';
 import { EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import type { DadosDaVigilia } from './dados';
-import { FASE_DO_ATAQUE } from './tipos';
+import { ATAQUE_DO_CHEFE } from './dados';
+import { GANHO, ganharPostura } from './chefe';
+import { FASE_DO_ATAQUE, TIPO } from './tipos';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from './toro';
 
 /** Atacantes aparados no passo (slots), para a Postura Quebrada no atacante mesmo fora do raio (PQ1). */
@@ -55,6 +57,8 @@ export function aparar(e: Estado, dados: DadosDaVigilia, aparadosAntes: number, 
     u16[JOGADOR3_U16.alvoAparadoSlot] = SEM_APARADO;
     u16[JOGADOR3_U16.alvoAparadoGeracao] = 0;
   }
+  // O aparo comum soma 25 à Postura do Lanterneiro (PO1); o Agarrar aparado não soma, vai direto à Quebra (PO5).
+  if (tipo === TIPO.o_lanterneiro && e.inimigos.ataqueId[slot] !== ATAQUE_DO_CHEFE.agarrar) ganharPostura(e, dados, GANHO.aparo);
   if (slot >= 0) {
     ATACANTES[nAtacantes++] = slot;
     if (slot < u16[JOGADOR3_U16.alvoAparadoSlot]!) {

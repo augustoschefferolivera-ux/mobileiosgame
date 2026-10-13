@@ -8,7 +8,9 @@ import { CAB, CAPACIDADE_DE_INIMIGOS, CENARIO, JOGADOR, JOGADOR2, JOGADOR3, JOGA
 import { EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import { armadura } from '../progressao/dano';
 import type { DadosDaVigilia } from './dados';
+import { GANHO, ganharPostura } from './chefe';
 import { interromperFrasco } from './frasco';
+import { TIPO } from './tipos';
 import { RAIO_DO_JOGADOR } from './jogador';
 import { ALTURA_DO_MAPA, LARGURA_DO_MAPA, MEIA_ALTURA_DO_MAPA, MEIA_LARGURA_DO_MAPA } from './toro';
 
@@ -105,7 +107,8 @@ export function resolverAcertoNoJogador(e: Estado, dados: DadosDaVigilia, origem
     }
     return DESFECHO.acertou;
   }
-  if (u8[JOGADOR3_U8.esquivaPerfeitaDada] === 0 && (origem !== ORIGEM_DO_DANO.contato || e.jogadorU8[JOGADOR_U8.invulContato] === 0)) {
+  // O tick de efeito (cegueira, zona de Lanterna) é evitado pelos i-frames mas nunca dá esquiva perfeita (F-009 AT4).
+  if (u8[JOGADOR3_U8.esquivaPerfeitaDada] === 0 && origem !== ORIGEM_DO_DANO.efeito && (origem !== ORIGEM_DO_DANO.contato || e.jogadorU8[JOGADOR_U8.invulContato] === 0)) {
     u8[JOGADOR3_U8.esquivaPerfeitaDada] = 1;
     u8[JOGADOR3_U8.congelamento] = c.congelamento;
     u8[JOGADOR3_U8.poderPassos] = c.poderPassos;
@@ -117,6 +120,8 @@ export function resolverAcertoNoJogador(e: Estado, dados: DadosDaVigilia, origem
     FLOATS_DO_EVENTO[3] = 0;
     const tipo = slot < 0 ? 0 : e.inimigos.tipo[slot]!;
     gravarEvento(e.eventos, e.cab[CAB.passo]!, EVENTO.esquivaPerfeita, 0, origem, slot, slot < 0 ? 0 : e.pool.geracao[slot]!, tipo, 0, 0);
+    // A esquiva perfeita de um golpe do Lanterneiro soma 10 à Postura dele (PO1, Q-15); do contato, do projétil e dos Ocos, nada.
+    if (origem === ORIGEM_DO_DANO.golpe && tipo === TIPO.o_lanterneiro) ganharPostura(e, dados, GANHO.esquiva);
   }
   return DESFECHO.esquivado;
 }

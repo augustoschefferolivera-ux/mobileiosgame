@@ -8,7 +8,7 @@
 // mesma colisão, sem o bloqueio dos inimigos nos i-frames). Também cuida do prompt "Deslize para mover", cujo
 // gatilho é a intenção, e não o deslocamento: um obstáculo não segura o prompt.
 import { ACAO, type ComandosDoPasso } from '../nucleo/comandos';
-import { CAB, CAPACIDADE_DE_INIMIGOS, FOGUEIRA_F32, FOGUEIRA_U8, JOGADOR, JOGADOR3, JOGADOR3_U16, JOGADOR3_U8, JOGADOR_U8, PROMPT, type Estado } from '../nucleo/estado';
+import { CAB, CAPACIDADE_DE_INIMIGOS, CHEFE_U8, FOGUEIRA_F32, FOGUEIRA_U8, JOGADOR, JOGADOR3, JOGADOR3_U16, JOGADOR3_U8, JOGADOR_U8, PROMPT, type Estado } from '../nucleo/estado';
 import { EVENTO, FLOATS_DO_EVENTO, gravarEvento } from '../nucleo/eventos';
 import { segundosEmPassos } from '../nucleo/passos';
 import type { DadosDaVigilia } from './dados';
@@ -95,7 +95,8 @@ function rodarTimersEComandos(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoP
       u8[JOGADOR3_U8.aparoJanela] = limite + 1;
     }
   }
-  if ((acoes & ACAO.esquiva) !== 0 && (acoes & ACAO.aparo) === 0 && ep === 0 && u8[JOGADOR3_U8.aparoJanela] === 0 && u8[JOGADOR3_U8.aparoFalho] === 0) {
+  // Preso pelo Agarrar (F-009 AT6): sem mover e sem esquivar; o aparo e o Frasco valem.
+  if ((acoes & ACAO.esquiva) !== 0 && (acoes & ACAO.aparo) === 0 && ep === 0 && u8[JOGADOR3_U8.aparoJanela] === 0 && u8[JOGADOR3_U8.aparoFalho] === 0 && e.chefeU8[CHEFE_U8.presoPassos] === 0) {
     const j = e.jogador;
     const j3 = e.jogador3;
     const stamina = j3[JOGADOR3.stamina]!;
@@ -169,6 +170,11 @@ export function moverJogador(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPa
   j[JOGADOR.yAnt] = y;
   let mx = cmd.movimento[0]!;
   let my = cmd.movimento[1]!;
+  // Preso pelo Agarrar (F-009 AT6): a intenção zera.
+  if (e.chefeU8[CHEFE_U8.presoPassos] !== 0) {
+    mx = 0;
+    my = 0;
+  }
   const m2 = mx * mx + my * my;
   const temIntencao = m2 > 0 && m2 < Infinity;
   let dx = 0;
