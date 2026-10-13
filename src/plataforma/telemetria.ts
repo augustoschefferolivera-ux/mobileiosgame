@@ -17,7 +17,7 @@ export const CAMPOS_DOS_EVENTOS = {
   amanhecer: ['minuto', 'nivel', 'almas', 'causa', 'posicao'],
   cinzas_perdidas: ['recuperou', 'vigilias_ate_recuperar'],
   pesquisa_compra: ['no', 'rank', 'custo', 'almas_restantes', 'vigilias_desde_ultima_compra'],
-  sessao: ['duracao', 'vigilias', 'saiu_em_fogueira', 'plataforma', 'aparelho', 'fps_medio', 'memoria_pico'],
+  sessao: ['duracao', 'vigilias', 'saiu_em_fogueira', 'plataforma', 'aparelho', 'fps_medio', 'memoria_pico', 'fps_por_hora'],
   erro_recuperacao: ['aba_morreu', 'retomou_da_fogueira'],
 } as const;
 

@@ -37,6 +37,8 @@ import { TIPO_DE_TOQUE } from '../entrada/filaDeToques';
 import { hex8 } from '../logica/nucleo/hash';
 import { avancar } from '../logica/nucleo/passo';
 import { atributosDe, bytesDoBackbuffer } from '../plataforma/memoria';
+import { MedidorDeFpsPorHora, contarRecargas } from '../plataforma/medidaDeFps';
+import { horaDoRelogio } from '../logica/mundo/mancha';
 import type { Insets } from '../plataforma/safeArea';
 import type { ContextoDoJogo } from './contexto';
 
@@ -332,6 +334,12 @@ export interface EntradaDebug {
 
 export interface GameDebug {
   readonly fps: number;
+  /** D10 IP3: fps médio da Hora corrente da Vigília (0 fora dela ou sem amostra); só leitura, fora da simulação. */
+  readonly fpsMedioDaHora: number;
+  /** D10 IP3: fps médio de cada Hora (I a IV e A Fome), 0 onde não houve amostra. */
+  readonly fpsPorHora: readonly number[];
+  /** D10 IP3: quantas vezes a página recarregou nesta aba (`sessionStorage`); 0 no primeiro boot. */
+  readonly recargas: number;
   readonly passo: number;
   /** Relógio da Vigília em passos (para na Fogueira, a partir da F-008). */
   readonly relogio: number;
@@ -511,13 +519,52 @@ function textosVisiveis(jogo: Phaser.Game): string[] {
   return ids;
 }
 
+function sessionStorageOuNulo(): Storage | null {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
 export function instalarDebug(jogo: Phaser.Game, ctx: ContextoDoJogo): GameDebug {
   let bytesBackbuffer: number | null = null;
   let renderer: string | null = null;
   const drawCalls = ctx.ehBuildDeDebug ? contarDrawCalls(jogo) : null;
+  const fpsPorHora = new MedidorDeFpsPorHora();
+  const recargas = contarRecargas(sessionStorageOuNulo());
+  let horaCorrente = 0;
+  let telaAnterior = '';
+  let vigilias = 0;
+  if (ctx.debug || ctx.ehBuildDeDebug) {
+    jogo.events.on('postrender', () => {
+      const sim = ctx.simulacao;
+      const viva = sim !== null && ctx.tela === 'VIGILIA' && !sim.pausa.ativa;
+      horaCorrente = viva ? horaDoRelogio(sim.estado.cab[CAB.relogio]!) : 0;
+      if (viva) fpsPorHora.amostrar(horaCorrente, jogo.loop.actualFps);
+      if (ctx.tela === 'RESULTADO' && telaAnterior === 'VIGILIA' && sim !== null && ctx.debug) {
+        vigilias++;
+        // LY4: o evento `sessao` leva o fps médio por Hora; o que ainda não se mede fica null (ADR-0012 §9).
+        ctx.telemetria.registrar('sessao', sim.estado.cab[CAB.passo]!, {
+          duracao: Math.round(performance.now() / 1000), vigilias, saiu_em_fogueira: null, plataforma: null, aparelho: null,
+          fps_medio: Math.round(fpsPorHora.mediaGeral() * 10) / 10, memoria_pico: null, fps_por_hora: fpsPorHora.porHora(),
+        });
+      }
+      telaAnterior = ctx.tela;
+    });
+  }
   const debug: GameDebug = {
     get fps() {
       return jogo.loop.actualFps;
+    },
+    get fpsMedioDaHora() {
+      return horaCorrente === 0 ? 0 : fpsPorHora.mediaDaHora(horaCorrente);
+    },
+    get fpsPorHora() {
+      return fpsPorHora.porHora();
+    },
+    get recargas() {
+      return recargas;
     },
     get passo() {
       return ctx.simulacao?.estado.cab[CAB.passo] ?? 0;
@@ -947,6 +994,8 @@ export function instantaneoDoDebug(d: GameDebug): Record<string, string | number
   const cpu = d.cpuFrameMs;
   return {
     fps: Math.round(d.fps),
+    fpsMedioDaHora: Math.round(d.fpsMedioDaHora * 10) / 10,
+    recargas: d.recargas,
     vivos: v.oco_das_lanternas + v.oco_grande + v.novica_de_sal + v.oco_grande_coroado + v.o_lanterneiro,
     oco_das_lanternas: v.oco_das_lanternas,
     oco_grande: v.oco_grande,
