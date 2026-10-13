@@ -24,10 +24,15 @@ export interface ComandosDoPasso {
   readonly acoes: Uint8Array;
   /** [x, y]: a direção da esquiva do passo, módulo ≤ 1; (0, 0) é "a última direção não nula do jogador" (toque duplo). */
   readonly mira: Float32Array;
+  /**
+   * Nível de degradação do passo, 0 a 3 (F-010 DG3). Só o 3 muda a simulação (TETO efetivo do diretor), então entra aqui, no
+   * replay, e não no estado. É nível, não borda: a fonte repete o valor até mudar.
+   */
+  readonly degradacao: Uint8Array;
 }
 
 export function criarComandos(): ComandosDoPasso {
-  return { movimento: new Float32Array(2), acoes: new Uint8Array(1), mira: new Float32Array(2) };
+  return { movimento: new Float32Array(2), acoes: new Uint8Array(1), mira: new Float32Array(2), degradacao: new Uint8Array(1) };
 }
 
 export function copiarComandos(de: ComandosDoPasso, para: ComandosDoPasso): void {
@@ -36,6 +41,7 @@ export function copiarComandos(de: ComandosDoPasso, para: ComandosDoPasso): void
   para.acoes[0] = de.acoes[0]!;
   para.mira[0] = de.mira[0]!;
   para.mira[1] = de.mira[1]!;
+  para.degradacao[0] = de.degradacao[0]!;
 }
 
 /** De onde vêm os comandos de cada passo. */
@@ -94,6 +100,28 @@ export interface AcaoDeRoteiro {
   readonly mira?: readonly [number, number];
 }
 
+/** Trecho de degradação: do passo `passo` em diante vale o `nivel` (0 a 3), até o trecho seguinte (F-010 DG3, replay). */
+export interface TrechoDeDegradacao {
+  readonly passo: number;
+  readonly nivel: number;
+}
+
+/** Lança erro se os passos não crescerem estritamente a partir de 0 ou algum nível sair de 0 a 3. */
+export function validarDegradacoes(trechos: readonly TrechoDeDegradacao[]): void {
+  let anterior = -1;
+  for (const t of trechos) {
+    if (!Number.isInteger(t.passo) || t.passo <= anterior) throw new Error(`degradação: passo ${t.passo} fora de ordem`);
+    if (!Number.isInteger(t.nivel) || t.nivel < 0 || t.nivel > 3) throw new Error(`degradação: nível ${t.nivel} inválido`);
+    anterior = t.passo;
+  }
+}
+
+function nivelDeDegradacao(trechos: readonly TrechoDeDegradacao[], passo: number): number {
+  let achado = 0;
+  for (let i = 0; i < trechos.length && trechos[i]!.passo <= passo; i++) achado = trechos[i]!.nivel;
+  return achado;
+}
+
 /** Tolerância do |v| ≤ 1: com o literal 1/√2 em double, 2 × r² dá 1,0000000000000002. */
 const FOLGA_DO_MODULO = 1e-6;
 
@@ -129,9 +157,10 @@ export function validarAcoes(acoes: readonly AcaoDeRoteiro[]): void {
  * o roteiro para no 1º modal. As `acoes` (lista paralela) valem só no passo
  * exato; fora delas a fonte entrega `acoes` = 0 e `mira` = (0, 0).
  */
-export function fonteDoRoteiro(roteiro: Roteiro, escolhas?: EscolhasDoRoteiro, acoes?: readonly AcaoDeRoteiro[]): FonteDeComandos {
+export function fonteDoRoteiro(roteiro: Roteiro, escolhas?: EscolhasDoRoteiro, acoes?: readonly AcaoDeRoteiro[], degradacoes?: readonly TrechoDeDegradacao[]): FonteDeComandos {
   validarRoteiro(roteiro);
   if (acoes) validarAcoes(acoes);
+  if (degradacoes) validarDegradacoes(degradacoes);
   const fonte: FonteDeComandos = {
     comandosDoPasso(passo, out) {
       let lo = 0;
@@ -151,6 +180,7 @@ export function fonteDoRoteiro(roteiro: Roteiro, escolhas?: EscolhasDoRoteiro, a
       out.acoes[0] = 0;
       out.mira[0] = 0;
       out.mira[1] = 0;
+      out.degradacao[0] = degradacoes ? nivelDeDegradacao(degradacoes, passo) : 0;
       if (!acoes) return;
       lo = 0;
       hi = acoes.length - 1;

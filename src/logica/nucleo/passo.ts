@@ -67,7 +67,7 @@ export function passoVivo(e: Estado, dados: DadosDaVigilia, cmd: ComandosDoPasso
   // Fase 8 (ET4): o único decremento da Postura Quebrada, antes da rotação do cenário; passo congelado não chega aqui.
   decrementarPostura(e);
   aplicarRotacao(e);
-  rodarDiretor(e, dados, moveu);
+  rodarDiretor(e, dados, moveu, cmd.degradacao[0]!);
 }
 
 const INDICE_DA_FASE = JOGADOR4_U8.fase;

@@ -208,12 +208,20 @@ function nascerNoAnel(e: Estado, dados: DadosDaVigilia, codigo: number, converti
   m[MUNDO.spawns] = m[MUNDO.spawns]! + 1;
 }
 
+/**
+ * TETO efetivo (F-010 DG3; ADR-0002 §15 item 10, opção A): no nível 3 de degradação, o menor entre o TETO e o mínimo da linha
+ * corrente, sem o fator `I`; a massa acima dele vira Ocos Grandes pela regra existente. Nos níveis 0 a 2, o TETO.
+ */
+export function tetoEfetivo(teto: number, minimoDaLinha: number, degradacao: number): number {
+  return degradacao >= 3 && minimoDaLinha < teto ? minimoDaLinha : teto;
+}
+
 /** Reposição do ADR-0002 §8, passo 7 (aprovado no §15 item 9), na linha `linha`. */
-function repor(e: Estado, dados: DadosDaVigilia, linha: number, temIntencao: boolean): void {
+function repor(e: Estado, dados: DadosDaVigilia, linha: number, temIntencao: boolean, degradacao: number): void {
   const i10 = e.mundo[MUNDO.intensidade10]!;
   const slots = quantosAtivos(e.pool);
   const falta = alvoDaLinha(dados.timeline.minimo[linha]!, i10) - vivosEquivalentes(e);
-  const livres = e.cab[CAB.teto]! - slots;
+  const livres = tetoEfetivo(e.cab[CAB.teto]!, dados.timeline.minimo[linha]!, degradacao) - slots;
   if (falta <= 0 || livres <= 0) return;
   const entram = Math.min(falta, livres);
   const g = Math.min(Math.floor(Math.max(0, falta - livres) / MASSA_POR_CONVERTIDO), entram);
@@ -226,7 +234,7 @@ function repor(e: Estado, dados: DadosDaVigilia, linha: number, temIntencao: boo
  * Um passo do diretor (o último do passo da simulação). `temIntencao` é o
  * "houve intenção" de moverJogador neste passo; a direção é (dirX, dirY).
  */
-export function rodarDiretor(e: Estado, dados: DadosDaVigilia, temIntencao: boolean): void {
+export function rodarDiretor(e: Estado, dados: DadosDaVigilia, temIntencao: boolean, degradacao = 0): void {
   if (e.cab[CAB.cenario]! & CENARIO.diretorDesligado) return;
   const m = e.mundo;
   // Etapas (F-008 AR5): em MARCO e em FOGUEIRA nada nasce, e com um marco devido (o relógio já passou do limiar e a arena
@@ -252,7 +260,7 @@ export function rodarDiretor(e: Estado, dados: DadosDaVigilia, temIntencao: bool
     }
   }
   if (m[MUNDO.espera] === 0) {
-    repor(e, dados, linha, temIntencao);
+    repor(e, dados, linha, temIntencao, degradacao);
     m[MUNDO.espera] = intervaloEfetivo(tl.passosBase[linha]!, m[MUNDO.intensidade10]!);
   }
   m[MUNDO.espera] = m[MUNDO.espera]! - 1;
