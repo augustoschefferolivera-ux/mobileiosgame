@@ -160,7 +160,7 @@ export function separarHorda(
       if (++l === LINHAS) l = 0;
     }
   }
-  separarOsGrandes(e, dados, outX, outY);
+  separarOsGrandes(e, dados, ids, n, outX, outY);
   // O limite: a velocidade base do tipo, que é o que deixa a separação anular a perseguição e a horda parar.
   for (let k = 0; k < n; k++) {
     const s = ids[k]!;
@@ -180,7 +180,7 @@ export function separarHorda(
  * Separação dos grandes (CR10; partilha igual, D3 S3): cada grande consulta a grade da massa com `r_grande + R_MAX` e empurra
  * ½ da penetração para cada lado, em slot crescente; depois os pares de grandes entre si. Os dois lados do par recebem.
  */
-function separarOsGrandes(e: Estado, dados: DadosDaVigilia, outX: Float64Array, outY: Float64Array): void {
+function separarOsGrandes(e: Estado, dados: DadosDaVigilia, ids: Int32Array, n: number, outX: Float64Array, outY: Float64Array): void {
   const ng = GRANDES[MAX_GRANDES]!;
   if (ng === 0) return;
   const ini = e.inimigos;
@@ -189,7 +189,7 @@ function separarOsGrandes(e: Estado, dados: DadosDaVigilia, outX: Float64Array, 
     const a = GRANDES[q]!;
     const ra = t.raio[ini.tipo[a]!]!;
     if (ini.tipo[a] === TIPO.o_lanterneiro) {
-      separarDaCaixa(e, dados, a, outX, outY);
+      separarDaCaixa(e, dados, a, ids, n, outX, outY);
       continue;
     }
     const ax = ini.x[a]!;
@@ -230,25 +230,26 @@ function separarOsGrandes(e: Estado, dados: DadosDaVigilia, outX: Float64Array, 
 
 /**
  * O Lanterneiro contra a massa e os médios (LN3): os convocados são empurrados para fora da caixa pela penetração inteira, e o
- * chefe nunca é empurrado. A consulta é a da separação dos grandes (raio 80 + R_MAX); a distância ao retângulo e a normal de saída
- * vêm de `distanciaComSinal`. Um corpo grande (o Coroado) fica de fora: não convive com o chefe.
+ * chefe nunca é empurrado. Percorre os vivos (`ids[0..n)`, no máximo o TETO) em vez de consultar a grade: na arena do chefe o diretor
+ * está desligado e só ele e os convocados vivem lá, e a varredura direta não aloca nem depende da folga da consulta. A distância ao
+ * retângulo e a normal de saída vêm de `distanciaComSinal`. Um corpo grande (o Coroado) fica de fora: não convive com o chefe.
  */
-function separarDaCaixa(e: Estado, dados: DadosDaVigilia, a: number, outX: Float64Array, outY: Float64Array): void {
+function separarDaCaixa(e: Estado, dados: DadosDaVigilia, a: number, ids: Int32Array, n: number, outX: Float64Array, outY: Float64Array): void {
   const ini = e.inimigos;
   const t = dados.tipos;
-  CONSULTA[0] = ini.x[a]!;
-  CONSULTA[1] = ini.y[a]!;
-  CONSULTA[2] = t.raio[TIPO.o_lanterneiro]! + t.raioMaximo;
-  const m = consultarGradeComGrandes(grade, ini.x, ini.y, achadosDoGrande);
-  for (let i = 0; i < m; i++) {
-    const b = achadosDoGrande[i]!;
-    if (t.grande[ini.tipo[b]!] === 1) continue;
-    let dx = ini.x[b]! - ini.x[a]!;
+  const ax = ini.x[a]!;
+  const ay = ini.y[a]!;
+  const alcance = t.raio[TIPO.o_lanterneiro]! + t.raioMaximo;
+  for (let k = 0; k < n; k++) {
+    const b = ids[k]!;
+    if (b === a || t.grande[ini.tipo[b]!] === 1) continue;
+    let dx = ini.x[b]! - ax;
     if (dx > MEIA_LARGURA_DO_MAPA) dx -= LARGURA_DO_MAPA;
     if (dx < -MEIA_LARGURA_DO_MAPA) dx += LARGURA_DO_MAPA;
-    let dy = ini.y[b]! - ini.y[a]!;
+    let dy = ini.y[b]! - ay;
     if (dy > MEIA_ALTURA_DO_MAPA) dy -= ALTURA_DO_MAPA;
     if (dy < -MEIA_ALTURA_DO_MAPA) dy += ALTURA_DO_MAPA;
+    if (dx * dx + dy * dy > alcance * alcance) continue;
     GEO[0] = dx;
     GEO[1] = dy;
     distanciaComSinal();
