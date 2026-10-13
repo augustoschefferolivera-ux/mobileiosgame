@@ -598,7 +598,7 @@ export class Hud extends Phaser.Scene {
     if (sim !== null) {
       this.atualizarProgresso(sim);
       this.atualizarHp(sim);
-      this.barrasDoChefe!.atualizar(sim.estado, sim.dados.chefe.posturaMax);
+      this.barrasDoChefe!.atualizar(sim.estado, sim.dados.chefe.posturaMax, emJogo(sim.estado.jogador4U8[JOGADOR4_U8.fase]!));
       this.atualizarStamina(sim);
       this.atualizarAparo(sim);
       this.atualizarFrasco(sim);

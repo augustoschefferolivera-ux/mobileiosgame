@@ -37,10 +37,10 @@ export function alfaDoEscurecimento(relogio: number): number {
 
 /**
  * O céu das duas fases finais (F-009 FM1, AN4), só render: em A Fome o véu fica vinho e cresce de 0,40 a 0,75 pelos passos da fome; no
- * Amanhecer o véu preto cai de 0,40 a 0 em 600 passos e uma luz de brasa (aditiva) sobe de 0 a 0,30. `ate` = 520 passos é a fome mais
+ * Amanhecer o véu preto cai de 0,40 a 0 em 600 passos e uma luz de brasa (aditiva) sobe de 0 a 0,50. `ate` = 520 passos é a fome mais
  * curta que mata (a mais comprida acaba em FIM de qualquer jeito).
  */
-export const CEU_FINAL = { fome: { cor: 0x3a0a14, de: 0.4, ate: 0.75, passos: 520 }, amanhecer: { passos: 600, aurora: 0.3 } } as const;
+export const CEU_FINAL = { fome: { cor: 0x3a0a14, de: 0.4, ate: 0.75, passos: 520 }, amanhecer: { passos: 600, aurora: 0.5 } } as const;
 
 /** O véu da Vigília no estado: [0] alfa, [1] cor e [2] alfa da luz da aurora (0 fora do Amanhecer). Sem alocar. */
 export function veuDaVigilia(e: Estado, out: Float64Array): void {

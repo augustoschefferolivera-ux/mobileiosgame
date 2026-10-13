@@ -60,10 +60,10 @@ export class BarrasDoChefe {
     this.hpDesenhado = this.posturaDesenhada = this.quebraDesenhada = -1;
   }
 
-  /** Lê o chefe do estado: aparece com ele vivo e some sem ele. */
-  atualizar(e: Estado, postura100: number): void {
+  /** Lê o chefe do estado: aparece com ele vivo e a Vigília em jogo, e some sem ele ou no APAGANDO e no FIM (o Resultado cobre a tela). */
+  atualizar(e: Estado, postura100: number, emJogo: boolean): void {
     const s = e.chefeU16[CHEFE_U16.slot]!;
-    const vivo = s !== SEM_CHEFE;
+    const vivo = s !== SEM_CHEFE && emJogo;
     if (vivo !== this.visivel) {
       this.visivel = vivo;
       for (const o of [this.trilhoHp, this.trilhoPostura, this.marcas, this.nome]) o.setVisible(vivo);

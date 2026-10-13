@@ -20,6 +20,10 @@ const FADE_MS = 200;
 const LINHAS = 7;
 const ENTRE_LINHAS = 34;
 const MARGEM_LATERAL = 40;
+/** Corpo das linhas, o menor corpo do valor ao se encaixar ("O Lanterneiro, Fase 3" não cabe ao lado de "Chefe mais longe" a 18 pt) e o vão entre o rótulo e o valor. */
+const CORPO_DA_LINHA = 18;
+const CORPO_MINIMO_DO_VALOR = 12;
+const VAO_DA_LINHA = 12;
 
 export class Resultado extends Phaser.Scene {
   private veu: Phaser.GameObjects.Graphics | null = null;
@@ -103,6 +107,7 @@ export class Resultado extends Phaser.Scene {
     for (let k = 0; k < LINHAS; k++) {
       this.valores[k]!.setText(t('A7.RESULTADO.VALOR', { valor: linhas[k]!.valor })).setVisible(true);
       this.rotulos[k]!.setVisible(true);
+      this.encaixar(k);
     }
     const m = linhaDaMancha(r);
     if (m !== null) this.mancha!.setText(t(m.id, m.params)).setData('idTexto', m.id).setVisible(true);
@@ -110,6 +115,17 @@ export class Resultado extends Phaser.Scene {
     this.voltar!.setVisible(true);
     this.repetir!.setVisible(true);
     this.diagramar();
+  }
+
+  /** Encaixa o valor da linha `k` ao lado do rótulo (390 pt): diminui a fonte do valor, de 18 a 12 pt, até os dois caberem com 12 pt de vão. */
+  private encaixar(k: number): void {
+    const valor = this.valores[k]!;
+    const rotulo = this.rotulos[k]!;
+    const ins = this.ctx.insets;
+    const largura = LARGURA_LOGICA - ins.esquerda - ins.direita - 2 * MARGEM_LATERAL - VAO_DA_LINHA;
+    let corpo = CORPO_DA_LINHA;
+    valor.setFontSize(corpo);
+    while (corpo > CORPO_MINIMO_DO_VALOR && rotulo.width + valor.width > largura) valor.setFontSize(--corpo);
   }
 
   private diagramar(): void {

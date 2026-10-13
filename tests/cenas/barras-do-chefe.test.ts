@@ -66,7 +66,7 @@ describe('céu das fases finais', () => {
     expect(v[0]).toBeCloseTo(CEU_FINAL.fome.ate, 6);
   });
 
-  it('no Amanhecer o véu cai de 0,40 a 0 em 600 passos e a aurora sobe de 0 a 0,30', () => {
+  it('no Amanhecer o véu cai de 0,40 a 0 em 600 passos e a aurora sobe de 0 a 0,50', () => {
     const e = estadoDoChefe();
     e.fogueiraU8[FOGUEIRA_U8.etapa] = ETAPA.amanhecer;
     e.chefeU16[CHEFE_U16.amanhecerPassos] = 0;
@@ -74,9 +74,10 @@ describe('céu das fases finais', () => {
     expect([v[0], v[2]]).toEqual([0.4, 0]);
     e.chefeU16[CHEFE_U16.amanhecerPassos] = 300;
     veuDaVigilia(e, v);
-    expect([v[0]!, v[2]!]).toEqual([expect.closeTo(0.2, 6), expect.closeTo(0.15, 6)]);
+    expect([v[0]!, v[2]!]).toEqual([expect.closeTo(0.2, 6), expect.closeTo(0.25, 6)]);
     e.chefeU16[CHEFE_U16.amanhecerPassos] = 600;
     veuDaVigilia(e, v);
-    expect([v[0], v[2]]).toEqual([0, 0.3]);
+    expect([v[0], v[2]]).toEqual([0, CEU_FINAL.amanhecer.aurora]);
+    expect(CEU_FINAL.amanhecer.aurora).toBe(0.5);
   });
 });
