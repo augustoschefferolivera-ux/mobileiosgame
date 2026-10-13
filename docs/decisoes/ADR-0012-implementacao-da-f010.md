@@ -20,7 +20,7 @@
 
 - **Meta v3** (`VERSAO_DO_META` 3): `fundacao { ranks[8], gasto }`, `marcos` (máscara `MARCO.balaoCinzas = 1`, `MARCO.iselda = 2`) e `conviteRecusadoEm` (`vigiliasConcluidas` da recusa, ou null). Migrações puras 1 → 2 → 3 em `migracoes.ts`; `vdc.meta.anterior` guarda o texto de uma versão antiga na próxima gravação (uma geração). Soma errada, NaN, `gasto` incoerente com os ranks e versão futura caem no `anterior` e depois nos padrões.
 - **GA1:** `aplicarFimDeVigilia` completa o saldo a 300 no 1º Apagar ou A Fome (`ALMAS_GARANTIDAS`) só se estiver abaixo, na mesma gravação do crédito; depois disso `primeiroApagarFeito` impede repetir.
-- **Auxiliares para a cena:** `comMarco(meta, MARCO.x)`, `comConviteRecusado(meta)`, `comprar(meta, idx)`, `reembolsar(meta)`, `custoDaCompra(meta, idx)`, `foiRecusado(r)` (recusa tem `motivo`: bloqueado, maximo, sem_almas, nada_a_reembolsar; nunca debita).
+- **Auxiliares para a cena:** `comMarco(meta, MARCO.x)`, `comConviteRecusado(meta)`, `comprar(meta, idx)`, `reembolsar(meta)`, `custoDaCompra(meta, idx)`, `foiRecusado(r)` (`Recusado.recusa`: bloqueado, maximo, sem_almas, nada_a_reembolsar; nunca debita).
 - **ST1:** `localStorage` (sem IndexedDB). O `navigator.storage.persist()` em standalone fica na plataforma da etapa 2b.
 
 ## 4. Degradação
